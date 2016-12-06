@@ -1,0 +1,78 @@
+buildscript {
+    ext {
+        springBootVersion = '1.4.1.RELEASE'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+    }
+}
+
+ext.junitJupiterVersion = '5.0.0-M2'
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+apply plugin: 'spring-boot'
+apply plugin: 'jacoco'
+
+
+jar {
+    baseName = 'CloudAuthenticationAuthorizationManager'
+    version =  '0.0.1'
+}
+
+repositories {
+    mavenCentral()
+    maven { 
+        url "https://jitpack.io" 
+    }
+    maven {
+        url 'https://repo.spring.io/libs-snapshot'
+    }
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+dependencies {
+    compile('org.springframework.cloud:spring-cloud-starter-config')
+    compile('org.springframework.cloud:spring-cloud-starter-eureka')
+    compile('org.springframework.cloud:spring-cloud-starter-zipkin') // Causes the java.net.ConnectException
+    compile('org.springframework.cloud:spring-cloud-starter-stream-rabbit')
+    compile('org.springframework.boot:spring-boot-starter-data-rest')
+    compile('org.springframework.boot:spring-boot-starter-web')
+    compile('org.springframework.boot:spring-boot-starter-data-mongodb')
+    compile('com.google.code.gson:gson:2.7')
+    compile('com.google.guava:guava:19.+')
+    compile('com.github.symbiote-h2020:mediationFramework:b2a4829d3f')
+    compile('com.googlecode.json-simple:json-simple:1.1.1')
+
+    testCompile('org.springframework.boot:spring-boot-starter-test')
+
+
+    // Use JUnit4
+    testCompile 'junit:junit:4.12'
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Camden.RELEASE"
+        mavenBom 'org.springframework.cloud:spring-cloud-sleuth:1.1.0.BUILD-SNAPSHOT'
+    }
+}
+
+jacoco {
+    toolVersion = "0.7.7.201606060606"
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+}
+
+check.dependsOn jacocoTestReport
