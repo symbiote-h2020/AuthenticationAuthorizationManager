@@ -45,10 +45,6 @@ dependencies {
     compile('org.springframework.boot:spring-boot-starter-data-rest')
     compile('org.springframework.boot:spring-boot-starter-web')
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
-    compile('com.google.code.gson:gson:2.7')
-    compile('com.google.guava:guava:19.+')
-    compile('com.github.symbiote-h2020:mediationFramework:b2a4829d3f')
-    compile('com.googlecode.json-simple:json-simple:1.1.1')
 
     testCompile('org.springframework.boot:spring-boot-starter-test')
 
