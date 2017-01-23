@@ -14,6 +14,14 @@ import eu.h2020.symbiote.commons.json.LoginRequest;
 import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.services.LoginService;
 
+/**
+ * Spring controller to handle HTTPS requests related to the RESTful web service associated to user/app login service in
+ * Cloud AAM component.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ * @see eu.h2020.symbiote.services.LoginService
+ */
 @RestController
 public class LoginController {
 

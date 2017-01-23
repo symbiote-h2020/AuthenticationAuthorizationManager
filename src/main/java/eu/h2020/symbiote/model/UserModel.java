@@ -1,15 +1,17 @@
 package eu.h2020.symbiote.model;
 
-/**
- * Created by Nemanja on 14.12.2016.
- */
-
 import org.springframework.data.annotation.Id;
-
 import java.util.ArrayList;
-
 import eu.h2020.symbiote.commons.User;
 
+
+/**
+ * Platform AAM user entity definition for database persistence.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ * @see eu.h2020.symbiote.commons.User
+ */
 public class UserModel extends User {
 
     public UserModel() {

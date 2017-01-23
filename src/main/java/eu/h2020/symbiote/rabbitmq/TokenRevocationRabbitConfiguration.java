@@ -22,6 +22,13 @@ import eu.h2020.symbiote.commons.Constants;
 import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.rabbitmq.consumers.CheckTokenRevocationConsumerService;
 
+/**
+ * Configuration class for message queues implementing the Cloud AAM internal interface (defined <a href="http://www.smarteremc2.eu/colab/display/SYM/Platform+AAM%3A+Interface+Definition">here</a>)
+ * of the 'check home token revocation' service.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ */
 @Configuration("tokenRevocationRabbitConfiguration")
 public class TokenRevocationRabbitConfiguration {
 

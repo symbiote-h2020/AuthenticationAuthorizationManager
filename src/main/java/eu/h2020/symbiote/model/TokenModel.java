@@ -1,12 +1,16 @@
 package eu.h2020.symbiote.model;
 
-/**
- * Created by Nemanja on 14.12.2016.
- */
-
 import eu.h2020.symbiote.commons.json.RequestToken;
 import org.springframework.data.annotation.Id;
 
+
+/**
+ * Token entity definition for database persistence.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ * @see eu.h2020.symbiote.commons.json.RequestToken
+ */
 public class TokenModel {
 
     String token;

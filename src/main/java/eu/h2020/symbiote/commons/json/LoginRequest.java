@@ -1,11 +1,14 @@
 package eu.h2020.symbiote.commons.json;
 
-/**
- * Created by Nemanja on 14.12.2016.
- */
-
 import java.util.ArrayList;
 
+
+/**
+ * Class that defines the structure of a login request to CloudAAM.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ */
 public class LoginRequest {
     private String username;
     private String password;

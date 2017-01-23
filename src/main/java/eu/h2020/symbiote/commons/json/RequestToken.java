@@ -3,8 +3,12 @@ package eu.h2020.symbiote.commons.json;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+
 /**
- * Created by Nemanja on 14.12.2016.
+ * Class that defines the structure of the token sent to CloudAAM as part of a request.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
  */
 public class RequestToken {
 

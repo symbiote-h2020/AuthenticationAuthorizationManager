@@ -15,6 +15,14 @@ import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.model.TokenModel;
 import eu.h2020.symbiote.services.TokenService;
 
+/**
+ * Spring controller to handle HTTPS requests related to the RESTful web services associated to token objects in Cloud
+ * AAM component.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ * @see eu.h2020.symbiote.services.TokenService
+ */
 @RestController
 public class TokenController {
 
@@ -47,7 +55,7 @@ public class TokenController {
         return new ResponseEntity<RequestToken>(tokenService.getDefaultForeignToken(),HttpStatus.OK);
     }
 
-    //L1 Diagrams - check_token_revocation()
+    // L1 Diagrams - check_token_revocation()
     @RequestMapping(value = "/check_home_token_revocation",  method = RequestMethod.POST)
     public ResponseEntity<?> checkHomeTokenRevocation(@RequestBody RequestToken token) {
 

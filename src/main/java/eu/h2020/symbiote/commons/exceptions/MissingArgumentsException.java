@@ -4,8 +4,15 @@ import eu.h2020.symbiote.commons.Constants;
 import eu.h2020.symbiote.commons.CustomAAMException;
 import org.springframework.http.HttpStatus;
 
+
+/**
+ * Custom exception thrown when username and/or password credentials are missing during login procedure in {@link eu.h2020.symbiote.services.LoginService}.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ */
 public class MissingArgumentsException extends CustomAAMException {
-	
+
 	private static final long serialVersionUID = Constants.serialVersionUID;
 
 	private final HttpStatus statusCode = HttpStatus.BAD_REQUEST;

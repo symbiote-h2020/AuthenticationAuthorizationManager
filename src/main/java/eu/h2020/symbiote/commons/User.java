@@ -2,6 +2,13 @@ package eu.h2020.symbiote.commons;
 
 import java.util.ArrayList;
 
+
+/**
+ * Class for a generic Cloud AAM user.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ */
 public class User {
     private String username;
     private String password;

@@ -1,15 +1,19 @@
 package eu.h2020.symbiote.commons;
 
+
 /**
- * Created by Nemanja on 14.12.2016.
+ * Recipient class used to collect all the constant values used throughout Cloud AAM code.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
  */
 public class Constants {
 
     public static final String ERROR_WRONG_TOKEN = "ERR_WRONG_TOKEN";
 
     public static final long serialVersionUID = 7526472295622776147L;
-    
-    
+
+
     public final static String PLATFORM_AAM_REGISTRATION_HANDLER_LOGIN_REQUEST_QUEUE = "symbIoTe-platformAAM-registrationHandler-login_request";
     public final static String PLATFORM_AAM_REGISTRATION_HANDLER_LOGIN_REQUEST_ROUTING_KEY = "symbIoTe.platformAAM.registrationHandler.login_request";
     public final static String REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE = "symbIoTe-registrationHandler-platformAAM-login_reply";

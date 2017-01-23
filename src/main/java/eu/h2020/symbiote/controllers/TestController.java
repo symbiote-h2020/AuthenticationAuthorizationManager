@@ -14,13 +14,20 @@ import eu.h2020.symbiote.commons.json.LoginRequest;
 import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.services.TestService;
 
+
+/**
+ * Spring controller to handle HTTPS requests related to the RESTful web services binded to test operations in
+ * {@link eu.h2020.symbiote.services.TestService} (FOR DEBUG/TEST PURPOSES ONLY).
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ */
 @RestController
 public class TestController {
 
 	@Autowired
     private TestService testService;
 
-    //L1 Diagrams - login()
     @RequestMapping(value = "/testLogin", method = RequestMethod.POST)
     public ResponseEntity<?> login(@RequestBody LoginRequest user) {
 

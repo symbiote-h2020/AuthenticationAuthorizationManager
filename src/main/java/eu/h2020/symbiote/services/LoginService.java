@@ -10,8 +10,12 @@ import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.model.UserModel;
 import eu.h2020.symbiote.repositories.UserRepository;
 
-
-
+/**
+ * Spring service used to provide login related functionalities of CloudAAM.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ */
 @Service
 public class LoginService {
 

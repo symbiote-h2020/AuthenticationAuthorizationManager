@@ -22,15 +22,22 @@ import eu.h2020.symbiote.commons.Constants;
 import eu.h2020.symbiote.commons.json.LoginRequest;
 import eu.h2020.symbiote.rabbitmq.consumers.LoginConsumerService;
 
+/**
+ * Configuration class for message queues implementing the Cloud AAM internal interface (defined <a href="http://www.smarteremc2.eu/colab/display/SYM/Platform+AAM%3A+Interface+Definition">here</a>)
+ * of the login service.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ */
 @Configuration("loginRabbitConfiguration")
 public class LoginRabbitConfiguration {
 	
 	private static Log log = LogFactory.getLog(LoginRabbitConfiguration.class);
 
 	/**
-	 * 
+	 *
 	 * Exchange and queue initialization for login from Registration Handler
-	 * 
+	 *
 	 */
     @Bean
     @Qualifier(Constants.PLATFORM_AAM_REGISTRATION_HANDLER_LOGIN_REQUEST_QUEUE)

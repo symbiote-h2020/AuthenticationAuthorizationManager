@@ -5,6 +5,14 @@ import eu.h2020.symbiote.commons.json.RequestToken;
 
 import org.springframework.stereotype.Component;
 
+/**
+ * Class for managing operations (creation, verification checking, etc.) on {@link eu.h2020.symbiote.commons.json.RequestToken} objects in token related
+ * service ({@link eu.h2020.symbiote.services.TokenService}).
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ * @see eu.h2020.symbiote.commons.json.RequestToken
+ */
 @Component
 public class TokenManager {
 
@@ -18,7 +26,7 @@ public class TokenManager {
         return new RequestToken(token);
     }
 
-    //checkHomeTokenRevocation()
+
     public Status checkHomeTokenRevocation(RequestToken token) {
 
         // outcome (for now default is true)

@@ -3,6 +3,12 @@ package eu.h2020.symbiote.commons.json;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Class that defines an error message container to be used as response by Cloud AAM services.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ */
 public class ErrorResponseContainer {
 
 	private String errorMessage;

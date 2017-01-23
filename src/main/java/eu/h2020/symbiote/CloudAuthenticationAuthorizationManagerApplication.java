@@ -10,7 +10,10 @@ import org.springframework.context.annotation.Bean;
 
 
 /**
- * Created by mateuszl on 22.09.2016.
+ * Spring Boot Application class for Cloud Authentication and Authorization Manager (Cloud AAM) component.
+ *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
  */
 @EnableDiscoveryClient
 @SpringBootApplication
