@@ -96,45 +96,11 @@ public class TokenRevocationRabbitConfiguration {
             public void onMessage(Message message) {
             	try {
 					RequestToken tokenReq = om.readValue(message.getBody(),RequestToken.class);
-	                log.info("2. Received AMQP request from Platform RAP: " + new String(message.getBody()));
+	                log.info("2. Received CTR AMQP request from Platform RAP: " + new String(message.getBody()));
 	                receiver.receiveMessage(tokenReq);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-            }
-        };
-    }
-
-	
-    // FIXME: 5. The listener container checkTokenRevocationReplyContainer calls the checkTokenRevocationReplyListenerAdapter (REGISTRATION HANDLER SIDE - DEBUG ONLY)
-    
-    @Bean
-    @Qualifier(Constants.PLATFORM_RAP_PLATFORM_AAM_CHECK_TOKEN_REVOCATION_REPLY_QUEUE)
-    //@ConditionalOnMissingBean
-    TopicExchange platformRAPRegistrationHandleExchange() {
-        TopicExchange topicExchange = new TopicExchange("symbIoTe.platformRAP");
-        return topicExchange;
-    }
-    
-    @Bean
-    @Qualifier(Constants.PLATFORM_RAP_PLATFORM_AAM_CHECK_TOKEN_REVOCATION_REPLY_QUEUE)
-    SimpleMessageListenerContainer checkTokenRevocationReplyPlatformRAPContainer(ConnectionFactory connectionFactory,
-                                                       @Qualifier(Constants.PLATFORM_RAP_PLATFORM_AAM_CHECK_TOKEN_REVOCATION_REPLY_QUEUE) MessageListener checkTokenRevocationReplyListenerAdapter) {
-        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
-        container.setConnectionFactory(connectionFactory);
-        container.setQueueNames(Constants.PLATFORM_RAP_PLATFORM_AAM_CHECK_TOKEN_REVOCATION_REPLY_QUEUE);
-        container.setMessageListener(checkTokenRevocationReplyListenerAdapter);
-        return container;
-    }
-    
-    //  Token revocation Reply from Platform AAM to checkTokenRevocationReplyListenerAdapter (REGISTRATION HANDLER SIDE - DEBUG ONLY)
-    @Bean
-    @Qualifier(Constants.PLATFORM_RAP_PLATFORM_AAM_CHECK_TOKEN_REVOCATION_REPLY_QUEUE)
-    MessageListener checkTokenRevocationReplyPlatformRAPListenerAdapter(CheckTokenRevocationConsumerService receiver, ObjectMapper om) {
-        return new MessageListener() {
-            @Override
-            public void onMessage(Message message) {
-                log.info("3. Reply from Platform AAM:" + new String(message.getBody()));
             }
         };
     }

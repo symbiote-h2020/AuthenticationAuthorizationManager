@@ -96,7 +96,7 @@ public class LoginRabbitConfiguration {
             public void onMessage(Message message) {
             	try {
 					LoginRequest loginReq = om.readValue(message.getBody(),LoginRequest.class);
-	                log.info("2. Received AMQP request from Registration Handler: " + new String(message.getBody()));
+	                log.info("2. Received Login AMQP request from Registration Handler: " + new String(message.getBody()));
 	                receiver.receiveMessage(loginReq);
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -107,7 +107,7 @@ public class LoginRabbitConfiguration {
 
 	/**
 	 * 
-	 * Exchange and queue initialization for login from Registration Handler
+	 * Exchange and queue initialization for login from Monitoring
 	 * 
 	 */
     @Bean
@@ -167,73 +167,11 @@ public class LoginRabbitConfiguration {
             public void onMessage(Message message) {
             	try {
 					LoginRequest loginReq = om.readValue(message.getBody(),LoginRequest.class);
-	                log.info("2. Received AMQP request from Registration Handler: " + new String(message.getBody()));
+	                log.info("2. Received Login AMQP request from Monitoring: " + new String(message.getBody()));
 	                receiver.receiveMessage(loginReq);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-            }
-        };
-    }
-    // FIXME: 5. The listener container loginReplyContainer calls the loginReplyListenerAdapter (REGISTRATION HANDLER SIDE - DEBUG ONLY)
-    
-    @Bean
-    @Qualifier(Constants.REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE)
-    //@ConditionalOnMissingBean
-    TopicExchange registrationHandlerRegistrationHandleExchange() {
-        TopicExchange topicExchange = new TopicExchange("symbIoTe.registrationHandler");
-        return topicExchange;
-    }
-    
-    @Bean
-    @Qualifier(Constants.MONITORING_PLATFORM_AAM_LOGIN_REPLY_QUEUE)
-    //@ConditionalOnMissingBean
-    TopicExchange monitoringRegistrationHandleExchange() {
-        TopicExchange topicExchange = new TopicExchange("symbIoTe.monitoring");
-        return topicExchange;
-    }
-    
-    @Bean
-    @Qualifier(Constants.REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE)
-    SimpleMessageListenerContainer loginReplyRegistrationHandlerContainer(ConnectionFactory connectionFactory,
-                                                       @Qualifier(Constants.REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE) MessageListener loginReplyListenerAdapter) {
-        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
-        container.setConnectionFactory(connectionFactory);
-        container.setQueueNames(Constants.REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE);
-        container.setMessageListener(loginReplyListenerAdapter);
-        return container;
-    }
-    
-    @Bean
-    @Qualifier(Constants.MONITORING_PLATFORM_AAM_LOGIN_REPLY_QUEUE)
-    SimpleMessageListenerContainer loginReplyMonitoringContainer(ConnectionFactory connectionFactory,
-                                                       @Qualifier(Constants.MONITORING_PLATFORM_AAM_LOGIN_REPLY_QUEUE) MessageListener loginReplyListenerAdapter) {
-        SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
-        container.setConnectionFactory(connectionFactory);
-        container.setQueueNames(Constants.MONITORING_PLATFORM_AAM_LOGIN_REPLY_QUEUE);
-        container.setMessageListener(loginReplyListenerAdapter);
-        return container;
-    }
-    
-    //  Login Reply from Platform AAM to loginReplyListenerAdapter (REGISTRATION HANDLER SIDE - DEBUG ONLY)
-    @Bean
-    @Qualifier(Constants.REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE)
-    MessageListener loginReplyRegistrationHandlerListenerAdapter(LoginConsumerService receiver, ObjectMapper om) {
-        return new MessageListener() {
-            @Override
-            public void onMessage(Message message) {
-                log.info("3. Reply from Platform AAM:" + new String(message.getBody()));
-            }
-        };
-    }
-    
-    @Bean
-    @Qualifier(Constants.MONITORING_PLATFORM_AAM_LOGIN_REPLY_QUEUE)
-    MessageListener loginReplyMonitoringListenerAdapter(LoginConsumerService receiver, ObjectMapper om) {
-        return new MessageListener() {
-            @Override
-            public void onMessage(Message message) {
-                log.info("3. Reply from Platform AAM:" + new String(message.getBody()));
             }
         };
     }
