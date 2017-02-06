@@ -23,7 +23,6 @@ import eu.h2020.symbiote.model.UserModel;
 import eu.h2020.symbiote.repositories.UserRepository;
 
 @RunWith(SpringRunner.class)
-@ContextConfiguration(classes = { CloudAuthenticationAuthorizationManagerApplication.class })
 @SpringBootTest({ "eureka.client.enabled=false" })
 public class CloudAuthenticationAuthorizationManagerApplicationTests {
 
