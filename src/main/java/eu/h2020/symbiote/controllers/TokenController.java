@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import eu.h2020.symbiote.commons.enums.Status;
+import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.model.TokenModel;
 import eu.h2020.symbiote.services.TokenService;
@@ -59,6 +59,6 @@ public class TokenController {
     @RequestMapping(value = "/check_home_token_revocation",  method = RequestMethod.POST)
     public ResponseEntity<?> checkHomeTokenRevocation(@RequestBody RequestToken token) {
 
-        return new ResponseEntity<Status>(tokenService.checkHomeTokenRevocation(token),HttpStatus.OK);
+        return new ResponseEntity<CheckTokenRevocationResponse>(tokenService.checkHomeTokenRevocation(token),HttpStatus.OK);
     }
 }

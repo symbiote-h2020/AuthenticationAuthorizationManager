@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import eu.h2020.symbiote.commons.TokenManager;
-import eu.h2020.symbiote.commons.enums.Status;
+import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.model.TokenModel;
 import eu.h2020.symbiote.repositories.TokenRepository;
@@ -37,7 +37,7 @@ public class TokenService {
         return tokenManager.create("home_token_from_platform_aam");
     }
 
-    public Status checkHomeTokenRevocation(RequestToken token) {
+    public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {
         return tokenManager.checkHomeTokenRevocation(token);
     }
 

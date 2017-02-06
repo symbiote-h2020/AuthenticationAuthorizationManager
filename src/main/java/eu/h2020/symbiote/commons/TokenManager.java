@@ -1,9 +1,10 @@
 package eu.h2020.symbiote.commons;
 
-import eu.h2020.symbiote.commons.enums.Status;
-import eu.h2020.symbiote.commons.json.RequestToken;
-
 import org.springframework.stereotype.Component;
+
+import eu.h2020.symbiote.commons.enums.Status;
+import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.commons.json.RequestToken;
 
 /**
  * Class for managing operations (creation, verification checking, etc.) on {@link eu.h2020.symbiote.commons.json.RequestToken} objects in token related
@@ -27,10 +28,10 @@ public class TokenManager {
     }
 
 
-    public Status checkHomeTokenRevocation(RequestToken token) {
+    public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {
 
         // outcome (for now default is true)
-        Status outcome = Status.SUCCESS;
+    	CheckTokenRevocationResponse outcome = new CheckTokenRevocationResponse(Status.SUCCESS);
 
         // do checks...
 
