@@ -13,7 +13,7 @@ public class Constants {
 
     public static final long serialVersionUID = 7526472295622776147L;
 
-
+    // AMQP message queues related constants (queues and routing key names)
     public final static String PLATFORM_AAM_REGISTRATION_HANDLER_LOGIN_REQUEST_QUEUE = "symbIoTe-platformAAM-registrationHandler-login_request";
     public final static String PLATFORM_AAM_REGISTRATION_HANDLER_LOGIN_REQUEST_ROUTING_KEY = "symbIoTe.platformAAM.registrationHandler.login_request";
     public final static String REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE = "symbIoTe-registrationHandler-platformAAM-login_reply";

@@ -2,11 +2,26 @@ package eu.h2020.symbiote;
 
 import static org.junit.Assert.assertEquals;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.h2020.symbiote.commons.Constants;
+import eu.h2020.symbiote.model.TokenModel;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageListener;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.embedded.LocalServerPort;
+import org.springframework.boot.test.IntegrationTest;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
@@ -22,16 +37,27 @@ import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.model.UserModel;
 import eu.h2020.symbiote.repositories.UserRepository;
 
+import java.io.IOException;
+
 @RunWith(SpringRunner.class)
-@SpringBootTest({ "eureka.client.enabled=false" })
+//@SpringBootTest({"webEnvironment = WebEnvironment.RANDOM_PORT", "eureka.client.enabled=false"}) // FIXME: DOESN'T WORK WITH MULTIPLE PROPERTIES
+@SpringBootTest(webEnvironment=WebEnvironment.RANDOM_PORT)
 public class CloudAuthenticationAuthorizationManagerApplicationTests {
 
 	@Autowired
 	private UserRepository userRepository;
 
+	@LocalServerPort
+	int port;
+
+	private static Log log = LogFactory.getLog(CloudAuthenticationAuthorizationManagerApplicationTests.class);
+
 	RestTemplate restTemplate = new RestTemplate();
 
-	private final String serverAddress = "http://localhost:8300/";
+	@Autowired
+    private RabbitTemplate rabbitTemplate;
+
+	private String serverAddress;
 	private final String loginUri = "login";
 	private final String foreignTokenUri = "request_foreign_token";
 	private final String checkHomeTokenRevocationUri = "check_home_token_revocation";
@@ -45,8 +71,12 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	private final String homeTokenValue = "home_token_from_platform_aam";
 	private final String foreignTokenValue = "foreign_token_from_platform_aam";
 
+
 	@Before
 	public void setUp() throws Exception {
+		// Catch the random port
+		serverAddress = "http://localhost:" + port + "/";
+		// Test rest template
 		restTemplate = new RestTemplate();
 		// Insert username and password to DB
 		userRepository.save(new UserModel(username, password));
@@ -63,7 +93,7 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	public void externalLoginWrongUsername() {
 		ResponseEntity<ErrorResponseContainer> token = null;
 		try {
-			token = restTemplate.postForEntity(serverAddress + loginUri, new LoginRequest(wrongusername, password),
+			token = restTemplate.postForEntity(serverAddress+ loginUri, new LoginRequest(wrongusername, password),
 					ErrorResponseContainer.class);
 		} catch (HttpClientErrorException e) {
 			assertEquals(token, null);
@@ -76,7 +106,7 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	public void externalLoginWrongPassword() {
 		ResponseEntity<ErrorResponseContainer> token = null;
 		try {
-			token = restTemplate.postForEntity(serverAddress + loginUri, new LoginRequest(username, wrongpassword),
+			token = restTemplate.postForEntity(serverAddress+ loginUri, new LoginRequest(username, wrongpassword),
 					ErrorResponseContainer.class);
 		} catch (HttpClientErrorException e) {
 			assertEquals(token, null);
@@ -97,5 +127,26 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 				new RequestToken(homeTokenValue), CheckTokenRevocationResponse.class);
 		assertEquals(status.getBody().getStatus(), Status.SUCCESS.toString());
 	}
+
+	@Test
+	public void internalRegistrationHandlerLoginRequestReplySuccess() throws IOException {
+
+		ObjectMapper mapper = new ObjectMapper();
+
+		// Send a login request on queue on behalf of Registration Handler
+		try {
+				rabbitTemplate.convertAndSend(Constants.PLATFORM_AAM_REGISTRATION_HANDLER_LOGIN_REQUEST_QUEUE, mapper.writeValueAsString(new LoginRequest(username, password)));
+			} catch (JsonProcessingException e) {
+				// TODO Auto-generated catch block
+						e.printStackTrace();
+			}
+
+		// Listens on the reply queue
+		Message reply = rabbitTemplate.receive(Constants.REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE, 5000);
+		RequestToken token = mapper.readValue(reply.getBody(),RequestToken.class);
+
+		assertEquals(homeTokenValue, token.getToken());
+	}
+
 
 }

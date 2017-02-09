@@ -33,6 +33,7 @@ public class LoginConsumerService {
 					token.toJson());
 		} catch (MissingArgumentsException | WrongCredentialsException e) {
 			//Platform AAM sends the error response back toRegistration Handler
+
 			rabbitTemplate.convertAndSend(Constants.REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE,
 					(new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson());
 		}

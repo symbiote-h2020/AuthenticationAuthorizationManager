@@ -195,7 +195,7 @@ public class LoginRabbitConfiguration {
             return topicExchange;
         }
         
-        @Bean
+/*        @Bean
         @Qualifier(Constants.REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE)
         SimpleMessageListenerContainer loginReplyRegistrationHandlerContainer(ConnectionFactory connectionFactory,
                                                            @Qualifier(Constants.REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE) MessageListener loginReplyListenerAdapter) {
@@ -204,7 +204,7 @@ public class LoginRabbitConfiguration {
             container.setQueueNames(Constants.REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE);
             container.setMessageListener(loginReplyListenerAdapter);
             return container;
-        }
+        }*/
         
         @Bean
         @Qualifier(Constants.MONITORING_PLATFORM_AAM_LOGIN_REPLY_QUEUE)
@@ -217,7 +217,7 @@ public class LoginRabbitConfiguration {
             return container;
         }
         
-        //  Login Reply from Platform AAM to loginReplyListenerAdapter (REGISTRATION HANDLER SIDE  DEBUG ONLY)
+/*        //  Login Reply from Platform AAM to loginReplyListenerAdapter (REGISTRATION HANDLER SIDE  DEBUG ONLY)
         @Bean
         @Qualifier(Constants.REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE)
         MessageListener loginReplyRegistrationHandlerListenerAdapter(LoginConsumerService receiver, ObjectMapper om) {
@@ -227,7 +227,7 @@ public class LoginRabbitConfiguration {
                     log.info("3. Reply from Platform AAM:" + new String(message.getBody()));
                 }
             };
-        }
+        }*/
         
         @Bean
         @Qualifier(Constants.MONITORING_PLATFORM_AAM_LOGIN_REPLY_QUEUE)
