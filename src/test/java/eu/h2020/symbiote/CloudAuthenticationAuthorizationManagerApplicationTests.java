@@ -2,29 +2,23 @@ package eu.h2020.symbiote;
 
 import static org.junit.Assert.assertEquals;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.h2020.symbiote.commons.Constants;
-import eu.h2020.symbiote.model.TokenModel;
+import com.rabbitmq.client.RpcClient;
+import eu.h2020.symbiote.rabbitmq.RabbitManager;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
-import org.springframework.boot.test.IntegrationTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -38,6 +32,7 @@ import eu.h2020.symbiote.model.UserModel;
 import eu.h2020.symbiote.repositories.UserRepository;
 
 import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 @RunWith(SpringRunner.class)
 //@SpringBootTest({"webEnvironment = WebEnvironment.RANDOM_PORT", "eureka.client.enabled=false"}) // FIXME: DOESN'T WORK WITH MULTIPLE PROPERTIES
@@ -57,6 +52,10 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	@Autowired
     private RabbitTemplate rabbitTemplate;
 
+	@Autowired
+	private RabbitManager rabbitManager;
+
+
 	private String serverAddress;
 	private final String loginUri = "login";
 	private final String foreignTokenUri = "request_foreign_token";
@@ -70,6 +69,11 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 
 	private final String homeTokenValue = "home_token_from_platform_aam";
 	private final String foreignTokenValue = "foreign_token_from_platform_aam";
+
+	@Value("${rabbit.queue.login.request}")
+	private String loginRequestQueue;
+    @Value("${rabbit.queue.check_token_revocation.request}")
+    private String checkTokenRevocationRequestQueue;
 
 
 	@Before
@@ -93,7 +97,7 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	public void externalLoginWrongUsername() {
 		ResponseEntity<ErrorResponseContainer> token = null;
 		try {
-			token = restTemplate.postForEntity(serverAddress+ loginUri, new LoginRequest(wrongusername, password),
+			token = restTemplate.postForEntity(serverAddress + loginUri, new LoginRequest(wrongusername, password),
 					ErrorResponseContainer.class);
 		} catch (HttpClientErrorException e) {
 			assertEquals(token, null);
@@ -106,7 +110,7 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	public void externalLoginWrongPassword() {
 		ResponseEntity<ErrorResponseContainer> token = null;
 		try {
-			token = restTemplate.postForEntity(serverAddress+ loginUri, new LoginRequest(username, wrongpassword),
+			token = restTemplate.postForEntity(serverAddress + loginUri, new LoginRequest(username, wrongpassword),
 					ErrorResponseContainer.class);
 		} catch (HttpClientErrorException e) {
 			assertEquals(token, null);
@@ -129,24 +133,31 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	}
 
 	@Test
-	public void internalRegistrationHandlerLoginRequestReplySuccess() throws IOException {
+	public void internalLoginRequestReplySuccess() throws IOException, TimeoutException {
 
 		ObjectMapper mapper = new ObjectMapper();
 
-		// Send a login request on queue on behalf of Registration Handler
-		try {
-				rabbitTemplate.convertAndSend(Constants.PLATFORM_AAM_REGISTRATION_HANDLER_LOGIN_REQUEST_QUEUE, mapper.writeValueAsString(new LoginRequest(username, password)));
-			} catch (JsonProcessingException e) {
-				// TODO Auto-generated catch block
-						e.printStackTrace();
-			}
+		RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+		byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(username, password)).getBytes());
+		RequestToken token = mapper.readValue(response, RequestToken.class);
 
-		// Listens on the reply queue
-		Message reply = rabbitTemplate.receive(Constants.REGISTRATION_HANDLER_PLATFORM_AAM_LOGIN_REPLY_QUEUE, 5000);
-		RequestToken token = mapper.readValue(reply.getBody(),RequestToken.class);
+		log.info("Test Client received this Token: " + token.toJson());
 
 		assertEquals(homeTokenValue, token.getToken());
 	}
 
+    @Test
+    public void internalCheckTokenRevocationRequestReplySuccess() throws IOException, TimeoutException {
+
+        ObjectMapper mapper = new ObjectMapper();
+
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", checkTokenRevocationRequestQueue, 5000);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new RequestToken(homeTokenValue)).getBytes());
+        CheckTokenRevocationResponse checkTokenRevocationResponse = mapper.readValue(response, CheckTokenRevocationResponse.class);
+
+        log.info("Test Client received this Status: " + checkTokenRevocationResponse.toJson());
+
+        assertEquals(Status.SUCCESS.toString(), checkTokenRevocationResponse.getStatus());
+    }
 
 }

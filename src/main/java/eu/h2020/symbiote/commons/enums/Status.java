@@ -26,32 +26,17 @@ public enum Status{
 
     private String status;
 
-    /**
-     * Constructs a new status enumeration with the specified status constant value.
-     *
-     * @param   status   the status constant value.
-     */
     private Status(String status) {
         this.status = status;
     }
 
-    /**
-     * Returns the status value.
-     *
-     * @return   the status constant value of this {@code Status} instance.
-     */
     public String getStatus() {
         return status;
     }
 
-    /**
-     * Sets the value of the status.
-     *
-     * @param   status the status constant value to be associated with this {@code Status} instance.
-     */
+
     public void setStatus(String status) {
         this.status = status;
     }
-    
     
 }
