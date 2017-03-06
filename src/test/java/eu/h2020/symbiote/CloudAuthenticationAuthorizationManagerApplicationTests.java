@@ -4,13 +4,14 @@ import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.RpcClient;
+import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
+import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
 import eu.h2020.symbiote.rabbitmq.RabbitManager;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
@@ -39,22 +40,21 @@ import java.util.concurrent.TimeoutException;
 @SpringBootTest(webEnvironment=WebEnvironment.RANDOM_PORT)
 public class CloudAuthenticationAuthorizationManagerApplicationTests {
 
-	@Autowired
-	private UserRepository userRepository;
-
-	@LocalServerPort
-	int port;
-
 	private static Log log = LogFactory.getLog(CloudAuthenticationAuthorizationManagerApplicationTests.class);
 
-	RestTemplate restTemplate = new RestTemplate();
-
 	@Autowired
-    private RabbitTemplate rabbitTemplate;
+	private UserRepository userRepository;
 
 	@Autowired
 	private RabbitManager rabbitManager;
 
+	@LocalServerPort
+	int port;
+
+	private RestTemplate restTemplate = new RestTemplate();
+	private ObjectMapper mapper = new ObjectMapper();
+	private final MissingArgumentsException MissingArgumentsException   = new MissingArgumentsException();
+	private final WrongCredentialsException WrongCredentialsException   = new WrongCredentialsException();
 
 	private String serverAddress;
 	private final String loginUri = "login";
@@ -135,8 +135,6 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	@Test
 	public void internalLoginRequestReplySuccess() throws IOException, TimeoutException {
 
-		ObjectMapper mapper = new ObjectMapper();
-
 		RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
 		byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(username, password)).getBytes());
 		RequestToken token = mapper.readValue(response, RequestToken.class);
@@ -146,10 +144,47 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 		assertEquals(homeTokenValue, token.getToken());
 	}
 
+	@Test
+	public void internalLoginRequestReplyWrongCredentials() throws IOException, TimeoutException {
+
+		RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+
+		byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(wrongusername, password)).getBytes());
+		ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
+
+		log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
+
+		byte[] response2 = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(username, wrongpassword)).getBytes());
+		ErrorResponseContainer noToken2 = mapper.readValue(response2, ErrorResponseContainer.class);
+
+		log.info("Test Client received this error message instead of token: " + noToken2.getErrorMessage());
+
+		byte[] response3 = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(wrongusername, wrongpassword)).getBytes());
+		ErrorResponseContainer noToken3 = mapper.readValue(response3, ErrorResponseContainer.class);
+
+		log.info("Test Client received this error message instead of token: " + noToken3.getErrorMessage());
+
+		String expectedErrorMessage = new WrongCredentialsException().getErrorMessage();
+
+		assertEquals(expectedErrorMessage,  noToken.getErrorMessage());
+		assertEquals(expectedErrorMessage, noToken2.getErrorMessage());
+		assertEquals(expectedErrorMessage, noToken3.getErrorMessage());
+	}
+
+	@Test
+	public void internalLoginRequestReplyMissingArguments() throws IOException, TimeoutException {
+
+		RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+		byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(/* no username and/or password */)).getBytes());
+		ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
+
+		log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
+
+		assertEquals(new MissingArgumentsException().getErrorMessage(), noToken.getErrorMessage());
+	}
+
     @Test
     public void internalCheckTokenRevocationRequestReplySuccess() throws IOException, TimeoutException {
-
-        ObjectMapper mapper = new ObjectMapper();
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", checkTokenRevocationRequestQueue, 5000);
         byte[] response = client.primitiveCall(mapper.writeValueAsString(new RequestToken(homeTokenValue)).getBytes());
