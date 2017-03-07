@@ -29,12 +29,12 @@ public class TokenService {
         return new TokenModel(tokenManager.create(requestTokenStr));
     }
 
-    public RequestToken getDefaultForeignToken() {
-        return tokenManager.create("foreign_token_from_platform_aam");
+    public RequestToken getDefaultForeignToken(String token) {
+        return tokenManager.create("foreign_token_from_platform_aam-"+token);
     }
 
-    public RequestToken getDefaultHomeToken() {
-        return tokenManager.create("home_token_from_platform_aam");
+    public RequestToken getDefaultHomeToken(String token) {
+        return tokenManager.create("home_token_from_platform_aam-"+token);
     }
 
     public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {

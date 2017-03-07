@@ -2,11 +2,9 @@ package eu.h2020.symbiote;
 
 import static org.junit.Assert.assertEquals;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
-import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
-import eu.h2020.symbiote.rabbitmq.RabbitManager;
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
@@ -17,23 +15,29 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.RpcClient;
+
 import eu.h2020.symbiote.commons.enums.Status;
+import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
+import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
 import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.commons.json.ErrorResponseContainer;
 import eu.h2020.symbiote.commons.json.LoginRequest;
 import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.model.UserModel;
+import eu.h2020.symbiote.rabbitmq.RabbitManager;
 import eu.h2020.symbiote.repositories.UserRepository;
-
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
 
 @RunWith(SpringRunner.class)
 //@SpringBootTest({"webEnvironment = WebEnvironment.RANDOM_PORT", "eureka.client.enabled=false"}) // FIXME: DOESN'T WORK WITH MULTIPLE PROPERTIES
@@ -53,8 +57,6 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 
 	private RestTemplate restTemplate = new RestTemplate();
 	private ObjectMapper mapper = new ObjectMapper();
-	private final MissingArgumentsException MissingArgumentsException   = new MissingArgumentsException();
-	private final WrongCredentialsException WrongCredentialsException   = new WrongCredentialsException();
 
 	private String serverAddress;
 	private final String loginUri = "login";
@@ -67,9 +69,11 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	private final String wrongusername = "veryWrongCloudAAMPass";
 	private final String wrongpassword = "veryWrongCloudAAMPass";
 
-	private final String homeTokenValue = "home_token_from_platform_aam";
-	private final String foreignTokenValue = "foreign_token_from_platform_aam";
+	private final String homeTokenValue = "home_token_from_platform_aam-"+username;
+	private final String foreignTokenValue = "foreign_token_from_platform_aam-"+homeTokenValue;
 
+	private final String tokenHeaderName = "X-Auth-Token";
+    
 	@Value("${rabbit.queue.login.request}")
 	private String loginRequestQueue;
     @Value("${rabbit.queue.check_token_revocation.request}")
@@ -88,9 +92,11 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 
 	@Test
 	public void externalLoginSuccess() {
-		ResponseEntity<RequestToken> token = restTemplate.postForEntity(serverAddress + loginUri,
-				new LoginRequest(username, password), RequestToken.class);
-		assertEquals(token.getStatusCode(), HttpStatus.OK);
+		ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+				new LoginRequest(username, password),String.class);
+		HttpHeaders headers = response.getHeaders();
+		assertEquals(response.getStatusCode(), HttpStatus.OK);
+		assertEquals(headers.getFirst(tokenHeaderName),homeTokenValue);
 	}
 
 	@Test
@@ -120,15 +126,28 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 
 	@Test
 	public void externalRequestForeignToken() {
-		ResponseEntity<RequestToken> token = restTemplate.postForEntity(serverAddress + foreignTokenUri,
-				new RequestToken(homeTokenValue), RequestToken.class);
-		assertEquals(token.getBody().getToken(), foreignTokenValue);
+		
+		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
+		headers.add(tokenHeaderName, homeTokenValue);
+
+		HttpEntity<String> request = new HttpEntity<String>(null, headers);
+
+		ResponseEntity<String> responseToken = restTemplate.postForEntity(serverAddress + foreignTokenUri, request, String.class);
+		HttpHeaders rspHeaders = responseToken.getHeaders();
+		
+		assertEquals(responseToken.getStatusCode(), HttpStatus.OK);
+		assertEquals(rspHeaders.getFirst(tokenHeaderName),foreignTokenValue);
 	}
 	
 	@Test
 	public void externalCheckTokenRevocation() {
-		ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress + checkHomeTokenRevocationUri,
-				new RequestToken(homeTokenValue), CheckTokenRevocationResponse.class);
+		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
+		headers.add(tokenHeaderName, homeTokenValue);
+
+		HttpEntity<String> request = new HttpEntity<String>(null, headers);
+		
+		ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress + checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
+		
 		assertEquals(status.getBody().getStatus(), Status.SUCCESS.toString());
 	}
 

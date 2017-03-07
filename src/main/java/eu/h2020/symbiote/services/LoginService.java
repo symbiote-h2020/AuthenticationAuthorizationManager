@@ -1,9 +1,6 @@
 package eu.h2020.symbiote.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Configurable;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
@@ -36,7 +33,7 @@ public class LoginService {
             if(userRepository.exists(user.getUsername())){
                 UserModel userInDB = userRepository.findOne(user.getUsername());
                 if(user.getUsername().equals(userInDB.getUsername()) && user.getPassword().equals(userInDB.getPassword())){
-                    return tokenService.getDefaultHomeToken();
+                    return tokenService.getDefaultHomeToken(user.getUsername());
                 }
             }
             throw new WrongCredentialsException();
