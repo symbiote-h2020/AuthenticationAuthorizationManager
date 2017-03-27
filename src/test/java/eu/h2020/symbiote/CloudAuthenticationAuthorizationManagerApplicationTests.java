@@ -2,9 +2,21 @@ package eu.h2020.symbiote;
 
 import static org.junit.Assert.assertEquals;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.security.KeyPair;
+import java.security.KeyStore;
+import java.security.PublicKey;
+import java.security.cert.X509Certificate;
+import java.util.Date;
 import java.util.concurrent.TimeoutException;
 
+import eu.h2020.symbiote.commons.RegistrationManager;
+import eu.h2020.symbiote.commons.User;
+import eu.h2020.symbiote.commons.exceptions.ExistingApplicationException;
+import eu.h2020.symbiote.commons.exceptions.NotExistingApplicationException;
+import eu.h2020.symbiote.commons.json.*;
+import eu.h2020.symbiote.services.RegistrationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
@@ -31,10 +43,6 @@ import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.commons.enums.Status;
 import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
 import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
-import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
-import eu.h2020.symbiote.commons.json.ErrorResponseContainer;
-import eu.h2020.symbiote.commons.json.LoginRequest;
-import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.model.UserModel;
 import eu.h2020.symbiote.rabbitmq.RabbitManager;
 import eu.h2020.symbiote.repositories.UserRepository;
@@ -44,6 +52,7 @@ import eu.h2020.symbiote.repositories.UserRepository;
 @SpringBootTest(webEnvironment=WebEnvironment.RANDOM_PORT)
 public class CloudAuthenticationAuthorizationManagerApplicationTests {
 
+
 	private static Log log = LogFactory.getLog(CloudAuthenticationAuthorizationManagerApplicationTests.class);
 
 	@Autowired
@@ -51,6 +60,12 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 
 	@Autowired
 	private RabbitManager rabbitManager;
+
+	@Autowired
+	private RegistrationManager registrationManager;
+
+	@Autowired
+	private RegistrationService registrationService;
 
 	@LocalServerPort
 	int port;
@@ -213,5 +228,55 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 
         assertEquals(Status.SUCCESS.toString(), checkTokenRevocationResponse.getStatus());
     }
+
+	@Test
+	public void certificateCreationAndVerification() throws Exception {
+
+		char[] KEY_STORE_PASSWD = { '1', '2', '3', '4', '5','6','7',};
+
+		// UNA TANTUM - Generate Platform AAM Certificate and PV key and put that in a keystore
+		// registrationManager.createSelfSignedPlatformAAMECCert();
+
+		// Generate certificate for given application username (ie. "Daniele")
+		KeyPair keyPair = registrationManager.createKeyPair();
+		X509Certificate cert = registrationManager.createECCert("Daniele", keyPair.getPublic());
+
+		// retrieves Platform AAM ("Daniele"'s certificate issuer) public key from keystore in order to verify "Daniele"'s certificate
+		KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+		pkcs12Store.load(new FileInputStream("PlatformAAM.keystore"), KEY_STORE_PASSWD);
+		PublicKey pubKey = pkcs12Store.getCertificate("Platform AAM keystore").getPublicKey();
+		cert.verify(pubKey);
+
+		// also check time validity
+		cert.checkValidity(new Date());
+	}
+
+	@Test
+	public void successfulApplicationRegistration() throws Exception {
+		try{
+			// register new application to db
+			RegistrationResponse registrationResponse = registrationService.register(new LoginRequest("NewApplication", "NewPassword"));
+			// show certificate and key pair
+			log.info(registrationResponse.getCertificate().toString());
+			log.info(registrationResponse.getKeyPair().toString());
+
+		} catch(Exception e){
+			assertEquals(ExistingApplicationException.class,e.getClass());
+			log.info(e.getMessage());
+		}
+
+	}
+
+	@Test
+	public void successfulApplicationUnregistration() throws Exception {
+		try {
+			registrationService.unregister(new LoginRequest("NewApplication", "NewPassword"));
+			log.info("Application successfully unregistered!");
+		} catch(Exception e){
+			assertEquals(NotExistingApplicationException.class,e.getClass());
+			log.info(e.getMessage());
+		}
+
+	}
 
 }
