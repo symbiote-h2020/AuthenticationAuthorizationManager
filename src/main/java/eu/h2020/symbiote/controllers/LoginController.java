@@ -22,13 +22,17 @@ import eu.h2020.symbiote.services.LoginService;
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
- * @see eu.h2020.symbiote.services.LoginService
+ * @see LoginService
  */
 @RestController
 public class LoginController {
 
+    private final LoginService loginService;
+
     @Autowired
-    private LoginService loginService;
+    public LoginController(LoginService loginService) {
+        this.loginService = loginService;
+    }
 
     //L1 Diagrams - login()
     @RequestMapping(value = "/login", method = RequestMethod.POST)

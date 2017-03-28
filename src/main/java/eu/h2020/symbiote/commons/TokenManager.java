@@ -7,12 +7,12 @@ import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.commons.json.RequestToken;
 
 /**
- * Class for managing operations (creation, verification checking, etc.) on {@link eu.h2020.symbiote.commons.json.RequestToken} objects in token related
+ * Class for managing operations (creation, verification checking, etc.) on {@link RequestToken} objects in token related
  * service ({@link eu.h2020.symbiote.services.TokenService}).
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
- * @see eu.h2020.symbiote.commons.json.RequestToken
+ * @see RequestToken
  */
 @Component
 public class TokenManager {

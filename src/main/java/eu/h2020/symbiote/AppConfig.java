@@ -1,6 +1,7 @@
 package eu.h2020.symbiote;
 
 import com.mongodb.Mongo;
+import com.mongodb.MongoClient;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
@@ -10,7 +11,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
  * Used by components with MongoDB
  *
  * @author mateuszl
- * @version 30.09.2016
+ * @author Mikołaj Dobski
  */
 @Configuration
 @EnableMongoRepositories
@@ -18,17 +19,11 @@ class AppConfig extends AbstractMongoConfiguration {
 
     @Override
     protected String getDatabaseName() {
-        return "symbiote-core-database";
+        return "symbiote-core-aam-database";
     }
 
     @Override
     public Mongo mongo() throws Exception {
-        return new Mongo();
+        return new MongoClient();
     }
-
-    @Override
-    protected String getMappingBasePackage() {
-        return "com.oreilly.springdata.mongodb";
-    }
-
 }

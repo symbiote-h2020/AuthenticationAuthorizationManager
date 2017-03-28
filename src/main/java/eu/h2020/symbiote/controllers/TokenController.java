@@ -22,15 +22,19 @@ import eu.h2020.symbiote.services.TokenService;
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
- * @see eu.h2020.symbiote.services.TokenService
+ * @see TokenService
  */
 @RestController
 public class TokenController {
 
 	private static Log log = LogFactory.getLog(TokenController.class);
 	
+    private final TokenService tokenService;
+
     @Autowired
-    private TokenService tokenService;
+    public TokenController(TokenService tokenService) {
+        this.tokenService = tokenService;
+    }
 
     //L1 Diagrams - request_foreign_token()
     @RequestMapping(value = "/request_foreign_token", method = RequestMethod.POST)
