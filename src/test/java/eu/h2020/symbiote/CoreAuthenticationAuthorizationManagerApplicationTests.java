@@ -1,16 +1,279 @@
 package eu.h2020.symbiote;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.security.KeyPair;
+import java.security.KeyStore;
+import java.security.PublicKey;
+import java.security.cert.X509Certificate;
+import java.util.Date;
+import java.util.concurrent.TimeoutException;
+
+import eu.h2020.symbiote.commons.RegistrationManager;
+import eu.h2020.symbiote.commons.exceptions.ExistingApplicationException;
+import eu.h2020.symbiote.commons.exceptions.NotExistingApplicationException;
+import eu.h2020.symbiote.commons.json.*;
+import eu.h2020.symbiote.services.RegistrationService;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.RpcClient;
+
+import eu.h2020.symbiote.commons.enums.Status;
+import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
+import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
+import eu.h2020.symbiote.model.UserModel;
+import eu.h2020.symbiote.rabbitmq.RabbitManager;
+import eu.h2020.symbiote.repositories.UserRepository;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest({"eureka.client.enabled=false"})
+//@SpringBootTest({"webEnvironment = WebEnvironment.RANDOM_PORT", "eureka.client.enabled=false"}) // FIXME: DOESN'T WORK WITH MULTIPLE PROPERTIES
+@SpringBootTest(webEnvironment=WebEnvironment.RANDOM_PORT)
 public class CoreAuthenticationAuthorizationManagerApplicationTests {
 
+
+	private static Log log = LogFactory.getLog(CoreAuthenticationAuthorizationManagerApplicationTests.class);
+
+	@Autowired
+	private UserRepository userRepository;
+
+	@Autowired
+	private RabbitManager rabbitManager;
+
+	@Autowired
+	private RegistrationManager registrationManager;
+
+	@Autowired
+	private RegistrationService registrationService;
+
+	@LocalServerPort
+	private int port;
+
+	private RestTemplate restTemplate = new RestTemplate();
+	private ObjectMapper mapper = new ObjectMapper();
+
+	private String serverAddress;
+	private final String loginUri = "login";
+	private final String foreignTokenUri = "request_foreign_token";
+	private final String checkHomeTokenRevocationUri = "check_home_token_revocation";
+
+	private final String username = "testCloudAAMUser";
+	private final String password = "testCloudAAMPass";
+
+	private final String wrongusername = "veryWrongCloudAAMPass";
+	private final String wrongpassword = "veryWrongCloudAAMPass";
+
+	private final String homeTokenValue = "home_token_from_platform_aam-"+username;
+	private final String foreignTokenValue = "foreign_token_from_platform_aam-"+homeTokenValue;
+
+	private final String tokenHeaderName = "X-Auth-Token";
+    
+	@Value("${rabbit.queue.login.request}")
+	private String loginRequestQueue;
+    @Value("${rabbit.queue.check_token_revocation.request}")
+    private String checkTokenRevocationRequestQueue;
+
+
+	@Before
+	public void setUp() throws Exception {
+		// Catch the random port
+		serverAddress = "http://localhost:" + port + "/";
+		// Test rest template
+		restTemplate = new RestTemplate();
+		// Insert username and password to DB
+		userRepository.save(new UserModel(username, password));
+	}
+
 	@Test
-	public void contextLoads() {
+	public void externalLoginSuccess() {
+		ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+				new LoginRequest(username, password),String.class);
+		HttpHeaders headers = response.getHeaders();
+		assertEquals(response.getStatusCode(), HttpStatus.OK);
+		assertEquals(headers.getFirst(tokenHeaderName),homeTokenValue);
+	}
+
+	@Test
+	public void externalLoginWrongUsername() {
+		ResponseEntity<ErrorResponseContainer> token = null;
+		try {
+			token = restTemplate.postForEntity(serverAddress + loginUri, new LoginRequest(wrongusername, password),
+					ErrorResponseContainer.class);
+		} catch (HttpClientErrorException e) {
+			assertEquals(e.getRawStatusCode(), HttpStatus.UNAUTHORIZED.value());
+		}
+
+	}
+
+	@Test
+	public void externalLoginWrongPassword() {
+		ResponseEntity<ErrorResponseContainer> token = null;
+		try {
+			token = restTemplate.postForEntity(serverAddress + loginUri, new LoginRequest(username, wrongpassword),
+					ErrorResponseContainer.class);
+		} catch (HttpClientErrorException e) {
+			assertEquals(e.getRawStatusCode(), HttpStatus.UNAUTHORIZED.value());
+		}
+	}
+
+	@Test
+	public void externalRequestForeignToken() {
+		
+		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
+		headers.add(tokenHeaderName, homeTokenValue);
+
+		HttpEntity<String> request = new HttpEntity<String>(null, headers);
+
+		ResponseEntity<String> responseToken = restTemplate.postForEntity(serverAddress + foreignTokenUri, request, String.class);
+		HttpHeaders rspHeaders = responseToken.getHeaders();
+		
+		assertEquals(responseToken.getStatusCode(), HttpStatus.OK);
+		assertEquals(rspHeaders.getFirst(tokenHeaderName),foreignTokenValue);
+	}
+	
+	@Test
+	public void externalCheckTokenRevocation() {
+		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
+		headers.add(tokenHeaderName, homeTokenValue);
+
+		HttpEntity<String> request = new HttpEntity<String>(null, headers);
+		
+		ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress + checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
+		
+		assertEquals(status.getBody().getStatus(), Status.SUCCESS.toString());
+	}
+
+	@Test
+	public void internalLoginRequestReplySuccess() throws IOException, TimeoutException {
+
+		RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+		byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(username, password)).getBytes());
+		RequestToken token = mapper.readValue(response, RequestToken.class);
+
+		log.info("Test Client received this Token: " + token.toJson());
+
+		assertEquals(homeTokenValue, token.getToken());
+	}
+
+	@Test
+	public void internalLoginRequestReplyWrongCredentials() throws IOException, TimeoutException {
+
+		RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+
+		byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(wrongusername, password)).getBytes());
+		ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
+
+		log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
+
+		byte[] response2 = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(username, wrongpassword)).getBytes());
+		ErrorResponseContainer noToken2 = mapper.readValue(response2, ErrorResponseContainer.class);
+
+		log.info("Test Client received this error message instead of token: " + noToken2.getErrorMessage());
+
+		byte[] response3 = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(wrongusername, wrongpassword)).getBytes());
+		ErrorResponseContainer noToken3 = mapper.readValue(response3, ErrorResponseContainer.class);
+
+		log.info("Test Client received this error message instead of token: " + noToken3.getErrorMessage());
+
+		String expectedErrorMessage = new WrongCredentialsException().getErrorMessage();
+
+		assertEquals(expectedErrorMessage,  noToken.getErrorMessage());
+		assertEquals(expectedErrorMessage, noToken2.getErrorMessage());
+		assertEquals(expectedErrorMessage, noToken3.getErrorMessage());
+	}
+
+	@Test
+	public void internalLoginRequestReplyMissingArguments() throws IOException, TimeoutException {
+
+		RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+		byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(/* no username and/or password */)).getBytes());
+		ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
+
+		log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
+
+		assertEquals(new MissingArgumentsException().getErrorMessage(), noToken.getErrorMessage());
+	}
+
+    @Test
+    public void internalCheckTokenRevocationRequestReplySuccess() throws IOException, TimeoutException {
+
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", checkTokenRevocationRequestQueue, 5000);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new RequestToken(homeTokenValue)).getBytes());
+        CheckTokenRevocationResponse checkTokenRevocationResponse = mapper.readValue(response, CheckTokenRevocationResponse.class);
+
+        log.info("Test Client received this Status: " + checkTokenRevocationResponse.toJson());
+
+        assertEquals(Status.SUCCESS.toString(), checkTokenRevocationResponse.getStatus());
+    }
+
+	@Test
+	public void certificateCreationAndVerification() throws Exception {
+
+		char[] KEY_STORE_PASSWD = { '1', '2', '3', '4', '5','6','7',};
+
+		// UNA TANTUM - Generate Platform AAM Certificate and PV key and put that in a keystore
+		// registrationManager.createSelfSignedPlatformAAMECCert();
+
+		// Generate certificate for given application username (ie. "Daniele")
+		KeyPair keyPair = registrationManager.createKeyPair();
+		X509Certificate cert = registrationManager.createECCert("Daniele", keyPair.getPublic());
+
+		// retrieves Platform AAM ("Daniele"'s certificate issuer) public key from keystore in order to verify "Daniele"'s certificate
+		KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+		pkcs12Store.load(new FileInputStream("PlatformAAM.keystore"), KEY_STORE_PASSWD);
+		PublicKey pubKey = pkcs12Store.getCertificate("Platform AAM keystore").getPublicKey();
+		cert.verify(pubKey);
+
+		// also check time validity
+		cert.checkValidity(new Date());
+	}
+
+	@Test
+	public void successfulApplicationRegistration() throws Exception {
+		try{
+			// register new application to db
+			RegistrationResponse registrationResponse = registrationService.register(new LoginRequest("NewApplication", "NewPassword"));
+			// show certificate and key pair
+			log.info(registrationResponse.getCertificate().toString());
+			log.info(registrationResponse.getKeyPair().toString());
+
+		} catch(Exception e){
+			assertEquals(ExistingApplicationException.class,e.getClass());
+			log.info(e.getMessage());
+		}
+
+	}
+
+	@Test
+	public void successfulApplicationUnregistration() throws Exception {
+		try {
+			registrationService.unregister(new LoginRequest("NewApplication", "NewPassword"));
+			log.info("Application successfully unregistered!");
+		} catch(Exception e){
+			assertEquals(NotExistingApplicationException.class,e.getClass());
+			log.info(e.getMessage());
+		}
+
 	}
 
 }
