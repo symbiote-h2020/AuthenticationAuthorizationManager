@@ -1,6 +1,10 @@
 package eu.h2020.symbiote.services;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import javax.annotation.PostConstruct;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,30 +24,53 @@ import eu.h2020.symbiote.repositories.TokenRepository;
 @Service
 public class TokenService {
 
-    @Autowired
-    private TokenRepository tokenRepository;
-    @Autowired
-    private TokenManager tokenManager;
+	// FIXME harcoded values for now
+	private final String aamID = "dummyAAM";
+	private final String appID = "dummyAPP";
+	private final Long tokenValidTime = new Long(1000 * 60 * 60 * 24); // one
+																		// day
+																		// token
+																		// validity
+																		// time
+	
+	private final Map<String, Object> claimsMap = new HashMap<String, Object>(); // empty
+																					// claims
+																					// map
+	@Autowired
+	private TokenRepository tokenRepository;
+	@Autowired
+	private TokenManager tokenManager;
 
-    public TokenModel create(String requestTokenStr) {
-        return new TokenModel(tokenManager.create(requestTokenStr));
-    }
+	@PostConstruct
+	private void defineDummyClaims() {
+		claimsMap.put("dummyClaim1", "dummyClaim1Value");
+	}
+	
+	public TokenModel create() {
+		return new TokenModel(tokenManager.create(aamID, appID, tokenValidTime, claimsMap));
+	}
 
-    public RequestToken getDefaultForeignToken(String token) {
-        return tokenManager.create("foreign_token_from_platform_aam-"+token);
-    }
+	public RequestToken getDefaultForeignToken() {
+		return tokenManager.create(aamID, appID, tokenValidTime, claimsMap);
+	}
 
-    public RequestToken getDefaultHomeToken(String token) {
-        return tokenManager.create("home_token_from_platform_aam-"+token);
-    }
+	public RequestToken getDefaultHomeToken() {
+		return tokenManager.create(aamID, appID, tokenValidTime, claimsMap);
+	}
 
-    public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {
-        return tokenManager.checkHomeTokenRevocation(token);
-    }
+	public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {
+		return tokenManager.checkHomeTokenRevocation(token);
+	}
 
-    public void removeAllTokens() { tokenRepository.deleteAll(); }
+	public void removeAllTokens() {
+		tokenRepository.deleteAll();
+	}
 
-    public void saveToken(RequestToken token) { tokenRepository.save(new TokenModel(token.getToken())); }
+	public void saveToken(RequestToken token) {
+		tokenRepository.save(new TokenModel(token.getToken()));
+	}
 
-    public List<TokenModel> getAllTokens() { return tokenRepository.findAll(); }
+	public List<TokenModel> getAllTokens() {
+		return tokenRepository.findAll();
+	}
 }

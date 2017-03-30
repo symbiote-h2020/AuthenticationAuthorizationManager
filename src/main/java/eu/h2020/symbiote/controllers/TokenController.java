@@ -47,7 +47,7 @@ public class TokenController {
         // Save token in MongoDB
         tokenService.saveToken(new RequestToken(token));
         
-    	RequestToken foreignToken = tokenService.getDefaultForeignToken(token);
+    	RequestToken foreignToken = tokenService.getDefaultForeignToken();
 		HttpHeaders headers = new HttpHeaders();
 		headers.add(Constants.TOKEN_HEADER_NAME, foreignToken.getToken());
 		

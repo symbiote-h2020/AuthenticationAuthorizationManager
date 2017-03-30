@@ -1,6 +1,7 @@
 package eu.h2020.symbiote;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -85,7 +86,6 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	private final String wrongpassword = "veryWrongCloudAAMPass";
 
 	private final String homeTokenValue = "home_token_from_platform_aam-"+username;
-	private final String foreignTokenValue = "foreign_token_from_platform_aam-"+homeTokenValue;
 
 	private final String tokenHeaderName = "X-Auth-Token";
     
@@ -111,7 +111,7 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 				new LoginRequest(username, password),String.class);
 		HttpHeaders headers = response.getHeaders();
 		assertEquals(response.getStatusCode(), HttpStatus.OK);
-		assertEquals(headers.getFirst(tokenHeaderName),homeTokenValue);
+		assertNotEquals(headers.getFirst(tokenHeaderName),null);
 	}
 
 	@Test
@@ -151,7 +151,7 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 		HttpHeaders rspHeaders = responseToken.getHeaders();
 		
 		assertEquals(responseToken.getStatusCode(), HttpStatus.OK);
-		assertEquals(rspHeaders.getFirst(tokenHeaderName),foreignTokenValue);
+		assertNotEquals(rspHeaders.getFirst(tokenHeaderName),null);
 	}
 	
 	@Test
@@ -175,7 +175,7 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 
 		log.info("Test Client received this Token: " + token.toJson());
 
-		assertEquals(homeTokenValue, token.getToken());
+		assertNotEquals(token.getToken(),null);
 	}
 
 	@Test

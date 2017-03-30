@@ -50,7 +50,8 @@ dependencies {
 
     testCompile('org.springframework.boot:spring-boot-starter-test')
 
-
+	compile ('io.jsonwebtoken:jjwt:0.7.0')
+	
     // Use JUnit4
     testCompile 'junit:junit:4.12'
 }
