@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import eu.h2020.symbiote.commons.enums.Status;
+import eu.h2020.symbiote.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.commons.jwt.JWTEngine;
@@ -24,7 +25,7 @@ public class TokenManager {
 	@Autowired
 	private JWTEngine jwtEngine;
 
-    public RequestToken create(String aamID, String appId, Long tokenValidInterval, Map<String, Object> claimsMap){
+    public RequestToken create(String aamID, String appId, Long tokenValidInterval, Map<String, Object> claimsMap) throws JWTCreationException{
 
         return new RequestToken(jwtEngine.generateJWTToken(aamID,appId,tokenValidInterval,claimsMap));
     }

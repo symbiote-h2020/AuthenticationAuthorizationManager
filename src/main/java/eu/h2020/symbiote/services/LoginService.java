@@ -3,6 +3,7 @@ package eu.h2020.symbiote.services;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import eu.h2020.symbiote.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
 import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
 import eu.h2020.symbiote.commons.json.LoginRequest;
@@ -24,7 +25,7 @@ public class LoginService {
     @Autowired
     private TokenService tokenService;
 
-    public RequestToken login(LoginRequest user) throws MissingArgumentsException,WrongCredentialsException {
+    public RequestToken login(LoginRequest user) throws MissingArgumentsException,WrongCredentialsException,JWTCreationException {
 
         // FIXME: create a default user for platform AAM in database
         userRepository.save(new UserModel("aam_username","aam_password"));

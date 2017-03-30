@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import eu.h2020.symbiote.commons.TokenManager;
+import eu.h2020.symbiote.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.model.TokenModel;
@@ -32,7 +33,7 @@ public class TokenService {
 																		// token
 																		// validity
 																		// time
-	
+
 	private final Map<String, Object> claimsMap = new HashMap<String, Object>(); // empty
 																					// claims
 																					// map
@@ -45,16 +46,16 @@ public class TokenService {
 	private void defineDummyClaims() {
 		claimsMap.put("dummyClaim1", "dummyClaim1Value");
 	}
-	
-	public TokenModel create() {
+
+	public TokenModel create() throws JWTCreationException {
 		return new TokenModel(tokenManager.create(aamID, appID, tokenValidTime, claimsMap));
 	}
 
-	public RequestToken getDefaultForeignToken() {
+	public RequestToken getDefaultForeignToken() throws JWTCreationException {
 		return tokenManager.create(aamID, appID, tokenValidTime, claimsMap);
 	}
 
-	public RequestToken getDefaultHomeToken() {
+	public RequestToken getDefaultHomeToken() throws JWTCreationException {
 		return tokenManager.create(aamID, appID, tokenValidTime, claimsMap);
 	}
 

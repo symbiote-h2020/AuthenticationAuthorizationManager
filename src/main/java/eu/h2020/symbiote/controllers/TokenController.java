@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import eu.h2020.symbiote.commons.Constants;
+import eu.h2020.symbiote.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.services.TokenService;
@@ -34,7 +35,7 @@ public class TokenController {
 
     //L1 Diagrams - request_foreign_token()
     @RequestMapping(value = "/request_foreign_token", method = RequestMethod.POST)
-    public ResponseEntity<?> requestForeignToken(@RequestHeader(Constants.TOKEN_HEADER_NAME) String token) {
+    public ResponseEntity<?> requestForeignToken(@RequestHeader(Constants.TOKEN_HEADER_NAME) String token) throws JWTCreationException {
 
         /*
         Token(s) Validation through challenge-response (client-side)

@@ -12,12 +12,6 @@ import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.concurrent.TimeoutException;
 
-import eu.h2020.symbiote.commons.RegistrationManager;
-import eu.h2020.symbiote.commons.User;
-import eu.h2020.symbiote.commons.exceptions.ExistingApplicationException;
-import eu.h2020.symbiote.commons.exceptions.NotExistingApplicationException;
-import eu.h2020.symbiote.commons.json.*;
-import eu.h2020.symbiote.services.RegistrationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
@@ -41,12 +35,21 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.RpcClient;
 
+import eu.h2020.symbiote.commons.RegistrationManager;
 import eu.h2020.symbiote.commons.enums.Status;
+import eu.h2020.symbiote.commons.exceptions.ExistingApplicationException;
 import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
+import eu.h2020.symbiote.commons.exceptions.NotExistingApplicationException;
 import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
+import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.commons.json.ErrorResponseContainer;
+import eu.h2020.symbiote.commons.json.LoginRequest;
+import eu.h2020.symbiote.commons.json.RegistrationResponse;
+import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.model.UserModel;
 import eu.h2020.symbiote.rabbitmq.RabbitManager;
 import eu.h2020.symbiote.repositories.UserRepository;
+import eu.h2020.symbiote.services.RegistrationService;
 
 @RunWith(SpringRunner.class)
 //@SpringBootTest({"webEnvironment = WebEnvironment.RANDOM_PORT", "eureka.client.enabled=false"}) // FIXME: DOESN'T WORK WITH MULTIPLE PROPERTIES
@@ -235,7 +238,7 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 		char[] KEY_STORE_PASSWD = { '1', '2', '3', '4', '5','6','7',};
 
 		// UNA TANTUM - Generate Platform AAM Certificate and PV key and put that in a keystore
-		// registrationManager.createSelfSignedPlatformAAMECCert();
+//		 registrationManager.createSelfSignedPlatformAAMECCert();
 
 		// Generate certificate for given application username (ie. "Daniele")
 		KeyPair keyPair = registrationManager.createKeyPair();
