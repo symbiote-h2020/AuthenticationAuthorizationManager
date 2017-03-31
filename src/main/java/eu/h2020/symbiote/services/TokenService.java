@@ -1,11 +1,12 @@
 package eu.h2020.symbiote.services;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.PostConstruct;
-
+import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +35,7 @@ public class TokenService {
 																		// validity
 																		// time
 
-	private final Map<String, Object> claimsMap = new HashMap<String, Object>(); // empty
+	private final Map<String, Object> attributes = new HashMap<String, Object>(); // empty
 																					// claims
 																					// map
 	@Autowired
@@ -42,21 +43,16 @@ public class TokenService {
 	@Autowired
 	private TokenManager tokenManager;
 
-	@PostConstruct
-	private void defineDummyClaims() {
-		claimsMap.put("dummyClaim1", "dummyClaim1Value");
-	}
-
 	public TokenModel create() throws JWTCreationException {
-		return new TokenModel(tokenManager.create(aamID, appID, tokenValidTime, claimsMap));
+		return new TokenModel(tokenManager.create(aamID, appID, tokenValidTime, attributes));
 	}
 
 	public RequestToken getDefaultForeignToken() throws JWTCreationException {
-		return tokenManager.create(aamID, appID, tokenValidTime, claimsMap);
+		return tokenManager.create(aamID, appID, tokenValidTime, attributes);
 	}
 
 	public RequestToken getDefaultHomeToken() throws JWTCreationException {
-		return tokenManager.create(aamID, appID, tokenValidTime, claimsMap);
+		return tokenManager.create(aamID, appID, tokenValidTime, attributes);
 	}
 
 	public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {
