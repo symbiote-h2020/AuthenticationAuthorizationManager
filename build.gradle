@@ -92,7 +92,7 @@ dependencies {
     testCompile('junit:junit:4.+')
     testCompile('org.springframework.boot:spring-boot-starter-test')
     // todo rework tests to use embedded mongoDB instead of actual server
-    testCompile('de.flapdoodle.embed:de.flapdoodle.embed.mongo')
+    //testCompile('de.flapdoodle.embed:de.flapdoodle.embed.mongo')
 }
 
 // code quality below
