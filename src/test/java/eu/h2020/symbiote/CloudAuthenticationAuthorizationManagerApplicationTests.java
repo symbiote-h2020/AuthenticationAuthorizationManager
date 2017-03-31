@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.KeyStore;
+import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.Date;
@@ -238,7 +239,7 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 		char[] KEY_STORE_PASSWD = { '1', '2', '3', '4', '5','6','7',};
 
 		// UNA TANTUM - Generate Platform AAM Certificate and PV key and put that in a keystore
-//		 registrationManager.createSelfSignedPlatformAAMECCert();
+		//registrationManager.createSelfSignedPlatformAAMECCert();
 
 		// Generate certificate for given application username (ie. "Daniele")
 		KeyPair keyPair = registrationManager.createKeyPair();
@@ -259,9 +260,6 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 		try{
 			// register new application to db
 			RegistrationResponse registrationResponse = registrationService.register(new LoginRequest("NewApplication", "NewPassword"));
-			// show certificate and key pair
-			log.info(registrationResponse.getCertificate().toString());
-			log.info(registrationResponse.getKeyPair().toString());
 
 		} catch(Exception e){
 			assertEquals(ExistingApplicationException.class,e.getClass());

@@ -7,6 +7,8 @@ import java.security.cert.X509Certificate;
 
 import eu.h2020.symbiote.commons.exceptions.NotExistingApplicationException;
 import eu.h2020.symbiote.commons.json.RegistrationResponse;
+import eu.h2020.symbiote.model.CertificateModel;
+import eu.h2020.symbiote.repositories.CertificateRepository;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,8 @@ import eu.h2020.symbiote.repositories.UserRepository;
 public class RegistrationService {
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private CertificateRepository certificateRepository;
     @Autowired
     private RegistrationManager registrationManager;
 
@@ -61,7 +65,10 @@ public class RegistrationService {
                 // Register the application (User)
                 userRepository.save(new UserModel(user.getUsername(),user.getPassword()));
 
-                return new RegistrationResponse(applicationCertificate,applicationKeyPair);
+                // Save Certificate to DB
+                certificateRepository.save(new CertificateModel(applicationCertificate));
+
+                return new RegistrationResponse(applicationCertificate,applicationKeyPair.getPrivate());
 
             }
         }

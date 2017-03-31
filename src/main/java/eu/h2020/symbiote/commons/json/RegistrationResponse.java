@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.commons.json;
 
 import java.security.KeyPair;
+import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,16 +15,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class RegistrationResponse {
 
     private X509Certificate certificate;
-    private KeyPair keyPair;
+    private PrivateKey privateKey;
 
     public RegistrationResponse() {
         this.certificate = null;
-        this.keyPair = null;
+        this.privateKey = null;
     }
 
-    public RegistrationResponse(X509Certificate certificate, KeyPair keyPair) {
+    public RegistrationResponse(X509Certificate certificate, PrivateKey privateKey) {
         this.certificate = certificate;
-        this.keyPair = keyPair;
+        this.privateKey = privateKey;
     }
 
     public X509Certificate getCertificate() {
@@ -34,12 +35,12 @@ public class RegistrationResponse {
         this.certificate = certificate;
     }
 
-    public KeyPair getKeyPair() {
-        return keyPair;
+    public PrivateKey getPrivateKey() {
+        return privateKey;
     }
 
-    public void setKeyPair(KeyPair keyPair) {
-        this.keyPair = keyPair;
+    public void setPrivateKey(PrivateKey privateKey) {
+        this.privateKey = privateKey;
     }
 
     public String toJson(){

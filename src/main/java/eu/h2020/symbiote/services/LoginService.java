@@ -27,9 +27,6 @@ public class LoginService {
 
     public RequestToken login(LoginRequest user) throws MissingArgumentsException,WrongCredentialsException,JWTCreationException {
 
-        // FIXME: create a default user for platform AAM in database
-        userRepository.save(new UserModel("aam_username","aam_password"));
-
         if(user.getUsername() != null || user.getPassword() != null) {
             if(userRepository.exists(user.getUsername())){
                 UserModel userInDB = userRepository.findOne(user.getUsername());

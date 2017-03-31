@@ -2,6 +2,7 @@ package eu.h2020.symbiote.commons;
 
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
@@ -12,6 +13,8 @@ import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
+import org.bouncycastle.util.io.pem.PemObject;
+import org.bouncycastle.util.io.pem.PemReader;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
@@ -40,6 +43,8 @@ public class RegistrationManager {
     private static final String SIGNATURE_ALGORITHM = "SHA256withECDSA";
     private static final String ORG_NAME = "SYMBIOTE";
     private static final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
+    private static final String KEY_STORE_FILE_NAME = "PlatformAAM.keystore";
+    private static final String KEY_STORE_ALIAS = "Platform AAM keystore";
     private static final char[] KEY_STORE_PASSWD = { '1', '2', '3', '4', '5','6','7',}; // Where do we want to store this two pwds?
     private static final char[] PV_KEY_STORE_PASSWD = { 'a', 'b', 'c', 'd', 'e','f','g'};
 
@@ -55,12 +60,20 @@ public class RegistrationManager {
         return keyPair;
     }
 
-    public String convertCertificateToPEM(X509Certificate signedCertificate) throws IOException {
+    public String convertX509ToPEM(X509Certificate signedCertificate) throws IOException {
         StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
         JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
         pemWriter.writeObject(signedCertificate);
         pemWriter.close();
         return signedCertificatePEMDataStringWriter.toString();
+    }
+
+    public X509Certificate convertPEMToX509(String pemCertificate) throws IOException, CertificateException {
+        StringReader reader = new StringReader(pemCertificate);
+        PemReader pr = new PemReader(reader);
+        PemObject pemObject = pr.readPemObject();
+        X509CertificateHolder certificateHolder = new X509CertificateHolder(pemObject.getContent());
+        return new JcaX509CertificateConverter().setProvider(PROVIDER_NAME).getCertificate( certificateHolder );
     }
 
     private X500NameBuilder createStdBuilder(String givenName)
@@ -82,10 +95,7 @@ public class RegistrationManager {
             OperatorCreationException {
 
         // retrieves Platform AAM private key from keystore
-        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new FileInputStream("PlatformAAM.keystore"), KEY_STORE_PASSWD);
-        PrivateKey privKey = (PrivateKey)pkcs12Store.getKey("Platform AAM keystore", PV_KEY_STORE_PASSWD);
-
+        PrivateKey privKey = this.getPlatformAAMPrivateKey();
 
         // distinguished name table.
         X500NameBuilder issuerBuilder = createStdBuilder("PlatformAAM");
@@ -114,6 +124,7 @@ public class RegistrationManager {
     }
 
     // FIXME: THIS IS NOT THE WAY IT'GONNA BE IN FUTURE. JUST FOR TEST PURPOSES. Symbiote CORE is the root CA and IT should provide any Platform AAM a certificate. Platform AAM is not going to issue itself a certificate!
+    // ONLY FOR TESTS
     /**
      * Used to generate the Platform AAM Certificate and private key and store them on a file.
      * Note: The Platform AAM private key will be retrieved any time Platform AAM (which acts as an intermediate CA) will generate a certificate for a registering application.
@@ -153,7 +164,7 @@ public class RegistrationManager {
         CertificateFactory certFact = CertificateFactory.getInstance("X.509", PROVIDER_NAME);
         cert = (X509Certificate)certFact.generateCertificate(bIn);
 
-        System.out.println(cert.toString() + '\n' + convertCertificateToPEM(cert));
+        System.out.println(cert.toString() + '\n' + convertX509ToPEM(cert));
 
         // Save PlatformAAM certificate to file .pem (not needed, we are using keystore instead)
         //JcaPEMWriter certWriter = new JcaPEMWriter(new PrintWriter(new PrintStream(new FileOutputStream("PlatformAAM_Certificate.pem"))));
@@ -166,10 +177,26 @@ public class RegistrationManager {
         // Save PlatformAAM certificate and private key in a keystore
         KeyStore store = KeyStore.getInstance("PKCS12", PROVIDER_NAME);
         store.load(null, null);
-        store.setKeyEntry("Platform AAM keystore", privKey, PV_KEY_STORE_PASSWD, chain);
-        FileOutputStream fOut = new FileOutputStream("PlatformAAM.keystore"); // from console $: openssl pkcs12 -in ./PlatformAAM.keystore to check it
+        store.setKeyEntry(KEY_STORE_ALIAS, privKey, PV_KEY_STORE_PASSWD, chain);
+        FileOutputStream fOut = new FileOutputStream(KEY_STORE_FILE_NAME); // from console $: openssl pkcs12 -in ./PlatformAAM.keystore to check it
         store.store(fOut, KEY_STORE_PASSWD);
 
+    }
+
+    // ONLY FOR TESTS
+    PublicKey getPlatformAAMPublicKey() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWD);
+        PublicKey pubKey = pkcs12Store.getCertificate(KEY_STORE_ALIAS).getPublicKey();
+        return pubKey;
+    }
+
+    // ONLY FOR TESTS
+    PrivateKey getPlatformAAMPrivateKey() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWD);
+        PrivateKey privKey = (PrivateKey)pkcs12Store.getKey(KEY_STORE_ALIAS, PV_KEY_STORE_PASSWD);
+        return privKey;
     }
 
 }
