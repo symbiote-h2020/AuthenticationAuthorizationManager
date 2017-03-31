@@ -1,3 +1,4 @@
+// initial extensions to gradle
 buildscript {
     ext {
         springBootVersion = '1.5.2.RELEASE'
@@ -7,45 +8,78 @@ buildscript {
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath group: 'com.cinnober.gradle', name: 'semver-git', version: '2.2.1'
         classpath 'org.owasp:dependency-check-gradle:1.4.5.1'
     }
 }
 
-ext.junitJupiterVersion = '5.0.0-M2'
-
+// code
 apply plugin: 'java'
-apply plugin: 'eclipse'
-apply plugin: 'idea'
 apply plugin: 'org.springframework.boot'
+
+// code quality
 apply plugin: 'jacoco'
 apply plugin: 'org.owasp.dependencycheck'
 
-jar {
-    baseName = 'CoreAuthenticationAuthorizationManager'
-    version =  '0.1.0'
-}
+// IDEs
+apply plugin: 'eclipse'
+apply plugin: 'idea'
 
+// publishing
+apply plugin: 'com.cinnober.gradle.semver-git'
+
+// XXX please change with your commits according to http://semver.org/
+project.version = '0.2.0'
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+// dependencies section
 repositories {
     mavenCentral()
-    maven { 
-        url "https://jitpack.io" 
+    maven {
+        url "https://jitpack.io"
     }
 }
 
+// Spring related configs
 dependencyManagement {
     imports {
         mavenBom "org.springframework.cloud:spring-cloud-dependencies:Camden.SR6"
     }
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+/*
+Forces dependencies' cache invalidation for each build for dependencies marked with
+    { changing = true }
+    e.g.
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT'){ changing = true }
+ */
+configurations.all {
+    // check for updates every build
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
 
 dependencies {
-    compile('org.springframework.cloud:spring-cloud-starter')
-    compile ('io.jsonwebtoken:jjwt:0.7.0')
-    compile group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.56'
+    // X.509 certificates handling
+    compile('org.bouncycastle:bcprov-jdk15on:1.56')
 
+    /* SymbIoTeLibraries manual:
+        One can use the library from jitpack by default with the notation:
+            compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT') {changing = true }
+        or having cloned locally the SymbIoTeLibraries repo use it directly with project dependency by:
+            compile project(':SymbIoTeLibraries')
+        Important --- In order to use the latter you need to:
+            1) switch comments on the artifact and project dependencies
+            2) always have only one uncommented
+            3) project dependency requires changes in settings.gradle file in this project
+            4) never commit build.gradle which has project dependencies active as it will break CI builds
+    */
+    //compile project(':SymbIoTeLibraries')
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT') { changing = true }
+
+    // Spring
+    compile('org.springframework.cloud:spring-cloud-starter')
     compile('org.springframework.cloud:spring-cloud-starter-config')
     compile('org.springframework.cloud:spring-cloud-starter-eureka')
     compile('org.springframework.cloud:spring-cloud-starter-zipkin')
@@ -54,18 +88,22 @@ dependencies {
     compile('org.springframework.boot:spring-boot-starter-web')
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
 
-    // todo add dependency on SH &/|| symbioteLibraries
-
-    // Use JUnit4
-    testCompile 'junit:junit:4.+'
+    // tests only
+    testCompile('junit:junit:4.+')
     testCompile('org.springframework.boot:spring-boot-starter-test')
     // todo rework tests to use embedded mongoDB instead of actual server
     testCompile('de.flapdoodle.embed:de.flapdoodle.embed.mongo')
-
 }
 
+// code quality below
+task generateJavaDocs(type: Javadoc) {
+    source = sourceSets.main.allJava
+    destinationDir = reporting.file("javadocs")
+}
+
+// jacoco configuration section
 jacoco {
-    toolVersion = "0.7.7.201606060606"
+    toolVersion = "0.7.9"
 }
 
 jacocoTestReport {
@@ -75,4 +113,10 @@ jacocoTestReport {
     }
 }
 
-check.dependsOn jacocoTestReport
+// owasp config
+dependencyCheck {
+    outputDirectory = "build/reports/security"
+}
+
+// including code quality extensions into the build
+check.dependsOn(jacocoTestReport, 'dependencyCheck')

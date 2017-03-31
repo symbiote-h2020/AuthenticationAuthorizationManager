@@ -1,0 +1,8 @@
+rootProject.name = 'CoreAuthenticationAuthorizationManager'
+
+/* SymbIoTeLibraries
+    - the path should point to where the SymbIoTeLibraries repository is cloned
+    - when commiting and pushing to remote repository the lines below >>> MUST BE COMMENTED OUT <<< so that CI server will use the jar file from jitpack
+*/
+//include 'SymbIoTeLibraries'
+//project(':SymbIoTeLibraries').projectDir = new File(settingsDir, "../../SymbioteCommon/SymbIoTeLibraries")
