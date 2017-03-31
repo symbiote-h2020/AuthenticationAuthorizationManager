@@ -1,11 +1,17 @@
 package eu.h2020.symbiote.services;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import eu.h2020.symbiote.commons.TokenManager;
+import eu.h2020.symbiote.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.model.TokenModel;
@@ -20,30 +26,48 @@ import eu.h2020.symbiote.repositories.TokenRepository;
 @Service
 public class TokenService {
 
-    @Autowired
-    private TokenRepository tokenRepository;
-    @Autowired
-    private TokenManager tokenManager;
+	// FIXME harcoded values for now
+	private final String aamID = "dummyAAM";
+	private final String appID = "dummyAPP";
+	private final Long tokenValidTime = new Long(1000 * 60 * 60 * 24); // one
+																		// day
+																		// token
+																		// validity
+																		// time
 
-    public TokenModel create(String requestTokenStr) {
-        return new TokenModel(tokenManager.create(requestTokenStr));
-    }
+	private final Map<String, Object> attributes = new HashMap<String, Object>(); // empty
+																					// claims
+																					// map
+	@Autowired
+	private TokenRepository tokenRepository;
+	@Autowired
+	private TokenManager tokenManager;
 
-    public RequestToken getDefaultForeignToken(String token) {
-        return tokenManager.create("foreign_token_from_platform_aam-"+token);
-    }
+	public TokenModel create() throws JWTCreationException {
+		return new TokenModel(tokenManager.create(aamID, appID, tokenValidTime, attributes));
+	}
 
-    public RequestToken getDefaultHomeToken(String token) {
-        return tokenManager.create("home_token_from_platform_aam-"+token);
-    }
+	public RequestToken getDefaultForeignToken() throws JWTCreationException {
+		return tokenManager.create(aamID, appID, tokenValidTime, attributes);
+	}
 
-    public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {
-        return tokenManager.checkHomeTokenRevocation(token);
-    }
+	public RequestToken getDefaultHomeToken() throws JWTCreationException {
+		return tokenManager.create(aamID, appID, tokenValidTime, attributes);
+	}
 
-    public void removeAllTokens() { tokenRepository.deleteAll(); }
+	public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {
+		return tokenManager.checkHomeTokenRevocation(token);
+	}
 
-    public void saveToken(RequestToken token) { tokenRepository.save(new TokenModel(token.getToken())); }
+	public void removeAllTokens() {
+		tokenRepository.deleteAll();
+	}
 
-    public List<TokenModel> getAllTokens() { return tokenRepository.findAll(); }
+	public void saveToken(RequestToken token) {
+		tokenRepository.save(new TokenModel(token.getToken()));
+	}
+
+	public List<TokenModel> getAllTokens() {
+		return tokenRepository.findAll();
+	}
 }

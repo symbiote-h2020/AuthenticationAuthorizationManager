@@ -5,6 +5,8 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+
+import eu.h2020.symbiote.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
 import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
 import eu.h2020.symbiote.commons.json.ErrorResponseContainer;
@@ -78,7 +80,7 @@ public class LoginRequestConsumerService extends DefaultConsumer {
                     RequestToken token = loginService.login(loginReq);
                     response = om.writeValueAsString(token);
                     this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-                } catch (MissingArgumentsException | WrongCredentialsException e) {
+                } catch (MissingArgumentsException | WrongCredentialsException | JWTCreationException e) {
                     response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
                     this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
                 }

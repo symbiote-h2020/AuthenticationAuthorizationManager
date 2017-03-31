@@ -1,6 +1,7 @@
 package eu.h2020.symbiote;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -11,11 +12,6 @@ import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.concurrent.TimeoutException;
 
-import eu.h2020.symbiote.commons.RegistrationManager;
-import eu.h2020.symbiote.commons.exceptions.ExistingApplicationException;
-import eu.h2020.symbiote.commons.exceptions.NotExistingApplicationException;
-import eu.h2020.symbiote.commons.json.*;
-import eu.h2020.symbiote.services.RegistrationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
@@ -39,12 +35,21 @@ import org.springframework.web.client.RestTemplate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.RpcClient;
 
+import eu.h2020.symbiote.commons.RegistrationManager;
 import eu.h2020.symbiote.commons.enums.Status;
+import eu.h2020.symbiote.commons.exceptions.ExistingApplicationException;
 import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
+import eu.h2020.symbiote.commons.exceptions.NotExistingApplicationException;
 import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
+import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.commons.json.ErrorResponseContainer;
+import eu.h2020.symbiote.commons.json.LoginRequest;
+import eu.h2020.symbiote.commons.json.RegistrationResponse;
+import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.model.UserModel;
 import eu.h2020.symbiote.rabbitmq.RabbitManager;
 import eu.h2020.symbiote.repositories.UserRepository;
+import eu.h2020.symbiote.services.RegistrationService;
 
 @RunWith(SpringRunner.class)
 //@SpringBootTest({"webEnvironment = WebEnvironment.RANDOM_PORT", "eureka.client.enabled=false"}) // FIXME: DOESN'T WORK WITH MULTIPLE PROPERTIES
@@ -67,7 +72,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 	private RegistrationService registrationService;
 
 	@LocalServerPort
-	private int port;
+	int port;
 
 	private RestTemplate restTemplate = new RestTemplate();
 	private ObjectMapper mapper = new ObjectMapper();
@@ -84,7 +89,6 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 	private final String wrongpassword = "veryWrongCloudAAMPass";
 
 	private final String homeTokenValue = "home_token_from_platform_aam-"+username;
-	private final String foreignTokenValue = "foreign_token_from_platform_aam-"+homeTokenValue;
 
 	private final String tokenHeaderName = "X-Auth-Token";
     
@@ -110,7 +114,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 				new LoginRequest(username, password),String.class);
 		HttpHeaders headers = response.getHeaders();
 		assertEquals(response.getStatusCode(), HttpStatus.OK);
-		assertEquals(headers.getFirst(tokenHeaderName),homeTokenValue);
+		assertNotEquals(headers.getFirst(tokenHeaderName),null);
 	}
 
 	@Test
@@ -120,6 +124,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 			token = restTemplate.postForEntity(serverAddress + loginUri, new LoginRequest(wrongusername, password),
 					ErrorResponseContainer.class);
 		} catch (HttpClientErrorException e) {
+			assertEquals(token, null);
 			assertEquals(e.getRawStatusCode(), HttpStatus.UNAUTHORIZED.value());
 		}
 
@@ -132,6 +137,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 			token = restTemplate.postForEntity(serverAddress + loginUri, new LoginRequest(username, wrongpassword),
 					ErrorResponseContainer.class);
 		} catch (HttpClientErrorException e) {
+			assertEquals(token, null);
 			assertEquals(e.getRawStatusCode(), HttpStatus.UNAUTHORIZED.value());
 		}
 	}
@@ -148,7 +154,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 		HttpHeaders rspHeaders = responseToken.getHeaders();
 		
 		assertEquals(responseToken.getStatusCode(), HttpStatus.OK);
-		assertEquals(rspHeaders.getFirst(tokenHeaderName),foreignTokenValue);
+		assertNotEquals(rspHeaders.getFirst(tokenHeaderName),null);
 	}
 	
 	@Test
@@ -172,7 +178,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 
 		log.info("Test Client received this Token: " + token.toJson());
 
-		assertEquals(homeTokenValue, token.getToken());
+		assertNotEquals(token.getToken(),null);
 	}
 
 	@Test
@@ -232,7 +238,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 		char[] KEY_STORE_PASSWD = { '1', '2', '3', '4', '5','6','7',};
 
 		// UNA TANTUM - Generate Platform AAM Certificate and PV key and put that in a keystore
-		// registrationManager.createSelfSignedPlatformAAMECCert();
+		//registrationManager.createSelfSignedPlatformAAMECCert();
 
 		// Generate certificate for given application username (ie. "Daniele")
 		KeyPair keyPair = registrationManager.createKeyPair();
@@ -253,10 +259,10 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 		try{
 			// register new application to db
 			RegistrationResponse registrationResponse = registrationService.register(new LoginRequest("NewApplication", "NewPassword"));
-			// show certificate and key pair
-			log.info(registrationResponse.getCertificate().toString());
-			log.info(registrationResponse.getKeyPair().toString());
-
+			String cert = registrationManager.convertX509ToPEM(registrationResponse.getCertificate());
+			System.out.println(cert);
+			X509Certificate certObj = registrationManager.convertPEMToX509(cert);
+			int a=0;
 		} catch(Exception e){
 			assertEquals(ExistingApplicationException.class,e.getClass());
 			log.info(e.getMessage());
