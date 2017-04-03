@@ -5,6 +5,7 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
+import eu.h2020.symbiote.commons.Application;
 import eu.h2020.symbiote.commons.exceptions.NotExistingApplicationException;
 import eu.h2020.symbiote.commons.json.RegistrationResponse;
 import eu.h2020.symbiote.model.CertificateModel;
@@ -19,8 +20,7 @@ import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
 import eu.h2020.symbiote.commons.exceptions.ExistingApplicationException;
 import eu.h2020.symbiote.commons.RegistrationManager;
 import eu.h2020.symbiote.commons.json.LoginRequest;
-import eu.h2020.symbiote.model.UserModel;
-import eu.h2020.symbiote.repositories.UserRepository;
+import eu.h2020.symbiote.repositories.ApplicationRepository;
 
 
 /**
@@ -30,9 +30,9 @@ import eu.h2020.symbiote.repositories.UserRepository;
  * @author Nemanja Ignjatov (UNIVIE)
  */
 @Service
-public class RegistrationService {
+public class ApplicationRegistrationService {
     @Autowired
-    private UserRepository userRepository;
+    private ApplicationRepository applicationRepository;
     @Autowired
     private CertificateRepository certificateRepository;
     @Autowired
@@ -51,7 +51,7 @@ public class RegistrationService {
             IOException {
 
         if(user.getUsername() != null || user.getPassword() != null) {
-            if(userRepository.exists(user.getUsername())){
+            if(applicationRepository.exists(user.getUsername())){
                 throw new ExistingApplicationException();
                 }
                 else{
@@ -62,8 +62,8 @@ public class RegistrationService {
                 // Generate certificate for the application
                 X509Certificate applicationCertificate = registrationManager.createECCert(user.getUsername(), applicationKeyPair.getPublic());
 
-                // Register the application (User)
-                userRepository.save(new UserModel(user.getUsername(),user.getPassword()));
+                // Register the application (Application)
+                applicationRepository.save(new Application(user.getUsername(),user.getPassword()));
 
                 // Save Certificate to DB
                 certificateRepository.save(new CertificateModel(applicationCertificate));
@@ -79,8 +79,8 @@ public class RegistrationService {
     public void unregister(LoginRequest user) throws NotExistingApplicationException, MissingArgumentsException {
 
         if(user.getUsername() != null || user.getPassword() != null) {
-            if(userRepository.exists(user.getUsername())){
-                userRepository.delete(user.getUsername());
+            if(applicationRepository.exists(user.getUsername())){
+                applicationRepository.delete(user.getUsername());
                 return;
             }
             else{

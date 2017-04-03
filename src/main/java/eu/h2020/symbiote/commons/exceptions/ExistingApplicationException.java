@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 
 
 /**
- * Custom exception thrown when application credentials are already present in DB during registration procedure in {@link eu.h2020.symbiote.services.RegistrationService}.
+ * Custom exception thrown when application credentials are already present in DB during registration procedure in {@link eu.h2020.symbiote.services.ApplicationRegistrationService}.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)

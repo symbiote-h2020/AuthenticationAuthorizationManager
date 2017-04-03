@@ -12,6 +12,7 @@ import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.concurrent.TimeoutException;
 
+import eu.h2020.symbiote.commons.Application;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
@@ -46,13 +47,11 @@ import eu.h2020.symbiote.commons.json.ErrorResponseContainer;
 import eu.h2020.symbiote.commons.json.LoginRequest;
 import eu.h2020.symbiote.commons.json.RegistrationResponse;
 import eu.h2020.symbiote.commons.json.RequestToken;
-import eu.h2020.symbiote.model.UserModel;
 import eu.h2020.symbiote.rabbitmq.RabbitManager;
-import eu.h2020.symbiote.repositories.UserRepository;
-import eu.h2020.symbiote.services.RegistrationService;
+import eu.h2020.symbiote.repositories.ApplicationRepository;
+import eu.h2020.symbiote.services.ApplicationRegistrationService;
 
 @RunWith(SpringRunner.class)
-//@SpringBootTest({"webEnvironment = WebEnvironment.RANDOM_PORT", "eureka.client.enabled=false"}) // FIXME: DOESN'T WORK WITH MULTIPLE PROPERTIES
 @SpringBootTest(webEnvironment=WebEnvironment.RANDOM_PORT)
 public class CoreAuthenticationAuthorizationManagerApplicationTests {
 
@@ -60,7 +59,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 	private static Log log = LogFactory.getLog(CoreAuthenticationAuthorizationManagerApplicationTests.class);
 
 	@Autowired
-	private UserRepository userRepository;
+	private ApplicationRepository applicationRepository;
 
 	@Autowired
 	private RabbitManager rabbitManager;
@@ -69,7 +68,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 	private RegistrationManager registrationManager;
 
 	@Autowired
-	private RegistrationService registrationService;
+	private ApplicationRegistrationService applicationRegistrationService;
 
 	@LocalServerPort
 	int port;
@@ -105,7 +104,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 		// Test rest template
 		restTemplate = new RestTemplate();
 		// Insert username and password to DB
-		userRepository.save(new UserModel(username, password));
+		applicationRepository.save(new Application(username, password));
 	}
 
 	@Test
@@ -258,7 +257,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 	public void successfulApplicationRegistration() throws Exception {
 		try{
 			// register new application to db
-			RegistrationResponse registrationResponse = registrationService.register(new LoginRequest("NewApplication", "NewPassword"));
+			RegistrationResponse registrationResponse = applicationRegistrationService.register(new LoginRequest("NewApplication", "NewPassword"));
 			String cert = registrationManager.convertX509ToPEM(registrationResponse.getCertificate());
 			System.out.println(cert);
 			X509Certificate certObj = registrationManager.convertPEMToX509(cert);
@@ -273,7 +272,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 	@Test
 	public void successfulApplicationUnregistration() throws Exception {
 		try {
-			registrationService.unregister(new LoginRequest("NewApplication", "NewPassword"));
+			applicationRegistrationService.unregister(new LoginRequest("NewApplication", "NewPassword"));
 			log.info("Application successfully unregistered!");
 		} catch(Exception e){
 			assertEquals(NotExistingApplicationException.class,e.getClass());

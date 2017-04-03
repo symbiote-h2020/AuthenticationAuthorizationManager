@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.model;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import eu.h2020.symbiote.commons.Application;
 import org.springframework.data.annotation.Id;
 
 import java.io.IOException;
@@ -15,7 +15,7 @@ import eu.h2020.symbiote.commons.RegistrationManager;
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
- * @see eu.h2020.symbiote.commons.User
+ * @see Application
  */
 public class CertificateModel{
 
