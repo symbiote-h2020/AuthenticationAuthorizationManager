@@ -62,7 +62,7 @@ public class LoginRequestConsumerService extends DefaultConsumer {
 
         String message = new String(body, "UTF-8");
         ObjectMapper om = new ObjectMapper();
-        LoginRequest loginReq = new LoginRequest();
+        LoginRequest loginReq;
         String response;
 
         log.info("[x] Received Login Request: '" + message + "'");

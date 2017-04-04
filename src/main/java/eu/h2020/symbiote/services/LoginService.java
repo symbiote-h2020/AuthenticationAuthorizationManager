@@ -8,10 +8,11 @@ import eu.h2020.symbiote.commons.json.LoginRequest;
 import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.repositories.ApplicationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 /**
- * Spring service used to provide login related functionalities of CloudAAM.
+ * Spring service used to provide login related functionality of CloudAAM.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
@@ -19,10 +20,17 @@ import org.springframework.stereotype.Service;
 @Service
 public class LoginService {
 
+    private final ApplicationRepository applicationRepository;
+    private final TokenService tokenService;
+    private final PasswordEncoder passwordEncoder;
+
     @Autowired
-    private ApplicationRepository applicationRepository;
-    @Autowired
-    private TokenService tokenService;
+    public LoginService(ApplicationRepository applicationRepository,
+                        TokenService tokenService, PasswordEncoder passwordEncoder) {
+        this.applicationRepository = applicationRepository;
+        this.tokenService = tokenService;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     public RequestToken login(LoginRequest user) throws MissingArgumentsException, WrongCredentialsException,
             JWTCreationException {
@@ -30,8 +38,8 @@ public class LoginService {
         if (user.getUsername() != null || user.getPassword() != null) {
             if (applicationRepository.exists(user.getUsername())) {
                 Application applicationInDB = applicationRepository.findOne(user.getUsername());
-                if (user.getUsername().equals(applicationInDB.getUsername()) && user.getPassword().equals(applicationInDB
-                        .getPassword())) {
+                if (user.getUsername().equals(applicationInDB.getUsername())
+                        && passwordEncoder.matches(user.getPassword(), applicationInDB.getPasswordEncrypted())) {
                     return tokenService.getDefaultHomeToken();
                 }
             }

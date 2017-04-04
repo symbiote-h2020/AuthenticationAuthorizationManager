@@ -13,25 +13,26 @@ import java.util.ArrayList;
  * @author Mikołaj Dobski (PSNC)
  */
 public class Application {
+
     protected Role role = Role.APPLICATION;
+
     private String username = "";
-    private String password = "";
-    private ArrayList<String> attributes = new ArrayList<String>();
+
+    private String passwordEncrypted = "";
+
+    // @DBRef -- might come in useful
+    private ArrayList<String> attributes = new ArrayList<>();
 
     public Application() {
         // required by org.springframework.data.mapping.model.MappingInstantiationException
     }
 
-    public Application(String username, String password, ArrayList<String> attributes) {
+    public Application(String username, String passwordEncrypted, ArrayList<String> attributes) {
         this.username = username;
-        this.password = password;
+        this.passwordEncrypted = passwordEncrypted;
         this.attributes = attributes;
     }
 
-    public Application(String username, String password) {
-        this.username = username;
-        this.password = password;
-    }
 
     @Id
     public String getUsername() {
@@ -42,12 +43,12 @@ public class Application {
         this.username = username;
     }
 
-    public String getPassword() {
-        return password;
+    public String getPasswordEncrypted() {
+        return passwordEncrypted;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setPasswordEncrypted(String passwordEncrypted) {
+        this.passwordEncrypted = passwordEncrypted;
     }
 
     public ArrayList<String> getAttributes() {
@@ -61,4 +62,5 @@ public class Application {
     public Role getRole() {
         return role;
     }
+
 }
