@@ -127,7 +127,7 @@ public class RabbitManager {
 
             log.info("Cloud Authentication and Authorization Manager waiting for login request messages....");
 
-            Consumer consumer = new LoginRequestConsumerService(channel, this, loginService);
+            Consumer consumer = new LoginRequestConsumerService(channel, loginService);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
             e.printStackTrace();

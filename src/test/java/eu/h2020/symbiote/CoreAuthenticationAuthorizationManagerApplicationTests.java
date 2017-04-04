@@ -27,7 +27,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.LinkedMultiValueMap;
@@ -50,7 +49,6 @@ import static org.junit.Assert.assertNotEquals;
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class CoreAuthenticationAuthorizationManagerApplicationTests {
-
 
     private static Log log = LogFactory.getLog(CoreAuthenticationAuthorizationManagerApplicationTests.class);
     private final String loginUri = "login";
@@ -83,6 +81,14 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
     @Value("${rabbit.queue.check_token_revocation.request}")
     private String checkTokenRevocationRequestQueue;
 
+    @Value("${aam.security.KEY_STORE_PASSWORD}")
+    private String KEY_STORE_PASSWORD;
+    @Value("${aam.security.PV_KEY_STORE_PASSWORD}")
+    private String PV_KEY_STORE_PASSWORD;
+    @Value("${aam.security.KEY_STORE_FILE_NAME}")
+    private String KEY_STORE_FILE_NAME;
+    @Value("${aam.security.KEY_STORE_ALIAS}")
+    private String KEY_STORE_ALIAS;
 
     @Before
     public void setUp() throws Exception {
@@ -233,7 +239,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
     @Test
     public void certificateCreationAndVerification() throws Exception {
 
-        char[] KEY_STORE_PASSWD = {'1', '2', '3', '4', '5', '6', '7',};
+
 
         // UNA TANTUM - Generate Platform AAM Certificate and PV key and put that in a keystore
         //registrationManager.createSelfSignedPlatformAAMECCert();
@@ -245,8 +251,8 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
         // retrieves Platform AAM ("Daniele"'s certificate issuer) public key from keystore in order to verify
         // "Daniele"'s certificate
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new FileInputStream("PlatformAAM.keystore"), KEY_STORE_PASSWD);
-        PublicKey pubKey = pkcs12Store.getCertificate("Platform AAM keystore").getPublicKey();
+        pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWORD.toCharArray());
+        PublicKey pubKey = pkcs12Store.getCertificate(KEY_STORE_ALIAS).getPublicKey();
         cert.verify(pubKey);
 
         // also check time validity

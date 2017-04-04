@@ -12,7 +12,6 @@ import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
 import eu.h2020.symbiote.commons.json.ErrorResponseContainer;
 import eu.h2020.symbiote.commons.json.LoginRequest;
 import eu.h2020.symbiote.commons.json.RequestToken;
-import eu.h2020.symbiote.rabbitmq.RabbitManager;
 import eu.h2020.symbiote.services.LoginService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -26,7 +25,6 @@ import java.io.IOException;
 public class LoginRequestConsumerService extends DefaultConsumer {
 
     private static Log log = LogFactory.getLog(LoginRequestConsumerService.class);
-    private RabbitManager rabbitManager;
     private LoginService loginService;
 
 
@@ -35,13 +33,10 @@ public class LoginRequestConsumerService extends DefaultConsumer {
      * Managers beans passed as parameters because of lack of possibility to inject it to consumer.
      *
      * @param channel           the channel to which this consumer is attached
-     * @param rabbitManager     rabbit manager bean passed for access to messages manager
      */
     public LoginRequestConsumerService(Channel channel,
-                                       RabbitManager rabbitManager,
                                        LoginService loginService) {
         super(channel);
-        this.rabbitManager = rabbitManager;
         this.loginService = loginService;
     }
 

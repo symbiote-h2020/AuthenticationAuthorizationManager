@@ -23,7 +23,7 @@ class AppConfig extends AbstractMongoConfiguration {
 
     private String databaseName;
 
-    AppConfig(@Value("${core.aam.database.name}") String databaseName) {
+    AppConfig(@Value("${aam.database.name}") String databaseName) {
         this.databaseName = databaseName;
     }
 
