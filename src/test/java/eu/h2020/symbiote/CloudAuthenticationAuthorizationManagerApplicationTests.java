@@ -3,30 +3,32 @@ package eu.h2020.symbiote;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyPair;
-import java.security.KeyStore;
 import java.security.PrivateKey;
-import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import eu.h2020.symbiote.commons.json.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.amqp.support.converter.JsonMessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
+import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -42,11 +44,6 @@ import eu.h2020.symbiote.commons.exceptions.ExistingApplicationException;
 import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
 import eu.h2020.symbiote.commons.exceptions.NotExistingApplicationException;
 import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
-import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
-import eu.h2020.symbiote.commons.json.ErrorResponseContainer;
-import eu.h2020.symbiote.commons.json.LoginRequest;
-import eu.h2020.symbiote.commons.json.RegistrationResponse;
-import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.model.UserModel;
 import eu.h2020.symbiote.rabbitmq.RabbitManager;
 import eu.h2020.symbiote.repositories.UserRepository;
@@ -80,6 +77,8 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 
 	private String serverAddress;
 	private final String loginUri = "login";
+	private final String registrationUri = "register";
+	private final String unregistrationUri = "unregister";
 	private final String foreignTokenUri = "request_foreign_token";
 	private final String checkHomeTokenRevocationUri = "check_home_token_revocation";
 
@@ -97,6 +96,10 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	private String loginRequestQueue;
     @Value("${rabbit.queue.check_token_revocation.request}")
     private String checkTokenRevocationRequestQueue;
+	@Value("${platformowner.username}")
+	private String platformOwnerUsername;
+	@Value("${platformowner.password}")
+	private String platformOwnerPassword;
 
 
 	@Before
@@ -246,36 +249,37 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 		X509Certificate cert = registrationManager.createECCert("Daniele", keyPair.getPublic());
 
 		// retrieves Platform AAM ("Daniele"'s certificate issuer) public key from keystore in order to verify "Daniele"'s certificate
-		KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-		pkcs12Store.load(new FileInputStream("PlatformAAM.keystore"), KEY_STORE_PASSWD);
-		PublicKey pubKey = pkcs12Store.getCertificate("Platform AAM keystore").getPublicKey();
-		cert.verify(pubKey);
+		cert.verify(registrationManager.getPlatformAAMPublicKey());
 
 		// also check time validity
 		cert.checkValidity(new Date());
 	}
 
 	@Test
-	public void successfulApplicationRegistration() throws Exception {
-		try{
-			// register new application to db
-			RegistrationResponse registrationResponse = registrationService.register(new LoginRequest("NewApplication", "NewPassword"));
-
-		} catch(Exception e){
-			assertEquals(ExistingApplicationException.class,e.getClass());
-			log.info(e.getMessage());
+	public void externalRegistrationSuccess() throws JsonProcessingException {
+		RegistrationRequest request = new RegistrationRequest(
+				new LoginRequest(platformOwnerUsername, platformOwnerPassword),
+				new LoginRequest("NewApplication", "NewPassword"));
+		try {
+			ResponseEntity<RegistrationResponse> response = restTemplate.postForEntity(serverAddress + registrationUri, request, RegistrationResponse.class);
+			assertEquals(response.getStatusCode(), HttpStatus.OK);
+			log.info(response.getBody().toJson());
+		} catch(HttpClientErrorException e) {
+			assertEquals(e.getRawStatusCode(), HttpStatus.BAD_REQUEST.value());
 		}
 
 	}
 
 	@Test
-	public void successfulApplicationUnregistration() throws Exception {
-		try {
-			registrationService.unregister(new LoginRequest("NewApplication", "NewPassword"));
-			log.info("Application successfully unregistered!");
-		} catch(Exception e){
-			assertEquals(NotExistingApplicationException.class,e.getClass());
-			log.info(e.getMessage());
+	public void externalUnregistrationSuccess() throws JsonProcessingException {
+		RegistrationRequest request = new RegistrationRequest(
+				new LoginRequest(platformOwnerUsername, platformOwnerPassword),
+				new LoginRequest("NewApplication", "NewPassword"));
+		try{
+			ResponseEntity<Void> response = restTemplate.postForEntity(serverAddress + unregistrationUri, request, Void.class);
+			assertEquals(response.getStatusCode(), HttpStatus.OK);
+		} catch(HttpClientErrorException e) {
+				assertEquals(e.getRawStatusCode(), HttpStatus.BAD_REQUEST.value());
 		}
 
 	}

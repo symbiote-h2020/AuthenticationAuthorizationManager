@@ -1,10 +1,14 @@
 package eu.h2020.symbiote.commons.json;
 
+import java.io.IOException;
 import java.security.KeyPair;
+import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.h2020.symbiote.commons.RegistrationManager;
 
 /**
  * Class that defines the structure of a registration response sent by CloudAAM.
@@ -14,33 +18,33 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  */
 public class RegistrationResponse {
 
-    private X509Certificate certificate;
-    private PrivateKey privateKey;
+    private String pemCertificate;
+    private String pemPrivateKey;
 
-    public RegistrationResponse() {
-        this.certificate = null;
-        this.privateKey = null;
+    public RegistrationResponse(){
+        this.pemCertificate = null;
+        this.pemPrivateKey = null;
     }
 
-    public RegistrationResponse(X509Certificate certificate, PrivateKey privateKey) {
-        this.certificate = certificate;
-        this.privateKey = privateKey;
+    public RegistrationResponse(String pemCertificate, String pemPrivateKey){
+        this.pemCertificate = pemCertificate;
+        this.pemPrivateKey = pemPrivateKey;
     }
 
-    public X509Certificate getCertificate() {
-        return certificate;
+    public String getPemCertificate() {
+        return pemCertificate;
     }
 
-    public void setCertificate(X509Certificate certificate) {
-        this.certificate = certificate;
+    public void setPemCertificate(String pemCertificate) {
+        this.pemCertificate = pemCertificate;
     }
 
-    public PrivateKey getPrivateKey() {
-        return privateKey;
+    public String getPemPrivateKey() {
+        return pemPrivateKey;
     }
 
-    public void setPrivateKey(PrivateKey privateKey) {
-        this.privateKey = privateKey;
+    public void setPemPrivateKey(String pemPrivateKey) {
+        this.pemPrivateKey = pemPrivateKey;
     }
 
     public String toJson(){

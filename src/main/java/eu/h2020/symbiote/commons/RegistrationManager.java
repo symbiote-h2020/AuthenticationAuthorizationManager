@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.commons;
 
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -7,6 +8,8 @@ import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.*;
 import org.bouncycastle.operator.ContentSigner;
 
@@ -38,15 +41,15 @@ import java.util.Date;
 @Component
 public class RegistrationManager {
 
-    private static final String  KEY_PAIR_GEN_ALGORITHM = "ECDSA";
-    private static final String  CURVE_NAME = "secp256r1";
+    private static final String KEY_PAIR_GEN_ALGORITHM = "ECDSA";
+    private static final String CURVE_NAME = "secp256r1";
     private static final String SIGNATURE_ALGORITHM = "SHA256withECDSA";
     private static final String ORG_NAME = "SYMBIOTE";
     private static final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
     private static final String KEY_STORE_FILE_NAME = "PlatformAAM.keystore";
     private static final String KEY_STORE_ALIAS = "Platform AAM keystore";
     private static final char[] KEY_STORE_PASSWD = { '1', '2', '3', '4', '5','6','7',}; // Where do we want to store this two pwds?
-    private static final char[] PV_KEY_STORE_PASSWD = { 'a', 'b', 'c', 'd', 'e','f','g'};
+    private static final char[] KEY_STORE_PV_PASSWD = { 'a', 'b', 'c', 'd', 'e','f','g'};
 
     public RegistrationManager() throws CertificateException, NoSuchProviderException {
         Security.addProvider(new BouncyCastleProvider());
@@ -68,12 +71,28 @@ public class RegistrationManager {
         return signedCertificatePEMDataStringWriter.toString();
     }
 
+    public String convertPrivateKeyToPEM(PrivateKey privateKey) throws IOException {
+        StringWriter privateKeyPEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(privateKeyPEMDataStringWriter);
+        pemWriter.writeObject(privateKey);
+        pemWriter.close();
+        return privateKeyPEMDataStringWriter.toString();
+    }
+
     public X509Certificate convertPEMToX509(String pemCertificate) throws IOException, CertificateException {
         StringReader reader = new StringReader(pemCertificate);
         PemReader pr = new PemReader(reader);
         PemObject pemObject = pr.readPemObject();
         X509CertificateHolder certificateHolder = new X509CertificateHolder(pemObject.getContent());
         return new JcaX509CertificateConverter().setProvider(PROVIDER_NAME).getCertificate( certificateHolder );
+    }
+
+    public PrivateKey convertPEMToPrivateKey(String pemPrivatekey) throws IOException, CertificateException {
+        StringReader reader = new StringReader(pemPrivatekey);
+        PEMParser pemParser = new PEMParser(reader);
+        Object o = pemParser.readObject();
+        KeyPair kp = new JcaPEMKeyConverter().setProvider(PROVIDER_NAME).getKeyPair((PEMKeyPair) o);
+        return kp.getPrivate();
     }
 
     private X500NameBuilder createStdBuilder(String givenName)
@@ -177,14 +196,14 @@ public class RegistrationManager {
         // Save PlatformAAM certificate and private key in a keystore
         KeyStore store = KeyStore.getInstance("PKCS12", PROVIDER_NAME);
         store.load(null, null);
-        store.setKeyEntry(KEY_STORE_ALIAS, privKey, PV_KEY_STORE_PASSWD, chain);
+        store.setKeyEntry(KEY_STORE_ALIAS, privKey, KEY_STORE_PV_PASSWD, chain);
         FileOutputStream fOut = new FileOutputStream(KEY_STORE_FILE_NAME); // from console $: openssl pkcs12 -in ./PlatformAAM.keystore to check it
         store.store(fOut, KEY_STORE_PASSWD);
 
     }
 
     // ONLY FOR TESTS
-    PublicKey getPlatformAAMPublicKey() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+    public PublicKey getPlatformAAMPublicKey() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWD);
         PublicKey pubKey = pkcs12Store.getCertificate(KEY_STORE_ALIAS).getPublicKey();
@@ -192,10 +211,10 @@ public class RegistrationManager {
     }
 
     // ONLY FOR TESTS
-    PrivateKey getPlatformAAMPrivateKey() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
+    public PrivateKey getPlatformAAMPrivateKey() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWD);
-        PrivateKey privKey = (PrivateKey)pkcs12Store.getKey(KEY_STORE_ALIAS, PV_KEY_STORE_PASSWD);
+        PrivateKey privKey = (PrivateKey)pkcs12Store.getKey(KEY_STORE_ALIAS, KEY_STORE_PV_PASSWD);
         return privKey;
     }
 
