@@ -5,11 +5,8 @@ import static org.junit.Assert.assertNotEquals;
 
 import java.io.IOException;
 import java.security.KeyPair;
-import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -19,16 +16,12 @@ import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.amqp.support.converter.JsonMessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.http.*;
-import org.springframework.http.converter.FormHttpMessageConverter;
-import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -42,7 +35,6 @@ import eu.h2020.symbiote.commons.RegistrationManager;
 import eu.h2020.symbiote.commons.enums.Status;
 import eu.h2020.symbiote.commons.exceptions.ExistingApplicationException;
 import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
-import eu.h2020.symbiote.commons.exceptions.NotExistingApplicationException;
 import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
 import eu.h2020.symbiote.model.UserModel;
 import eu.h2020.symbiote.rabbitmq.RabbitManager;
@@ -256,6 +248,7 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	}
 
 	@Test
+
 	public void externalRegistrationSuccess() throws JsonProcessingException {
 		RegistrationRequest request = new RegistrationRequest(
 				new LoginRequest(platformOwnerUsername, platformOwnerPassword),
@@ -264,8 +257,21 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 			ResponseEntity<RegistrationResponse> response = restTemplate.postForEntity(serverAddress + registrationUri, request, RegistrationResponse.class);
 			assertEquals(response.getStatusCode(), HttpStatus.OK);
 			log.info(response.getBody().toJson());
-		} catch(HttpClientErrorException e) {
+		} catch (HttpClientErrorException e) {
 			assertEquals(e.getRawStatusCode(), HttpStatus.BAD_REQUEST.value());
+		}
+	}
+
+	public void successfulApplicationRegistration() throws Exception {
+		try{
+			// register new application to db
+			RegistrationResponse registrationResponse = registrationService.register(new LoginRequest("NewApplication", "NewPassword"));
+			String cert = registrationResponse.getPemCertificate();
+			System.out.println(cert);
+			X509Certificate certObj = registrationManager.convertPEMToX509(cert);
+		} catch(Exception e){
+			assertEquals(ExistingApplicationException.class,e.getClass());
+			log.info(e.getMessage());
 		}
 
 	}

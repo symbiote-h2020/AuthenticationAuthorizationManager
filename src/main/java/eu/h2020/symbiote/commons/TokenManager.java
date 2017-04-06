@@ -1,5 +1,8 @@
 package eu.h2020.symbiote.commons;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +15,8 @@ import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.commons.jwt.JWTEngine;
 
 /**
- * Class for managing operations (creation, verification checking, etc.) on {@link eu.h2020.symbiote.commons.json.RequestToken} objects in token related
+ * Class for managing operations (creation, verification checking, etc.) on
+ * {@link eu.h2020.symbiote.commons.json.RequestToken} objects in token related
  * service ({@link eu.h2020.symbiote.services.TokenService}).
  *
  * @author Daniele Caldarola (CNIT)
@@ -21,24 +25,31 @@ import eu.h2020.symbiote.commons.jwt.JWTEngine;
  */
 @Component
 public class TokenManager {
-	
+
 	@Autowired
 	private JWTEngine jwtEngine;
 
-    public RequestToken create(String aamID, String appId, Long tokenValidInterval, Map<String, Object> claimsMap) throws JWTCreationException{
+	public RequestToken create(String aamID, String appId, Long tokenValidInterval, Map<String, Object> claimsMap)
+			throws JWTCreationException {
+		String appDummyCert;
+		try {
+			appDummyCert = new String(Files.readAllBytes(Paths.get("dummyAppCert")));
 
-        return new RequestToken(jwtEngine.generateJWTToken(aamID,appId,tokenValidInterval,claimsMap));
-    }
+			return new RequestToken(
+					jwtEngine.generateJWTToken(aamID, appId, tokenValidInterval, claimsMap, appDummyCert));
+		} catch (IOException e) {
+			throw new JWTCreationException();
+		}
+	}
 
+	public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {
 
-    public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {
+		// outcome (for now default is true)
+		CheckTokenRevocationResponse outcome = new CheckTokenRevocationResponse(Status.SUCCESS);
 
-        // outcome (for now default is true)
-    	CheckTokenRevocationResponse outcome = new CheckTokenRevocationResponse(Status.SUCCESS);
+		// do checks...
 
-        // do checks...
-
-        return outcome;
-    }
+		return outcome;
+	}
 
 }
