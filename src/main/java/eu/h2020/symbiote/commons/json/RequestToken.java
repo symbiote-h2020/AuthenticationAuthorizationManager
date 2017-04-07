@@ -3,7 +3,6 @@ package eu.h2020.symbiote.commons.json;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-
 /**
  * Class that defines the structure of the token sent to CloudAAM as part of a request.
  *

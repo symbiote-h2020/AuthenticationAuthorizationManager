@@ -4,23 +4,19 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 import eu.h2020.symbiote.commons.exceptions.*;
 import eu.h2020.symbiote.commons.json.RegistrationRequest;
 import eu.h2020.symbiote.commons.json.RegistrationResponse;
 import eu.h2020.symbiote.model.CertificateModel;
 import eu.h2020.symbiote.repositories.CertificateRepository;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-
 import eu.h2020.symbiote.commons.RegistrationManager;
 import eu.h2020.symbiote.commons.json.LoginRequest;
 import eu.h2020.symbiote.model.UserModel;
 import eu.h2020.symbiote.repositories.UserRepository;
-
+import org.bouncycastle.operator.OperatorCreationException;
 
 /**
  * Spring service used to register applications on CloudAAM.

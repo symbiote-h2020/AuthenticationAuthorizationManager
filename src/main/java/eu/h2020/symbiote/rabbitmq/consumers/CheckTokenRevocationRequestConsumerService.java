@@ -1,24 +1,17 @@
 package eu.h2020.symbiote.rabbitmq.consumers;
 
+import java.io.IOException;
+import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.commons.json.RequestToken;
+import eu.h2020.symbiote.rabbitmq.RabbitManager;
+import eu.h2020.symbiote.services.TokenService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import eu.h2020.symbiote.commons.enums.Status;
-import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
-import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
-import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
-import eu.h2020.symbiote.commons.json.ErrorResponseContainer;
-import eu.h2020.symbiote.commons.json.LoginRequest;
-import eu.h2020.symbiote.commons.json.RequestToken;
-import eu.h2020.symbiote.rabbitmq.RabbitManager;
-import eu.h2020.symbiote.services.LoginService;
-import eu.h2020.symbiote.services.TokenService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import java.io.IOException;
 
 /**
  * RabbitMQ Consumer implementation used for token revocation checking actions

@@ -1,8 +1,8 @@
 package eu.h2020.symbiote.commons.exceptions;
 
+import org.springframework.http.HttpStatus;
 import eu.h2020.symbiote.commons.Constants;
 import eu.h2020.symbiote.commons.CustomAAMException;
-import org.springframework.http.HttpStatus;
 
 /**
  * Custom exception thrown when an unauthorized client tries to unregister an application.
@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
  * @author Nemanja Ignjatov (UNIVIE)
  */
 public class UnauthorizedUnregistrationException extends CustomAAMException{
+
     private static final long serialVersionUID = Constants.serialVersionUID;
 
     private final HttpStatus statusCode = HttpStatus.UNAUTHORIZED;

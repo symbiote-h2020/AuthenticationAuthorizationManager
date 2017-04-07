@@ -1,11 +1,5 @@
 package eu.h2020.symbiote.rabbitmq.consumers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
-
 import eu.h2020.symbiote.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
 import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
@@ -14,6 +8,11 @@ import eu.h2020.symbiote.commons.json.LoginRequest;
 import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.rabbitmq.RabbitManager;
 import eu.h2020.symbiote.services.LoginService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.rabbitmq.client.AMQP;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.DefaultConsumer;
+import com.rabbitmq.client.Envelope;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

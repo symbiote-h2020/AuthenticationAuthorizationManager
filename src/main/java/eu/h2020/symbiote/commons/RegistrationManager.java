@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigInteger;
+import java.util.Date;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -24,7 +25,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.ECGenParameterSpec;
-import java.util.Date;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -42,7 +42,6 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.springframework.stereotype.Component;
-
 
 /**
  * Certificate related set of functions.
@@ -110,10 +109,8 @@ public class RegistrationManager {
     private X500NameBuilder createStdBuilder(String givenName)
     {
         X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
-
         builder.addRDN(BCStyle.NAME, givenName);
         builder.addRDN(BCStyle.O, ORG_NAME);
-
         return builder;
     }
 

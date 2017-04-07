@@ -2,7 +2,6 @@ package eu.h2020.symbiote.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import eu.h2020.symbiote.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
 import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;

@@ -3,7 +3,6 @@ package eu.h2020.symbiote.commons.enums;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import eu.h2020.symbiote.commons.json.RequestToken;
 
-
 /**
  * Enumeration used as outcome in Cloud AAM 'Check Home Token Revocation' procedure.
  *

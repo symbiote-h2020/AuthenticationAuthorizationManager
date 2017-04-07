@@ -1,14 +1,7 @@
 package eu.h2020.symbiote.commons.json;
 
-import java.io.IOException;
-import java.security.KeyPair;
-import java.security.NoSuchProviderException;
-import java.security.PrivateKey;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.h2020.symbiote.commons.RegistrationManager;
 
 /**
  * Class that defines the structure of a registration response sent by CloudAAM.

@@ -2,7 +2,6 @@ package eu.h2020.symbiote.commons.json;
 
 import java.util.ArrayList;
 
-
 /**
  * Class that defines the structure of a login request to CloudAAM.
  *

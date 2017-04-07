@@ -1,8 +1,7 @@
 package eu.h2020.symbiote.model;
 
-import eu.h2020.symbiote.commons.json.RequestToken;
 import org.springframework.data.annotation.Id;
-
+import eu.h2020.symbiote.commons.json.RequestToken;
 
 /**
  * Token entity definition for database persistence.
@@ -14,6 +13,7 @@ import org.springframework.data.annotation.Id;
 public class TokenModel {
 
     String token;
+
     public TokenModel() {
         this.token = null;
     }

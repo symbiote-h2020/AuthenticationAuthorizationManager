@@ -1,6 +1,5 @@
 package eu.h2020.symbiote.commons;
 
-
 /**
  * Recipient class used to collect all the constant values used throughout Cloud AAM code.
  *

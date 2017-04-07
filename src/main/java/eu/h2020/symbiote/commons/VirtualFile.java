@@ -3,6 +3,7 @@ package eu.h2020.symbiote.commons;
 import java.io.InputStream;
 
 public class VirtualFile {
+
     private InputStream inputStream;
     private String filename;
 

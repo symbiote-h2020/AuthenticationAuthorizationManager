@@ -8,14 +8,6 @@ import java.security.KeyPair;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.concurrent.TimeoutException;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import eu.h2020.symbiote.commons.json.*;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
@@ -27,19 +19,24 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.RpcClient;
-
+import eu.h2020.symbiote.commons.json.*;
 import eu.h2020.symbiote.commons.RegistrationManager;
 import eu.h2020.symbiote.commons.enums.Status;
-import eu.h2020.symbiote.commons.exceptions.ExistingApplicationException;
 import eu.h2020.symbiote.commons.exceptions.MissingArgumentsException;
 import eu.h2020.symbiote.commons.exceptions.WrongCredentialsException;
 import eu.h2020.symbiote.model.UserModel;
 import eu.h2020.symbiote.rabbitmq.RabbitManager;
 import eu.h2020.symbiote.repositories.UserRepository;
 import eu.h2020.symbiote.services.RegistrationService;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.rabbitmq.client.RpcClient;
+
 
 @RunWith(SpringRunner.class)
 //@SpringBootTest({"webEnvironment = WebEnvironment.RANDOM_PORT", "eureka.client.enabled=false"}) // FIXME: DOESN'T WORK WITH MULTIPLE PROPERTIES
@@ -260,20 +257,6 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 		} catch (HttpClientErrorException e) {
 			assertEquals(e.getRawStatusCode(), HttpStatus.BAD_REQUEST.value());
 		}
-	}
-
-	public void successfulApplicationRegistration() throws Exception {
-		try{
-			// register new application to db
-			RegistrationResponse registrationResponse = registrationService.register(new LoginRequest("NewApplication", "NewPassword"));
-			String cert = registrationResponse.getPemCertificate();
-			System.out.println(cert);
-			X509Certificate certObj = registrationManager.convertPEMToX509(cert);
-		} catch(Exception e){
-			assertEquals(ExistingApplicationException.class,e.getClass());
-			log.info(e.getMessage());
-		}
-
 	}
 
 	@Test

@@ -1,8 +1,8 @@
 package eu.h2020.symbiote.commons.exceptions;
 
+import org.springframework.http.HttpStatus;
 import eu.h2020.symbiote.commons.Constants;
 import eu.h2020.symbiote.commons.CustomAAMException;
-import org.springframework.http.HttpStatus;
 
 /**
  * Custom exception thrown when a app/user provides wrong credentials during login procedure in {@link eu.h2020.symbiote.services.LoginService}
