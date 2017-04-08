@@ -24,7 +24,6 @@ before_script:
 - chmod a+x merge_script.sh
 - BRANCHES_TO_MERGE_REGEX='staging' BRANCH_TO_MERGE=develop GITHUB_REPO=symbiote-h2020/CoreAuthenticationAuthorizationManager
   ./merge_script.sh
-- gradle check
 after_success:
 - chmod a+x pushing_script.sh
 - BRANCHES_TO_MERGE_REGEX='staging' BRANCH_TO_MERGE_INTO=develop GITHUB_REPO=symbiote-h2020/CoreAuthenticationAuthorizationManager

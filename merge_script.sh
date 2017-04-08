@@ -13,16 +13,6 @@ if ! grep -q "$BRANCHES_TO_MERGE_REGEX" <<< "$TRAVIS_BRANCH"; then
     exit 0
 fi
 
-## Since Travis does a partial checkout, we need to get the whole thing
-#git clone "https://github.com/$GITHUB_REPO" "$REPO_TEMP"
-#
-## shellcheck disable=SC2164
-#printf 'cd %s\n' "$REPO_TEMP" >&2
-#cd "$REPO_TEMP"
-#
-#printf 'Checking out %s\n' "$BRANCHES_TO_MERGE_REGEX" >&2
-#git checkout "$BRANCHES_TO_MERGE_REGEX"
-
 printf 'Removing staging branch as it has been handled already\n'
 printf 'git push %s :staging >/dev/null 2>&1\n' "$GITHUB_REPO"
 push_uri="https://$GITHUB_SECRET_TOKEN@github.com/$GITHUB_REPO"
