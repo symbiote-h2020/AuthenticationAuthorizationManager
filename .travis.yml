@@ -1,7 +1,8 @@
 language: java
 env:
   global:
-    secure: O4TUHiGO2oi46mxCWWxBVpxmQSxgLIAApkVGBxtbd73WcD1slE5iU1kfCuhbwU66q3Y9wUNbawrCkYG+M8ds/R+jjaNVk9156cw9bRpl1UlL5sRR5evB6J8q27zuTXF4iwxvo02tpJKgQ02oqbSjl6GRc5Tm6hRYZ9HGqrShwW0E8XRRhI1r2wRLgaZRUzCFVemBGa2IN41Q1RCWKLtIzixdnfofDfNungYY0uyB6+PqkRTCqltFjGYuQhXnm0+eRuFpoeACA7Zk/9g7Dt3/pJDSva8UQuUqStGEO36CKsOYDtyiwhQwrc7l3wmMmQRDpTr5bFoaacV2omjuRLlf41q+DUr2tOm/lvO3+H/4alo4mH3wnOWsJgp8PoE4IO2LVx3fQ/+quEBmDnapQJ1KvDre7nzXKs4aArB4ciMHsuxJve2Y8PHVHPgMVrLCFc4s93ohA75/lCVdR4FTnljgxqvMw90eyC6Dnl7B2u0AzGcZgkGH3AsGbmVj6ywTN5RgPob/e4PjG/4pECEGFezHrvBBdOBmzGrPcNLrvo421hI+yD/JZR3/fzEtrGBqKVoTavPvwTeLU/GFrYvluOfiTjDcyVcABdbcuB6H9TR33t/jcBVtfU50p5aBkhn4wQeF9g3LKgzjr3cDfwKIvn7q+sXI2q2vVEbeMaTy5gc4Tu4=
+    - secure: O4TUHiGO2oi46mxCWWxBVpxmQSxgLIAApkVGBxtbd73WcD1slE5iU1kfCuhbwU66q3Y9wUNbawrCkYG+M8ds/R+jjaNVk9156cw9bRpl1UlL5sRR5evB6J8q27zuTXF4iwxvo02tpJKgQ02oqbSjl6GRc5Tm6hRYZ9HGqrShwW0E8XRRhI1r2wRLgaZRUzCFVemBGa2IN41Q1RCWKLtIzixdnfofDfNungYY0uyB6+PqkRTCqltFjGYuQhXnm0+eRuFpoeACA7Zk/9g7Dt3/pJDSva8UQuUqStGEO36CKsOYDtyiwhQwrc7l3wmMmQRDpTr5bFoaacV2omjuRLlf41q+DUr2tOm/lvO3+H/4alo4mH3wnOWsJgp8PoE4IO2LVx3fQ/+quEBmDnapQJ1KvDre7nzXKs4aArB4ciMHsuxJve2Y8PHVHPgMVrLCFc4s93ohA75/lCVdR4FTnljgxqvMw90eyC6Dnl7B2u0AzGcZgkGH3AsGbmVj6ywTN5RgPob/e4PjG/4pECEGFezHrvBBdOBmzGrPcNLrvo421hI+yD/JZR3/fzEtrGBqKVoTavPvwTeLU/GFrYvluOfiTjDcyVcABdbcuB6H9TR33t/jcBVtfU50p5aBkhn4wQeF9g3LKgzjr3cDfwKIvn7q+sXI2q2vVEbeMaTy5gc4Tu4=
+    - REPO_TEMP=$(mktemp -d)
 jdk:
 - oraclejdk8
 services:
@@ -11,6 +12,7 @@ sudo: required
 branches:
   only:
   - staging
+install: true
 before_cache:
 - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
 - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
@@ -18,8 +20,17 @@ cache:
   directories:
   - "$HOME/.gradle/caches/"
   - "$HOME/.gradle/wrapper/"
-after_success:
+before_script:
 - chmod a+x merge_script.sh
-- BRANCHES_TO_MERGE_REGEX='staging' BRANCH_TO_MERGE_INTO=develop GITHUB_REPO=symbiote-h2020/CoreAuthenticationAuthorizationManager
+- BRANCHES_TO_MERGE_REGEX='staging' BRANCH_TO_MERGE=develop GITHUB_REPO=symbiote-h2020/CoreAuthenticationAuthorizationManager
   ./merge_script.sh
+- gradle check
+after_success:
+- chmod a+x pushing_script.sh
+- BRANCHES_TO_MERGE_REGEX='staging' BRANCH_TO_MERGE_INTO=develop GITHUB_REPO=symbiote-h2020/CoreAuthenticationAuthorizationManager
+  ./pushing_script.sh
 - bash <(curl -s https://codecov.io/bash)
+notifications:
+  email:
+    on_success: never # default: change
+    on_failure: always # default: always
