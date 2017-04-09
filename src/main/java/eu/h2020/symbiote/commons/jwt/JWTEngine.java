@@ -7,6 +7,7 @@ import java.util.Map;
 
 import java.security.cert.X509Certificate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import eu.h2020.symbiote.commons.RegistrationManager;
@@ -29,7 +30,13 @@ public class JWTEngine {
 	
 	private SecureRandom random = new SecureRandom();
 
-	public String generateJWTToken(String aamID, String appId, Long tokenValidInterval, Map<String, Object> attributes, String appCert)
+	@Value("${symbiote.aam.token.validityMillis}")
+	private Long tokenValidity;
+
+	@Value("${platform.id}")
+	private String platformId;
+
+	public String generateJWTToken(String appId, Map<String, Object> attributes, String appCert)
 			throws JWTCreationException {
 
 		String jti = String.valueOf(random.nextInt());
@@ -53,10 +60,10 @@ public class JWTEngine {
 			
 			JwtBuilder jwtBuilder = Jwts.builder();
 			jwtBuilder.setId(jti);
-			jwtBuilder.setIssuer(aamID);
+			jwtBuilder.setIssuer(platformId);
 			jwtBuilder.setSubject(appId);
 			jwtBuilder.setIssuedAt(new Date());
-			jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + tokenValidInterval));
+			jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + tokenValidity));
 			jwtBuilder.setClaims(claimsMap);
 			jwtBuilder.signWith(SignatureAlgorithm.ES256, regManager.getPlatformAAMPrivateKey());
 

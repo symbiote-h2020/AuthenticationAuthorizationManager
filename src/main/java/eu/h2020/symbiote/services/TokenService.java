@@ -22,13 +22,7 @@ import eu.h2020.symbiote.repositories.TokenRepository;
 public class TokenService {
 
 	// FIXME harcoded values for now
-	private final String aamID = "dummyAAM";
 	private final String appID = "dummyAPP";
-	private final Long tokenValidTime = new Long(1000 * 60 * 60 * 24); // one
-																		// day
-																		// token
-																		// validity
-																		// time
 
 	private final Map<String, Object> attributes = new HashMap<String, Object>(); // empty
 																					// claims
@@ -43,15 +37,15 @@ public class TokenService {
 	}
 
 	public TokenModel create() throws JWTCreationException {
-		return new TokenModel(tokenManager.create(aamID, appID, tokenValidTime, attributes));
+		return new TokenModel(tokenManager.create(appID, attributes));
 	}
 
 	public RequestToken getDefaultForeignToken() throws JWTCreationException {
-		return tokenManager.create(aamID, appID, tokenValidTime, attributes);
+		return tokenManager.create(appID, attributes);
 	}
 
 	public RequestToken getDefaultHomeToken() throws JWTCreationException {
-		return tokenManager.create(aamID, appID, tokenValidTime, attributes);
+		return tokenManager.create(appID, attributes);
 	}
 
 	public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {

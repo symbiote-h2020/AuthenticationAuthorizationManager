@@ -31,14 +31,14 @@ public class TokenManager {
 		this.jwtEngine = jwtEngine;
 	}
 
-	public RequestToken create(String aamID, String appId, Long tokenValidInterval, Map<String, Object> claimsMap)
+	public RequestToken create(String appId, Map<String, Object> claimsMap)
 			throws JWTCreationException {
 		String appDummyCert;
 		try {
 			appDummyCert = new String(Files.readAllBytes(Paths.get("dummyAppCert")));
 
 			return new RequestToken(
-					jwtEngine.generateJWTToken(aamID, appId, tokenValidInterval, claimsMap, appDummyCert));
+					jwtEngine.generateJWTToken(appId, claimsMap, appDummyCert));
 		} catch (IOException e) {
 			throw new JWTCreationException();
 		}
