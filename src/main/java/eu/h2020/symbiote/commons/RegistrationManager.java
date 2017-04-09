@@ -25,6 +25,10 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.ECGenParameterSpec;
+import java.util.Date;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.cert.X509CertificateHolder;
@@ -41,6 +45,7 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
@@ -51,6 +56,8 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class RegistrationManager {
+
+    private static Log log = LogFactory.getLog(RegistrationManager.class);
 
     private static final String KEY_PAIR_GEN_ALGORITHM = "ECDSA";
     private static final String CURVE_NAME = "secp256r1";
@@ -146,7 +153,7 @@ public class RegistrationManager {
         CertificateFactory certFact = CertificateFactory.getInstance("X.509", PROVIDER_NAME);
         cert = (X509Certificate)certFact.generateCertificate(bIn);
 
-        System.out.println(cert.toString()); //TODO: Delete this
+        log.debug(cert.toString());
 
         return cert;
     }

@@ -33,10 +33,14 @@ public class TokenService {
 	private final Map<String, Object> attributes = new HashMap<String, Object>(); // empty
 																					// claims
 																					// map
+	private final TokenRepository tokenRepository;
+	private final TokenManager tokenManager;
+
 	@Autowired
-	private TokenRepository tokenRepository;
-	@Autowired
-	private TokenManager tokenManager;
+	public TokenService(TokenRepository tokenRepository, TokenManager tokenManager) {
+		this.tokenRepository = tokenRepository;
+		this.tokenManager = tokenManager;
+	}
 
 	public TokenModel create() throws JWTCreationException {
 		return new TokenModel(tokenManager.create(aamID, appID, tokenValidTime, attributes));

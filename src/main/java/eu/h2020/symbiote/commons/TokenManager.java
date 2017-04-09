@@ -24,8 +24,12 @@ import eu.h2020.symbiote.commons.jwt.JWTEngine;
 @Component
 public class TokenManager {
 
+	private final JWTEngine jwtEngine;
+
 	@Autowired
-	private JWTEngine jwtEngine;
+	public TokenManager(JWTEngine jwtEngine) {
+		this.jwtEngine = jwtEngine;
+	}
 
 	public RequestToken create(String aamID, String appId, Long tokenValidInterval, Map<String, Object> claimsMap)
 			throws JWTCreationException {

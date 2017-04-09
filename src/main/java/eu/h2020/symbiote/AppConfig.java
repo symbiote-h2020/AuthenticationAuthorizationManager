@@ -1,6 +1,7 @@
 package eu.h2020.symbiote;
 
 import com.mongodb.Mongo;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
@@ -20,9 +21,15 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 @EnableMongoRepositories
 class AppConfig extends AbstractMongoConfiguration {
 
+    private String databaseName;
+
+    AppConfig(@Value("${aam.database.name}") String databaseName) {
+        this.databaseName = databaseName;
+    }
+
     @Override
     protected String getDatabaseName() {
-        return "symbiote-core-database";
+        return databaseName;
     }
 
     @Override

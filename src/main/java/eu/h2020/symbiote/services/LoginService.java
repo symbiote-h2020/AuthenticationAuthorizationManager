@@ -19,10 +19,16 @@ import eu.h2020.symbiote.repositories.UserRepository;
 @Service
 public class LoginService {
 
+    private final UserRepository userRepository;
+    private final TokenService tokenService;
+
+
     @Autowired
-    private UserRepository userRepository;
-    @Autowired
-    private TokenService tokenService;
+    public LoginService(UserRepository userRepository,
+                        TokenService tokenService) {
+        this.userRepository = userRepository;
+        this.tokenService = tokenService;
+    }
 
     public RequestToken login(LoginRequest user) throws MissingArgumentsException,WrongCredentialsException,JWTCreationException {
 

@@ -89,7 +89,10 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	private String platformOwnerUsername;
 	@Value("${platformowner.password}")
 	private String platformOwnerPassword;
-
+	@Value("${aam.security.PV_KEY_STORE_PASSWORD}")
+	private String pvKeyStorePassword;
+	@Value("${aam.security.KEY_STORE_PASSWORD}")
+	private String keyStorePassword;
 
 	@Before
 	public void setUp() throws Exception {
@@ -228,7 +231,7 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	@Test
 	public void certificateCreationAndVerification() throws Exception {
 
-		char[] KEY_STORE_PASSWD = { '1', '2', '3', '4', '5','6','7',};
+		char[] KEY_STORE_PASSWD = pvKeyStorePassword.toCharArray();
 
 		// UNA TANTUM - Generate Platform AAM Certificate and PV key and put that in a keystore
 		//registrationManager.createSelfSignedPlatformAAMECCert();
