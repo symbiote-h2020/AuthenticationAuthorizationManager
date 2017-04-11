@@ -31,6 +31,10 @@ public class CheckTokenRevocationResponse {
 		this.status = status;
 	}
 
+	public void setStatus(Status status) {
+		this.status = status.toString();
+	}
+
 	public String toJson() {
 		ObjectMapper om = new ObjectMapper();
 		try {

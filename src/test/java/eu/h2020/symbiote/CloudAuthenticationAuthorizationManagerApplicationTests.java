@@ -77,8 +77,6 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	private final String wrongusername = "veryWrongCloudAAMPass";
 	private final String wrongpassword = "veryWrongCloudAAMPass";
 
-	private final String homeTokenValue = "home_token_from_platform_aam-"+username;
-
 	private final String tokenHeaderName = "X-Auth-Token";
     
 	@Value("${rabbit.queue.login.request}")
@@ -93,6 +91,8 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 	private String pvKeyStorePassword;
 	@Value("${aam.security.KEY_STORE_PASSWORD}")
 	private String keyStorePassword;
+	@Value("${symbiote.aam.token.validityMillis}")
+	private Long tokenValidityPeriod;
 
 	@Before
 	public void setUp() throws Exception {
@@ -140,9 +140,13 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 
 	@Test
 	public void externalRequestForeignToken() {
-		
+
+		ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+				new LoginRequest(username, password), String.class);
+		HttpHeaders loginHeaders = response.getHeaders();
+
 		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-		headers.add(tokenHeaderName, homeTokenValue);
+		headers.add(tokenHeaderName, loginHeaders.getFirst(tokenHeaderName));
 
 		HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
@@ -152,17 +156,44 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
 		assertEquals(responseToken.getStatusCode(), HttpStatus.OK);
 		assertNotEquals(rspHeaders.getFirst(tokenHeaderName),null);
 	}
-	
+
 	@Test
-	public void externalCheckTokenRevocation() {
+	public void externalCheckTokenRevocationSucess() {
+
+		ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+				new LoginRequest(username, password), String.class);
+		HttpHeaders loginHeaders = response.getHeaders();
+
 		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-		headers.add(tokenHeaderName, homeTokenValue);
+		headers.add(tokenHeaderName, loginHeaders.getFirst(tokenHeaderName));
 
 		HttpEntity<String> request = new HttpEntity<String>(null, headers);
-		
+
 		ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress + checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
-		
+
 		assertEquals(status.getBody().getStatus(), Status.SUCCESS.toString());
+	}
+
+	@Test
+	public void externalCheckTokenRevocationFailure() {
+
+		ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+				new LoginRequest(username, password), String.class);
+		HttpHeaders loginHeaders = response.getHeaders();
+
+		//Introduce latency so that JWT expires
+		try {
+			Thread.sleep(tokenValidityPeriod * 2);
+		} catch (InterruptedException e) {
+		}
+		MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
+		headers.add(tokenHeaderName, loginHeaders.getFirst(tokenHeaderName));
+
+		HttpEntity<String> request = new HttpEntity<String>(null, headers);
+
+		ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress + checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
+
+		assertEquals(status.getBody().getStatus(), Status.FAILURE.toString());
 	}
 
 	@Test
@@ -219,9 +250,13 @@ public class CloudAuthenticationAuthorizationManagerApplicationTests {
     @Test
     public void internalCheckTokenRevocationRequestReplySuccess() throws IOException, TimeoutException {
 
-        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", checkTokenRevocationRequestQueue, 5000);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new RequestToken(homeTokenValue)).getBytes());
-        CheckTokenRevocationResponse checkTokenRevocationResponse = mapper.readValue(response, CheckTokenRevocationResponse.class);
+		RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+		byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(username, password)).getBytes());
+		RequestToken testToken = mapper.readValue(response, RequestToken.class);
+
+		client = new RpcClient(rabbitManager.getConnection().createChannel(), "", checkTokenRevocationRequestQueue, 5000);
+		response = client.primitiveCall(mapper.writeValueAsString(new RequestToken(testToken.getToken())).getBytes());
+		CheckTokenRevocationResponse checkTokenRevocationResponse = mapper.readValue(response, CheckTokenRevocationResponse.class);
 
         log.info("Test Client received this Status: " + checkTokenRevocationResponse.toJson());
 
