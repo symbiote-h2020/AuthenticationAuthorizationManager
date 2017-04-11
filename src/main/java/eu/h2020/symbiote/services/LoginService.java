@@ -36,7 +36,7 @@ public class LoginService {
             if(userRepository.exists(user.getUsername())){
                 UserModel userInDB = userRepository.findOne(user.getUsername());
                 if(user.getUsername().equals(userInDB.getUsername()) && user.getPassword().equals(userInDB.getPassword())){
-                    return tokenService.getDefaultHomeToken();
+                    return tokenService.getHomeToken();
                 }
             }
             throw new WrongCredentialsException();

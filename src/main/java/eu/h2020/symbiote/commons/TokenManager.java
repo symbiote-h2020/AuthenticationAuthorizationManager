@@ -8,6 +8,7 @@ import java.util.Map;
 import eu.h2020.symbiote.commons.exceptions.MalformedJWTException;
 import eu.h2020.symbiote.commons.exceptions.TokenValidationException;
 import eu.h2020.symbiote.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.model.TokenModel;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jettison.json.JSONException;
@@ -47,23 +48,37 @@ public class TokenManager {
         this.regManager = regManager;
     }
 
-    public RequestToken create(String appId, Map<String, Object> claimsMap)
+    public RequestToken createHomeToken()
             throws JWTCreationException {
-        String appDummyCert;
         try {
-
             return new RequestToken(
-                    jwtEngine.generateJWTToken(appId, claimsMap, regManager.getPlatformAAMPublicKey().getEncoded()));
+                    jwtEngine.generateJWTToken(platformId, null, regManager.getPlatformAAMPublicKey().getEncoded()));
         } catch (Exception e) {
             throw new JWTCreationException();
         }
     }
 
-    public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {
+    public RequestToken createForeignToken(String foreignToken)
+            throws JWTCreationException {
+        try {
+
+            JWTClaims claims = jwtEngine.getClaimsFromToken(foreignToken);
+
+            return new RequestToken(
+                    jwtEngine.generateJWTToken(claims.getIss(), null, claims.getIpk().getBytes()));
+        } catch (Exception e) {
+            throw new JWTCreationException();
+        }
+    }
+
+    public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token, TokenModel dbToken) {
 
         CheckTokenRevocationResponse outcome = new CheckTokenRevocationResponse(Status.SUCCESS);
 
         try {
+            if (dbToken == null) {
+                throw new TokenValidationException(Constants.ERR_TOKEN_WRONG_ISSUER);
+            }
             JWTClaims claims = jwtEngine.getClaimsFromToken(token.getToken());
             //Check if token expired
             Long now = System.currentTimeMillis();

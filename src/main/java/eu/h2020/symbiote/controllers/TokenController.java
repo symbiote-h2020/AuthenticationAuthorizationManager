@@ -48,12 +48,8 @@ public class TokenController {
         Attribute Mapping Function
         */
 
-        // TODO: some token repository operations (make a service in TokenService class for this purpose)
-        // Save token in MongoDB
-        tokenService.saveToken(new RequestToken(token));
-        
-    	RequestToken foreignToken = tokenService.getDefaultForeignToken();
-		HttpHeaders headers = new HttpHeaders();
+        RequestToken foreignToken = tokenService.exchangeForForeignToken(token);
+        HttpHeaders headers = new HttpHeaders();
 		headers.add(Constants.TOKEN_HEADER_NAME, foreignToken.getToken());
 		
         /* Finally issues and return foreign_token */
