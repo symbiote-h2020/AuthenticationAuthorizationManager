@@ -1,5 +1,6 @@
 package eu.h2020.symbiote;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.commons.Application;
@@ -34,11 +35,8 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.KeyPair;
-import java.security.KeyStore;
-import java.security.PublicKey;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.concurrent.TimeoutException;
@@ -51,7 +49,6 @@ import static org.junit.Assert.assertNotEquals;
 public class CoreAuthenticationAuthorizationManagerApplicationTests {
 
     private static Log log = LogFactory.getLog(CoreAuthenticationAuthorizationManagerApplicationTests.class);
-    private final String loginUri = "login";
     private final String foreignTokenUri = "request_foreign_token";
     private final String checkHomeTokenRevocationUri = "check_home_token_revocation";
     private final String username = "testCloudAAMUser";
@@ -60,6 +57,9 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
     private final String wrongpassword = "veryWrongCloudAAMPass";
     private final String homeTokenValue = "home_token_from_platform_aam-" + username;
     private final String tokenHeaderName = "X-Auth-Token";
+    private final String loginUri = "login";
+    private final String registrationUri = "register";
+    private final String unregistrationUri = "unregister";
     @LocalServerPort
     private int port;
     @Autowired
@@ -72,7 +72,6 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
     private ApplicationRegistrationService applicationRegistrationService;
     @Autowired
     private PasswordEncoder passwordEncoder;
-
     private RestTemplate restTemplate = new RestTemplate();
     private ObjectMapper mapper = new ObjectMapper();
     private String serverAddress;
@@ -80,6 +79,11 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
     private String loginRequestQueue;
     @Value("${rabbit.queue.check_token_revocation.request}")
     private String checkTokenRevocationRequestQueue;
+
+    @Value("${platformowner.username}")
+    private String platformOwnerUsername;
+    @Value("${platformowner.password}")
+    private String platformOwnerPassword;
 
     @Value("${aam.security.KEY_STORE_PASSWORD}")
     private String KEY_STORE_PASSWORD;
@@ -89,6 +93,9 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
     private String KEY_STORE_FILE_NAME;
     @Value("${aam.security.KEY_STORE_ALIAS}")
     private String KEY_STORE_ALIAS;
+
+    @Value("${symbiote.aam.token.validityMillis}")
+    private Long tokenValidityPeriod;
 
     @Before
     public void setUp() throws Exception {
@@ -106,7 +113,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
     @Test
     public void externalLoginSuccess() {
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
-                new LoginRequest(username, password), String.class);
+            new LoginRequest(username, password), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(response.getStatusCode(), HttpStatus.OK);
         assertNotEquals(headers.getFirst(tokenHeaderName), null);
@@ -117,7 +124,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
         ResponseEntity<ErrorResponseContainer> token = null;
         try {
             token = restTemplate.postForEntity(serverAddress + loginUri, new LoginRequest(wrongusername, password),
-                    ErrorResponseContainer.class);
+                ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
             assertEquals(token, null);
             assertEquals(e.getRawStatusCode(), HttpStatus.UNAUTHORIZED.value());
@@ -130,7 +137,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
         ResponseEntity<ErrorResponseContainer> token = null;
         try {
             token = restTemplate.postForEntity(serverAddress + loginUri, new LoginRequest(username, wrongpassword),
-                    ErrorResponseContainer.class);
+                ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
             assertEquals(token, null);
             assertEquals(e.getRawStatusCode(), HttpStatus.UNAUTHORIZED.value());
@@ -140,13 +147,17 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
     @Test
     public void externalRequestForeignToken() {
 
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+            new LoginRequest(username, password), String.class);
+        HttpHeaders loginHeaders = response.getHeaders();
+
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(tokenHeaderName, homeTokenValue);
+        headers.add(tokenHeaderName, loginHeaders.getFirst(tokenHeaderName));
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
         ResponseEntity<String> responseToken = restTemplate.postForEntity(serverAddress + foreignTokenUri, request,
-                String.class);
+            String.class);
         HttpHeaders rspHeaders = responseToken.getHeaders();
 
         assertEquals(responseToken.getStatusCode(), HttpStatus.OK);
@@ -154,16 +165,44 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
     }
 
     @Test
-    public void externalCheckTokenRevocation() {
+    public void externalCheckTokenRevocationSucess() {
+
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+            new LoginRequest(username, password), String.class);
+        HttpHeaders loginHeaders = response.getHeaders();
+
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(tokenHeaderName, homeTokenValue);
+        headers.add(tokenHeaderName, loginHeaders.getFirst(tokenHeaderName));
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
         ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress +
-                checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
+            checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
 
         assertEquals(status.getBody().getStatus(), Status.SUCCESS.toString());
+    }
+
+    @Test
+    public void externalCheckTokenRevocationFailure() {
+
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+            new LoginRequest(username, password), String.class);
+        HttpHeaders loginHeaders = response.getHeaders();
+
+        //Introduce latency so that JWT expires
+        try {
+            Thread.sleep(tokenValidityPeriod * 2);
+        } catch (InterruptedException e) {
+        }
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
+        headers.add(tokenHeaderName, loginHeaders.getFirst(tokenHeaderName));
+
+        HttpEntity<String> request = new HttpEntity<String>(null, headers);
+
+        ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress +
+            checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
+
+        assertEquals(status.getBody().getStatus(), Status.FAILURE.toString());
     }
 
     @Test
@@ -171,7 +210,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
         byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(username, password))
-                .getBytes());
+            .getBytes());
         RequestToken token = mapper.readValue(response, RequestToken.class);
 
         log.info("Test Client received this Token: " + token.toJson());
@@ -185,19 +224,19 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
 
         byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(wrongusername, password))
-                .getBytes());
+            .getBytes());
         ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
 
         byte[] response2 = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(username, wrongpassword))
-                .getBytes());
+            .getBytes());
         ErrorResponseContainer noToken2 = mapper.readValue(response2, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken2.getErrorMessage());
 
         byte[] response3 = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(wrongusername,
-                wrongpassword)).getBytes());
+            wrongpassword)).getBytes());
         ErrorResponseContainer noToken3 = mapper.readValue(response3, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken3.getErrorMessage());
@@ -225,11 +264,16 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
     @Test
     public void internalCheckTokenRevocationRequestReplySuccess() throws IOException, TimeoutException {
 
-        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                checkTokenRevocationRequestQueue, 5000);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new RequestToken(homeTokenValue)).getBytes());
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(username, password))
+            .getBytes());
+        RequestToken testToken = mapper.readValue(response, RequestToken.class);
+
+        client = new RpcClient(rabbitManager.getConnection().createChannel(), "", checkTokenRevocationRequestQueue,
+            10000);
+        response = client.primitiveCall(mapper.writeValueAsString(new RequestToken(testToken.getToken())).getBytes());
         CheckTokenRevocationResponse checkTokenRevocationResponse = mapper.readValue(response,
-                CheckTokenRevocationResponse.class);
+            CheckTokenRevocationResponse.class);
 
         log.info("Test Client received this Status: " + checkTokenRevocationResponse.toJson());
 
@@ -238,8 +282,6 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 
     @Test
     public void certificateCreationAndVerification() throws Exception {
-
-
 
         // UNA TANTUM - Generate Platform AAM Certificate and PV key and put that in a keystore
         //registrationManager.createSelfSignedPlatformAAMECCert();
@@ -250,10 +292,7 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
 
         // retrieves Platform AAM ("Daniele"'s certificate issuer) public key from keystore in order to verify
         // "Daniele"'s certificate
-        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWORD.toCharArray());
-        PublicKey pubKey = pkcs12Store.getCertificate(KEY_STORE_ALIAS).getPublicKey();
-        cert.verify(pubKey);
+        cert.verify(registrationManager.getPlatformAAMPublicKey());
 
         // also check time validity
         cert.checkValidity(new Date());
@@ -264,8 +303,8 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
         try {
             // register new application to db
             RegistrationResponse registrationResponse = applicationRegistrationService.register(new LoginRequest
-                    ("NewApplication", "NewPassword"));
-            String cert = registrationManager.convertX509ToPEM(registrationResponse.getCertificate());
+                ("NewApplication", "NewPassword"));
+            String cert = registrationResponse.getPemCertificate();
             System.out.println(cert);
             X509Certificate certObj = registrationManager.convertPEMToX509(cert);
             int a = 0;
@@ -277,6 +316,22 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
     }
 
     @Test
+
+    public void externalRegistrationSuccess() throws JsonProcessingException {
+        RegistrationRequest request = new RegistrationRequest(
+            new LoginRequest(platformOwnerUsername, platformOwnerPassword),
+            new LoginRequest("NewApplication", "NewPassword"));
+        try {
+            ResponseEntity<RegistrationResponse> response = restTemplate.postForEntity(serverAddress +
+                registrationUri, request, RegistrationResponse.class);
+            assertEquals(response.getStatusCode(), HttpStatus.OK);
+            log.info(response.getBody().toJson());
+        } catch (HttpClientErrorException e) {
+            assertEquals(e.getRawStatusCode(), HttpStatus.BAD_REQUEST.value());
+        }
+    }
+
+    @Test
     public void successfulApplicationUnregistration() throws Exception {
         try {
             applicationRegistrationService.unregister(new LoginRequest("NewApplication", "NewPassword"));
@@ -284,6 +339,19 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
         } catch (Exception e) {
             assertEquals(NotExistingApplicationException.class, e.getClass());
             log.info(e.getMessage());
+        }
+    }
+
+    @Test
+    public void externalUnregistrationSuccess() throws JsonProcessingException {
+        RegistrationRequest request = new RegistrationRequest(
+            new LoginRequest(platformOwnerUsername, platformOwnerPassword),
+            new LoginRequest("NewApplication", "NewPassword"));
+        try {
+            ResponseEntity<Void> response = restTemplate.postForEntity(serverAddress + unregistrationUri, request, Void.class);
+            assertEquals(response.getStatusCode(), HttpStatus.OK);
+        } catch (HttpClientErrorException e) {
+            assertEquals(e.getRawStatusCode(), HttpStatus.BAD_REQUEST.value());
         }
 
     }

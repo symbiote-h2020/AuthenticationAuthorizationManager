@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.model;
 
-import eu.h2020.symbiote.commons.Application;
+import eu.h2020.symbiote.commons.RegistrationManager;
 import org.springframework.data.annotation.Id;
 
 import java.io.IOException;
@@ -8,14 +8,12 @@ import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
-import eu.h2020.symbiote.commons.RegistrationManager;
 
 /**
  * Platform AAM certificate entity definition for database persistence.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
- * @see Application
  */
 public class CertificateModel{
 

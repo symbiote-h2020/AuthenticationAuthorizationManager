@@ -29,7 +29,7 @@ apply plugin: 'idea'
 apply plugin: 'com.cinnober.gradle.semver-git'
 
 // XXX please change with your commits according to http://semver.org/
-project.version = '0.2.0'
+project.version = '0.3.0'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -87,6 +87,12 @@ dependencies {
     compile('org.springframework.boot:spring-boot-starter-data-rest')
     compile('org.springframework.boot:spring-boot-starter-web')
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
+
+    // registration page
+    compile('net.lingala.zip4j:zip4j:1.3.2')
+    compile('commons-io:commons-io:2.5')
+    compile('org.springframework.boot:spring-boot-starter-security')
+    compile('org.springframework.boot:spring-boot-starter-thymeleaf')
 
     // tests only
     testCompile('junit:junit:4.+')

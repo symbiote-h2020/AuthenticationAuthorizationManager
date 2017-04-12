@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.repositories;
 
-import eu.h2020.symbiote.model.TokenModel;
 import org.springframework.data.mongodb.repository.MongoRepository;
+import eu.h2020.symbiote.model.TokenModel;
 
 /**
  * Spring repository interface definition to be used with MongoDB for operations on {@link TokenModel} entities.
@@ -9,4 +9,7 @@ import org.springframework.data.mongodb.repository.MongoRepository;
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
  */
-public interface TokenRepository extends MongoRepository<TokenModel, String>{}
+public interface TokenRepository extends MongoRepository<TokenModel, String> {
+
+    public TokenModel findByToken(String token);
+}

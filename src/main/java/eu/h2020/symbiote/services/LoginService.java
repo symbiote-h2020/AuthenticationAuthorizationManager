@@ -40,7 +40,7 @@ public class LoginService {
                 Application applicationInDB = applicationRepository.findOne(user.getUsername());
                 if (user.getUsername().equals(applicationInDB.getUsername())
                         && passwordEncoder.matches(user.getPassword(), applicationInDB.getPasswordEncrypted())) {
-                    return tokenService.getDefaultHomeToken();
+                    return tokenService.getHomeToken();
                 }
             }
             throw new WrongCredentialsException();

@@ -1,20 +1,18 @@
 package eu.h2020.symbiote.rabbitmq;
 
-import com.rabbitmq.client.*;
+import java.io.IOException;
+import javax.annotation.PreDestroy;
+import java.util.concurrent.TimeoutException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import eu.h2020.symbiote.rabbitmq.consumers.CheckTokenRevocationRequestConsumerService;
 import eu.h2020.symbiote.rabbitmq.consumers.LoginRequestConsumerService;
 import eu.h2020.symbiote.services.LoginService;
 import eu.h2020.symbiote.services.TokenService;
+import com.rabbitmq.client.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
-import javax.annotation.PreDestroy;
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
-
 
 @Component
 public class RabbitManager {

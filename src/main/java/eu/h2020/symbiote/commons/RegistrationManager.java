@@ -9,6 +9,9 @@ import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -84,6 +87,14 @@ public class RegistrationManager {
         return signedCertificatePEMDataStringWriter.toString();
     }
 
+    public String convertPrivateKeyToPEM(PrivateKey privateKey) throws IOException {
+        StringWriter privateKeyPEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(privateKeyPEMDataStringWriter);
+        pemWriter.writeObject(privateKey);
+        pemWriter.close();
+        return privateKeyPEMDataStringWriter.toString();
+    }
+
     public X509Certificate convertPEMToX509(String pemCertificate) throws IOException, CertificateException {
         StringReader reader = new StringReader(pemCertificate);
         PemReader pr = new PemReader(reader);
@@ -92,12 +103,19 @@ public class RegistrationManager {
         return new JcaX509CertificateConverter().setProvider(PROVIDER_NAME).getCertificate(certificateHolder);
     }
 
-    private X500NameBuilder createStdBuilder(String givenName) {
-        X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
+    public PrivateKey convertPEMToPrivateKey(String pemPrivatekey) throws IOException, CertificateException {
+        StringReader reader = new StringReader(pemPrivatekey);
+        PEMParser pemParser = new PEMParser(reader);
+        Object o = pemParser.readObject();
+        KeyPair kp = new JcaPEMKeyConverter().setProvider(PROVIDER_NAME).getKeyPair((PEMKeyPair) o);
+        return kp.getPrivate();
+    }
 
+    private X500NameBuilder createStdBuilder(String givenName)
+    {
+        X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
         builder.addRDN(BCStyle.NAME, givenName);
         builder.addRDN(BCStyle.O, ORG_NAME);
-
         return builder;
     }
 
@@ -128,14 +146,13 @@ public class RegistrationManager {
                 subjectBuilder.build(),
                 pubKey);
 
-        X509Certificate cert = new JcaX509CertificateConverter().setProvider(PROVIDER_NAME).getCertificate(certGen
-                .build(sigGen));
+        X509Certificate cert = new JcaX509CertificateConverter().setProvider(PROVIDER_NAME).getCertificate(certGen.build(sigGen));
 
         ByteArrayInputStream bIn = new ByteArrayInputStream(cert.getEncoded());
         CertificateFactory certFact = CertificateFactory.getInstance("X.509", PROVIDER_NAME);
         cert = (X509Certificate) certFact.generateCertificate(bIn);
 
-        log.debug(cert.toString());
+        log.debug(cert.toString()); // TODO maybe delete it later
 
         return cert;
     }
@@ -143,7 +160,6 @@ public class RegistrationManager {
     // FIXME: THIS IS NOT THE WAY IT'GONNA BE IN FUTURE. JUST FOR TEST PURPOSES. Symbiote CORE is the root CA and IT
     // should provide any Platform AAM a certificate. Platform AAM is not going to issue itself a certificate!
     // ONLY FOR TESTS
-
     /**
      * Used to generate the Platform AAM Certificate and private key and store them on a file.
      * Note: The Platform AAM private key will be retrieved any time Platform AAM (which acts as an intermediate CA)

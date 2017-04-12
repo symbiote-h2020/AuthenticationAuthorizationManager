@@ -5,9 +5,16 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
 
+import eu.h2020.symbiote.commons.exceptions.MalformedJWTException;
+import eu.h2020.symbiote.commons.exceptions.TokenValidationException;
+import eu.h2020.symbiote.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.model.TokenModel;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.codehaus.jettison.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-
 import eu.h2020.symbiote.commons.enums.Status;
 import eu.h2020.symbiote.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
@@ -26,27 +33,75 @@ import eu.h2020.symbiote.commons.jwt.JWTEngine;
 @Component
 public class TokenManager {
 
-	private final JWTEngine jwtEngine;
+    private static Log log = LogFactory.getLog(TokenManager.class);
 
-	@Autowired
-	public TokenManager(JWTEngine jwtEngine) {
-		this.jwtEngine = jwtEngine;
-	}
+    private final JWTEngine jwtEngine;
+    private RegistrationManager regManager;
 
-	public RequestToken create(String aamID, String appId, Long tokenValidInterval, Map<String, Object> claimsMap, String appCert)
-			throws JWTCreationException {
-			return new RequestToken(
-					jwtEngine.generateJWTToken(aamID, appId, tokenValidInterval, claimsMap, appCert));
-	}
+    @Value("${platform.id}")
+    private String platformId;
 
-	public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {
 
-		// outcome (for now default is true)
-		CheckTokenRevocationResponse outcome = new CheckTokenRevocationResponse(Status.SUCCESS);
+    @Autowired
+    public TokenManager(JWTEngine jwtEngine, RegistrationManager regManager) {
+        this.jwtEngine = jwtEngine;
+        this.regManager = regManager;
+    }
 
-		// do checks...
+    public RequestToken createHomeToken()
+            throws JWTCreationException {
+        try {
+            return new RequestToken(
+                    jwtEngine.generateJWTToken(platformId, null, regManager.getPlatformAAMPublicKey().getEncoded()));
+        } catch (Exception e) {
+            throw new JWTCreationException();
+        }
+    }
 
-		return outcome;
-	}
+    public RequestToken createForeignToken(String foreignToken)
+            throws JWTCreationException {
+        try {
+
+            JWTClaims claims = jwtEngine.getClaimsFromToken(foreignToken);
+
+            return new RequestToken(
+                    jwtEngine.generateJWTToken(claims.getIss(), null, claims.getIpk().getBytes()));
+        } catch (Exception e) {
+            throw new JWTCreationException();
+        }
+    }
+
+    public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token, TokenModel dbToken) {
+
+        CheckTokenRevocationResponse outcome = new CheckTokenRevocationResponse(Status.SUCCESS);
+
+        try {
+            if (dbToken == null) {
+                throw new TokenValidationException(Constants.ERR_TOKEN_WRONG_ISSUER);
+            }
+            JWTClaims claims = jwtEngine.getClaimsFromToken(token.getToken());
+            //Check if token expired
+            Long now = System.currentTimeMillis();
+            if ((claims.getExp() < now || (claims.getIat() > now))) {
+                throw new TokenValidationException(Constants.ERR_TOKEN_EXPIRED);
+            }
+
+            //Check if issuer of the token is this platform
+            if (!claims.getIss().equals(platformId)) {
+                throw new TokenValidationException(Constants.ERR_TOKEN_WRONG_ISSUER);
+            }
+            return outcome;
+        } catch (MalformedJWTException e) {
+            log.error("JWT Format error: " + e.toString());
+        } catch (JSONException e) {
+            log.error("JWT data reading error: " + e.toString());
+        } catch (TokenValidationException e) {
+            log.error("JWT validation error: " + e.toString());
+        }
+
+        outcome.setStatus(Status.FAILURE);
+
+        return outcome;
+    }
 
 }

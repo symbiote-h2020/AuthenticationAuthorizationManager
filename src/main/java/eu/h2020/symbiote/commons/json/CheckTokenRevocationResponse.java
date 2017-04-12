@@ -1,9 +1,8 @@
 package eu.h2020.symbiote.commons.json;
 
+import eu.h2020.symbiote.commons.enums.Status;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import eu.h2020.symbiote.commons.enums.Status;
 
 /**
  * Class that defines the status of the checked token sent for revocation to
@@ -30,6 +29,10 @@ public class CheckTokenRevocationResponse {
 
 	public void setStatus(String status) {
 		this.status = status;
+	}
+
+	public void setStatus(Status status) {
+		this.status = status.toString();
 	}
 
 	public String toJson() {

@@ -1,9 +1,8 @@
 package eu.h2020.symbiote.commons.exceptions;
 
+import org.springframework.http.HttpStatus;
 import eu.h2020.symbiote.commons.Constants;
 import eu.h2020.symbiote.commons.CustomAAMException;
-import org.springframework.http.HttpStatus;
-
 
 /**
  * Custom exception thrown when application credentials are already present in DB during registration procedure in {@link eu.h2020.symbiote.services.ApplicationRegistrationService}.
@@ -12,6 +11,7 @@ import org.springframework.http.HttpStatus;
  * @author Nemanja Ignjatov (UNIVIE)
  */
 public class ExistingApplicationException extends CustomAAMException {
+
     private static final long serialVersionUID = Constants.serialVersionUID;
 
     private final HttpStatus statusCode = HttpStatus.BAD_REQUEST;
