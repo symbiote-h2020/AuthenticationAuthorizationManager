@@ -348,7 +348,8 @@ public class CoreAuthenticationAuthorizationManagerApplicationTests {
             new LoginRequest(platformOwnerUsername, platformOwnerPassword),
             new LoginRequest("NewApplication", "NewPassword"));
         try {
-            ResponseEntity<Void> response = restTemplate.postForEntity(serverAddress + unregistrationUri, request, Void.class);
+            ResponseEntity<Void> response = restTemplate.postForEntity(serverAddress + unregistrationUri, request,
+                Void.class);
             assertEquals(response.getStatusCode(), HttpStatus.OK);
         } catch (HttpClientErrorException e) {
             assertEquals(e.getRawStatusCode(), HttpStatus.BAD_REQUEST.value());

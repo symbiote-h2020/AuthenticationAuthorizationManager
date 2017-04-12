@@ -40,7 +40,7 @@ public class ApplicationRegistrationService {
 
     @Autowired
     public ApplicationRegistrationService(ApplicationRepository applicationRepository, CertificateRepository
-            certificateRepository, RegistrationManager registrationManager, PasswordEncoder passwordEncoder) {
+        certificateRepository, RegistrationManager registrationManager, PasswordEncoder passwordEncoder) {
         this.applicationRepository = applicationRepository;
         this.certificateRepository = certificateRepository;
         this.registrationManager = registrationManager;
@@ -48,16 +48,16 @@ public class ApplicationRegistrationService {
     }
 
     public RegistrationResponse register(LoginRequest user) throws MissingArgumentsException,
-            ExistingApplicationException,
-            WrongCredentialsException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            InvalidAlgorithmParameterException,
-            UnrecoverableKeyException,
-            CertificateException,
-            OperatorCreationException,
-            KeyStoreException,
-            IOException {
+        ExistingApplicationException,
+        WrongCredentialsException,
+        NoSuchAlgorithmException,
+        NoSuchProviderException,
+        InvalidAlgorithmParameterException,
+        UnrecoverableKeyException,
+        CertificateException,
+        OperatorCreationException,
+        KeyStoreException,
+        IOException {
 
         if (user.getUsername() != null || user.getPassword() != null) {
             if (applicationRepository.exists(user.getUsername())) {
@@ -69,7 +69,7 @@ public class ApplicationRegistrationService {
 
                 // Generate certificate for the application
                 X509Certificate applicationCertificate = registrationManager.createECCert(user.getUsername(),
-                        applicationKeyPair.getPublic());
+                    applicationKeyPair.getPublic());
 
                 // Register the user (Application)
                 Application application = new Application();
@@ -80,9 +80,10 @@ public class ApplicationRegistrationService {
                 certificateRepository.save(new CertificateModel(applicationCertificate));
 
                 String pemApplicationCertificate = registrationManager.convertX509ToPEM(applicationCertificate);
-                String pemApplicationPrivateKey = registrationManager.convertPrivateKeyToPEM(applicationKeyPair.getPrivate());
+                String pemApplicationPrivateKey = registrationManager.convertPrivateKeyToPEM(applicationKeyPair
+                    .getPrivate());
 
-                return new RegistrationResponse(pemApplicationCertificate,pemApplicationPrivateKey);
+                return new RegistrationResponse(pemApplicationCertificate, pemApplicationPrivateKey);
 
             }
         } else {
@@ -91,12 +92,16 @@ public class ApplicationRegistrationService {
 
     }
 
-    public RegistrationResponse authRegister(RegistrationRequest request) throws ExistingApplicationException, MissingArgumentsException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, UnrecoverableKeyException, CertificateException, OperatorCreationException, KeyStoreException, IOException, UnauthorizedRegistrationException, WrongCredentialsException {
+    public RegistrationResponse authRegister(RegistrationRequest request) throws ExistingApplicationException,
+        MissingArgumentsException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
+        NoSuchProviderException, UnrecoverableKeyException, CertificateException, OperatorCreationException,
+        KeyStoreException, IOException, UnauthorizedRegistrationException, WrongCredentialsException {
 
-        if(request.getPlatformOwner() != null || request.getApplication() != null) {
-            if (request.getPlatformOwner().getUsername().equals(platformOwnerUsername) && request.getPlatformOwner().getPassword().equals(platformOwnerPassword)) {
+        if (request.getPlatformOwner() != null || request.getApplication() != null) {
+            if (request.getPlatformOwner().getUsername().equals(platformOwnerUsername) && request.getPlatformOwner()
+                .getPassword().equals(platformOwnerPassword)) {
                 return this.register(request.getApplication());
-            } else{
+            } else {
                 throw new UnauthorizedRegistrationException();
             }
         } else {
@@ -109,7 +114,6 @@ public class ApplicationRegistrationService {
         if (user.getUsername() != null || user.getPassword() != null) {
             if (applicationRepository.exists(user.getUsername())) {
                 applicationRepository.delete(user.getUsername());
-                return;
             } else {
                 throw new NotExistingApplicationException();
             }
@@ -118,10 +122,12 @@ public class ApplicationRegistrationService {
         }
     }
 
-    public void authUnregister(RegistrationRequest request) throws MissingArgumentsException, NotExistingApplicationException, UnauthorizedUnregistrationException {
+    public void authUnregister(RegistrationRequest request) throws MissingArgumentsException,
+        NotExistingApplicationException, UnauthorizedUnregistrationException {
 
-        if(request.getPlatformOwner() != null || request.getApplication() != null) {
-            if (request.getPlatformOwner().getUsername().equals(platformOwnerUsername) && request.getPlatformOwner().getPassword().equals(platformOwnerPassword)) {
+        if (request.getPlatformOwner() != null || request.getApplication() != null) {
+            if (request.getPlatformOwner().getUsername().equals(platformOwnerUsername) && request.getPlatformOwner()
+                .getPassword().equals(platformOwnerPassword)) {
                 this.unregister(request.getApplication());
             } else {
                 throw new UnauthorizedUnregistrationException();

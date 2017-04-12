@@ -28,21 +28,21 @@ public class RequestToken {
     public void setToken(String token) {
         this.token = token;
     }
-    
-    public String toJson(){
-    	ObjectMapper om = new ObjectMapper();
-    	try {
-			return om.writeValueAsString(this);
-		} catch (JsonProcessingException e) {
-			e.printStackTrace();
-			return null;
-		}
+
+    public String toJson() {
+        ObjectMapper om = new ObjectMapper();
+        try {
+            return om.writeValueAsString(this);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
-	@Override
-	public String toString() {
-		return "RequestToken [token=" + token + "]";
-	}
-    
-    
+    @Override
+    public String toString() {
+        return "RequestToken [token=" + token + "]";
+    }
+
+
 }

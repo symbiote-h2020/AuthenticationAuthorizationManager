@@ -1,27 +1,32 @@
 package eu.h2020.symbiote.controllers;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.security.*;
-import java.security.cert.CertificateException;
-import java.util.Map;
+import eu.h2020.symbiote.commons.CustomAAMException;
+import eu.h2020.symbiote.commons.VirtualFile;
+import eu.h2020.symbiote.commons.json.ErrorResponseContainer;
+import eu.h2020.symbiote.commons.json.LoginRequest;
+import eu.h2020.symbiote.commons.json.RegistrationRequest;
+import eu.h2020.symbiote.commons.json.RegistrationResponse;
+import eu.h2020.symbiote.services.ApplicationRegistrationService;
+import eu.h2020.symbiote.services.ZipService;
+import net.lingala.zip4j.exception.ZipException;
+import org.bouncycastle.operator.OperatorCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import eu.h2020.symbiote.commons.VirtualFile;
-import eu.h2020.symbiote.commons.json.*;
-import eu.h2020.symbiote.services.ApplicationRegistrationService;
-import eu.h2020.symbiote.commons.CustomAAMException;
-import eu.h2020.symbiote.services.ZipService;
-import net.lingala.zip4j.exception.ZipException;
-import org.bouncycastle.operator.OperatorCreationException;
+
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -35,15 +40,21 @@ import org.bouncycastle.operator.OperatorCreationException;
 @RestController
 public class RegistrationController {
 
-    @Autowired
-    private ApplicationRegistrationService registrationService;
+    private final ApplicationRegistrationService registrationService;
+    private final ZipService zipService;
 
     @Autowired
-    private ZipService zipService;
+    public RegistrationController(ApplicationRegistrationService registrationService, ZipService zipService) {
+        this.registrationService = registrationService;
+        this.zipService = zipService;
+    }
 
     @PreAuthorize("isAuthenticated()")
     @RequestMapping(value = "/registration", method = RequestMethod.POST)
-    public ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response ) throws CustomAAMException ,CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, OperatorCreationException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException, IOException, ZipException {
+    public ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response)
+        throws CustomAAMException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException,
+        OperatorCreationException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException,
+        IOException, ZipException {
         LoginRequest user = new LoginRequest(requestMap.get("username"), requestMap.get("password"));
         RegistrationResponse regResponse = registrationService.register(user);
         String certificate = regResponse.getPemCertificate();
@@ -63,22 +74,28 @@ public class RegistrationController {
     }
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)
-    public ResponseEntity<?> register(@RequestBody RegistrationRequest request) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, OperatorCreationException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException, IOException {
+    public ResponseEntity<?> register(@RequestBody RegistrationRequest request) throws CertificateException,
+        UnrecoverableKeyException, NoSuchAlgorithmException, OperatorCreationException, KeyStoreException,
+        NoSuchProviderException, InvalidAlgorithmParameterException, IOException {
         try {
             RegistrationResponse response = registrationService.authRegister(request);
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (CustomAAMException e) {
-            return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal()), e.getStatusCode());
+            return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
+                .getStatusCode().ordinal()), e.getStatusCode());
         }
     }
 
     @RequestMapping(value = "/unregister", method = RequestMethod.POST)
-    public ResponseEntity<?> unregister(@RequestBody RegistrationRequest request) throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, OperatorCreationException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException, IOException {
+    public ResponseEntity<?> unregister(@RequestBody RegistrationRequest request) throws CertificateException,
+        UnrecoverableKeyException, NoSuchAlgorithmException, OperatorCreationException, KeyStoreException,
+        NoSuchProviderException, InvalidAlgorithmParameterException, IOException {
         try {
             registrationService.authUnregister(request);
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (CustomAAMException e) {
-            return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal()), e.getStatusCode());
+            return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
+                .getStatusCode().ordinal()), e.getStatusCode());
         }
     }
 }

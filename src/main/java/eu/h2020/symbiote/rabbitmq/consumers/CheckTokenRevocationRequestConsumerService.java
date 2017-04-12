@@ -1,21 +1,21 @@
 package eu.h2020.symbiote.rabbitmq.consumers;
 
-import java.io.IOException;
-import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
-import eu.h2020.symbiote.commons.json.RequestToken;
-import eu.h2020.symbiote.rabbitmq.RabbitManager;
-import eu.h2020.symbiote.services.TokenService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
+import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.commons.json.RequestToken;
+import eu.h2020.symbiote.rabbitmq.RabbitManager;
+import eu.h2020.symbiote.services.TokenService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.io.IOException;
+
 /**
  * RabbitMQ Consumer implementation used for token revocation checking actions
- *
  */
 public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer {
 
@@ -28,8 +28,8 @@ public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer 
      * Constructs a new instance and records its association to the passed-in channel.
      * Managers beans passed as parameters because of lack of possibility to inject it to consumer.
      *
-     * @param channel           the channel to which this consumer is attached
-     * @param rabbitManager     rabbit manager bean passed for access to messages manager
+     * @param channel       the channel to which this consumer is attached
+     * @param rabbitManager rabbit manager bean passed for access to messages manager
      */
     public CheckTokenRevocationRequestConsumerService(Channel channel,
                                                       RabbitManager rabbitManager,
@@ -52,7 +52,7 @@ public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer 
     @Override
     public void handleDelivery(String consumerTag, Envelope envelope,
                                AMQP.BasicProperties properties, byte[] body)
-            throws IOException {
+        throws IOException {
 
         String message = new String(body, "UTF-8");
         ObjectMapper om = new ObjectMapper();
@@ -64,13 +64,14 @@ public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer 
         if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
 
             AMQP.BasicProperties replyProps = new AMQP.BasicProperties
-                    .Builder()
-                    .correlationId(properties.getCorrelationId())
-                    .build();
+                .Builder()
+                .correlationId(properties.getCorrelationId())
+                .build();
             try {
-                requestToken = om.readValue(message,RequestToken.class);
+                requestToken = om.readValue(message, RequestToken.class);
 
-                CheckTokenRevocationResponse checkTokenRevocationResponse = tokenService.checkHomeTokenRevocation(requestToken);
+                CheckTokenRevocationResponse checkTokenRevocationResponse = tokenService.checkHomeTokenRevocation
+                    (requestToken);
                 response = om.writeValueAsString(checkTokenRevocationResponse);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
 

@@ -15,9 +15,9 @@ import java.util.Date;
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
  */
-public class CertificateModel{
+public class CertificateModel {
 
-    RegistrationManager registrationManager = new RegistrationManager();
+    private RegistrationManager registrationManager = new RegistrationManager();
 
     private String pemCertificate;
     private Date asyncNotAfter;
@@ -26,16 +26,19 @@ public class CertificateModel{
         this.pemCertificate = pemCertificate;
     }
 
-    public CertificateModel(X509Certificate certificate) throws IOException, CertificateException, NoSuchProviderException {
+    public CertificateModel(X509Certificate certificate) throws IOException, CertificateException,
+        NoSuchProviderException {
         this.pemCertificate = registrationManager.convertX509ToPEM(certificate);
     }
 
-    public CertificateModel(String pemCertificate, Date asyncNotAfter) throws CertificateException, NoSuchProviderException {
+    public CertificateModel(String pemCertificate, Date asyncNotAfter) throws CertificateException,
+        NoSuchProviderException {
         this.pemCertificate = pemCertificate;
         this.asyncNotAfter = asyncNotAfter;
     }
 
-    public CertificateModel(X509Certificate certificate,Date asyncNotAfter) throws IOException, CertificateException, NoSuchProviderException {
+    public CertificateModel(X509Certificate certificate, Date asyncNotAfter) throws IOException,
+        CertificateException, NoSuchProviderException {
         this.pemCertificate = registrationManager.convertX509ToPEM(certificate);
         this.asyncNotAfter = asyncNotAfter;
     }
@@ -45,16 +48,16 @@ public class CertificateModel{
         return this.pemCertificate;
     }
 
-    public X509Certificate getCertificate() throws IOException, CertificateException {
-        return registrationManager.convertPEMToX509(this.pemCertificate);
+    public void setPemCertificate(X509Certificate certificate) throws IOException {
+        this.pemCertificate = registrationManager.convertX509ToPEM(certificate);
     }
 
     public void setPemCertificate(String pemCertificate) {
         this.pemCertificate = pemCertificate;
     }
 
-    public void setPemCertificate(X509Certificate certificate) throws IOException {
-        this.pemCertificate = registrationManager.convertX509ToPEM(certificate);
+    public X509Certificate getCertificate() throws IOException, CertificateException {
+        return registrationManager.convertPEMToX509(this.pemCertificate);
     }
 
     public Date getAsyncNotAfter() {

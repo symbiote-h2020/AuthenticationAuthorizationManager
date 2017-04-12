@@ -14,12 +14,12 @@ public class RegistrationResponse {
     private String pemCertificate;
     private String pemPrivateKey;
 
-    public RegistrationResponse(){
+    public RegistrationResponse() {
         this.pemCertificate = null;
         this.pemPrivateKey = null;
     }
 
-    public RegistrationResponse(String pemCertificate, String pemPrivateKey){
+    public RegistrationResponse(String pemCertificate, String pemPrivateKey) {
         this.pemCertificate = pemCertificate;
         this.pemPrivateKey = pemPrivateKey;
     }
@@ -40,7 +40,7 @@ public class RegistrationResponse {
         this.pemPrivateKey = pemPrivateKey;
     }
 
-    public String toJson(){
+    public String toJson() {
         ObjectMapper om = new ObjectMapper();
         try {
             return om.writeValueAsString(this);

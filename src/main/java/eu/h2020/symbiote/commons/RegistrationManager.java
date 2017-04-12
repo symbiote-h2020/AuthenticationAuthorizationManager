@@ -71,7 +71,7 @@ public class RegistrationManager {
     }
 
     public KeyPair createKeyPair() throws NoSuchProviderException, NoSuchAlgorithmException,
-            InvalidAlgorithmParameterException {
+        InvalidAlgorithmParameterException {
         ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
         KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
         g.initialize(ecGenSpec, new SecureRandom());
@@ -111,8 +111,7 @@ public class RegistrationManager {
         return kp.getPrivate();
     }
 
-    private X500NameBuilder createStdBuilder(String givenName)
-    {
+    private X500NameBuilder createStdBuilder(String givenName) {
         X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
         builder.addRDN(BCStyle.NAME, givenName);
         builder.addRDN(BCStyle.O, ORG_NAME);
@@ -120,12 +119,12 @@ public class RegistrationManager {
     }
 
     public X509Certificate createECCert(String applicationUsername, PublicKey pubKey) throws NoSuchProviderException,
-            KeyStoreException,
-            IOException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            UnrecoverableKeyException,
-            OperatorCreationException {
+        KeyStoreException,
+        IOException,
+        CertificateException,
+        NoSuchAlgorithmException,
+        UnrecoverableKeyException,
+        OperatorCreationException {
 
         // retrieves Platform AAM private key from keystore
         PrivateKey privKey = this.getPlatformAAMPrivateKey();
@@ -136,17 +135,18 @@ public class RegistrationManager {
 
         // create the certificate - version 3
         ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER_NAME).build
-                (privKey); //
+            (privKey); //
 
         X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
-                issuerBuilder.build(),
-                BigInteger.valueOf(1),
-                new Date(System.currentTimeMillis()),
-                new Date(System.currentTimeMillis() + 1L * 365L * 24L * 60L * 60L * 1000L),
-                subjectBuilder.build(),
-                pubKey);
+            issuerBuilder.build(),
+            BigInteger.valueOf(1),
+            new Date(System.currentTimeMillis()),
+            new Date(System.currentTimeMillis() + 1L * 365L * 24L * 60L * 60L * 1000L),
+            subjectBuilder.build(),
+            pubKey);
 
-        X509Certificate cert = new JcaX509CertificateConverter().setProvider(PROVIDER_NAME).getCertificate(certGen.build(sigGen));
+        X509Certificate cert = new JcaX509CertificateConverter().setProvider(PROVIDER_NAME).getCertificate(certGen
+            .build(sigGen));
 
         ByteArrayInputStream bIn = new ByteArrayInputStream(cert.getEncoded());
         CertificateFactory certFact = CertificateFactory.getInstance("X.509", PROVIDER_NAME);
@@ -160,6 +160,7 @@ public class RegistrationManager {
     // FIXME: THIS IS NOT THE WAY IT'GONNA BE IN FUTURE. JUST FOR TEST PURPOSES. Symbiote CORE is the root CA and IT
     // should provide any Platform AAM a certificate. Platform AAM is not going to issue itself a certificate!
     // ONLY FOR TESTS
+
     /**
      * Used to generate the Platform AAM Certificate and private key and store them on a file.
      * Note: The Platform AAM private key will be retrieved any time Platform AAM (which acts as an intermediate CA)
@@ -169,12 +170,12 @@ public class RegistrationManager {
      * @see eu.h2020.symbiote.commons.RegistrationManager#createECCert(String, PublicKey)
      */
     public void createSelfSignedPlatformAAMECCert() throws InvalidAlgorithmParameterException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            OperatorCreationException,
-            CertificateException,
-            IOException,
-            KeyStoreException {
+        NoSuchAlgorithmException,
+        NoSuchProviderException,
+        OperatorCreationException,
+        CertificateException,
+        IOException,
+        KeyStoreException {
 
         // Create a pair of keys for the Platform AAM which will beave as Intermediate CA
         KeyPair keyPair = createKeyPair();
@@ -186,17 +187,17 @@ public class RegistrationManager {
 
         // create the certificate - version 3
         ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER_NAME).build
-                (privKey);
+            (privKey);
 
         X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
-                builder.build(),
-                BigInteger.valueOf(1),
-                new Date(System.currentTimeMillis()),
-                new Date(System.currentTimeMillis() + 20L * 365L * 24L * 60L * 60L * 1000L), builder.build(),
-                pubKey);
+            builder.build(),
+            BigInteger.valueOf(1),
+            new Date(System.currentTimeMillis()),
+            new Date(System.currentTimeMillis() + 20L * 365L * 24L * 60L * 60L * 1000L), builder.build(),
+            pubKey);
 
         X509Certificate cert = new JcaX509CertificateConverter().setProvider(PROVIDER_NAME).getCertificate(certGen
-                .build(sigGen));
+            .build(sigGen));
 
         ByteArrayInputStream bIn = new ByteArrayInputStream(cert.getEncoded());
         CertificateFactory certFact = CertificateFactory.getInstance("X.509", PROVIDER_NAME);
@@ -225,7 +226,7 @@ public class RegistrationManager {
 
     // ONLY FOR TESTS
     public PublicKey getPlatformAAMPublicKey() throws NoSuchProviderException, KeyStoreException, IOException,
-            CertificateException, NoSuchAlgorithmException {
+        CertificateException, NoSuchAlgorithmException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWORD.toCharArray());
         PublicKey pubKey = pkcs12Store.getCertificate(KEY_STORE_ALIAS).getPublicKey();
@@ -234,7 +235,7 @@ public class RegistrationManager {
 
     // ONLY FOR TESTS
     public PrivateKey getPlatformAAMPrivateKey() throws NoSuchProviderException, KeyStoreException, IOException,
-            CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
+        CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWORD.toCharArray());
         PrivateKey privKey = (PrivateKey) pkcs12Store.getKey(KEY_STORE_ALIAS, PV_KEY_STORE_PASSWORD.toCharArray());

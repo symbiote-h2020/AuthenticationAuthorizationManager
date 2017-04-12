@@ -33,8 +33,7 @@ public class JWTEngine {
 
     private static org.apache.commons.logging.Log log = LogFactory.getLog(JWTEngine.class);
 
-    @Autowired
-    private RegistrationManager regManager;
+    private final RegistrationManager regManager;
 
     private SecureRandom random = new SecureRandom();
 
@@ -44,8 +43,13 @@ public class JWTEngine {
     @Value("${platform.id}")
     private String platformId;
 
+    @Autowired
+    public JWTEngine(RegistrationManager regManager) {
+        this.regManager = regManager;
+    }
+
     public String generateJWTToken(String appId, Map<String, Object> attributes, byte[] appCert)
-            throws JWTCreationException {
+        throws JWTCreationException {
 
         String jti = String.valueOf(random.nextInt());
 
@@ -84,30 +88,27 @@ public class JWTEngine {
 
     public JWTClaims getClaimsFromToken(String jwtToken) throws MalformedJWTException, JSONException {
 
-
-        try {
-            HashMap<String, Object> retMap = new HashMap<String, Object>();
-            String[] jwtParts = jwtToken.split("\\.");
-            if (jwtParts.length < Constants.JWTPartsCount) {
-                throw new MalformedJWTException();
-            }
-            //Get second part of the JWT
-            String jwtBody = jwtParts[1];
-
-            String claimsString = StringUtils.newStringUtf8(Base64.decodeBase64(jwtBody));
-
-            JSONObject jwtFields = new JSONObject(claimsString);
-
-            Iterator<String> jwtKeys = jwtFields.keys();
-            while (jwtKeys.hasNext()) {
-                String key = jwtKeys.next();
-                Object value = jwtFields.get(key);
-                retMap.put(key, value);
-            }
-            return new JWTClaims(retMap.get("jti"), retMap.get("alg"), retMap.get("iss"), retMap.get("sub"), retMap.get("iat"), retMap.get("exp"), retMap.get("ipk"), retMap.get("spk"), retMap.get("att"));
-        } catch (JSONException e) {
-            throw e;
+        HashMap<String, Object> retMap = new HashMap<String, Object>();
+        String[] jwtParts = jwtToken.split("\\.");
+        if (jwtParts.length < Constants.JWTPartsCount) {
+            throw new MalformedJWTException();
         }
+        //Get second part of the JWT
+        String jwtBody = jwtParts[1];
 
+        String claimsString = StringUtils.newStringUtf8(Base64.decodeBase64(jwtBody));
+
+        JSONObject jwtFields = new JSONObject(claimsString);
+
+        Iterator<String> jwtKeys = jwtFields.keys();
+        while (jwtKeys.hasNext()) {
+            String key = jwtKeys.next();
+            Object value = jwtFields.get(key);
+            retMap.put(key, value);
+        }
+        return new JWTClaims(retMap.get("jti"), retMap.get("alg"), retMap.get("iss"), retMap.get("sub"), retMap
+            .get("iat"), retMap.get("exp"), retMap.get("ipk"), retMap.get("spk"), retMap.get("att"));
     }
+
 }
+

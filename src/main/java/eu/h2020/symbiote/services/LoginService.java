@@ -33,13 +33,13 @@ public class LoginService {
     }
 
     public RequestToken login(LoginRequest user) throws MissingArgumentsException, WrongCredentialsException,
-            JWTCreationException {
+        JWTCreationException {
 
         if (user.getUsername() != null || user.getPassword() != null) {
             if (applicationRepository.exists(user.getUsername())) {
                 Application applicationInDB = applicationRepository.findOne(user.getUsername());
                 if (user.getUsername().equals(applicationInDB.getUsername())
-                        && passwordEncoder.matches(user.getPassword(), applicationInDB.getPasswordEncrypted())) {
+                    && passwordEncoder.matches(user.getPassword(), applicationInDB.getPasswordEncrypted())) {
                     return tokenService.getHomeToken();
                 }
             }

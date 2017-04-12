@@ -13,9 +13,8 @@ import org.springframework.http.HttpStatus;
 public class TokenValidationException extends CustomAAMException {
 
     private static final long serialVersionUID = Constants.serialVersionUID;
-
-    private final HttpStatus statusCode = HttpStatus.BAD_REQUEST;
     private final static String errorMessage = "INVALID_TOKEN";
+    private final HttpStatus statusCode = HttpStatus.BAD_REQUEST;
 
     public TokenValidationException() {
         super(errorMessage);

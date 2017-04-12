@@ -1,15 +1,16 @@
 package eu.h2020.symbiote.services;
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.List;
-import org.springframework.stereotype.Service;
 import eu.h2020.symbiote.commons.VirtualFile;
-import org.apache.commons.io.IOUtils;
 import net.lingala.zip4j.exception.ZipException;
 import net.lingala.zip4j.io.ZipOutputStream;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.util.Zip4jConstants;
+import org.apache.commons.io.IOUtils;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.List;
 
 /**
  * Spring service to provide zip output streams.

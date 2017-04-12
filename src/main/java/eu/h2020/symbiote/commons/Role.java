@@ -12,6 +12,8 @@ public enum Role {
      * specifies simple data consumer account (ordinary user)
      */
     APPLICATION,
-    /** uninitialised value of this enum */
-    NULL;
+    /**
+     * uninitialised value of this enum
+     */
+    NULL
 }

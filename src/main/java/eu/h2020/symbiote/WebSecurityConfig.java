@@ -7,8 +7,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 
 @Configuration
 @EnableWebSecurity
@@ -19,44 +19,44 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Value("${platformowner.password}")
     private String platformOwnerPassword;
 
-     @Override
-     public void configure(WebSecurity web) throws Exception {
+    @Override
+    public void configure(WebSecurity web) throws Exception {
         web.ignoring()
             // Spring Security should completely ignore URLs starting with:
             .antMatchers("/login",
-                    "/request_foreign_token",
-                    "/check_home_token_revocation",
-                    "/register",
-                    "/unregister");
-          	}
+                "/request_foreign_token",
+                "/check_home_token_revocation",
+                "/register",
+                "/unregister");
+    }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
-                .authorizeRequests()
-                .antMatchers(
-                        HttpMethod.GET,
-                         "/static/**")
-                .permitAll()
-                .and()
-                .authorizeRequests()
-                .anyRequest().authenticated()
-                .and()
-                .formLogin()
-                .loginPage("/platform_owner_login")
-                .permitAll()
-                .and()
-                .logout()
-                .permitAll();
+            .authorizeRequests()
+            .antMatchers(
+                HttpMethod.GET,
+                "/static/**")
+            .permitAll()
+            .and()
+            .authorizeRequests()
+            .anyRequest().authenticated()
+            .and()
+            .formLogin()
+            .loginPage("/platform_owner_login")
+            .permitAll()
+            .and()
+            .logout()
+            .permitAll();
 
     }
 
     @Autowired
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
         auth
-                .inMemoryAuthentication()
-                .withUser( platformOwnerUsername)
-                .password( platformOwnerPassword)
-                .roles("ADMIN");
+            .inMemoryAuthentication()
+            .withUser(platformOwnerUsername)
+            .password(platformOwnerPassword)
+            .roles("ADMIN");
     }
 }

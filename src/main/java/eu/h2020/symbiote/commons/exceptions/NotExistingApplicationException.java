@@ -1,11 +1,12 @@
 package eu.h2020.symbiote.commons.exceptions;
 
-import org.springframework.http.HttpStatus;
 import eu.h2020.symbiote.commons.Constants;
 import eu.h2020.symbiote.commons.CustomAAMException;
+import org.springframework.http.HttpStatus;
 
 /**
- * Custom exception thrown when application credentials are not present in DB during unregistration procedure in {@link eu.h2020.symbiote.services.ApplicationRegistrationService}
+ * Custom exception thrown when application credentials are not present in DB during unregistration procedure in
+ * {@link eu.h2020.symbiote.services.ApplicationRegistrationService}
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
@@ -13,9 +14,8 @@ import eu.h2020.symbiote.commons.CustomAAMException;
 public class NotExistingApplicationException extends CustomAAMException {
 
     private static final long serialVersionUID = Constants.serialVersionUID;
-
-    private final HttpStatus statusCode = HttpStatus.BAD_REQUEST;
     private final static String errorMessage = "APP_NOT_REGISTERED_IN_DB";
+    private final HttpStatus statusCode = HttpStatus.BAD_REQUEST;
 
     public NotExistingApplicationException() {
         super(errorMessage);

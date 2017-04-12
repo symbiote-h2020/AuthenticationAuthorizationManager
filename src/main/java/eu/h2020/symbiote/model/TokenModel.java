@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.model;
 
-import org.springframework.data.annotation.Id;
 import eu.h2020.symbiote.commons.json.RequestToken;
+import org.springframework.data.annotation.Id;
 
 import java.util.Date;
 

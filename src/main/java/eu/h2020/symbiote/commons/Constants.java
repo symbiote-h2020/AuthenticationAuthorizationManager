@@ -11,7 +11,7 @@ public class Constants {
     public static final String ERROR_WRONG_TOKEN = "ERR_WRONG_TOKEN";
 
     public static final String TOKEN_HEADER_NAME = "X-Auth-Token";
-    
+
     public static final long serialVersionUID = 7526472295622776147L;
 
     public static final int JWTPartsCount = 3; //Header, body and signature

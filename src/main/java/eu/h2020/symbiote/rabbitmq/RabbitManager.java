@@ -1,24 +1,26 @@
 package eu.h2020.symbiote.rabbitmq;
 
-import java.io.IOException;
-import javax.annotation.PreDestroy;
-import java.util.concurrent.TimeoutException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import com.rabbitmq.client.*;
 import eu.h2020.symbiote.rabbitmq.consumers.CheckTokenRevocationRequestConsumerService;
 import eu.h2020.symbiote.rabbitmq.consumers.LoginRequestConsumerService;
 import eu.h2020.symbiote.services.LoginService;
 import eu.h2020.symbiote.services.TokenService;
-import com.rabbitmq.client.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.PreDestroy;
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 @Component
 public class RabbitManager {
 
     private static Log log = LogFactory.getLog(RabbitManager.class);
-
+    private final LoginService loginService;
+    private final TokenService tokenService;
     @Value("${rabbit.host}")
     private String rabbitHost;
     @Value("${rabbit.username}")
@@ -43,13 +45,13 @@ public class RabbitManager {
     private String loginRequestRoutingKey;
     @Value("${rabbit.queue.login.request}")
     private String loginRequestQueue;
-
-    @Autowired
-    private LoginService loginService;
-    @Autowired
-    private TokenService tokenService;
-
     private Connection connection;
+
+    @Autowired
+    public RabbitManager(LoginService loginService, TokenService tokenService) {
+        this.loginService = loginService;
+        this.tokenService = tokenService;
+    }
 
 
     /**
@@ -70,7 +72,6 @@ public class RabbitManager {
     }
 
 
-
     /**
      * Closes given channel if it exists and is open.
      *
@@ -86,7 +87,6 @@ public class RabbitManager {
             e.printStackTrace();
         }
     }
-
 
 
     /**
@@ -133,7 +133,6 @@ public class RabbitManager {
     }
 
 
-
     /**
      * Method creates queue and binds it globally available exchange and adequate Routing Key.
      * It also creates a consumer for messages incoming to this queue, regarding to Login requests.
@@ -153,7 +152,8 @@ public class RabbitManager {
             channel.queueBind(queueName, this.platformExchangeName, this.checkTokenRevocationRequestRoutingKey);
             //channel.basicQos(1); // to spread the load over multiple servers we set the prefetchCount setting
 
-            log.info("Cloud Authentication and Authorization Manager waiting for check token revocation request messages....");
+            log.info("Cloud Authentication and Authorization Manager waiting for check token revocation request " +
+                "messages....");
 
             Consumer consumer = new CheckTokenRevocationRequestConsumerService(channel, this, tokenService);
             channel.basicConsume(queueName, false, consumer);
@@ -163,13 +163,10 @@ public class RabbitManager {
     }
 
 
-
-
     public void sendPlatformCreatedMessage(String message) {
         sendMessage(this.platformExchangeName, this.loginRequestRoutingKey, message);
         log.info("- login request message sent");
     }
-
 
 
     /**
@@ -181,9 +178,7 @@ public class RabbitManager {
 
         try {
             getConnection();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (TimeoutException e) {
+        } catch (IOException | TimeoutException e) {
             e.printStackTrace();
         }
 
@@ -192,11 +187,11 @@ public class RabbitManager {
                 channel = this.connection.createChannel();
 
                 channel.exchangeDeclare(this.platformExchangeName,
-                        this.platformExchangeType,
-                        this.plaftormExchangeDurable,
-                        this.platformExchangeAutodelete,
-                        this.platformExchangeInternal,
-                        null);
+                    this.platformExchangeType,
+                    this.plaftormExchangeDurable,
+                    this.platformExchangeAutodelete,
+                    this.platformExchangeInternal,
+                    null);
 
                 startConsumers();
 
@@ -209,7 +204,6 @@ public class RabbitManager {
     }
 
 
-
     @PreDestroy
     public void cleanup() {
 
@@ -220,9 +214,9 @@ public class RabbitManager {
             if (this.connection != null && this.connection.isOpen()) {
                 channel = connection.createChannel();
                 channel.queueUnbind(this.loginRequestQueue, this.platformExchangeName,
-                        this.loginRequestRoutingKey);
+                    this.loginRequestRoutingKey);
                 channel.queueUnbind(this.checkTokenRevocationRequestQueue, this.platformExchangeName,
-                        this.checkTokenRevocationRequestRoutingKey);
+                    this.checkTokenRevocationRequestRoutingKey);
                 channel.queueDelete(this.loginRequestQueue);
                 channel.queueDelete(this.checkTokenRevocationRequestQueue);
 
@@ -233,7 +227,6 @@ public class RabbitManager {
             e.printStackTrace();
         }
     }
-
 
 
     /**
@@ -250,9 +243,9 @@ public class RabbitManager {
         try {
             channel = this.connection.createChannel();
             props = new AMQP.BasicProperties()
-                    .builder()
-                    .contentType("application/json")
-                    .build();
+                .builder()
+                .contentType("application/json")
+                .build();
 
             channel.basicPublish(exchange, routingKey, props, message.getBytes());
         } catch (IOException e) {

@@ -21,7 +21,8 @@ public class JWTClaims {
     public JWTClaims() {
     }
 
-    public JWTClaims(Object jti, Object alg, Object iss, Object sub, Object iat, Object exp, Object ipk, Object spk, Object att) {
+    public JWTClaims(Object jti, Object alg, Object iss, Object sub, Object iat, Object exp, Object ipk, Object spk,
+                     Object att) {
         this.jti = (String) jti;
         this.alg = (String) alg;
         this.iss = (String) iss;
@@ -108,15 +109,15 @@ public class JWTClaims {
     @Override
     public String toString() {
         return "JWTClaims{" +
-                "jti='" + jti + '\'' +
-                ", alg='" + alg + '\'' +
-                ", iss='" + iss + '\'' +
-                ", sub='" + sub + '\'' +
-                ", iat='" + iat + '\'' +
-                ", exp='" + exp + '\'' +
-                ", ipk='" + ipk + '\'' +
-                ", spk='" + spk + '\'' +
-                ", att='" + att + '\'' +
-                '}';
+            "jti='" + jti + '\'' +
+            ", alg='" + alg + '\'' +
+            ", iss='" + iss + '\'' +
+            ", sub='" + sub + '\'' +
+            ", iat='" + iat + '\'' +
+            ", exp='" + exp + '\'' +
+            ", ipk='" + ipk + '\'' +
+            ", spk='" + spk + '\'' +
+            ", att='" + att + '\'' +
+            '}';
     }
 }

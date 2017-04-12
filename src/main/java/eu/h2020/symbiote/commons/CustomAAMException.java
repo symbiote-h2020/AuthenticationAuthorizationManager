@@ -12,7 +12,7 @@ import org.springframework.http.HttpStatus;
  */
 public abstract class CustomAAMException extends Exception {
 
-	public static final long serialVersionUID = Constants.serialVersionUID;
+    public static final long serialVersionUID = Constants.serialVersionUID;
 
     public CustomAAMException(String message) {
         super(message);

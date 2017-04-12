@@ -1,13 +1,13 @@
 package eu.h2020.symbiote.commons;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Map;
-
+import eu.h2020.symbiote.commons.enums.Status;
+import eu.h2020.symbiote.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.commons.exceptions.MalformedJWTException;
 import eu.h2020.symbiote.commons.exceptions.TokenValidationException;
+import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.commons.json.RequestToken;
 import eu.h2020.symbiote.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.model.TokenModel;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -15,11 +15,6 @@ import org.codehaus.jettison.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import eu.h2020.symbiote.commons.enums.Status;
-import eu.h2020.symbiote.commons.exceptions.JWTCreationException;
-import eu.h2020.symbiote.commons.json.CheckTokenRevocationResponse;
-import eu.h2020.symbiote.commons.json.RequestToken;
-import eu.h2020.symbiote.commons.jwt.JWTEngine;
 
 /**
  * Class for managing operations (creation, verification checking, etc.) on
@@ -49,23 +44,23 @@ public class TokenManager {
     }
 
     public RequestToken createHomeToken()
-            throws JWTCreationException {
+        throws JWTCreationException {
         try {
             return new RequestToken(
-                    jwtEngine.generateJWTToken(platformId, null, regManager.getPlatformAAMPublicKey().getEncoded()));
+                jwtEngine.generateJWTToken(platformId, null, regManager.getPlatformAAMPublicKey().getEncoded()));
         } catch (Exception e) {
             throw new JWTCreationException();
         }
     }
 
     public RequestToken createForeignToken(String foreignToken)
-            throws JWTCreationException {
+        throws JWTCreationException {
         try {
 
             JWTClaims claims = jwtEngine.getClaimsFromToken(foreignToken);
 
             return new RequestToken(
-                    jwtEngine.generateJWTToken(claims.getIss(), null, claims.getIpk().getBytes()));
+                jwtEngine.generateJWTToken(claims.getIss(), null, claims.getIpk().getBytes()));
         } catch (Exception e) {
             throw new JWTCreationException();
         }
