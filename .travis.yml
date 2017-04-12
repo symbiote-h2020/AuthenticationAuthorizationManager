@@ -1,8 +1,8 @@
 language: java
 env:
   global:
-    - secure: O4TUHiGO2oi46mxCWWxBVpxmQSxgLIAApkVGBxtbd73WcD1slE5iU1kfCuhbwU66q3Y9wUNbawrCkYG+M8ds/R+jjaNVk9156cw9bRpl1UlL5sRR5evB6J8q27zuTXF4iwxvo02tpJKgQ02oqbSjl6GRc5Tm6hRYZ9HGqrShwW0E8XRRhI1r2wRLgaZRUzCFVemBGa2IN41Q1RCWKLtIzixdnfofDfNungYY0uyB6+PqkRTCqltFjGYuQhXnm0+eRuFpoeACA7Zk/9g7Dt3/pJDSva8UQuUqStGEO36CKsOYDtyiwhQwrc7l3wmMmQRDpTr5bFoaacV2omjuRLlf41q+DUr2tOm/lvO3+H/4alo4mH3wnOWsJgp8PoE4IO2LVx3fQ/+quEBmDnapQJ1KvDre7nzXKs4aArB4ciMHsuxJve2Y8PHVHPgMVrLCFc4s93ohA75/lCVdR4FTnljgxqvMw90eyC6Dnl7B2u0AzGcZgkGH3AsGbmVj6ywTN5RgPob/e4PjG/4pECEGFezHrvBBdOBmzGrPcNLrvo421hI+yD/JZR3/fzEtrGBqKVoTavPvwTeLU/GFrYvluOfiTjDcyVcABdbcuB6H9TR33t/jcBVtfU50p5aBkhn4wQeF9g3LKgzjr3cDfwKIvn7q+sXI2q2vVEbeMaTy5gc4Tu4=
-    - REPO_TEMP=$(mktemp -d)
+  - GITHUB_REPO=symbiote-h2020/CoreAuthenticationAuthorizationManager
+  - secure: rip+g8jhX+RzehwW+tF0gDcrjJ1tD2ehtMdHutojTKgw+d24U3p+Rcm1qwC2vVQtQNbgz7tXJo1Rbiz0MGmpZTbKPuPHYSdMFpTSNAN/FxQalM+mcyy3qw6Q+veEMK2yB89jd4+VLbyMJ/40PcPdORDOA3ljvZ/u3h1s8yaftVuXLiJkoiL3yB5BudH6JFjlo4ar01nbCZzMMSBU/Fy0cebgPawDGsyyBW0LP4x+hkEixgmJW3fYhnpM10EnYzmtwCUIbEPrrOmCrlC/qN84i0WRW65aGQrOfmkBgN2zHpaM/6DKQ5mYBUuKPGyeut8dJDU1R/RpMy54HHqotsYFYvj/5DWlxET1nUuMXfUccNsFN7+6ij7Aqa+9H3lxZAKBrmBTekYPAOkb2Eyvc6rs164C9KyBVEvKGBFOgaZx0GQGk5IFqETXKcr85QelFdHBV11eKQwghCrLK1yYMvt3GErLTv3M420fDotoICsnUE/OT08zZz1Y21t0r1r+HskX/SFQ5uLVJPY7oslL+0Kxz2Q4kbTmYkwUdPVc7TxbqQ7WnzzZqeYizWtazVcKzUWAUOm5EGov2RXJJRa9Ni9+39rsPFegbiR6UbgPoPrqTPTSYG4d/jEnGrLU9yVbjkGFq5aSwz9Gn1i44e3vrkEnNbpHec3WF/wlrhaCwnSMYn0=
 jdk:
 - oraclejdk8
 services:
@@ -22,14 +22,12 @@ cache:
   - "$HOME/.gradle/wrapper/"
 before_script:
 - chmod a+x merge_script.sh
-- BRANCHES_TO_MERGE_REGEX='staging' BRANCH_TO_MERGE=develop GITHUB_REPO=symbiote-h2020/CoreAuthenticationAuthorizationManager
-  ./merge_script.sh
+- "./merge_script.sh"
 after_success:
 - chmod a+x pushing_script.sh
-- BRANCHES_TO_MERGE_REGEX='staging' BRANCH_TO_MERGE_INTO=develop GITHUB_REPO=symbiote-h2020/CoreAuthenticationAuthorizationManager
-  ./pushing_script.sh
+- "./pushing_script.sh"
 - bash <(curl -s https://codecov.io/bash)
 notifications:
   email:
-    on_success: never # default: change
-    on_failure: always # default: always
+    on_success: never
+    on_failure: always
