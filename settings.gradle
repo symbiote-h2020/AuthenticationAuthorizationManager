@@ -1,4 +1,4 @@
-rootProject.name = 'CoreAuthenticationAuthorizationManager'
+rootProject.name = 'AuthenticationAuthorizationManager'
 
 /* SymbIoTeLibraries
     - the path should point to where the SymbIoTeLibraries repository is cloned

@@ -29,7 +29,7 @@ apply plugin: 'idea'
 apply plugin: 'com.cinnober.gradle.semver-git'
 
 // XXX please change with your commits according to http://semver.org/
-project.version = '0.3.0'
+project.version = '0.1.0'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8

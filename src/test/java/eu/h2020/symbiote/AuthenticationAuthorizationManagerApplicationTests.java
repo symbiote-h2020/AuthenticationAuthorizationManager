@@ -46,9 +46,9 @@ import static org.junit.Assert.assertNotEquals;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-public class CoreAuthenticationAuthorizationManagerApplicationTests {
+public class AuthenticationAuthorizationManagerApplicationTests {
 
-    private static Log log = LogFactory.getLog(CoreAuthenticationAuthorizationManagerApplicationTests.class);
+    private static Log log = LogFactory.getLog(AuthenticationAuthorizationManagerApplicationTests.class);
     private final String foreignTokenUri = "request_foreign_token";
     private final String checkHomeTokenRevocationUri = "check_home_token_revocation";
     private final String username = "testCloudAAMUser";

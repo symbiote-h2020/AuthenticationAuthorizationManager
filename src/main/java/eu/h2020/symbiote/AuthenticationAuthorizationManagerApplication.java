@@ -13,24 +13,25 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 /**
- * Spring Boot Application class for CoreAuthenticationAuthorizationManager (Core AAM) component.
+ * Spring Boot Application class for AuthenticationAuthorizationManager (AAM) component.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
+ * @author Mikolaj Dobski (PSNC)
  */
 @EnableDiscoveryClient
 @SpringBootApplication
-public class CoreAuthenticationAuthorizationManagerApplication {
+public class AuthenticationAuthorizationManagerApplication {
 
-    private static Log log = LogFactory.getLog(CoreAuthenticationAuthorizationManagerApplication.class);
+    private static Log log = LogFactory.getLog(AuthenticationAuthorizationManagerApplication.class);
 
     public static void main(String[] args) {
-        SpringApplication.run(CoreAuthenticationAuthorizationManagerApplication.class, args);
+        SpringApplication.run(AuthenticationAuthorizationManagerApplication.class, args);
 
         try {
             // todo: Subscribe to RabbitMQ messages
         } catch (Exception e) {
-            log.error("Error occurred during subscribing from Core Authentication Authorization Manager", e);
+            log.error("Error occurred during subscribing from  Authentication Authorization Manager", e);
         }
     }
 
