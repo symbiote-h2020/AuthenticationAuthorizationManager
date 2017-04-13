@@ -33,7 +33,7 @@ public class TokenManager {
     private final JWTEngine jwtEngine;
     private RegistrationManager regManager;
 
-    @Value("${platform.id}")
+    @Value("${aam.deployment.id}")
     private String platformId;
 
 
@@ -47,7 +47,7 @@ public class TokenManager {
         throws JWTCreationException {
         try {
             return new RequestToken(
-                jwtEngine.generateJWTToken(platformId, null, regManager.getPlatformAAMPublicKey().getEncoded()));
+                    jwtEngine.generateJWTToken(platformId, null, regManager.getAAMPublicKey().getEncoded()));
         } catch (Exception e) {
             throw new JWTCreationException();
         }

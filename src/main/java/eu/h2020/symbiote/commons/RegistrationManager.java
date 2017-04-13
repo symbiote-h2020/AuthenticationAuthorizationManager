@@ -126,11 +126,11 @@ public class RegistrationManager {
         UnrecoverableKeyException,
         OperatorCreationException {
 
-        // retrieves Platform AAM private key from keystore
-        PrivateKey privKey = this.getPlatformAAMPrivateKey();
+        // retrieves AAM private key from keystore
+        PrivateKey privKey = this.getAAMPrivateKey();
 
         // distinguished name table.
-        X500NameBuilder issuerBuilder = createStdBuilder("PlatformAAM");
+        X500NameBuilder issuerBuilder = createStdBuilder("AAM");
         X500NameBuilder subjectBuilder = createStdBuilder(applicationUsername);
 
         // create the certificate - version 3
@@ -158,18 +158,18 @@ public class RegistrationManager {
     }
 
     // FIXME: THIS IS NOT THE WAY IT'GONNA BE IN FUTURE. JUST FOR TEST PURPOSES. Symbiote CORE is the root CA and IT
-    // should provide any Platform AAM a certificate. Platform AAM is not going to issue itself a certificate!
+    // should provide any AAM a certificate. AAM is not going to issue itself a certificate!
     // ONLY FOR TESTS
 
     /**
-     * Used to generate the Platform AAM Certificate and private key and store them on a file.
+     * Used to generate the AAM Certificate and private key and store them on a file.
      * Note: The Platform AAM private key will be retrieved any time Platform AAM (which acts as an intermediate CA)
      * will generate a certificate for a registering application.
      *
      * @implNote This function is only used ONE TIME. After that, PAAM certificate and PV key are stored in a file.
      * @see eu.h2020.symbiote.commons.RegistrationManager#createECCert(String, PublicKey)
      */
-    public void createSelfSignedPlatformAAMECCert() throws InvalidAlgorithmParameterException,
+    public void createSelfSignedAAMECCert() throws InvalidAlgorithmParameterException,
         NoSuchAlgorithmException,
         NoSuchProviderException,
         OperatorCreationException,
@@ -177,13 +177,13 @@ public class RegistrationManager {
         IOException,
         KeyStoreException {
 
-        // Create a pair of keys for the Platform AAM which will beave as Intermediate CA
+        // Create a pair of keys for the Platform AAM which will behave as Intermediate CA
         KeyPair keyPair = createKeyPair();
         PrivateKey privKey = keyPair.getPrivate();
         PublicKey pubKey = keyPair.getPublic();
 
         // distinguished name table.
-        X500NameBuilder builder = createStdBuilder("PlatformAAM");
+        X500NameBuilder builder = createStdBuilder("AAM");
 
         // create the certificate - version 3
         ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER_NAME).build
@@ -205,27 +205,21 @@ public class RegistrationManager {
 
         System.out.println(cert.toString() + '\n' + convertX509ToPEM(cert));
 
-        // Save PlatformAAM certificate to file .pem (not needed, we are using keystore instead)
-        //JcaPEMWriter certWriter = new JcaPEMWriter(new PrintWriter(new PrintStream(new FileOutputStream
-        // ("PlatformAAM_Certificate.pem"))));
-        //certWriter.writeObject(privKey);
-        //certWriter.close();
-
         Certificate[] chain = new Certificate[1];
         chain[0] = cert;
 
-        // Save PlatformAAM certificate and private key in a keystore
+        // Save AAM certificate and private key in a keystore
         KeyStore store = KeyStore.getInstance("PKCS12", PROVIDER_NAME);
         store.load(null, null);
         store.setKeyEntry(KEY_STORE_ALIAS, privKey, PV_KEY_STORE_PASSWORD.toCharArray(), chain);
         FileOutputStream fOut = new FileOutputStream(KEY_STORE_FILE_NAME); // from console $: openssl pkcs12 -in
-        // ./PlatformAAM.keystore to check it
+        // ./AAM.keystore to check it
         store.store(fOut, KEY_STORE_PASSWORD.toCharArray());
 
     }
 
     // ONLY FOR TESTS
-    public PublicKey getPlatformAAMPublicKey() throws NoSuchProviderException, KeyStoreException, IOException,
+    public PublicKey getAAMPublicKey() throws NoSuchProviderException, KeyStoreException, IOException,
         CertificateException, NoSuchAlgorithmException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWORD.toCharArray());
@@ -234,7 +228,7 @@ public class RegistrationManager {
     }
 
     // ONLY FOR TESTS
-    public PrivateKey getPlatformAAMPrivateKey() throws NoSuchProviderException, KeyStoreException, IOException,
+    public PrivateKey getAAMPrivateKey() throws NoSuchProviderException, KeyStoreException, IOException,
         CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWORD.toCharArray());

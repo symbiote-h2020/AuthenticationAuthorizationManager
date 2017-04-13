@@ -9,7 +9,6 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
-import org.apache.commons.logging.LogFactory;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,21 +26,20 @@ import java.util.Map;
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
+ * @author Mikołaj Dobski (PSNC)
  */
 @Component
 public class JWTEngine {
-
-    private static org.apache.commons.logging.Log log = LogFactory.getLog(JWTEngine.class);
 
     private final RegistrationManager regManager;
 
     private SecureRandom random = new SecureRandom();
 
-    @Value("${symbiote.aam.token.validityMillis}")
+    @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
 
-    @Value("${platform.id}")
-    private String platformId;
+    @Value("${aam.deployment.id}")
+    private String deploymentID;
 
     @Autowired
     public JWTEngine(RegistrationManager regManager) {
@@ -49,7 +47,7 @@ public class JWTEngine {
     }
 
     public String generateJWTToken(String appId, Map<String, Object> attributes, byte[] appCert)
-        throws JWTCreationException {
+            throws JWTCreationException {
 
         String jti = String.valueOf(random.nextInt());
 
@@ -58,7 +56,7 @@ public class JWTEngine {
 
             Map<String, Object> claimsMap = new HashMap<String, Object>();
             // Insert AAM Public Key
-            claimsMap.put("ipk", regManager.getPlatformAAMPublicKey().getEncoded());
+            claimsMap.put("ipk", regManager.getAAMPublicKey().getEncoded());
 
             //Insert issuee Public Key
             claimsMap.put("spk", appCert);
@@ -73,11 +71,11 @@ public class JWTEngine {
             JwtBuilder jwtBuilder = Jwts.builder();
             jwtBuilder.setClaims(claimsMap);
             jwtBuilder.setId(jti);
-            jwtBuilder.setIssuer(platformId);
+            jwtBuilder.setIssuer(deploymentID);
             jwtBuilder.setSubject(appId);
             jwtBuilder.setIssuedAt(new Date());
             jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + tokenValidity));
-            jwtBuilder.signWith(SignatureAlgorithm.ES256, regManager.getPlatformAAMPrivateKey());
+            jwtBuilder.signWith(SignatureAlgorithm.ES256, regManager.getAAMPrivateKey());
 
             return jwtBuilder.compact();
         } catch (Exception e) {
@@ -107,7 +105,7 @@ public class JWTEngine {
             retMap.put(key, value);
         }
         return new JWTClaims(retMap.get("jti"), retMap.get("alg"), retMap.get("iss"), retMap.get("sub"), retMap
-            .get("iat"), retMap.get("exp"), retMap.get("ipk"), retMap.get("spk"), retMap.get("att"));
+                .get("iat"), retMap.get("exp"), retMap.get("ipk"), retMap.get("spk"), retMap.get("att"));
     }
 
 }

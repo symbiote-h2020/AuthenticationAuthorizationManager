@@ -5,25 +5,26 @@ package eu.h2020.symbiote.commons.json;
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
+ * @author Mikołaj Dobski (PSNC)
  */
 public class RegistrationRequest {
-    private LoginRequest platformOwner;
+    private LoginRequest AAMOwner;
     private LoginRequest application;
 
-    public RegistrationRequest(LoginRequest platformOwner, LoginRequest application) {
-        this.platformOwner = platformOwner;
+    public RegistrationRequest(LoginRequest AAMOwner, LoginRequest application) {
+        this.AAMOwner = AAMOwner;
         this.application = application;
     }
 
     public RegistrationRequest() {
     }
 
-    public LoginRequest getPlatformOwner() {
-        return platformOwner;
+    public LoginRequest getAAMOwner() {
+        return AAMOwner;
     }
 
-    public void setPlatformOwner(LoginRequest platformOwner) {
-        this.platformOwner = platformOwner;
+    public void setAAMOwner(LoginRequest AAMOwner) {
+        this.AAMOwner = AAMOwner;
     }
 
     public LoginRequest getApplication() {

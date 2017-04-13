@@ -80,10 +80,10 @@ public class AuthenticationAuthorizationManagerApplicationTests {
     @Value("${rabbit.queue.check_token_revocation.request}")
     private String checkTokenRevocationRequestQueue;
 
-    @Value("${platformowner.username}")
-    private String platformOwnerUsername;
-    @Value("${platformowner.password}")
-    private String platformOwnerPassword;
+    @Value("${aam.deployment.owner.username}")
+    private String AAMOwnerUsername;
+    @Value("${aam.deployment.owner.password}")
+    private String AAMOwnerPassword;
 
     @Value("${aam.security.KEY_STORE_PASSWORD}")
     private String KEY_STORE_PASSWORD;
@@ -94,7 +94,7 @@ public class AuthenticationAuthorizationManagerApplicationTests {
     @Value("${aam.security.KEY_STORE_ALIAS}")
     private String KEY_STORE_ALIAS;
 
-    @Value("${symbiote.aam.token.validityMillis}")
+    @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidityPeriod;
 
     @Before
@@ -284,7 +284,7 @@ public class AuthenticationAuthorizationManagerApplicationTests {
     public void certificateCreationAndVerification() throws Exception {
 
         // UNA TANTUM - Generate Platform AAM Certificate and PV key and put that in a keystore
-        //registrationManager.createSelfSignedPlatformAAMECCert();
+        //registrationManager.createSelfSignedAAMECCert();
 
         // Generate certificate for given application username (ie. "Daniele")
         KeyPair keyPair = registrationManager.createKeyPair();
@@ -292,7 +292,7 @@ public class AuthenticationAuthorizationManagerApplicationTests {
 
         // retrieves Platform AAM ("Daniele"'s certificate issuer) public key from keystore in order to verify
         // "Daniele"'s certificate
-        cert.verify(registrationManager.getPlatformAAMPublicKey());
+        cert.verify(registrationManager.getAAMPublicKey());
 
         // also check time validity
         cert.checkValidity(new Date());
@@ -319,7 +319,7 @@ public class AuthenticationAuthorizationManagerApplicationTests {
 
     public void externalRegistrationSuccess() throws JsonProcessingException {
         RegistrationRequest request = new RegistrationRequest(
-            new LoginRequest(platformOwnerUsername, platformOwnerPassword),
+                new LoginRequest(AAMOwnerUsername, AAMOwnerPassword),
             new LoginRequest("NewApplication", "NewPassword"));
         try {
             ResponseEntity<RegistrationResponse> response = restTemplate.postForEntity(serverAddress +
@@ -345,7 +345,7 @@ public class AuthenticationAuthorizationManagerApplicationTests {
     @Test
     public void externalUnregistrationSuccess() throws JsonProcessingException {
         RegistrationRequest request = new RegistrationRequest(
-            new LoginRequest(platformOwnerUsername, platformOwnerPassword),
+                new LoginRequest(AAMOwnerUsername, AAMOwnerPassword),
             new LoginRequest("NewApplication", "NewPassword"));
         try {
             ResponseEntity<Void> response = restTemplate.postForEntity(serverAddress + unregistrationUri, request,

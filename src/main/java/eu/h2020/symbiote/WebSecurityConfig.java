@@ -14,49 +14,49 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
-    @Value("${platformowner.username}")
-    private String platformOwnerUsername;
-    @Value("${platformowner.password}")
-    private String platformOwnerPassword;
+    @Value("${aam.deployment.owner.username}")
+    private String AAMOwnerUsername;
+    @Value("${aam.deployment.owner.password}")
+    private String AAMOwnerPassword;
 
     @Override
     public void configure(WebSecurity web) throws Exception {
         web.ignoring()
-            // Spring Security should completely ignore URLs starting with:
-            .antMatchers("/login",
-                "/request_foreign_token",
-                "/check_home_token_revocation",
-                "/register",
-                "/unregister");
+                // Spring Security should completely ignore URLs starting with:
+                .antMatchers("/login",
+                        "/request_foreign_token",
+                        "/check_home_token_revocation",
+                        "/register",
+                        "/unregister");
     }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http
-            .authorizeRequests()
-            .antMatchers(
-                HttpMethod.GET,
-                "/static/**")
-            .permitAll()
-            .and()
-            .authorizeRequests()
-            .anyRequest().authenticated()
-            .and()
-            .formLogin()
-            .loginPage("/platform_owner_login")
-            .permitAll()
-            .and()
-            .logout()
-            .permitAll();
+                .authorizeRequests()
+                .antMatchers(
+                        HttpMethod.GET,
+                        "/static/**")
+                .permitAll()
+                .and()
+                .authorizeRequests()
+                .anyRequest().authenticated()
+                .and()
+                .formLogin()
+                .loginPage("/aam_owner_login")
+                .permitAll()
+                .and()
+                .logout()
+                .permitAll();
 
     }
 
     @Autowired
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
         auth
-            .inMemoryAuthentication()
-            .withUser(platformOwnerUsername)
-            .password(platformOwnerPassword)
-            .roles("ADMIN");
+                .inMemoryAuthentication()
+                .withUser(AAMOwnerUsername)
+                .password(AAMOwnerPassword)
+                .roles("ADMIN");
     }
 }

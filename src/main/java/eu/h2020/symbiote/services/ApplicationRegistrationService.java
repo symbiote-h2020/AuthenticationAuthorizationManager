@@ -21,10 +21,11 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 /**
- * Spring service used to register applications on CloudAAM.
+ * Spring service used to register applications on AAM.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
+ * @author Mikołaj Dobski (PSNC)
  */
 @Service
 public class ApplicationRegistrationService {
@@ -33,14 +34,14 @@ public class ApplicationRegistrationService {
     private final RegistrationManager registrationManager;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${platformowner.username}")
-    private String platformOwnerUsername;
-    @Value("${platformowner.password}")
-    private String platformOwnerPassword;
+    @Value("${aam.deployment.owner.username}")
+    private String AAMOwnerUsername;
+    @Value("${aam.deployment.owner.password}")
+    private String AAMOwnerPassword; //FIXME this should be somehow encoded
 
     @Autowired
     public ApplicationRegistrationService(ApplicationRepository applicationRepository, CertificateRepository
-        certificateRepository, RegistrationManager registrationManager, PasswordEncoder passwordEncoder) {
+            certificateRepository, RegistrationManager registrationManager, PasswordEncoder passwordEncoder) {
         this.applicationRepository = applicationRepository;
         this.certificateRepository = certificateRepository;
         this.registrationManager = registrationManager;
@@ -48,16 +49,16 @@ public class ApplicationRegistrationService {
     }
 
     public RegistrationResponse register(LoginRequest user) throws MissingArgumentsException,
-        ExistingApplicationException,
-        WrongCredentialsException,
-        NoSuchAlgorithmException,
-        NoSuchProviderException,
-        InvalidAlgorithmParameterException,
-        UnrecoverableKeyException,
-        CertificateException,
-        OperatorCreationException,
-        KeyStoreException,
-        IOException {
+            ExistingApplicationException,
+            WrongCredentialsException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            InvalidAlgorithmParameterException,
+            UnrecoverableKeyException,
+            CertificateException,
+            OperatorCreationException,
+            KeyStoreException,
+            IOException {
 
         if (user.getUsername() != null || user.getPassword() != null) {
             if (applicationRepository.exists(user.getUsername())) {
@@ -69,7 +70,7 @@ public class ApplicationRegistrationService {
 
                 // Generate certificate for the application
                 X509Certificate applicationCertificate = registrationManager.createECCert(user.getUsername(),
-                    applicationKeyPair.getPublic());
+                        applicationKeyPair.getPublic());
 
                 // Register the user (Application)
                 Application application = new Application();
@@ -81,7 +82,7 @@ public class ApplicationRegistrationService {
 
                 String pemApplicationCertificate = registrationManager.convertX509ToPEM(applicationCertificate);
                 String pemApplicationPrivateKey = registrationManager.convertPrivateKeyToPEM(applicationKeyPair
-                    .getPrivate());
+                        .getPrivate());
 
                 return new RegistrationResponse(pemApplicationCertificate, pemApplicationPrivateKey);
 
@@ -93,13 +94,13 @@ public class ApplicationRegistrationService {
     }
 
     public RegistrationResponse authRegister(RegistrationRequest request) throws ExistingApplicationException,
-        MissingArgumentsException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
-        NoSuchProviderException, UnrecoverableKeyException, CertificateException, OperatorCreationException,
-        KeyStoreException, IOException, UnauthorizedRegistrationException, WrongCredentialsException {
+            MissingArgumentsException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
+            NoSuchProviderException, UnrecoverableKeyException, CertificateException, OperatorCreationException,
+            KeyStoreException, IOException, UnauthorizedRegistrationException, WrongCredentialsException {
 
-        if (request.getPlatformOwner() != null || request.getApplication() != null) {
-            if (request.getPlatformOwner().getUsername().equals(platformOwnerUsername) && request.getPlatformOwner()
-                .getPassword().equals(platformOwnerPassword)) {
+        if (request.getAAMOwner() != null || request.getApplication() != null) {
+            if (request.getAAMOwner().getUsername().equals(AAMOwnerUsername) && request.getAAMOwner()
+                    .getPassword().equals(AAMOwnerPassword)) {
                 return this.register(request.getApplication());
             } else {
                 throw new UnauthorizedRegistrationException();
@@ -123,11 +124,11 @@ public class ApplicationRegistrationService {
     }
 
     public void authUnregister(RegistrationRequest request) throws MissingArgumentsException,
-        NotExistingApplicationException, UnauthorizedUnregistrationException {
+            NotExistingApplicationException, UnauthorizedUnregistrationException {
 
-        if (request.getPlatformOwner() != null || request.getApplication() != null) {
-            if (request.getPlatformOwner().getUsername().equals(platformOwnerUsername) && request.getPlatformOwner()
-                .getPassword().equals(platformOwnerPassword)) {
+        if (request.getAAMOwner() != null || request.getApplication() != null) {
+            if (request.getAAMOwner().getUsername().equals(AAMOwnerUsername) && request.getAAMOwner()
+                    .getPassword().equals(AAMOwnerPassword)) {
                 this.unregister(request.getApplication());
             } else {
                 throw new UnauthorizedUnregistrationException();

@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 
 /**
- * Class for a standard symbIoTe user, namely an Application.
+ * Class for symbIoTe's user entity -- an Application or PlatformOwner
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
@@ -14,7 +14,7 @@ import java.util.ArrayList;
  */
 public class Application {
 
-    protected Role role = Role.APPLICATION;
+    private Role role = Role.NULL;
 
     private String username = "";
 
@@ -27,10 +27,11 @@ public class Application {
         // required by org.springframework.data.mapping.model.MappingInstantiationException
     }
 
-    public Application(String username, String passwordEncrypted, ArrayList<String> attributes) {
+    public Application(String username, String passwordEncrypted, ArrayList<String> attributes, Role role) {
         this.username = username;
         this.passwordEncrypted = passwordEncrypted;
         this.attributes = attributes;
+        this.role = role;
     }
 
 
@@ -63,4 +64,25 @@ public class Application {
         return role;
     }
 
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    /**
+     * Created by Mikołaj Dobski on 03.04.2017.
+     */
+    public enum Role {
+        /**
+         * specifies platform owner account (administrative user)
+         */
+        PLATFORM_OWNER,
+        /**
+         * specifies simple data consumer account (ordinary user)
+         */
+        APPLICATION,
+        /**
+         * uninitialised value of this enum
+         */
+        NULL
+    }
 }

@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Spring service used to provide token related functionalities of CloudAAM.
+ * Spring service used to provide token related functionality of the AAM.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
@@ -25,9 +25,7 @@ public class TokenService {
     // FIXME harcoded values for now
     private final String appID = "dummyAPP";
 
-    private final Map<String, Object> attributes = new HashMap<String, Object>(); // empty
-    // claims
-    // map
+    private final Map<String, Object> attributes = new HashMap<String, Object>(); // empty claims map
     private final TokenRepository tokenRepository;
     private final TokenManager tokenManager;
 
