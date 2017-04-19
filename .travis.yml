@@ -2,7 +2,7 @@ language: java
 env:
   global:
   - GITHUB_REPO=symbiote-h2020/AuthenticationAuthorizationManager
-  - secure: TO_BE_FIXED
+  - secure: qvioJo5NG5PREqLMCdve7pjx2bLwtvZjAqGZoJjWM+p2w9jb4Q2tU62XULnz9Tf6FESFI2dhVKocENC9dJ2sq/jP9eCHeetpaXv+Sv4q6JNLfPm/PgSpFJgRNBUThhGVxpB3gs7NZ05lJA7Z0hFdc1UZsc81S2MmSH8qtzblRI4iEdsNgyhX39EUh+RWaA/Y8bDYkbMRg1vyAbkZ7YyXYFlET+Fxw3kH039dpdy2n41EUAa7syO/iureRAbBv/1rbDtqBXK+A6M9TnWGzMkOxxDuT+pUTkkyzcvRhV97GQsZ6WpDXrSRpjQZgRMMgr7Eu+NIGJD/sIk+IWjFQOCuLWu4+WHOXjVxMg4lZX1Q426//wqPeF8RMyD0GI9bXOLE18bcKIm2GxW0EijUDur1wwWTMAE/9PPNGobJQUyEEpZ8owSmJ/8d/0ECL0n4v5nCGJgbKcU+HYmLhVZimGwlZQDk+wBkPKlDxePrqfubBCliYEWyGQT5U+DfzLGsaoO+ST7tH7GYjnXOHR/Q1vf6sUvgKrYi5CLNrYhb44SRzq4Ccupm36qFAs8kc2EACEeHh7DSP/VEMz2v32g5MCOOT6fgmp16q/JRosNu0p0TlP41z3CUCUPPnbrlB02JHlggQX1A9o4xt0k6elQuqYntj5xbx4H5XH7r0g/N85Lr+h8=
 jdk:
 - oraclejdk8
 services:
