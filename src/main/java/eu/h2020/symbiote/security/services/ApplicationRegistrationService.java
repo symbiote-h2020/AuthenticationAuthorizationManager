@@ -78,7 +78,8 @@ public class ApplicationRegistrationService {
                 applicationRepository.save(application);
 
                 // Save Certificate to DB
-                certificateRepository.save(new Certificate(applicationCertificate));
+                certificateRepository.save(new Certificate(registrationManager.convertX509ToPEM
+                        (applicationCertificate)));
 
                 String pemApplicationCertificate = registrationManager.convertX509ToPEM(applicationCertificate);
                 String pemApplicationPrivateKey = registrationManager.convertPrivateKeyToPEM(applicationKeyPair
