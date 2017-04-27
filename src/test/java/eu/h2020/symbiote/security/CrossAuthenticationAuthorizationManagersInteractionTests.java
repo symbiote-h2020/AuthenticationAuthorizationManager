@@ -13,10 +13,27 @@ public class CrossAuthenticationAuthorizationManagersInteractionTests extends
 
     private static Log log = LogFactory.getLog(CrossAuthenticationAuthorizationManagersInteractionTests.class);
 
+
+    /**
+     * Feature:
+     * Interface: CAAM - 13
+     * CommunicationType REST
+     */
     @Test
     @Ignore("Not yet implemented")
-    public void teststub() {
-        // TODO define such tests
+    public void checkRevocationExternalPlatformSuccess() {
+
+    }
+
+    /**
+     * Feature:
+     * Interface: CAAM - 13
+     * CommunicationType REST
+     */
+    @Test
+    @Ignore("Not yet implemented")
+    public void checkRevocationExternalPlatformFailure() {
+
     }
 
 }

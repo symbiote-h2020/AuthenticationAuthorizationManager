@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.commons.json.LoginRequest;
 import eu.h2020.symbiote.security.commons.json.RequestToken;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -187,6 +188,18 @@ public class CommonAuthenticationAuthorizationManagerTests extends
                 checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
 
         assertEquals(status.getBody().getStatus(), Status.FAILURE.toString());
+    }
+
+    /**
+     * Features:
+     * CAAM - 5 (Revoking tokens based on expiration date or illegal access)
+     * Interfaces: PAAM - 4, CAAM - 10;
+     * CommunicationType REST
+     */
+    @Test
+    @Ignore
+    public void federatedTokenByFedaratedAAMproviding() {
+
     }
 
 }

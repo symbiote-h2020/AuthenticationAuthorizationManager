@@ -1,18 +1,39 @@
 package eu.h2020.symbiote.security;
 
+import com.rabbitmq.client.RpcClient;
+import eu.h2020.symbiote.security.commons.exceptions.ExistingApplicationException;
+import eu.h2020.symbiote.security.commons.exceptions.MissingArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.NotExistingApplicationException;
+import eu.h2020.symbiote.security.commons.exceptions.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.json.ErrorResponseContainer;
+import eu.h2020.symbiote.security.commons.json.LoginRequest;
+import eu.h2020.symbiote.security.commons.json.RegistrationResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.security.*;
+import java.security.cert.CertificateException;
+import java.util.concurrent.TimeoutException;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+
 /**
  * Test suite for Core AAM deployment scenarios.
- * TODO: 2-6,8,9,
  */
 public class CoreAuthenticationAuthorizationManagerTests extends
         AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(CoreAuthenticationAuthorizationManagerTests.class);
+
+
+    /**
+     *  TODO: PlatformRegistration failures with missing Username and missing Password
+     */
 
 
     /**
@@ -22,8 +43,111 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      */
     @Test
     @Ignore("Not yet implemented")
-    public void successfulPlatformRegistration() {
-        // TODO define such tests
+    public void failurePlatformRegistrationUserNameExists() throws IOException, TimeoutException {
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest("username_platform_owner",
+                "username_platform_password")).getBytes());
+
+        //assertNotEquals(registrationResponse.getPemCertificate(),null);
+
+    }
+
+    /**
+     * Feature: CAAM - 3 (Platform Registration)
+     * Interface: CAAM - 2
+     * CommunicationType AMQP
+     */
+    @Test
+    @Ignore("Not yet implemented")
+    public void failurePlatformRegistrationPlatformIdExists() throws IOException, TimeoutException {
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest("username_platform_owner",
+                "username_platform_password")).getBytes());
+
+
+    }
+
+    /**
+     * Feature: CAAM - 3 (Platform Registration)
+     * Interface: CAAM - 2
+     * CommunicationType AMQP
+     */
+    @Test
+    //@Ignore("Not yet implemented")
+    public void successfulPlatformRegistrationPreferredId() throws IOException, TimeoutException {
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest("username_platform_owner",
+                "username_platform_password")).getBytes());
+
+    }
+
+    /**
+     * Feature: CAAM - 3 (Platform Registration)
+     * Interface: CAAM - 2
+     * CommunicationType AMQP
+     */
+    @Test
+    //@Ignore("Not yet implemented")
+    public void successfulPlatformRegistrationGeneratedId() throws IOException, TimeoutException {
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest("username_platform_owner",
+                "username_platform_password")).getBytes());
+
+    }
+
+
+    /**
+     * Feature: CAAM - 2 (App Registration)
+     * Interface: CAAM - 3
+     * CommunicationType AMQP
+     */
+    @Test
+    //@Ignore("Not yet implemented")
+    public void failureApplicationRegistrationUsernameExists() throws IOException, TimeoutException {
+
+        try {
+            RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+            byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest("NewApplication", "NewPassword")).getBytes());
+            ErrorResponseContainer noResponse = mapper.readValue(response, ErrorResponseContainer.class);
+
+        } catch (Exception e) {
+            assertEquals(new ExistingApplicationException().getErrorMessage(), e.getClass());
+        }
+    }
+
+    /**
+     * Feature: CAAM - 2 (App Registration)
+     * Interface: CAAM - 3
+     * CommunicationType AMQP
+     */
+    @Test
+    //@Ignore("Not yet implemented")
+    public void failureApplicationRegistrationMissingArguments() throws IOException, TimeoutException {
+        try {
+            RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+            byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest()).getBytes());
+            ErrorResponseContainer noResponse = mapper.readValue(response, ErrorResponseContainer.class);
+
+        } catch (Exception e) {
+            assertEquals(new MissingArgumentsException().getErrorMessage(), e.getClass());
+        }
+    }
+
+    /**
+     * Feature: CAAM - 2 (App Registration)
+     * Interface: CAAM - 3
+     * CommunicationType AMQP
+     */
+    @Test
+    //@Ignore("Not yet implemented")
+    public void successfulApplicationRegistration() throws IOException, TimeoutException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, MissingArgumentsException, KeyStoreException, InvalidAlgorithmParameterException, NoSuchProviderException, OperatorCreationException, WrongCredentialsException, ExistingApplicationException {
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest("newUsername", "newPassword")).getBytes());
+        RegistrationResponse registrationResponse = mapper.readValue(response, RegistrationResponse.class);
+        log.info("Test Client received this key and certificate " + registrationResponse.toJson());
+
+        assertNotEquals(registrationResponse.getPemCertificate(), null);
+        assertNotEquals(registrationResponse.getPemPrivateKey(), null);
     }
 
 
@@ -34,8 +158,15 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      */
     @Test
     @Ignore("Not yet implemented")
-    public void successfulApplicationRegistration() {
-        // TODO define such tests
+    public void successfulApplicationUnregistration() throws IOException, TimeoutException {
+        try {
+            RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+            byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest("NewApplication", "NewPassword")).getBytes());
+
+
+        } catch (Exception e) {
+            assertEquals(NotExistingApplicationException.class, e.getClass());
+        }
     }
 
     /**
@@ -45,8 +176,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      */
     @Test
     @Ignore("Not yet implemented")
-    public void successfulApplicationUnregistration() {
-        // TODO define such tests
+    public void externalRegistrationSuccess() throws IOException, TimeoutException {
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
     }
 
     /**
@@ -56,19 +187,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      */
     @Test
     @Ignore("Not yet implemented")
-    public void externalRegistrationSuccess() {
-        // TODO define such tests
-    }
-
-    /**
-     * Feature: CAAM - 2 (App Registration)
-     * Interface: CAAM - 3
-     * CommunicationType AMQP
-     */
-    @Test
-    @Ignore("Not yet implemented")
-    public void externalUnregistrationSuccess() {
-        // TODO define such tests
+    public void externalUnregistrationSuccess() throws IOException, TimeoutException {
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
     }
 
 
@@ -79,20 +199,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      */
     @Test
     @Ignore("Not yet implemented")
-    public void passwordUpdateSuccess() {
-        // TODO define such tests
-    }
-
-    /**
-     * Feature: CAAM - 4 (Authentication)
-     * Interface: CAAM - 4
-     * CommunicationType AMQP
-     * User repeats the old password / doesn't change it
-     */
-    @Test
-    @Ignore("Not yet implemented")
-    public void passwordUpdateOldPasswordRepetition() {
-        // TODO define such tests
+    public void passwordUpdateSuccess() throws IOException, TimeoutException {
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
     }
 
     /**
@@ -103,8 +211,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      */
     @Test
     @Ignore("Not yet implemented")
-    public void passwordUpdateMissingPassword() {
-        // TODO define such tests
+    public void passwordUpdateMissingPassword() throws IOException, TimeoutException {
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
     }
 
 
@@ -116,8 +224,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      */
     @Test
     @Ignore("Not yet implemented")
-    public void passwordUpdateWrongCredentials() {
-
+    public void passwordUpdateWrongCredentials() throws IOException, TimeoutException {
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
     }
 
     /**
@@ -127,8 +235,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      */
     @Test
     @Ignore("Not yet implemented")
-    public void successfulAttributeProvision() {
-
+    public void successfulAttributeProvision() throws IOException, TimeoutException {
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
     }
 
     /**
@@ -138,8 +246,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      */
     @Test
     @Ignore("Not yet implemented")
-    public void successfulAttributeMapping() {
-
+    public void successfulAttributeMappingProvision() throws IOException, TimeoutException {
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
     }
 
     /**
@@ -160,7 +268,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      */
     @Test
     @Ignore("Not yet implemented")
-    public void collectionListingSuccess() {
+    public void listWithMultipleAAMs() {
 
     }
 
