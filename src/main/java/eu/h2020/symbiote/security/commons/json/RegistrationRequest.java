@@ -8,10 +8,10 @@ package eu.h2020.symbiote.security.commons.json;
  * @author Mikołaj Dobski (PSNC)
  */
 public class RegistrationRequest {
-    private LoginRequest AAMOwner;
-    private LoginRequest application;
+    private PlainCredentials AAMOwner;
+    private PlainCredentials application;
 
-    public RegistrationRequest(LoginRequest AAMOwner, LoginRequest application) {
+    public RegistrationRequest(PlainCredentials AAMOwner, PlainCredentials application) {
         this.AAMOwner = AAMOwner;
         this.application = application;
     }
@@ -19,19 +19,19 @@ public class RegistrationRequest {
     public RegistrationRequest() {
     }
 
-    public LoginRequest getAAMOwner() {
+    public PlainCredentials getAAMOwner() {
         return AAMOwner;
     }
 
-    public void setAAMOwner(LoginRequest AAMOwner) {
+    public void setAAMOwner(PlainCredentials AAMOwner) {
         this.AAMOwner = AAMOwner;
     }
 
-    public LoginRequest getApplication() {
+    public PlainCredentials getApplication() {
         return application;
     }
 
-    public void setApplication(LoginRequest application) {
+    public void setApplication(PlainCredentials application) {
         this.application = application;
     }
 }

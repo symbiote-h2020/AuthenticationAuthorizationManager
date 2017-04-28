@@ -1,32 +1,29 @@
 package eu.h2020.symbiote.security.commons.json;
 
 /**
- * Created by Maks on 2017-04-28.
+ * //TODO missing javadocs
+ * Created on 2017-04-28.
+ * @author Maksymilian Marcinowski (PSNC)
  */
 public class ApplicationRegistrationRequest {
-    private LoginRequest owner;
-    private String federatedID;
-    private String recoveryMail;
+    private PlainCredentials applicationCredentials = new PlainCredentials();
+    private String federatedID = "";
+    private String recoveryMail = "";
 
-    public ApplicationRegistrationRequest() {
-        this.owner=null;
-        this.federatedID = null;
-        this.recoveryMail = null;
-    }
-
-    public ApplicationRegistrationRequest(LoginRequest owner, String federatedID, String recoveryMail) {
-        this.owner=owner;
+    public ApplicationRegistrationRequest(PlainCredentials applicationCredentials, String federatedID, String
+            recoveryMail) {
+        this.applicationCredentials = applicationCredentials;
         this.federatedID = federatedID;
         this.recoveryMail = recoveryMail;
     }
 
 
-    public LoginRequest getOwner() {
-        return owner;
+    public PlainCredentials getApplicationCredentials() {
+        return applicationCredentials;
     }
 
-    public void setOwner(LoginRequest owner) {
-        this.owner = owner;
+    public void setApplicationCredentials(PlainCredentials applicationCredentials) {
+        this.applicationCredentials = applicationCredentials;
     }
 
     public String getPlatformID() {

@@ -3,7 +3,7 @@ package eu.h2020.symbiote.security.rest;
 import eu.h2020.symbiote.security.commons.Constants;
 import eu.h2020.symbiote.security.commons.CustomAAMException;
 import eu.h2020.symbiote.security.commons.json.ErrorResponseContainer;
-import eu.h2020.symbiote.security.commons.json.LoginRequest;
+import eu.h2020.symbiote.security.commons.json.PlainCredentials;
 import eu.h2020.symbiote.security.commons.json.RequestToken;
 import eu.h2020.symbiote.security.services.LoginService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,7 +35,7 @@ public class LoginController {
 
     //L1 Diagrams - login()
     @RequestMapping(value = "/login", method = RequestMethod.POST)
-    public ResponseEntity<?> login(@RequestBody LoginRequest user) {
+    public ResponseEntity<?> login(@RequestBody PlainCredentials user) {
 
         try {
             RequestToken token = loginService.login(user);

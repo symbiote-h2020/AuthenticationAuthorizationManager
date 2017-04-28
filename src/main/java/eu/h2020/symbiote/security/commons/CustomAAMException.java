@@ -5,7 +5,7 @@ import eu.h2020.symbiote.security.commons.exceptions.WrongCredentialsException;
 import org.springframework.http.HttpStatus;
 
 /**
- * Abstract class implemented by custom exceptions in Cloud AAM.
+ * Abstract class implemented by custom exceptions in AAM.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)

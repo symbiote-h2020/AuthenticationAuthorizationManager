@@ -4,7 +4,7 @@ import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.commons.enums.Status;
 import eu.h2020.symbiote.security.commons.json.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.security.commons.json.ErrorResponseContainer;
-import eu.h2020.symbiote.security.commons.json.LoginRequest;
+import eu.h2020.symbiote.security.commons.json.PlainCredentials;
 import eu.h2020.symbiote.security.commons.json.RequestToken;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -46,7 +46,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void internalCheckTokenRevocationRequestReplySuccess() throws IOException, TimeoutException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(username, password))
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new PlainCredentials(username, password))
                 .getBytes());
         RequestToken testToken = mapper.readValue(response, RequestToken.class);
 
@@ -68,25 +68,10 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void externalLoginSuccess() {
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
-                new LoginRequest(username, password), String.class);
-        HttpHeaders headers = response.getHeaders();
-        assertEquals(response.getStatusCode(), HttpStatus.OK);
-        assertNotEquals(headers.getFirst(tokenHeaderName), null);
-    }
-
-
-    /**
-     * Features: PAAM - 3, CAAM - 5 (Authentication)
-     * Interfaces: PAAM - 3, CAAM - 7;
-     * CommunicationType REST
-     */
-    @Test
     public void externalLoginWrongUsername() {
         ResponseEntity<ErrorResponseContainer> token = null;
         try {
-            token = restTemplate.postForEntity(serverAddress + loginUri, new LoginRequest(wrongusername, password),
+            token = restTemplate.postForEntity(serverAddress + loginUri, new PlainCredentials(wrongusername, password),
                     ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
             assertEquals(token, null);
@@ -104,7 +89,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void externalLoginWrongPassword() {
         ResponseEntity<ErrorResponseContainer> token = null;
         try {
-            token = restTemplate.postForEntity(serverAddress + loginUri, new LoginRequest(username, wrongpassword),
+            token = restTemplate.postForEntity(serverAddress + loginUri, new PlainCredentials(username, wrongpassword),
                     ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
             assertEquals(token, null);
@@ -121,7 +106,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void externalRequestForeignToken() {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
-                new LoginRequest(username, password), String.class);
+                new PlainCredentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
@@ -147,7 +132,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void externalCheckTokenRevocationSucess() {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
-                new LoginRequest(username, password), String.class);
+                new PlainCredentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
@@ -171,7 +156,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void externalCheckTokenRevocationFailure() {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
-                new LoginRequest(username, password), String.class);
+                new PlainCredentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         //Introduce latency so that JWT expires
@@ -191,15 +176,39 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     }
 
     /**
-     * Features:
-     * CAAM - 5 (Revoking tokens based on expiration date or illegal access)
-     * Interfaces: PAAM - 4, CAAM - 10;
-     * CommunicationType REST
+     * Feature: common but defined in CAAM - 5 (Token with AAM relevant attribute provisioning and issuing)
+     * Interface: CAAM - 5
+     * CommunicationType AMQP
      */
     @Test
-    @Ignore
-    public void federatedTokenByFedaratedAAMproviding() {
-
+    @Ignore("Not R2 crucial, at R2 we will issue attributes from properties")
+    public void provisionedAttributesIssuedToRegisteredApplication() throws IOException, TimeoutException {
+        /*
+            // R2 TODO translate
+        1. zalogować się do AMMa jako AAM owner
+        2. wysłać listę atrybutów
+        3. zwróci sukces
+        4. zalogować się jako applikacja i sprawdzić czy w tokenie są te atrybuty
+        */
     }
+
+    /**
+     * Feature: common but defined in CAAM - 8 (Home to Core/Foreign Tokens translation with federation agreed
+     * provisioned attributes mapping)
+     * Interface: CAAM - 6
+     * CommunicationType AMQP
+     */
+    @Test
+    @Ignore("Not R2")
+    public void federatedAttributesIssuedUsingProvisionedAttributesMappingList() throws IOException, TimeoutException {
+        /*
+        // R2 TODO translate
+        1. zalogować się do AMMa jako AAM owner
+        2. wysłać listę mapowania atrybutów
+        3. zwróci sukces
+        4. zażądać foreign tokenów na podstawie przedstawionych tokenów
+        */
+    }
+
 
 }

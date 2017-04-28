@@ -4,7 +4,7 @@ import eu.h2020.symbiote.security.commons.Application;
 import eu.h2020.symbiote.security.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.MissingArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.WrongCredentialsException;
-import eu.h2020.symbiote.security.commons.json.LoginRequest;
+import eu.h2020.symbiote.security.commons.json.PlainCredentials;
 import eu.h2020.symbiote.security.commons.json.RequestToken;
 import eu.h2020.symbiote.security.repositories.ApplicationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
+ * @author Mikołaj Dobski (PSNC)
  */
 @Service
 public class LoginService {
@@ -32,14 +33,14 @@ public class LoginService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public RequestToken login(LoginRequest user) throws MissingArgumentsException, WrongCredentialsException,
+    public RequestToken login(PlainCredentials user) throws MissingArgumentsException, WrongCredentialsException,
             JWTCreationException {
 
-        if (user.getUsername() != null || user.getPassword() != null) {
+        if (user.getUsername() != "" || user.getPassword() != "") {
             if (applicationRepository.exists(user.getUsername())) {
                 Application applicationInDB = applicationRepository.findOne(user.getUsername());
                 if (user.getUsername().equals(applicationInDB.getUsername())
-                    && passwordEncoder.matches(user.getPassword(), applicationInDB.getPasswordEncrypted())) {
+                        && passwordEncoder.matches(user.getPassword(), applicationInDB.getPasswordEncrypted())) {
                     return tokenService.getHomeToken();
                 }
             }

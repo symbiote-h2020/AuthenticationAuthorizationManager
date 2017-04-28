@@ -1,23 +1,24 @@
 package eu.h2020.symbiote.security.commons.json;
 
 /**
- * Class that defines the structure of a login request to CloudAAM.
+ * Class that defines the structure of a simple credentials payload
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
+ * @author Mikołaj Dobski (PSNC)
  */
-public class LoginRequest {
-    private String username;
-    private String password;
+public class PlainCredentials {
+    private String username = "";
+    private String password = "";
 
-    public LoginRequest() {
-        this.username = null;
-        this.password = null;
-    }
 
-    public LoginRequest(String username, String password) {
+    public PlainCredentials(String username, String password) {
         this.username = username;
         this.password = password;
+    }
+
+    public PlainCredentials() {
+        // empty payload might appear in communication
     }
 
     public String getUsername() {
@@ -39,7 +40,7 @@ public class LoginRequest {
 
     @Override
     public String toString() {
-        return "LoginRequest [username=" + username + ", password=" + password + "]";
+        return "PlainCredentials [username=" + username + ", password=" + password + "]";
     }
 
 

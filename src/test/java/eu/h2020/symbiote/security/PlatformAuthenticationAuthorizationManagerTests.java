@@ -9,7 +9,9 @@ import eu.h2020.symbiote.security.commons.exceptions.WrongCredentialsException;
 import eu.h2020.symbiote.security.commons.json.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
@@ -31,6 +33,24 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
 
     private static Log log = LogFactory.getLog(PlatformAuthenticationAuthorizationManagerTests.class);
 
+
+    /**
+     * Features: PAAM - 3, CAAM - 5 (Authentication & relevent token issuing)
+     * Interfaces: PAAM - 3, CAAM - 7;
+     * CommunicationType REST
+     */
+    @Test
+    @Ignore("JWT ttyp Not yet implemented")
+    public void externalLoginIssuesCoreToken() {
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+                new PlainCredentials(username, password), String.class);
+        HttpHeaders headers = response.getHeaders();
+        assertEquals(response.getStatusCode(), HttpStatus.OK);
+        assertNotEquals(headers.getFirst(tokenHeaderName), null);
+        // TODO: check if JWT ttyp field is set to HOME
+    }
+
+
     /**
      * Feature: 3 (Authentication of components/ and applications registered in a platform)
      * Interface: PAAM - 1
@@ -39,16 +59,18 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
      * @throws TimeoutException
      */
     @Test
+    @Ignore("JWT ttyp Not yet implemented")
     public void internalLoginRequestReplySuccess() throws IOException, TimeoutException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(username, password))
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new PlainCredentials(username, password))
                 .getBytes());
         RequestToken token = mapper.readValue(response, RequestToken.class);
 
         log.info("Test Client received this Token: " + token.toJson());
 
         assertNotEquals(token.getToken(), null);
+        // TODO: check if JWT ttyp field is set to HOME
     }
 
     /**
@@ -63,19 +85,19 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
 
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(wrongusername, password))
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new PlainCredentials(wrongusername, password))
                 .getBytes());
         ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
 
-        byte[] response2 = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(username, wrongpassword))
+        byte[] response2 = client.primitiveCall(mapper.writeValueAsString(new PlainCredentials(username, wrongpassword))
                 .getBytes());
         ErrorResponseContainer noToken2 = mapper.readValue(response2, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken2.getErrorMessage());
 
-        byte[] response3 = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(wrongusername,
+        byte[] response3 = client.primitiveCall(mapper.writeValueAsString(new PlainCredentials(wrongusername,
                 wrongpassword)).getBytes());
         ErrorResponseContainer noToken3 = mapper.readValue(response3, ErrorResponseContainer.class);
 
@@ -99,7 +121,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     public void internalLoginRequestReplyMissingArguments() throws IOException, TimeoutException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new LoginRequest(/* no username and/or
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new PlainCredentials(/* no username and/or
         password */)).getBytes());
         ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
 
@@ -146,7 +168,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     public void successfulApplicationRegistration() throws Exception {
         try {
             // register new application to db
-            RegistrationResponse registrationResponse = applicationRegistrationService.register(new LoginRequest
+            RegistrationResponse registrationResponse = applicationRegistrationService.register(new PlainCredentials
                     ("NewApplication", "NewPassword"));
             String cert = registrationResponse.getPemCertificate();
             System.out.println(cert);
@@ -169,8 +191,8 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     @Test
     public void externalRegistrationSuccess() throws JsonProcessingException {
         RegistrationRequest request = new RegistrationRequest(
-                new LoginRequest(AAMOwnerUsername, AAMOwnerPassword),
-                new LoginRequest("NewApplication", "NewPassword"));
+                new PlainCredentials(AAMOwnerUsername, AAMOwnerPassword),
+                new PlainCredentials("NewApplication", "NewPassword"));
         try {
             ResponseEntity<RegistrationResponse> response = restTemplate.postForEntity(serverAddress +
                     registrationUri, request, RegistrationResponse.class);
@@ -192,7 +214,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     @Test
     public void successfulApplicationUnregistration() throws Exception {
         try {
-            applicationRegistrationService.unregister(new LoginRequest("NewApplication", "NewPassword"));
+            applicationRegistrationService.unregister(new PlainCredentials("NewApplication", "NewPassword"));
             log.info("Application successfully unregistered!");
         } catch (Exception e) {
             assertEquals(NotExistingApplicationException.class, e.getClass());
@@ -210,8 +232,8 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     @Test
     public void externalUnregistrationSuccess() throws JsonProcessingException {
         RegistrationRequest request = new RegistrationRequest(
-                new LoginRequest(AAMOwnerUsername, AAMOwnerPassword),
-                new LoginRequest("NewApplication", "NewPassword"));
+                new PlainCredentials(AAMOwnerUsername, AAMOwnerPassword),
+                new PlainCredentials("NewApplication", "NewPassword"));
         try {
             ResponseEntity<Void> response = restTemplate.postForEntity(serverAddress + unregistrationUri, request,
                     Void.class);

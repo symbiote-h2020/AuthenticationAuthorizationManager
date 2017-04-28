@@ -4,7 +4,7 @@ import eu.h2020.symbiote.security.commons.Application;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.commons.exceptions.*;
-import eu.h2020.symbiote.security.commons.json.LoginRequest;
+import eu.h2020.symbiote.security.commons.json.PlainCredentials;
 import eu.h2020.symbiote.security.commons.json.RegistrationRequest;
 import eu.h2020.symbiote.security.commons.json.RegistrationResponse;
 import eu.h2020.symbiote.security.repositories.ApplicationRepository;
@@ -48,7 +48,7 @@ public class ApplicationRegistrationService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public RegistrationResponse register(LoginRequest user) throws MissingArgumentsException,
+    public RegistrationResponse register(PlainCredentials user) throws MissingArgumentsException,
             ExistingApplicationException,
             WrongCredentialsException,
             NoSuchAlgorithmException,
@@ -111,7 +111,7 @@ public class ApplicationRegistrationService {
         }
     }
 
-    public void unregister(LoginRequest user) throws NotExistingApplicationException, MissingArgumentsException {
+    public void unregister(PlainCredentials user) throws NotExistingApplicationException, MissingArgumentsException {
 
         if (user.getUsername() != null || user.getPassword() != null) {
             if (applicationRepository.exists(user.getUsername())) {

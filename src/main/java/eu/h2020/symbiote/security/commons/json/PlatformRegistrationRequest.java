@@ -1,41 +1,55 @@
 package eu.h2020.symbiote.security.commons.json;
 
 /**
- * Created by Maks on 2017-04-26.
+ * Describes platform registration in AAM payload.
+ *
+ * @author Mikołaj Dobski (PSNC)
+ * @author Maksymilian Marcinowski (PSNC)
  */
 public class PlatformRegistrationRequest {
-    private LoginRequest owner;
-    private String platformID;
-    private String recoveryMail;
-    private String platformIPAurl;
+    private PlainCredentials platformOwnerPlainCredentials = new PlainCredentials();
+    private String platformID = "";
+    private String recoveryMail = "";
+    private String platformIPAURL = "";
 
-    public PlatformRegistrationRequest() {
-        this.owner=null;
-        this.platformID = null;
-        this.recoveryMail = null;
-        this.platformIPAurl = null;
-    }
-
-    public PlatformRegistrationRequest(LoginRequest owner, String preferredPlatformID, String recoveryMail, String platformIPAurl) {
-        this.owner=owner;
+    /**
+     * For use when a Platform Owner wants a preferred platform identifier
+     *
+     * @param platformOwnerPlainCredentials
+     * @param preferredPlatformID
+     * @param recoveryMail
+     * @param platformIPAURL
+     */
+    public PlatformRegistrationRequest(PlainCredentials platformOwnerPlainCredentials, String preferredPlatformID,
+                                       String recoveryMail, String
+                                               platformIPAURL) {
+        this.platformOwnerPlainCredentials = platformOwnerPlainCredentials;
         this.platformID = preferredPlatformID;
         this.recoveryMail = recoveryMail;
-        this.platformIPAurl = platformIPAurl;
+        this.platformIPAURL = platformIPAURL;
     }
 
-    public PlatformRegistrationRequest(String username, String password, String recoveryMail, String platformIPAurl) {
-        this.owner=owner;
+    /**
+     * For use when Platform Owner registers and used generated platform identifier
+     *
+     * @param platformOwnerPlainCredentials
+     * @param recoveryMail
+     * @param platformIPAURL
+     */
+    public PlatformRegistrationRequest(PlainCredentials platformOwnerPlainCredentials, String recoveryMail, String
+            platformIPAURL) {
+        this.platformOwnerPlainCredentials = platformOwnerPlainCredentials;
         this.recoveryMail = recoveryMail;
-        this.platformIPAurl = platformIPAurl;
+        this.platformIPAURL = platformIPAURL;
     }
 
 
-    public LoginRequest getOwner() {
-        return owner;
+    public PlainCredentials getPlatformOwnerPlainCredentials() {
+        return platformOwnerPlainCredentials;
     }
 
-    public void setOwner(LoginRequest owner) {
-        this.owner = owner;
+    public void setPlatformOwnerPlainCredentials(PlainCredentials platformOwnerPlainCredentials) {
+        this.platformOwnerPlainCredentials = platformOwnerPlainCredentials;
     }
 
     public String getPlatformID() {
@@ -54,11 +68,11 @@ public class PlatformRegistrationRequest {
         this.recoveryMail = recoveryMail;
     }
 
-    public String getPlatformIPAurl() {
-        return platformIPAurl;
+    public String getPlatformIPAURL() {
+        return platformIPAURL;
     }
 
-    public void setPlatformIPAurl(String platformIPAurl) {
-        this.platformIPAurl = platformIPAurl;
+    public void setPlatformIPAURL(String platformIPAURL) {
+        this.platformIPAURL = platformIPAURL;
     }
 }

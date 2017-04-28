@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security;
 
-import eu.h2020.symbiote.security.commons.json.LoginRequest;
+import eu.h2020.symbiote.security.commons.json.PlainCredentials;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Ignore;
@@ -26,7 +26,7 @@ public class CrossAuthenticationAuthorizationManagersInteractionTests extends
     @Ignore("Not yet implemented")
     public void checkRevocationExternalPlatformSuccess() {
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
-                new LoginRequest(username, password), String.class);
+                new PlainCredentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
     }
 
@@ -40,7 +40,7 @@ public class CrossAuthenticationAuthorizationManagersInteractionTests extends
     public void checkRevocationExternalPlatformFailure() {
         try{
             ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
-                    new LoginRequest(username, password), String.class);
+                    new PlainCredentials(username, password), String.class);
             HttpHeaders loginHeaders = response.getHeaders();
 
 

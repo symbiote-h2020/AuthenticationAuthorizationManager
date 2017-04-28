@@ -3,7 +3,7 @@ package eu.h2020.symbiote.security.rest;
 import eu.h2020.symbiote.security.commons.CustomAAMException;
 import eu.h2020.symbiote.security.commons.VirtualFile;
 import eu.h2020.symbiote.security.commons.json.ErrorResponseContainer;
-import eu.h2020.symbiote.security.commons.json.LoginRequest;
+import eu.h2020.symbiote.security.commons.json.PlainCredentials;
 import eu.h2020.symbiote.security.commons.json.RegistrationRequest;
 import eu.h2020.symbiote.security.commons.json.RegistrationResponse;
 import eu.h2020.symbiote.security.services.ApplicationRegistrationService;
@@ -56,7 +56,7 @@ public class RegistrationController {
         throws CustomAAMException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException,
         OperatorCreationException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException,
         IOException, ZipException {
-        LoginRequest user = new LoginRequest(requestMap.get("username"), requestMap.get("password"));
+        PlainCredentials user = new PlainCredentials(requestMap.get("username"), requestMap.get("password"));
         RegistrationResponse regResponse = registrationService.register(user);
         String certificate = regResponse.getPemCertificate();
         String privateKey = regResponse.getPemPrivateKey();

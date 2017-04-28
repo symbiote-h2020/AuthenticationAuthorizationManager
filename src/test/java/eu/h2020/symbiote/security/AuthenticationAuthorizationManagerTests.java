@@ -58,6 +58,10 @@ public abstract class AuthenticationAuthorizationManagerTests {
     protected String serverAddress;
     @Value("${rabbit.queue.login.request}")
     protected String loginRequestQueue;
+    @Value("${rabbit.queue.register.app.request}")
+    protected String appRegistrationRequestQueue;
+    @Value("${rabbit.queue.register.platform.request}")
+    protected String platformRegistrationRequestQueue;
     @Value("${rabbit.queue.check_token_revocation.request}")
     protected String checkTokenRevocationRequestQueue;
     @Value("${aam.deployment.owner.username}")
