@@ -8,6 +8,7 @@ package eu.h2020.symbiote.security.commons.json;
  */
 public class PlatformRegistrationRequest {
     private PlainCredentials platformOwnerPlainCredentials = new PlainCredentials();
+    private String federatedID = "";
     private String platformID = "";
     private String recoveryMail = "";
     private String platformIPAURL = "";
@@ -20,10 +21,11 @@ public class PlatformRegistrationRequest {
      * @param recoveryMail
      * @param platformIPAURL
      */
-    public PlatformRegistrationRequest(PlainCredentials platformOwnerPlainCredentials, String preferredPlatformID,
+    public PlatformRegistrationRequest(PlainCredentials platformOwnerPlainCredentials, String federatedID, String preferredPlatformID,
                                        String recoveryMail, String
                                                platformIPAURL) {
         this.platformOwnerPlainCredentials = platformOwnerPlainCredentials;
+        this.federatedID = federatedID;
         this.platformID = preferredPlatformID;
         this.recoveryMail = recoveryMail;
         this.platformIPAURL = platformIPAURL;
@@ -36,9 +38,10 @@ public class PlatformRegistrationRequest {
      * @param recoveryMail
      * @param platformIPAURL
      */
-    public PlatformRegistrationRequest(PlainCredentials platformOwnerPlainCredentials, String recoveryMail, String
+    public PlatformRegistrationRequest(PlainCredentials platformOwnerPlainCredentials, String federatedID, String recoveryMail, String
             platformIPAURL) {
         this.platformOwnerPlainCredentials = platformOwnerPlainCredentials;
+        this.federatedID = federatedID;
         this.recoveryMail = recoveryMail;
         this.platformIPAURL = platformIPAURL;
     }
@@ -74,5 +77,13 @@ public class PlatformRegistrationRequest {
 
     public void setPlatformIPAURL(String platformIPAURL) {
         this.platformIPAURL = platformIPAURL;
+    }
+
+    public String getFederatedID() {
+        return federatedID;
+    }
+
+    public void setFederatedID(String federatedID) {
+        this.federatedID = federatedID;
     }
 }

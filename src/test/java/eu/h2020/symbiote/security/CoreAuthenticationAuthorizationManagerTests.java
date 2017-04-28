@@ -47,11 +47,6 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         // TODO: check if JWT ttyp field is set to CORE
     }
 
-
-    /**
-     *  TODO: PlatformRegistration failures with missing Username and missing Password
-     */
-
     /**
      * Feature: CAAM - 3 (Platform Registration)
      * Interface: CAAM - 2
@@ -66,14 +61,14 @@ public class CoreAuthenticationAuthorizationManagerTests extends
             byte[] response;
             /*
             response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
-            PlainCredentials("username","password"),
+            PlainCredentials("username","password"), "federatedID"
                 "recoveryMail","platformIPAurl")).getBytes());
             PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
             PlatformRegistrationResponse.class);
             */
         } catch (Exception e) {
-            /*TODO:ExistingPlatformException?
-            assertEquals(new ExistingPlatformIDException().getErrorMessage(), e.getClass());
+            /*
+            assertEquals(new ExistingPlatformException().getErrorMessage(), e.getClass());
             */
         }
 
@@ -94,14 +89,14 @@ public class CoreAuthenticationAuthorizationManagerTests extends
             byte[] response;
             /*
             response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
-            PlainCredentials("username","password"),
+            PlainCredentials("username","password"), "federatedID",
                 "recoveryMail","platformIPAurl")).getBytes());
             PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
             PlatformRegistrationResponse.class);
             */
         } catch (Exception e) {
-            /*TODO:ExistingPlatformException?
-            assertEquals(new ExistingPlatformIDException().getErrorMessage(), e.getClass());
+            /*
+            assertEquals(new ExistingPlatformException().getErrorMessage(), e.getClass());
             */
         }
 
@@ -121,14 +116,14 @@ public class CoreAuthenticationAuthorizationManagerTests extends
             byte[] response;
             /*
             response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
-            PlainCredentials("username","password"),
+            PlainCredentials("username","password"),"federatedID",
                 "preferredPlatformID","recoveryMail","platformIPAurl")).getBytes());
             PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
             PlatformRegistrationResponse.class);
             */
         } catch (Exception e) {
-            /*TODO: ExistingPlatformIDException?
-            assertEquals(new ExistingPlatformIDException().getErrorMessage(), e.getClass());
+            /*
+            assertEquals(new ExistingPlatformException().getErrorMessage(), e.getClass());
             */
         }
 
@@ -147,7 +142,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         byte[] response;
 
         response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
-                PlainCredentials("username", "password"),
+                PlainCredentials("username", "password"), "federatedID",
                 "preferredPlatformID", "recoveryMail", "platformIPAurl")).getBytes());
         PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
                 PlatformRegistrationResponse.class);
@@ -171,7 +166,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         byte[] response;
 
         response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
-                PlainCredentials("username", "password"),
+                PlainCredentials("username", "password"), "federatedID",
                 "recoveryMail", "platformIPAurl")).getBytes());
         PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
                 PlatformRegistrationResponse.class);

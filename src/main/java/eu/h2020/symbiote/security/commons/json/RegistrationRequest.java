@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.security.commons.json;
 
 /**
- * Class that defines the structure of a registration request to CloudAAM.
+ * Class that defines the structure of a registration request to AAM.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)

@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.security.commons.json;
 
 /**
- * //TODO missing javadocs
+ * Describes application registration in AAM payload.
  * Created on 2017-04-28.
  * @author Maksymilian Marcinowski (PSNC)
  */

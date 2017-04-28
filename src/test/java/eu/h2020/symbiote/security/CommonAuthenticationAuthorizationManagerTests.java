@@ -184,11 +184,11 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     @Ignore("Not R2 crucial, at R2 we will issue attributes from properties")
     public void provisionedAttributesIssuedToRegisteredApplication() throws IOException, TimeoutException {
         /*
-            // R2 TODO translate
-        1. zalogować się do AMMa jako AAM owner
-        2. wysłać listę atrybutów
-        3. zwróci sukces
-        4. zalogować się jako applikacja i sprawdzić czy w tokenie są te atrybuty
+            // R2
+        1. log in to AAM as an AAM owner
+        2. send the attributes list
+        3. receive a success status
+        4. log in as an application and check if the token does contain sent attributes
         */
     }
 
@@ -202,11 +202,11 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     @Ignore("Not R2")
     public void federatedAttributesIssuedUsingProvisionedAttributesMappingList() throws IOException, TimeoutException {
         /*
-        // R2 TODO translate
-        1. zalogować się do AMMa jako AAM owner
-        2. wysłać listę mapowania atrybutów
-        3. zwróci sukces
-        4. zażądać foreign tokenów na podstawie przedstawionych tokenów
+        // R2
+        1. log in to AAM as an AAM owner
+        2. send an attribute mapping list
+        3. receive a success status
+        4. request foreign tokens which should be based on given tokens
         */
     }
 

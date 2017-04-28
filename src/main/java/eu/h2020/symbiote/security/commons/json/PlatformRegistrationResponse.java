@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Created by Maks on 2017-04-26.
+ * Describes a response for platform registration sent by AAM
  */
 public class PlatformRegistrationResponse {
 

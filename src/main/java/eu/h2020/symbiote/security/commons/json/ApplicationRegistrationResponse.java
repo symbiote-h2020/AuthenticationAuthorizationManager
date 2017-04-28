@@ -4,7 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Created by Maks on 2017-04-28.
+ * Class that defines the structure of an application registration response sent by AAM.
+ *
  */
 public class ApplicationRegistrationResponse {
     private String pemCertificate;
