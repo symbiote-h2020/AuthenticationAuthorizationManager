@@ -4,52 +4,39 @@ package eu.h2020.symbiote.security.commons.json;
  * Created by Maks on 2017-04-26.
  */
 public class PlatformRegistrationRequest {
-    private String username;
-    private String password;
+    private LoginRequest owner;
     private String platformID;
     private String recoveryMail;
     private String platformIPAurl;
 
     public PlatformRegistrationRequest() {
-        this.username = null;
-        this.password = null;
+        this.owner=null;
         this.platformID = null;
         this.recoveryMail = null;
         this.platformIPAurl = null;
     }
 
-    public PlatformRegistrationRequest(String username, String password, String platformID, String recoveryMail, String platformIPAurl) {
-        this.username = username;
-        this.password = password;
-        this.platformID = platformID;
+    public PlatformRegistrationRequest(LoginRequest owner, String preferredPlatformID, String recoveryMail, String platformIPAurl) {
+        this.owner=owner;
+        this.platformID = preferredPlatformID;
         this.recoveryMail = recoveryMail;
         this.platformIPAurl = platformIPAurl;
     }
 
     public PlatformRegistrationRequest(String username, String password, String recoveryMail, String platformIPAurl) {
-        this.username = username;
-        this.password = password;
+        this.owner=owner;
         this.recoveryMail = recoveryMail;
         this.platformIPAurl = platformIPAurl;
     }
 
 
-    public String getUsername() {
-        return username;
+    public LoginRequest getOwner() {
+        return owner;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setOwner(LoginRequest owner) {
+        this.owner = owner;
     }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
 
     public String getPlatformID() {
         return platformID;
@@ -73,11 +60,5 @@ public class PlatformRegistrationRequest {
 
     public void setPlatformIPAurl(String platformIPAurl) {
         this.platformIPAurl = platformIPAurl;
-    }
-
-    @Override
-    public String toString() {
-        return "PlatformRegistrationRequest [username=" + username + ", password=" + password + ", platformID=" + platformID
-                + ", recoveryMail=" + recoveryMail + ", platformIPAurl=" + platformIPAurl + "]";
     }
 }

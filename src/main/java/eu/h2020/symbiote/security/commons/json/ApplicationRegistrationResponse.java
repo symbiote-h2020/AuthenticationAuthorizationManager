@@ -4,30 +4,21 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Created by Maks on 2017-04-26.
+ * Created by Maks on 2017-04-28.
  */
-public class PlatformRegistrationResponse {
-
+public class ApplicationRegistrationResponse {
     private String pemCertificate;
     private String pemPrivateKey;
-    private String platformId;
 
-    public PlatformRegistrationResponse() {
+    public ApplicationRegistrationResponse() {
         this.pemCertificate = null;
         this.pemPrivateKey = null;
     }
 
-    public PlatformRegistrationResponse(String pemCertificate, String pemPrivateKey) {
+    public ApplicationRegistrationResponse(String pemCertificate, String pemPrivateKey) {
         this.pemCertificate = pemCertificate;
         this.pemPrivateKey = pemPrivateKey;
     }
-
-    public PlatformRegistrationResponse(String pemCertificate, String pemPrivateKey, String generatedId) {
-        this.pemCertificate = pemCertificate;
-        this.pemPrivateKey = pemPrivateKey;
-        this.platformId = generatedId;
-    }
-
 
     public String getPemCertificate() {
         return pemCertificate;
@@ -45,14 +36,6 @@ public class PlatformRegistrationResponse {
         this.pemPrivateKey = pemPrivateKey;
     }
 
-    public String getPlatformId() {
-        return platformId;
-    }
-
-    public void setPlatformId(String platformId) {
-        this.platformId = platformId;
-    }
-
     public String toJson() {
         ObjectMapper om = new ObjectMapper();
         try {
@@ -62,4 +45,5 @@ public class PlatformRegistrationResponse {
             return null;
         }
     }
+
 }
