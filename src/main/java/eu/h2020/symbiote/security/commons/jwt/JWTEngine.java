@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.commons.jwt;
 
 import eu.h2020.symbiote.security.commons.Constants;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
+import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
 import io.jsonwebtoken.JwtBuilder;
@@ -9,6 +10,8 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +34,8 @@ import java.util.Map;
 @Component
 public class JWTEngine {
 
+    private static Log log = LogFactory.getLog(JWTEngine.class);
+
     private final RegistrationManager regManager;
 
     private SecureRandom random = new SecureRandom();
@@ -39,52 +44,17 @@ public class JWTEngine {
     private Long tokenValidity;
 
     @Value("${aam.deployment.id}")
-    private String deploymentID;
+    private String deploymentID = "";
+
+    @Value("${aam.deployment.type}")
+    private Token.Type deploymentType = Token.Type.NULL;
 
     @Autowired
     public JWTEngine(RegistrationManager regManager) {
         this.regManager = regManager;
     }
 
-    public String generateJWTToken(String appId, Map<String, Object> attributes, byte[] appCert)
-            throws JWTCreationException {
-
-        String jti = String.valueOf(random.nextInt());
-
-        try {
-            //TODO use app public key once available from registration
-
-            Map<String, Object> claimsMap = new HashMap<String, Object>();
-            // Insert AAM Public Key
-            claimsMap.put("ipk", regManager.getAAMPublicKey().getEncoded());
-
-            //Insert issuee Public Key
-            claimsMap.put("spk", appCert);
-
-            //Add attributes to token
-            if (attributes != null && !attributes.isEmpty()) {
-                for (Map.Entry<String, Object> entry : attributes.entrySet()) {
-                    claimsMap.put(entry.getKey(), entry.getValue());
-                }
-            }
-
-            JwtBuilder jwtBuilder = Jwts.builder();
-            jwtBuilder.setClaims(claimsMap);
-            jwtBuilder.setId(jti);
-            jwtBuilder.setIssuer(deploymentID);
-            jwtBuilder.setSubject(appId);
-            jwtBuilder.setIssuedAt(new Date());
-            jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + tokenValidity));
-            jwtBuilder.signWith(SignatureAlgorithm.ES256, regManager.getAAMPrivateKey());
-
-            return jwtBuilder.compact();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new JWTCreationException();
-        }
-    }
-
-    public JWTClaims getClaimsFromToken(String jwtToken) throws MalformedJWTException, JSONException {
+    public static JWTClaims getClaimsFromToken(String jwtToken) throws MalformedJWTException, JSONException {
 
         HashMap<String, Object> retMap = new HashMap<String, Object>();
         String[] jwtParts = jwtToken.split("\\.");
@@ -105,7 +75,59 @@ public class JWTEngine {
             retMap.put(key, value);
         }
         return new JWTClaims(retMap.get("jti"), retMap.get("alg"), retMap.get("iss"), retMap.get("sub"), retMap
-                .get("iat"), retMap.get("exp"), retMap.get("ipk"), retMap.get("spk"), retMap.get("att"));
+                .get("iat"), retMap.get("exp"), retMap.get("ipk"), retMap.get("spk"), retMap.get("att"), retMap.get("ttyp"));
+    }
+
+    public String generateJWTToken(String appId, Map<String, Object> attributes, byte[] appCert)
+            throws JWTCreationException {
+
+        String jti = String.valueOf(random.nextInt());
+        Map<String, Object> claimsMap = new HashMap<String, Object>();
+
+        try {
+            //TODO use app public key once available from registration
+
+            // Insert AAM Public Key
+            claimsMap.put("ipk", regManager.getAAMPublicKey().getEncoded());
+
+            //Insert issuee Public Key
+            claimsMap.put("spk", appCert);
+
+            //Add attributes to token
+            if (attributes != null && !attributes.isEmpty()) {
+                for (Map.Entry<String, Object> entry : attributes.entrySet()) {
+                    claimsMap.put(entry.getKey(), entry.getValue());
+                }
+            }
+
+            //Insert token type based on AAM deployment type (Core or Platform) or NULL for test tokens
+            switch (deploymentType) {
+                case CORE:
+                    claimsMap.put("ttyp", Token.Type.CORE);
+                    break;
+                case PLATFORM:
+                    claimsMap.put("ttyp", Token.Type.PLATFORM);
+                    break;
+                case NULL:
+                    // XXX useful for debug and test tokens
+                    claimsMap.put("ttyp", Token.Type.NULL);
+            }
+
+            JwtBuilder jwtBuilder = Jwts.builder();
+            jwtBuilder.setClaims(claimsMap);
+            jwtBuilder.setId(jti);
+            jwtBuilder.setIssuer(deploymentID);
+            jwtBuilder.setSubject(appId);
+            jwtBuilder.setIssuedAt(new Date());
+            jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + tokenValidity));
+            jwtBuilder.signWith(SignatureAlgorithm.ES256, regManager.getAAMPrivateKey());
+
+            return jwtBuilder.compact();
+        } catch (Exception e) {
+            log.error("JWT creation error", e);
+            e.printStackTrace();
+            throw new JWTCreationException();
+        }
     }
 
 }

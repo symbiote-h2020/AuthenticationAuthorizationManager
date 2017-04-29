@@ -1,14 +1,18 @@
 package eu.h2020.symbiote.security;
 
 import com.rabbitmq.client.RpcClient;
+import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.Status;
+import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.json.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.security.commons.json.ErrorResponseContainer;
 import eu.h2020.symbiote.security.commons.json.PlainCredentials;
 import eu.h2020.symbiote.security.commons.json.RequestToken;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.junit.Ignore;
+import org.codehaus.jettison.json.JSONException;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -21,8 +25,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.*;
 
 /**
  * Test suite for generic AAM functionality irrelevant to actual deployment type (Core or Platform)
@@ -74,8 +77,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             token = restTemplate.postForEntity(serverAddress + loginUri, new PlainCredentials(wrongusername, password),
                     ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
-            assertEquals(token, null);
-            assertEquals(e.getRawStatusCode(), HttpStatus.UNAUTHORIZED.value());
+            assertNull(token);
+            assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
         }
 
     }
@@ -92,10 +95,32 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             token = restTemplate.postForEntity(serverAddress + loginUri, new PlainCredentials(username, wrongpassword),
                     ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
-            assertEquals(token, null);
-            assertEquals(e.getRawStatusCode(), HttpStatus.UNAUTHORIZED.value());
+            assertNull(token);
+            assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
         }
     }
+
+    /**
+     * Features: PAAM - 3, CAAM - 5 (Authentication & relevent token issuing)
+     * Interfaces: PAAM - 3, CAAM - 7;
+     * CommunicationType REST
+     */
+    @Test
+    public void externalLoginSuccessAndIssuesRelevantTokenType() {
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+                new PlainCredentials(username, password), String.class);
+        HttpHeaders headers = response.getHeaders();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(headers.getFirst(tokenHeaderName));
+        try {
+            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
+            // for tests the token type should be set to NULL
+            assertEquals(Token.Type.NULL, Token.Type.valueOf(claimsFromToken.getTtyp()));
+        } catch (MalformedJWTException | JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     /**
      * Features: PAAM - 4, CAAM - 5 (tokens issueing)
@@ -118,8 +143,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
                 String.class);
         HttpHeaders rspHeaders = responseToken.getHeaders();
 
-        assertEquals(responseToken.getStatusCode(), HttpStatus.OK);
-        assertNotEquals(rspHeaders.getFirst(tokenHeaderName), null);
+        assertEquals(HttpStatus.OK, responseToken.getStatusCode());
+        assertNotNull(rspHeaders.getFirst(tokenHeaderName));
     }
 
     /**
@@ -143,7 +168,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress +
                 checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
 
-        assertEquals(status.getBody().getStatus(), Status.SUCCESS.toString());
+        assertEquals(Status.SUCCESS.toString(), status.getBody().getStatus());
     }
 
     /**
@@ -172,42 +197,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress +
                 checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
 
-        assertEquals(status.getBody().getStatus(), Status.FAILURE.toString());
-    }
-
-    /**
-     * Feature: common but defined in CAAM - 5 (Token with AAM relevant attribute provisioning and issuing)
-     * Interface: CAAM - 5
-     * CommunicationType AMQP
-     */
-    @Test
-    @Ignore("Not R2 crucial, at R2 we will issue attributes from properties")
-    public void provisionedAttributesIssuedToRegisteredApplication() throws IOException, TimeoutException {
-        /*
-            // R2
-        1. log in to AAM as an AAM owner
-        2. send the attributes list
-        3. receive a success status
-        4. log in as an application and check if the token does contain sent attributes
-        */
-    }
-
-    /**
-     * Feature: common but defined in CAAM - 8 (Home to Core/Foreign Tokens translation with federation agreed
-     * provisioned attributes mapping)
-     * Interface: CAAM - 6
-     * CommunicationType AMQP
-     */
-    @Test
-    @Ignore("Not R2")
-    public void federatedAttributesIssuedUsingProvisionedAttributesMappingList() throws IOException, TimeoutException {
-        /*
-        // R2
-        1. log in to AAM as an AAM owner
-        2. send an attribute mapping list
-        3. receive a success status
-        4. request foreign tokens which should be based on given tokens
-        */
+        assertEquals(Status.FAILURE.toString(), status.getBody().getStatus());
     }
 
 

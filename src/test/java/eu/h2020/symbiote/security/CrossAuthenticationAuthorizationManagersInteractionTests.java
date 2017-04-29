@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 /**
  * Test suite for interactions between multiple AAMs
  */
+@Ignore("Currently contains only R3 tests")
 public class CrossAuthenticationAuthorizationManagersInteractionTests extends
         AuthenticationAuthorizationManagerTests {
 
@@ -23,7 +24,7 @@ public class CrossAuthenticationAuthorizationManagersInteractionTests extends
      * CommunicationType REST
      */
     @Test
-    @Ignore("Not yet implemented")
+    @Ignore("Not R2, Not yet implemented")
     public void checkRevocationExternalPlatformSuccess() {
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new PlainCredentials(username, password), String.class);
@@ -36,16 +37,15 @@ public class CrossAuthenticationAuthorizationManagersInteractionTests extends
      * CommunicationType REST
      */
     @Test
-    @Ignore("Not yet implemented")
+    @Ignore("Not R2, Not yet implemented")
     public void checkRevocationExternalPlatformFailure() {
-        try{
+        try {
             ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                     new PlainCredentials(username, password), String.class);
             HttpHeaders loginHeaders = response.getHeaders();
 
 
-        }
-        catch(Exception e){
+        } catch (Exception e) {
 
         }
     }

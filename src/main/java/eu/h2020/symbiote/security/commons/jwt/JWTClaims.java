@@ -5,6 +5,7 @@ package eu.h2020.symbiote.security.commons.jwt;
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
+ * @author Mikolaj Dobski (PSNC)
  */
 public class JWTClaims {
 
@@ -17,12 +18,13 @@ public class JWTClaims {
     private String ipk;
     private String spk;
     private String att;
+    private String ttyp;
 
     public JWTClaims() {
     }
 
     public JWTClaims(Object jti, Object alg, Object iss, Object sub, Object iat, Object exp, Object ipk, Object spk,
-                     Object att) {
+                     Object att, Object ttyp) {
         this.jti = (String) jti;
         this.alg = (String) alg;
         this.iss = (String) iss;
@@ -32,6 +34,7 @@ public class JWTClaims {
         this.ipk = (String) ipk;
         this.spk = (String) spk;
         this.att = att != null ? (String) att : null;
+        this.ttyp = (String) ttyp;
     }
 
     public String getJti() {
@@ -106,18 +109,23 @@ public class JWTClaims {
         this.att = att;
     }
 
+    public String getTtyp() { return ttyp; }
+
+    public void setTtyp(String ttyp) { this.ttyp = ttyp; }
+
     @Override
     public String toString() {
         return "JWTClaims{" +
-            "jti='" + jti + '\'' +
-            ", alg='" + alg + '\'' +
-            ", iss='" + iss + '\'' +
-            ", sub='" + sub + '\'' +
-            ", iat='" + iat + '\'' +
-            ", exp='" + exp + '\'' +
-            ", ipk='" + ipk + '\'' +
-            ", spk='" + spk + '\'' +
-            ", att='" + att + '\'' +
-            '}';
+                "jti='" + jti + '\'' +
+                ", alg='" + alg + '\'' +
+                ", iss='" + iss + '\'' +
+                ", sub='" + sub + '\'' +
+                ", iat='" + iat + '\'' +
+                ", exp='" + exp + '\'' +
+                ", ipk='" + ipk + '\'' +
+                ", spk='" + spk + '\'' +
+                ", att='" + att + '\'' +
+                ", ttyp'" + ttyp + '\'' +
+                '}';
     }
 }

@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
+ * @author Mikołaj Dobski (PSNC)
  * @see RequestToken
  */
 @Component
@@ -33,8 +34,11 @@ public class TokenManager {
     private final JWTEngine jwtEngine;
     private RegistrationManager regManager;
 
+    /**
+     * Acts as either CoreAAM or acquired PlatformId for PlatformAAM
+     */
     @Value("${aam.deployment.id}")
-    private String platformId;
+    private String deploymentId = "";
 
 
     @Autowired
@@ -43,24 +47,30 @@ public class TokenManager {
         this.regManager = regManager;
     }
 
+    /**
+     * Used to create CORE & PLATFORM tokens
+     *
+     * @return
+     * @throws JWTCreationException
+     */
     public RequestToken createHomeToken()
-        throws JWTCreationException {
+            throws JWTCreationException {
         try {
             return new RequestToken(
-                    jwtEngine.generateJWTToken(platformId, null, regManager.getAAMPublicKey().getEncoded()));
+                    jwtEngine.generateJWTToken(deploymentId, null, regManager.getAAMPublicKey().getEncoded()));
         } catch (Exception e) {
             throw new JWTCreationException();
         }
     }
 
     public RequestToken createForeignToken(String foreignToken)
-        throws JWTCreationException {
+            throws JWTCreationException {
         try {
 
             JWTClaims claims = jwtEngine.getClaimsFromToken(foreignToken);
 
             return new RequestToken(
-                jwtEngine.generateJWTToken(claims.getIss(), null, claims.getIpk().getBytes()));
+                    jwtEngine.generateJWTToken(claims.getIss(), null, claims.getIpk().getBytes()));
         } catch (Exception e) {
             throw new JWTCreationException();
         }
@@ -82,7 +92,7 @@ public class TokenManager {
             }
 
             //Check if issuer of the token is this platform
-            if (!claims.getIss().equals(platformId)) {
+            if (!claims.getIss().equals(deploymentId)) {
                 throw new TokenValidationException(Constants.ERR_TOKEN_WRONG_ISSUER);
             }
             return outcome;

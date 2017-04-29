@@ -2,16 +2,15 @@ package eu.h2020.symbiote.security;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.security.commons.exceptions.ExistingApplicationException;
-import eu.h2020.symbiote.security.commons.exceptions.MissingArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.NotExistingApplicationException;
-import eu.h2020.symbiote.security.commons.exceptions.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.exceptions.*;
 import eu.h2020.symbiote.security.commons.json.*;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.junit.Ignore;
+import org.codehaus.jettison.json.JSONException;
 import org.junit.Test;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
@@ -23,7 +22,7 @@ import java.util.Date;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 
 /**
  * Test suite for Platform side AAM deployment scenarios.
@@ -33,34 +32,16 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
 
     private static Log log = LogFactory.getLog(PlatformAuthenticationAuthorizationManagerTests.class);
 
-
-    /**
-     * Features: PAAM - 3, CAAM - 5 (Authentication & relevent token issuing)
-     * Interfaces: PAAM - 3, CAAM - 7;
-     * CommunicationType REST
-     */
-    @Test
-    @Ignore("JWT ttyp Not yet implemented")
-    public void externalLoginIssuesCoreToken() {
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
-                new PlainCredentials(username, password), String.class);
-        HttpHeaders headers = response.getHeaders();
-        assertEquals(response.getStatusCode(), HttpStatus.OK);
-        assertNotEquals(headers.getFirst(tokenHeaderName), null);
-        // TODO: check if JWT ttyp field is set to HOME
-    }
-
-
     /**
      * Feature: 3 (Authentication of components/ and applications registered in a platform)
      * Interface: PAAM - 1
      * CommunicationType AMQP
+     *
      * @throws IOException
      * @throws TimeoutException
      */
     @Test
-    @Ignore("JWT ttyp Not yet implemented")
-    public void internalLoginRequestReplySuccess() throws IOException, TimeoutException {
+    public void internalLoginRequestReplySuccessAndIssuesRelevantTokenType() throws IOException, TimeoutException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
         byte[] response = client.primitiveCall(mapper.writeValueAsString(new PlainCredentials(username, password))
@@ -69,14 +50,22 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
 
         log.info("Test Client received this Token: " + token.toJson());
 
-        assertNotEquals(token.getToken(), null);
-        // TODO: check if JWT ttyp field is set to HOME
+        assertNotNull(token.getToken());
+        try {
+            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
+            // for tests the token type should be set to NULL
+            assertEquals(Token.Type.NULL, Token.Type.valueOf(claimsFromToken.getTtyp()));
+        } catch (MalformedJWTException | JSONException e) {
+            e.printStackTrace();
+        }
     }
+
 
     /**
      * Feature: 3 (Authentication of components/ and applications registered in a platform)
      * Interface: PAAM - 1
      * CommunicationType AMQP
+     *
      * @throws IOException
      * @throws TimeoutException
      */
@@ -114,6 +103,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
      * Feature: 3 (Authentication of components/ and applications registered in a platform)
      * Interface: PAAM - 1
      * CommunicationType AMQP
+     *
      * @throws IOException
      * @throws TimeoutException
      */
@@ -135,6 +125,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
      * Feature:
      * Interface: PAAM - 3a
      * CommunicationType REST
+     *
      * @throws IOException
      * @throws TimeoutException
      */
@@ -161,6 +152,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
      * Feature: PAAM - 2 (Registration of a new application in the Platorm AAM)
      * Interface: PAAM - 3a
      * CommunicationType REST
+     *
      * @throws IOException
      * @throws TimeoutException
      */
@@ -173,7 +165,6 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
             String cert = registrationResponse.getPemCertificate();
             System.out.println(cert);
             X509Certificate certObj = registrationManager.convertPEMToX509(cert);
-            int a = 0;
         } catch (Exception e) {
             assertEquals(ExistingApplicationException.class, e.getClass());
             log.info(e.getMessage());
@@ -185,6 +176,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
      * Feature: PAAM - 2 (Application Registration)
      * Interface: PAAM - 3a
      * CommunicationType REST
+     *
      * @throws IOException
      * @throws TimeoutException
      */
@@ -196,10 +188,10 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
         try {
             ResponseEntity<RegistrationResponse> response = restTemplate.postForEntity(serverAddress +
                     registrationUri, request, RegistrationResponse.class);
-            assertEquals(response.getStatusCode(), HttpStatus.OK);
+            assertEquals(HttpStatus.OK, response.getStatusCode());
             log.info(response.getBody().toJson());
         } catch (HttpClientErrorException e) {
-            assertEquals(e.getRawStatusCode(), HttpStatus.BAD_REQUEST.value());
+            assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
         }
     }
 
@@ -226,6 +218,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
      * Feature: PAAM - 2 (Application Registration)
      * Interface: PAAM - 3a
      * CommunicationType REST
+     *
      * @throws IOException
      * @throws TimeoutException
      */
@@ -237,9 +230,9 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
         try {
             ResponseEntity<Void> response = restTemplate.postForEntity(serverAddress + unregistrationUri, request,
                     Void.class);
-            assertEquals(response.getStatusCode(), HttpStatus.OK);
+            assertEquals(HttpStatus.OK, response.getStatusCode());
         } catch (HttpClientErrorException e) {
-            assertEquals(e.getRawStatusCode(), HttpStatus.BAD_REQUEST.value());
+            assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
         }
 
     }

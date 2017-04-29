@@ -71,13 +71,9 @@ public class Token {
          */
         CORE,
         /**
-         * issued in federation
-         */
-        FOREIGN,
-        /**
          * issued by Platform AAM
          */
-        HOME,
+        PLATFORM,
         /**
          * uninitialised value of this enum
          */
