@@ -18,6 +18,7 @@ public class Application {
     private String username = "";
     private String passwordEncrypted = "";
     private String recoveryMail = "";
+    private Certificate certificate = new Certificate();
 
     /**
      * @DBRef -- might come in useful
@@ -35,12 +36,15 @@ public class Application {
      * @param username          selected username
      * @param passwordEncrypted encrypted password for authentication
      * @param recoveryMail      for password reset/recovery purposes
+     * @param certificate
      * @param attributes        used to assign in registration phase application-unique attributes
      */
-    public Application(String username, String passwordEncrypted, String recoveryMail, ArrayList<String> attributes) {
+    public Application(String username, String passwordEncrypted, String recoveryMail, Certificate certificate,
+                       ArrayList<String> attributes) {
         this.username = username;
         this.passwordEncrypted = passwordEncrypted;
         this.recoveryMail = recoveryMail;
+        this.certificate = certificate;
         this.attributes = attributes;
     }
 
@@ -77,5 +81,13 @@ public class Application {
 
     public void setRecoveryMail(String recoveryMail) {
         this.recoveryMail = recoveryMail;
+    }
+
+    public Certificate getCertificate() {
+        return certificate;
+    }
+
+    public void setCertificate(Certificate certificate) {
+        this.certificate = certificate;
     }
 }

@@ -1,8 +1,11 @@
 package eu.h2020.symbiote.security.amqp;
 
 import com.rabbitmq.client.*;
+import eu.h2020.symbiote.security.amqp.consumers.ApplicationRegistrationRequestConsumerService;
 import eu.h2020.symbiote.security.amqp.consumers.CheckTokenRevocationRequestConsumerService;
 import eu.h2020.symbiote.security.amqp.consumers.LoginRequestConsumerService;
+import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.services.ApplicationRegistrationService;
 import eu.h2020.symbiote.security.services.LoginService;
 import eu.h2020.symbiote.security.services.TokenService;
 import org.apache.commons.logging.Log;
@@ -20,8 +23,12 @@ public class RabbitManager {
 
     private static Log log = LogFactory.getLog(RabbitManager.class);
 
+    private final ApplicationRegistrationService applicationRegistrationService;
     private final LoginService loginService;
     private final TokenService tokenService;
+
+    @Value("${aam.deployment.type}")
+    private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
 
     @Value("${rabbit.host}")
     private String rabbitHost;
@@ -52,14 +59,15 @@ public class RabbitManager {
 
     @Value("${rabbit.routingKey.register.app.request}")
     private String getApplicationRegistrationRequestRoutingKey;
-    @Value("${rabbit.queue.register.app.request")
+    @Value("${rabbit.queue.register.app.request}")
     private String applicationRegistrationRequestQueue;
 
     private Connection connection;
 
     @Autowired
-    public RabbitManager(LoginService loginService,
+    public RabbitManager(ApplicationRegistrationService applicationRegistrationService, LoginService loginService,
                          TokenService tokenService) {
+        this.applicationRegistrationService = applicationRegistrationService;
         this.loginService = loginService;
         this.tokenService = tokenService;
     }
@@ -107,6 +115,16 @@ public class RabbitManager {
         try {
             startConsumerOfLoginRequestMessages();
             startConsumerOfCheckTokenRevocationRequestMessages();
+            switch (deploymentType) {
+                case PLATFORM:
+                    // PAAM doesn't expose this interface
+                    break;
+                case CORE:
+                case NULL:
+                    // think of better way for TESTAAM
+                    startConsumerOfApplicationRegistrationRequestMessages();
+                    break;
+            }
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -134,7 +152,7 @@ public class RabbitManager {
             channel.queueBind(queueName, this.AAMExchangeName, this.loginRequestRoutingKey);
             //channel.basicQos(1); // to spread the load over multiple servers we set the prefetchCount setting
 
-            log.info("Cloud Authentication and Authorization Manager waiting for login request messages....");
+            log.info("Authentication and Authorization Manager waiting for login request messages....");
 
             Consumer consumer = new LoginRequestConsumerService(channel, loginService);
             channel.basicConsume(queueName, false, consumer);
@@ -163,7 +181,7 @@ public class RabbitManager {
             channel.queueBind(queueName, this.AAMExchangeName, this.checkTokenRevocationRequestRoutingKey);
             //channel.basicQos(1); // to spread the load over multiple servers we set the prefetchCount setting
 
-            log.info("Cloud Authentication and Authorization Manager waiting for check token revocation request " +
+            log.info("Authentication and Authorization Manager waiting for check token revocation request " +
                     "messages....");
 
             Consumer consumer = new CheckTokenRevocationRequestConsumerService(channel, this, tokenService);
@@ -177,6 +195,35 @@ public class RabbitManager {
     public void sendPlatformCreatedMessage(String message) {
         sendMessage(this.AAMExchangeName, this.loginRequestRoutingKey, message);
         log.info("- login request message sent");
+    }
+
+    /**
+     * Method creates queue and binds it globally available exchange and adequate Routing Key.
+     * It also creates a consumer for messages incoming to this queue, regarding to Application Registration requests.
+     *
+     * @throws InterruptedException
+     * @throws IOException
+     */
+    private void startConsumerOfApplicationRegistrationRequestMessages() throws InterruptedException, IOException {
+
+        String queueName = this.applicationRegistrationRequestQueue;
+
+        Channel channel;
+
+        try {
+            channel = this.connection.createChannel();
+            channel.queueDeclare(queueName, true, false, false, null);
+            channel.queueBind(queueName, this.AAMExchangeName, this.getApplicationRegistrationRequestRoutingKey);
+
+            log.info("Authentication and Authorization Manager waiting for application registration request " +
+                    "messages....");
+
+            Consumer consumer = new ApplicationRegistrationRequestConsumerService(channel,
+                    applicationRegistrationService);
+            channel.basicConsume(queueName, false, consumer);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
@@ -224,12 +271,27 @@ public class RabbitManager {
             Channel channel;
             if (this.connection != null && this.connection.isOpen()) {
                 channel = connection.createChannel();
+                // login
                 channel.queueUnbind(this.loginRequestQueue, this.AAMExchangeName,
                         this.loginRequestRoutingKey);
+                channel.queueDelete(this.loginRequestQueue);
+                // check revocation
                 channel.queueUnbind(this.checkTokenRevocationRequestQueue, this.AAMExchangeName,
                         this.checkTokenRevocationRequestRoutingKey);
-                channel.queueDelete(this.loginRequestQueue);
                 channel.queueDelete(this.checkTokenRevocationRequestQueue);
+                // Core and Test AAMs' Application registration
+                switch (deploymentType) {
+                    case PLATFORM:
+                        // PAAM doesn't expose this interface
+                        break;
+                    case CORE:
+                    case NULL:
+                        // think of better way for Test AAM
+                        channel.queueUnbind(this.applicationRegistrationRequestQueue, this.AAMExchangeName,
+                                this.checkTokenRevocationRequestRoutingKey);
+                        channel.queueDelete(this.applicationRegistrationRequestQueue);
+                        break;
+                }
 
                 closeChannel(channel);
                 this.connection.close();

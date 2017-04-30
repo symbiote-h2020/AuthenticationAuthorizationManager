@@ -67,13 +67,14 @@ public class ApplicationRegistrationService {
         PlainCredentials user = applicationRegistrationRequest.getApplicationCredentials();
 
         // validate request
-        if (!user.getUsername().isEmpty() && !user.getPassword().isEmpty()) {
-            if (deploymentType.equals(IssuingAuthorityType.CORE) && applicationRegistrationRequest.getRecoveryMail()
-                    .isEmpty()) {
-                throw new MissingArgumentsException("Missing recovery e-mail");
-            } else if (applicationRepository.exists(user.getUsername())) {
-                throw new ExistingApplicationException();
-            }
+        if (deploymentType != IssuingAuthorityType.PLATFORM &&
+                (applicationRegistrationRequest.getRecoveryMail()
+                        .isEmpty() || applicationRegistrationRequest.getFederatedId().isEmpty()))
+            throw new MissingArgumentsException("Missing recovery e-mail or federated identity");
+        if (user.getUsername().isEmpty() || user.getPassword().isEmpty()) {
+            throw new MissingArgumentsException("Missing username or password");
+        } else if (applicationRepository.exists(user.getUsername())) {
+            throw new ExistingApplicationException();
         }
 
         // Generate key pair for the new application
@@ -82,17 +83,20 @@ public class ApplicationRegistrationService {
         // Generate certificate for the application
         X509Certificate applicationCertificate = registrationManager.createECCert(user.getUsername(),
                 applicationKeyPair.getPublic());
+        Certificate certificate = new Certificate(registrationManager.convertX509ToPEM
+                (applicationCertificate));
 
         // Register the user (Application)
         Application application = new Application();
         application.setUsername(user.getUsername());
         application.setPasswordEncrypted(passwordEncoder.encode(user.getPassword()));
         application.setRecoveryMail(applicationRegistrationRequest.getRecoveryMail());
+        application.setCertificate(certificate);
         applicationRepository.save(application);
 
         // Save Certificate to DB
-        certificateRepository.save(new Certificate(registrationManager.convertX509ToPEM
-                (applicationCertificate)));
+        // TODO do we need to store it there if it is already stored with the application?
+        certificateRepository.save(certificate);
 
         String pemApplicationCertificate = registrationManager.convertX509ToPEM(applicationCertificate);
         String pemApplicationPrivateKey = registrationManager.convertPrivateKeyToPEM(applicationKeyPair

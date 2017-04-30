@@ -14,7 +14,7 @@ public class ApplicationRegistrationRequest {
 
     // TODO Release 3 fix to support CertificateSignRequests
     private PlainCredentials applicationCredentials = new PlainCredentials();
-    private String federatedID = "";
+    private String federatedId = "";
     private String recoveryMail = "";
 
     /**
@@ -23,12 +23,12 @@ public class ApplicationRegistrationRequest {
     public ApplicationRegistrationRequest() { // used by JSON serializer
     }
 
-    public ApplicationRegistrationRequest(PlainCredentials aamOwnerCredentials, PlainCredentials
-            applicationCredentials, String federatedID, String
+    public ApplicationRegistrationRequest(PlainCredentials AAMOwnerCredentials, PlainCredentials
+            applicationCredentials, String federatedId, String
                                                   recoveryMail) {
-        AAMOwnerCredentials = aamOwnerCredentials;
+        this.AAMOwnerCredentials = AAMOwnerCredentials;
         this.applicationCredentials = applicationCredentials;
-        this.federatedID = federatedID;
+        this.federatedId = federatedId;
         this.recoveryMail = recoveryMail;
     }
 
@@ -41,12 +41,12 @@ public class ApplicationRegistrationRequest {
         this.applicationCredentials = applicationCredentials;
     }
 
-    public String getPlatformID() {
-        return federatedID;
+    public String getFederatedId() {
+        return federatedId;
     }
 
-    public void setPlatformID(String platformID) {
-        this.federatedID = platformID;
+    public void setFederatedID(String federatedId) {
+        this.federatedId = federatedId;
     }
 
     public String getRecoveryMail() {

@@ -159,10 +159,13 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     @Test
     public void successfulApplicationRegistration() throws Exception {
         try {
+            /*
+             XXX federated Id and recovery mail are required for Test AAM but not for Plaftorm AAM
+             */
             // register new application to db
             ApplicationRegistrationRequest applicationRegistrationRequest = new ApplicationRegistrationRequest(new
                     PlainCredentials(AAMOwnerUsername, AAMOwnerPassword), new PlainCredentials
-                    ("NewApplication", "NewPassword"), "", "");
+                    ("NewApplication", "NewPassword"), "nullId", "nullMail");
             ApplicationRegistrationResponse applicationRegistrationResponse = applicationRegistrationService.register
                     (applicationRegistrationRequest);
 

@@ -21,7 +21,8 @@ public class Certificate {
     /**
      * required by JPA
      */
-    public Certificate() throws CertificateException, NoSuchProviderException {
+    public Certificate() {
+        // required by JPA
     }
 
     public Certificate(String pemCertificate) throws CertificateException, NoSuchProviderException {

@@ -8,6 +8,7 @@ package eu.h2020.symbiote.security.commons.json;
  * @author Mikołaj Dobski (PSNC)
  */
 public class PlainCredentials {
+
     private String username = "";
     private String password = "";
 
@@ -40,7 +41,7 @@ public class PlainCredentials {
 
     @Override
     public String toString() {
-        return "PlainCredentials [username=" + username + ", password=" + password + "]";
+        return "PlainCredentials [Username=" + username + ", Password=" + password + "]";
     }
 
 

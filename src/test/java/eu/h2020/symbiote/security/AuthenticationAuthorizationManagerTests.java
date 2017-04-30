@@ -85,6 +85,10 @@ public abstract class AuthenticationAuthorizationManagerTests {
         serverAddress = "http://localhost:" + port + "/";
         // Test rest template
         restTemplate = new RestTemplate();
+
+        // cleanup db
+        applicationRepository.deleteAll();
+
         // Insert username and password to DB
         Application application = new Application();
         application.setUsername(username);
