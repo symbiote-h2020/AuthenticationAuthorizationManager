@@ -143,6 +143,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
             byte[] response;
 
             response = client.primitiveCall(mapper.writeValueAsString(new ApplicationRegistrationRequest(new
+                    PlainCredentials(AAMOwnerUsername, AAMOwnerPassword), new
                     PlainCredentials("username", "password"),
                     "federatedId", "recoveryMail")).getBytes());
             ErrorResponseContainer noResponse = mapper.readValue(response, ErrorResponseContainer.class);

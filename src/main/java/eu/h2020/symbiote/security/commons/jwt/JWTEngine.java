@@ -2,7 +2,7 @@ package eu.h2020.symbiote.security.commons.jwt;
 
 import eu.h2020.symbiote.security.commons.Constants;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
-import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
 import io.jsonwebtoken.JwtBuilder;
@@ -47,7 +47,7 @@ public class JWTEngine {
     private String deploymentID = "";
 
     @Value("${aam.deployment.type}")
-    private Token.Type deploymentType = Token.Type.NULL;
+    private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
 
     @Autowired
     public JWTEngine(RegistrationManager regManager) {
@@ -103,14 +103,14 @@ public class JWTEngine {
             //Insert token type based on AAM deployment type (Core or Platform) or NULL for test tokens
             switch (deploymentType) {
                 case CORE:
-                    claimsMap.put("ttyp", Token.Type.CORE);
+                    claimsMap.put("ttyp", IssuingAuthorityType.CORE);
                     break;
                 case PLATFORM:
-                    claimsMap.put("ttyp", Token.Type.PLATFORM);
+                    claimsMap.put("ttyp", IssuingAuthorityType.PLATFORM);
                     break;
                 case NULL:
                     // XXX useful for debug and test tokens
-                    claimsMap.put("ttyp", Token.Type.NULL);
+                    claimsMap.put("ttyp", IssuingAuthorityType.NULL);
             }
 
             JwtBuilder jwtBuilder = Jwts.builder();

@@ -2,18 +2,29 @@ package eu.h2020.symbiote.security.commons.json;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 /**
- * Class that defines the structure of an application registration response sent by AAM.
+ * Class that defines the structure of a an application registration response sent by AAM.
  *
+ * @author Daniele Caldarola (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
+ * @author Mikołaj Dobski (PSNC)
  */
 public class ApplicationRegistrationResponse {
-    private String pemCertificate;
-    private String pemPrivateKey;
 
+    private static Log log = LogFactory.getLog(ApplicationRegistrationResponse.class);
+
+    // TODO Release 3 fix to support CertificateSignRequests
+    private String pemCertificate = "";
+    private String pemPrivateKey = "";
+
+    /**
+     * required for JSON serialization
+     */
     public ApplicationRegistrationResponse() {
-        this.pemCertificate = null;
-        this.pemPrivateKey = null;
+        // required by JSON
     }
 
     public ApplicationRegistrationResponse(String pemCertificate, String pemPrivateKey) {
@@ -42,7 +53,7 @@ public class ApplicationRegistrationResponse {
         try {
             return om.writeValueAsString(this);
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
+            log.error("Error converting ApplicationRegistrationResponse to JSON", e);
             return null;
         }
     }

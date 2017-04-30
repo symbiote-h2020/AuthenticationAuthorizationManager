@@ -2,7 +2,7 @@ package eu.h2020.symbiote.security;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.*;
 import eu.h2020.symbiote.security.commons.json.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
@@ -54,7 +54,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
         try {
             JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
             // for tests the token type should be set to NULL
-            assertEquals(Token.Type.NULL, Token.Type.valueOf(claimsFromToken.getTtyp()));
+            assertEquals(IssuingAuthorityType.NULL, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
         } catch (MalformedJWTException | JSONException e) {
             e.printStackTrace();
         }
@@ -160,9 +160,13 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     public void successfulApplicationRegistration() throws Exception {
         try {
             // register new application to db
-            RegistrationResponse registrationResponse = applicationRegistrationService.register(new PlainCredentials
-                    ("NewApplication", "NewPassword"));
-            String cert = registrationResponse.getPemCertificate();
+            ApplicationRegistrationRequest applicationRegistrationRequest = new ApplicationRegistrationRequest(new
+                    PlainCredentials(AAMOwnerUsername, AAMOwnerPassword), new PlainCredentials
+                    ("NewApplication", "NewPassword"), "", "");
+            ApplicationRegistrationResponse applicationRegistrationResponse = applicationRegistrationService.register
+                    (applicationRegistrationRequest);
+
+            String cert = applicationRegistrationResponse.getPemCertificate();
             System.out.println(cert);
             X509Certificate certObj = registrationManager.convertPEMToX509(cert);
         } catch (Exception e) {
@@ -182,12 +186,12 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
      */
     @Test
     public void externalRegistrationSuccess() throws JsonProcessingException {
-        RegistrationRequest request = new RegistrationRequest(
+        ApplicationRegistrationRequest request = new ApplicationRegistrationRequest(
                 new PlainCredentials(AAMOwnerUsername, AAMOwnerPassword),
-                new PlainCredentials("NewApplication", "NewPassword"));
+                new PlainCredentials("NewApplication", "NewPassword"), "", "");
         try {
-            ResponseEntity<RegistrationResponse> response = restTemplate.postForEntity(serverAddress +
-                    registrationUri, request, RegistrationResponse.class);
+            ResponseEntity<ApplicationRegistrationResponse> response = restTemplate.postForEntity(serverAddress +
+                    registrationUri, request, ApplicationRegistrationResponse.class);
             assertEquals(HttpStatus.OK, response.getStatusCode());
             log.info(response.getBody().toJson());
         } catch (HttpClientErrorException e) {
@@ -206,7 +210,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     @Test
     public void successfulApplicationUnregistration() throws Exception {
         try {
-            applicationRegistrationService.unregister(new PlainCredentials("NewApplication", "NewPassword"));
+            applicationRegistrationService.unregister(username);
             log.info("Application successfully unregistered!");
         } catch (Exception e) {
             assertEquals(NotExistingApplicationException.class, e.getClass());
@@ -224,9 +228,9 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
      */
     @Test
     public void externalUnregistrationSuccess() throws JsonProcessingException {
-        RegistrationRequest request = new RegistrationRequest(
+        ApplicationRegistrationRequest request = new ApplicationRegistrationRequest(
                 new PlainCredentials(AAMOwnerUsername, AAMOwnerPassword),
-                new PlainCredentials("NewApplication", "NewPassword"));
+                new PlainCredentials("NewApplication", "NewPassword"), "", "");
         try {
             ResponseEntity<Void> response = restTemplate.postForEntity(serverAddress + unregistrationUri, request,
                     Void.class);

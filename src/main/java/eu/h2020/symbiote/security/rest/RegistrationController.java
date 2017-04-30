@@ -2,10 +2,10 @@ package eu.h2020.symbiote.security.rest;
 
 import eu.h2020.symbiote.security.commons.CustomAAMException;
 import eu.h2020.symbiote.security.commons.VirtualFile;
+import eu.h2020.symbiote.security.commons.json.ApplicationRegistrationRequest;
+import eu.h2020.symbiote.security.commons.json.ApplicationRegistrationResponse;
 import eu.h2020.symbiote.security.commons.json.ErrorResponseContainer;
 import eu.h2020.symbiote.security.commons.json.PlainCredentials;
-import eu.h2020.symbiote.security.commons.json.RegistrationRequest;
-import eu.h2020.symbiote.security.commons.json.RegistrationResponse;
 import eu.h2020.symbiote.security.services.ApplicationRegistrationService;
 import eu.h2020.symbiote.security.services.LoginService;
 import eu.h2020.symbiote.security.services.ZipService;
@@ -53,11 +53,12 @@ public class RegistrationController {
     @PreAuthorize("isAuthenticated()")
     @RequestMapping(value = "/registration", method = RequestMethod.POST)
     public ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response)
-        throws CustomAAMException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException,
-        OperatorCreationException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException,
-        IOException, ZipException {
-        PlainCredentials user = new PlainCredentials(requestMap.get("username"), requestMap.get("password"));
-        RegistrationResponse regResponse = registrationService.register(user);
+            throws CustomAAMException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException,
+            OperatorCreationException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException,
+            IOException, ZipException {
+        ApplicationRegistrationRequest request = new ApplicationRegistrationRequest();
+        request.setApplicationCredentials(new PlainCredentials(requestMap.get("username"), requestMap.get("password")));
+        ApplicationRegistrationResponse regResponse = registrationService.register(request);
         String certificate = regResponse.getPemCertificate();
         String privateKey = regResponse.getPemPrivateKey();
         InputStream certInputStream = new ByteArrayInputStream(certificate.getBytes(StandardCharsets.UTF_8));
@@ -75,28 +76,29 @@ public class RegistrationController {
     }
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)
-    public ResponseEntity<?> register(@RequestBody RegistrationRequest request) throws CertificateException,
-        UnrecoverableKeyException, NoSuchAlgorithmException, OperatorCreationException, KeyStoreException,
-        NoSuchProviderException, InvalidAlgorithmParameterException, IOException {
+    public ResponseEntity<?> register(@RequestBody ApplicationRegistrationRequest request) throws CertificateException,
+            UnrecoverableKeyException, NoSuchAlgorithmException, OperatorCreationException, KeyStoreException,
+            NoSuchProviderException, InvalidAlgorithmParameterException, IOException {
         try {
-            RegistrationResponse response = registrationService.authRegister(request);
+            ApplicationRegistrationResponse response = registrationService.authRegister(request);
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (CustomAAMException e) {
             return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
-                .getStatusCode().ordinal()), e.getStatusCode());
+                    .getStatusCode().ordinal()), e.getStatusCode());
         }
     }
 
     @RequestMapping(value = "/unregister", method = RequestMethod.POST)
-    public ResponseEntity<?> unregister(@RequestBody RegistrationRequest request) throws CertificateException,
-        UnrecoverableKeyException, NoSuchAlgorithmException, OperatorCreationException, KeyStoreException,
-        NoSuchProviderException, InvalidAlgorithmParameterException, IOException {
+    public ResponseEntity<?> unregister(@RequestBody ApplicationRegistrationRequest request) throws
+            CertificateException,
+            UnrecoverableKeyException, NoSuchAlgorithmException, OperatorCreationException, KeyStoreException,
+            NoSuchProviderException, InvalidAlgorithmParameterException, IOException {
         try {
             registrationService.authUnregister(request);
             return new ResponseEntity<>(HttpStatus.OK);
         } catch (CustomAAMException e) {
             return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
-                .getStatusCode().ordinal()), e.getStatusCode());
+                    .getStatusCode().ordinal()), e.getStatusCode());
         }
     }
 }

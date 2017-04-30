@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.security;
 
 import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.Status;
 import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.json.CheckTokenRevocationResponse;
@@ -115,7 +115,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         try {
             JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
             // for tests the token type should be set to NULL
-            assertEquals(Token.Type.NULL, Token.Type.valueOf(claimsFromToken.getTtyp()));
+            assertEquals(IssuingAuthorityType.NULL, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
         } catch (MalformedJWTException | JSONException e) {
             e.printStackTrace();
         }

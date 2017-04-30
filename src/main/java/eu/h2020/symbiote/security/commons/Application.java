@@ -14,24 +14,34 @@ import java.util.ArrayList;
  */
 public class Application {
 
-    private Role role = Role.NULL;
-
+    // TODO Release 3 - add OAuth federated ID support
     private String username = "";
-
     private String passwordEncrypted = "";
+    private String recoveryMail = "";
 
-    // @DBRef -- might come in useful
+    /**
+     * @DBRef -- might come in useful
+     * might be used to assign in registration phase application-unique attributes
+     */
     private ArrayList<String> attributes = new ArrayList<>();
 
     public Application() {
         // required by org.springframework.data.mapping.model.MappingInstantiationException
     }
 
-    public Application(String username, String passwordEncrypted, ArrayList<String> attributes, Role role) {
+    /**
+     * Used to create a new application (user) entity
+     *
+     * @param username          selected username
+     * @param passwordEncrypted encrypted password for authentication
+     * @param recoveryMail      for password reset/recovery purposes
+     * @param attributes        used to assign in registration phase application-unique attributes
+     */
+    public Application(String username, String passwordEncrypted, String recoveryMail, ArrayList<String> attributes) {
         this.username = username;
         this.passwordEncrypted = passwordEncrypted;
+        this.recoveryMail = recoveryMail;
         this.attributes = attributes;
-        this.role = role;
     }
 
 
@@ -60,29 +70,12 @@ public class Application {
         this.attributes = attributes;
     }
 
-    public Role getRole() {
-        return role;
+
+    public String getRecoveryMail() {
+        return recoveryMail;
     }
 
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
-    /**
-     * Created by Mikołaj Dobski on 03.04.2017.
-     */
-    public enum Role {
-        /**
-         * specifies platform owner account (administrative user)
-         */
-        PLATFORM_OWNER,
-        /**
-         * specifies simple data consumer account (ordinary user)
-         */
-        APPLICATION,
-        /**
-         * uninitialised value of this enum
-         */
-        NULL
+    public void setRecoveryMail(String recoveryMail) {
+        this.recoveryMail = recoveryMail;
     }
 }
