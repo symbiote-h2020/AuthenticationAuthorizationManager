@@ -128,9 +128,4 @@ dependencyCheck {
 }
 
 // including code quality extensions into the build
-check.dependsOn(jacocoTestReport, 'dependencyCheck')
-
-// Eureka needs to be disabled for testing
-tasks.withType(Test) {
-    systemProperty 'eureka.client.enabled', 'false'
-}
+check.dependsOn(jacocoTestReport)//, 'dependencyCheck')
