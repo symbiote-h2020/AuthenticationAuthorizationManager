@@ -51,7 +51,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformAAMURL = "https://platform1.eu/AAM/";
 
-    UserRegistrationRequest userRegistrationRequest;
+    private UserRegistrationRequest userRegistrationRequest;
     private RpcClient appRegistrationClient;
     private UserDetails userDetails;
 
@@ -292,8 +292,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    @Ignore("Not yet implemented")
-    public void applicationLoginSuccessAndIssuesRelevantTokenTypeWithoutPOAttributes() {
+    public void applicationLoginSuccessAndIssuesCoreTokenWithoutPOAttributes() {
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new Credentials(username, password), String.class);
         HttpHeaders headers = response.getHeaders();
@@ -301,8 +300,9 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertNotNull(headers.getFirst(tokenHeaderName));
         try {
             JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
-            // for tests the token type should be set to NULL
-            assertEquals(IssuingAuthorityType.NULL, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+            assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+            // TODO implement checking actual attributes
+            assertNull(claimsFromToken.getAtt());
         } catch (MalformedJWTException | JSONException e) {
             e.printStackTrace();
         }

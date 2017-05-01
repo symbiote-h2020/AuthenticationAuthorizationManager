@@ -56,15 +56,17 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     @Test
     public void internalCheckTokenRevocationRequestReplySuccess() throws IOException, TimeoutException {
 
-        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(username, password))
-                .getBytes());
-        RequestToken testToken = mapper.readValue(response, RequestToken.class);
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+                new Credentials(username, password), String.class);
+        HttpHeaders headers = response.getHeaders();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(headers.getFirst(tokenHeaderName));
+        String token = headers.getFirst(tokenHeaderName);
 
-        client = new RpcClient(rabbitManager.getConnection().createChannel(), "", checkTokenRevocationRequestQueue,
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", checkTokenRevocationRequestQueue,
                 10000);
-        response = client.primitiveCall(mapper.writeValueAsString(new RequestToken(testToken.getToken())).getBytes());
-        CheckTokenRevocationResponse checkTokenRevocationResponse = mapper.readValue(response,
+        byte[] amqpResponse = client.primitiveCall(mapper.writeValueAsString(new RequestToken(token)).getBytes());
+        CheckTokenRevocationResponse checkTokenRevocationResponse = mapper.readValue(amqpResponse,
                 CheckTokenRevocationResponse.class);
 
         log.info("Test Client received this Status: " + checkTokenRevocationResponse.toJson());
