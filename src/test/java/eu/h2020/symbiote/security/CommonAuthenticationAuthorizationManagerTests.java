@@ -14,10 +14,17 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
@@ -30,6 +37,7 @@ import static org.junit.Assert.*;
 /**
  * Test suite for generic AAM functionality irrelevant to actual deployment type (Core or Platform)
  */
+@TestPropertySource("/core.properties")
 public class CommonAuthenticationAuthorizationManagerTests extends
         AuthenticationAuthorizationManagerTests {
 
@@ -114,9 +122,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         assertNotNull(headers.getFirst(tokenHeaderName));
         try {
             JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
-            // confirm that relevant token type was issued
-            // for tests the token type should be set to NULL
-            assertEquals(IssuingAuthorityType.NULL, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+            // As the AAM is now configured as core we confirm that relevant token type was issued.
+            assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
             // TODO when AAM attributes will be provisionable then confirm that they are released for this application
             assertNull(claimsFromToken.getAtt());
         } catch (MalformedJWTException | JSONException e) {
@@ -189,8 +196,9 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
         //Introduce latency so that JWT expires
         try {
-            Thread.sleep(tokenValidityPeriod * 2);
+            Thread.sleep(tokenValidityPeriod + 1000);
         } catch (InterruptedException e) {
+            log.error(e);
         }
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
         headers.add(tokenHeaderName, loginHeaders.getFirst(tokenHeaderName));

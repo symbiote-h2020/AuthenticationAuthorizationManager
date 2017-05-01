@@ -2,10 +2,8 @@ package eu.h2020.symbiote.security.rest;
 
 import eu.h2020.symbiote.security.commons.CustomAAMException;
 import eu.h2020.symbiote.security.commons.VirtualFile;
-import eu.h2020.symbiote.security.commons.json.ApplicationRegistrationRequest;
-import eu.h2020.symbiote.security.commons.json.ApplicationRegistrationResponse;
-import eu.h2020.symbiote.security.commons.json.ErrorResponseContainer;
-import eu.h2020.symbiote.security.commons.json.Credentials;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.json.*;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
 import eu.h2020.symbiote.security.services.LoginService;
 import eu.h2020.symbiote.security.services.ZipService;
@@ -56,9 +54,10 @@ public class ApplicationRegistrationController {
             throws CustomAAMException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException,
             OperatorCreationException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException,
             IOException, ZipException {
-        ApplicationRegistrationRequest request = new ApplicationRegistrationRequest();
-        request.setApplicationCredentials(new Credentials(requestMap.get("username"), requestMap.get("password")));
-        ApplicationRegistrationResponse regResponse = registrationService.register(request);
+        UserRegistrationRequest request = new UserRegistrationRequest();
+        // TODO R3 incorporate federated Id (and possibly recovery e-mail)
+        request.setUserDetails(new UserDetails(new Credentials(requestMap.get("username"), requestMap.get("password")),"","", UserRole.APPLICATION));
+        UserRegistrationResponse regResponse = registrationService.register(request);
         String certificate = regResponse.getPemCertificate();
         String privateKey = regResponse.getPemPrivateKey();
         InputStream certInputStream = new ByteArrayInputStream(certificate.getBytes(StandardCharsets.UTF_8));
@@ -76,11 +75,11 @@ public class ApplicationRegistrationController {
     }
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)
-    public ResponseEntity<?> register(@RequestBody ApplicationRegistrationRequest request) throws CertificateException,
+    public ResponseEntity<?> register(@RequestBody UserRegistrationRequest request) throws CertificateException,
             UnrecoverableKeyException, NoSuchAlgorithmException, OperatorCreationException, KeyStoreException,
             NoSuchProviderException, InvalidAlgorithmParameterException, IOException {
         try {
-            ApplicationRegistrationResponse response = registrationService.authRegister(request);
+            UserRegistrationResponse response = registrationService.authRegister(request);
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (CustomAAMException e) {
             return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
@@ -89,7 +88,7 @@ public class ApplicationRegistrationController {
     }
 
     @RequestMapping(value = "/unregister", method = RequestMethod.POST)
-    public ResponseEntity<?> unregister(@RequestBody ApplicationRegistrationRequest request) throws
+    public ResponseEntity<?> unregister(@RequestBody UserRegistrationRequest request) throws
             CertificateException,
             UnrecoverableKeyException, NoSuchAlgorithmException, OperatorCreationException, KeyStoreException,
             NoSuchProviderException, InvalidAlgorithmParameterException, IOException {

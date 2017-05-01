@@ -100,7 +100,7 @@ public class JWTEngine {
                 }
             }
 
-            //Insert token type based on AAM deployment type (Core or Platform) or NULL for test tokens
+            //Insert token type based on AAM deployment type (Core or Platform)
             switch (deploymentType) {
                 case CORE:
                     claimsMap.put("ttyp", IssuingAuthorityType.CORE);
@@ -109,8 +109,7 @@ public class JWTEngine {
                     claimsMap.put("ttyp", IssuingAuthorityType.PLATFORM);
                     break;
                 case NULL:
-                    // XXX useful for debug and test tokens
-                    claimsMap.put("ttyp", IssuingAuthorityType.NULL);
+                    throw new JWTCreationException("uninitialized deployment type, must be CORE or PLATFORM");
             }
 
             JwtBuilder jwtBuilder = Jwts.builder();
@@ -124,9 +123,9 @@ public class JWTEngine {
 
             return jwtBuilder.compact();
         } catch (Exception e) {
-            log.error("JWT creation error", e);
-            e.printStackTrace();
-            throw new JWTCreationException();
+            String message = "JWT creation error";
+            log.error(message, e);
+            throw new JWTCreationException(message, e);
         }
     }
 

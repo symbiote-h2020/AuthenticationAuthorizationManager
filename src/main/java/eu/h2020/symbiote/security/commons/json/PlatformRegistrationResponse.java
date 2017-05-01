@@ -1,25 +1,18 @@
 package eu.h2020.symbiote.security.commons.json;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 /**
  * Describes a response for platform registration sent by AAM
+ *
+ * @author Maksymilian Marcinowski (PSNC)
+ * @author Mikołaj Dobski (PSNC)
  */
 public class PlatformRegistrationResponse {
-
-    private String pemCertificate;
-    private String pemPrivateKey;
-    private String platformId;
+    private String pemCertificate = "";
+    private String pemPrivateKey = "";
+    private String platformId = "";
 
     public PlatformRegistrationResponse() {
-        this.pemCertificate = null;
-        this.pemPrivateKey = null;
-    }
-
-    public PlatformRegistrationResponse(String pemCertificate, String pemPrivateKey) {
-        this.pemCertificate = pemCertificate;
-        this.pemPrivateKey = pemPrivateKey;
+        // used by serializer
     }
 
     public PlatformRegistrationResponse(String pemCertificate, String pemPrivateKey, String generatedId) {
@@ -27,7 +20,6 @@ public class PlatformRegistrationResponse {
         this.pemPrivateKey = pemPrivateKey;
         this.platformId = generatedId;
     }
-
 
     public String getPemCertificate() {
         return pemCertificate;
@@ -53,13 +45,4 @@ public class PlatformRegistrationResponse {
         this.platformId = platformId;
     }
 
-    public String toJson() {
-        ObjectMapper om = new ObjectMapper();
-        try {
-            return om.writeValueAsString(this);
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
 }

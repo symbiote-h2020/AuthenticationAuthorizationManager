@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.amqp.RabbitManager;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.commons.User;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
 import org.apache.commons.logging.Log;
@@ -15,10 +16,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.RestTemplate;
 
@@ -26,7 +28,9 @@ import org.springframework.web.client.RestTemplate;
  * AAM test suite stub with possibly shareable fields.
  */
 @RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ContextConfiguration
+@DirtiesContext
 public abstract class AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(AuthenticationAuthorizationManagerTests.class);
@@ -94,7 +98,7 @@ public abstract class AuthenticationAuthorizationManagerTests {
         User user = new User();
         user.setUsername(username);
         user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRole(User.Role.APPLICATION);
+        user.setRole(UserRole.APPLICATION);
         user.setRecoveryMail("null@dev.null");
         // user.setCertificate(certificate); // TODO create a testApplication's certificate
         userRepository.save(user);

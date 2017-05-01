@@ -6,15 +6,15 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Class that defines the structure of a an application registration response sent by AAM.
+ * Class that defines the structure of a user registration response sent by AAM.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
  * @author Mikołaj Dobski (PSNC)
  */
-public class ApplicationRegistrationResponse {
+public class UserRegistrationResponse {
 
-    private static Log log = LogFactory.getLog(ApplicationRegistrationResponse.class);
+    private static Log log = LogFactory.getLog(UserRegistrationResponse.class);
 
     // TODO Release 3 fix to support CertificateSignRequests
     private String pemCertificate = "";
@@ -23,11 +23,11 @@ public class ApplicationRegistrationResponse {
     /**
      * required for JSON serialization
      */
-    public ApplicationRegistrationResponse() {
+    public UserRegistrationResponse() {
         // required by JSON
     }
 
-    public ApplicationRegistrationResponse(String pemCertificate, String pemPrivateKey) {
+    public UserRegistrationResponse(String pemCertificate, String pemPrivateKey) {
         this.pemCertificate = pemCertificate;
         this.pemPrivateKey = pemPrivateKey;
     }
@@ -53,7 +53,7 @@ public class ApplicationRegistrationResponse {
         try {
             return om.writeValueAsString(this);
         } catch (JsonProcessingException e) {
-            log.error("Error converting ApplicationRegistrationResponse to JSON", e);
+            log.error("Error converting UserRegistrationResponse to JSON", e);
             return null;
         }
     }

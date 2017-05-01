@@ -7,83 +7,68 @@ package eu.h2020.symbiote.security.commons.json;
  * @author Maksymilian Marcinowski (PSNC)
  */
 public class PlatformRegistrationRequest {
-    private Credentials platformOwnerCredentials = new Credentials();
-    private String federatedID = "";
-    private String platformID = "";
-    private String recoveryMail = "";
-    private String platformIPAURL = "";
+    private Credentials AAMOwnerCredentials = new Credentials();
+    private UserDetails platformOwnerDetails = new UserDetails();
+    private String platformAAMURL = "";
+    private String platformId = "";
+
+    /**
+     * For use when a Platform Owner is fine with generated platform identifier
+     *
+     * @param AAMOwnerCredentials  used to authorize this request
+     * @param platformOwnerDetails used to register the platform owner in the database
+     * @param platformAAMURL       used to point symbiote users to possible login entrypoints
+     */
+    public PlatformRegistrationRequest(Credentials AAMOwnerCredentials, UserDetails platformOwnerDetails, String platformAAMURL) {
+        this.AAMOwnerCredentials = AAMOwnerCredentials;
+        this.platformOwnerDetails = platformOwnerDetails;
+        this.platformAAMURL = platformAAMURL;
+    }
 
     /**
      * For use when a Platform Owner wants a preferred platform identifier
+     * * @param AAMOwnerCredentials used to authorize this request
      *
-     * @param platformOwnerCredentials
-     * @param preferredPlatformID
-     * @param recoveryMail
-     * @param platformIPAURL
+     * @param platformOwnerDetails used to register the platform owner in the database
+     * @param platformAAMURL       used to point symbiote users to possible login entrypoints
+     * @param preferredPlatformID  when a Platform Owner preferres his own platform identifier
      */
-    public PlatformRegistrationRequest(Credentials platformOwnerCredentials, String federatedID, String preferredPlatformID,
-                                       String recoveryMail, String
-                                               platformIPAURL) {
-        this.platformOwnerCredentials = platformOwnerCredentials;
-        this.federatedID = federatedID;
-        this.platformID = preferredPlatformID;
-        this.recoveryMail = recoveryMail;
-        this.platformIPAURL = platformIPAURL;
+    public PlatformRegistrationRequest(Credentials AAMOwnerCredentials, UserDetails platformOwnerDetails, String platformAAMURL, String preferredPlatformID) {
+        this.AAMOwnerCredentials = AAMOwnerCredentials;
+        this.platformId = preferredPlatformID;
+        this.platformAAMURL = platformAAMURL;
+        this.platformOwnerDetails = platformOwnerDetails;
     }
 
-    /**
-     * For use when Platform Owner registers and used generated platform identifier
-     *
-     * @param platformOwnerCredentials
-     * @param recoveryMail
-     * @param platformIPAURL
-     */
-    public PlatformRegistrationRequest(Credentials platformOwnerCredentials, String federatedID, String recoveryMail, String
-            platformIPAURL) {
-        this.platformOwnerCredentials = platformOwnerCredentials;
-        this.federatedID = federatedID;
-        this.recoveryMail = recoveryMail;
-        this.platformIPAURL = platformIPAURL;
+    public UserDetails getPlatformOwnerDetails() {
+        return platformOwnerDetails;
     }
 
-
-    public Credentials getPlatformOwnerCredentials() {
-        return platformOwnerCredentials;
+    public void setPlatformOwnerDetails(UserDetails platformOwnerDetails) {
+        this.platformOwnerDetails = platformOwnerDetails;
     }
 
-    public void setPlatformOwnerCredentials(Credentials platformOwnerCredentials) {
-        this.platformOwnerCredentials = platformOwnerCredentials;
+    public String getPlatformId() {
+        return platformId;
     }
 
-    public String getPlatformID() {
-        return platformID;
+    public void setPlatformId(String platformId) {
+        this.platformId = platformId;
     }
 
-    public void setPlatformID(String platformID) {
-        this.platformID = platformID;
+    public String getPlatformAAMURL() {
+        return platformAAMURL;
     }
 
-    public String getRecoveryMail() {
-        return recoveryMail;
+    public void setPlatformAAMURL(String platformAAMURL) {
+        this.platformAAMURL = platformAAMURL;
     }
 
-    public void setRecoveryMail(String recoveryMail) {
-        this.recoveryMail = recoveryMail;
+    public Credentials getAAMOwnerCredentials() {
+        return AAMOwnerCredentials;
     }
 
-    public String getPlatformIPAURL() {
-        return platformIPAURL;
-    }
-
-    public void setPlatformIPAURL(String platformIPAURL) {
-        this.platformIPAURL = platformIPAURL;
-    }
-
-    public String getFederatedID() {
-        return federatedID;
-    }
-
-    public void setFederatedID(String federatedID) {
-        this.federatedID = federatedID;
+    public void setAAMOwnerCredentials(Credentials AAMOwnerCredentials) {
+        this.AAMOwnerCredentials = AAMOwnerCredentials;
     }
 }

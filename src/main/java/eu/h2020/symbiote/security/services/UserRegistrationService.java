@@ -4,10 +4,11 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.*;
-import eu.h2020.symbiote.security.commons.json.ApplicationRegistrationRequest;
-import eu.h2020.symbiote.security.commons.json.ApplicationRegistrationResponse;
-import eu.h2020.symbiote.security.commons.json.Credentials;
+import eu.h2020.symbiote.security.commons.json.UserRegistrationRequest;
+import eu.h2020.symbiote.security.commons.json.UserRegistrationResponse;
+import eu.h2020.symbiote.security.commons.json.UserDetails;
 import eu.h2020.symbiote.security.repositories.CertificateRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -22,7 +23,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 /**
- * Spring service used to register applications on AAM.
+ * Spring service used to register users in the AAM repository.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
@@ -51,7 +52,7 @@ public class UserRegistrationService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public ApplicationRegistrationResponse register(ApplicationRegistrationRequest applicationRegistrationRequest)
+    public UserRegistrationResponse register(UserRegistrationRequest userRegistrationRequest)
             throws MissingArgumentsException,
             ExistingUserException,
             WrongCredentialsException,
@@ -62,36 +63,56 @@ public class UserRegistrationService {
             CertificateException,
             OperatorCreationException,
             KeyStoreException,
-            IOException {
+            IOException, UserRegistrationException {
 
-        Credentials user = applicationRegistrationRequest.getApplicationCredentials();
+        UserDetails user = userRegistrationRequest.getUserDetails();
 
         // validate request
-        if (deploymentType != IssuingAuthorityType.PLATFORM &&
-                (applicationRegistrationRequest.getRecoveryMail()
-                        .isEmpty() || applicationRegistrationRequest.getFederatedId().isEmpty()))
+        if (deploymentType == IssuingAuthorityType.CORE &&
+                (user.getRecoveryMail()
+                        .isEmpty() || user.getFederatedId().isEmpty()))
             throw new MissingArgumentsException("Missing recovery e-mail or federated identity");
-        if (user.getUsername().isEmpty() || user.getPassword().isEmpty()) {
+        if (user.getCredentials().getUsername().isEmpty() || user.getCredentials().getPassword().isEmpty()) {
             throw new MissingArgumentsException("Missing username or password");
-        } else if (userRepository.exists(user.getUsername())) {
+        }
+        // Platform AAM does not support registering platform owners
+        if (deploymentType == IssuingAuthorityType.PLATFORM && user.getRole() != UserRole.APPLICATION)
+            throw new UserRegistrationException();
+
+        // check if user already in repository
+        if (userRepository.exists(user.getCredentials().getUsername())) {
             throw new ExistingUserException();
         }
 
-        // Generate key pair for the new application
+        // Generate key pair for the new user
         KeyPair applicationKeyPair = registrationManager.createKeyPair();
 
-        // Generate certificate for the application
-        X509Certificate applicationCertificate = registrationManager.createECCert(user.getUsername(),
-                applicationKeyPair.getPublic());
-        Certificate certificate = new Certificate(registrationManager.convertX509ToPEM
-                (applicationCertificate));
+        // Generate certificate for the user
+        X509Certificate userX509Certificate = null;
 
-        // Register the user (Application type)
+        switch (user.getRole()) {
+            case APPLICATION:
+                userX509Certificate = registrationManager.createECCert(user.getCredentials().getUsername(),
+                        applicationKeyPair.getPublic());
+                break;
+            case PLATFORM_OWNER:
+                // TODO create CA enabled certificate for the Platform Owner
+                userX509Certificate = registrationManager.createECCert(user.getCredentials().getUsername(),
+                        applicationKeyPair.getPublic());
+                break;
+            case NULL:
+                throw new UserRegistrationException();
+        }
+
+        Certificate certificate = new Certificate(registrationManager.convertX509ToPEM
+                (userX509Certificate));
+
+        // Register the user
         User application = new User();
-        application.setRole(User.Role.APPLICATION);
-        application.setUsername(user.getUsername());
-        application.setPasswordEncrypted(passwordEncoder.encode(user.getPassword()));
-        application.setRecoveryMail(applicationRegistrationRequest.getRecoveryMail());
+        application.setRole(user.getRole());
+        application.setUsername(user.getCredentials().getUsername());
+        application.setPasswordEncrypted(passwordEncoder.encode(user.getCredentials().getPassword()));
+        application.setRecoveryMail(user.getRecoveryMail());
         application.setCertificate(certificate);
         userRepository.save(application);
 
@@ -99,21 +120,21 @@ public class UserRegistrationService {
         // TODO do we need to store it there if it is already stored with the application?
         certificateRepository.save(certificate);
 
-        String pemApplicationCertificate = registrationManager.convertX509ToPEM(applicationCertificate);
+        String pemApplicationCertificate = registrationManager.convertX509ToPEM(userX509Certificate);
         String pemApplicationPrivateKey = registrationManager.convertPrivateKeyToPEM(applicationKeyPair
                 .getPrivate());
 
-        return new ApplicationRegistrationResponse(pemApplicationCertificate, pemApplicationPrivateKey);
+        return new UserRegistrationResponse(pemApplicationCertificate, pemApplicationPrivateKey);
     }
 
-    public ApplicationRegistrationResponse authRegister(ApplicationRegistrationRequest request) throws
+    public UserRegistrationResponse authRegister(UserRegistrationRequest request) throws
             ExistingUserException,
             MissingArgumentsException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
             NoSuchProviderException, UnrecoverableKeyException, CertificateException, OperatorCreationException,
-            KeyStoreException, IOException, UnauthorizedRegistrationException, WrongCredentialsException {
+            KeyStoreException, IOException, UnauthorizedRegistrationException, WrongCredentialsException, UserRegistrationException {
 
         // check if we received required credentials
-        if (request.getAAMOwnerCredentials() == null || request.getApplicationCredentials() == null)
+        if (request.getAAMOwnerCredentials() == null || request.getUserDetails().getCredentials() == null)
             throw new MissingArgumentsException();
         // check if this operation is authorized
         if (!request.getAAMOwnerCredentials().getUsername().equals(AAMOwnerUsername)
@@ -133,17 +154,17 @@ public class UserRegistrationService {
         userRepository.delete(username);
     }
 
-    public void authUnregister(ApplicationRegistrationRequest request) throws MissingArgumentsException,
+    public void authUnregister(UserRegistrationRequest request) throws MissingArgumentsException,
             NotExistingUserException, UnauthorizedUnregistrationException {
 
         // validate request
-        if (request.getAAMOwnerCredentials() == null || request.getApplicationCredentials() == null)
+        if (request.getAAMOwnerCredentials() == null || request.getUserDetails().getCredentials() == null)
             throw new MissingArgumentsException();
         // authorize
         if (!request.getAAMOwnerCredentials().getUsername().equals(AAMOwnerUsername)
                 || !request.getAAMOwnerCredentials().getPassword().equals(AAMOwnerPassword))
             throw new UnauthorizedUnregistrationException();
         // do it
-        this.unregister(request.getApplicationCredentials().getUsername());
+        this.unregister(request.getUserDetails().getCredentials().getUsername());
     }
 }

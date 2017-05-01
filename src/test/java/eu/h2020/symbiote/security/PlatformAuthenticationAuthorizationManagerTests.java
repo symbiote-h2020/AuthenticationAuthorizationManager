@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.*;
 import eu.h2020.symbiote.security.commons.json.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
@@ -12,8 +13,14 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.io.IOException;
@@ -27,10 +34,13 @@ import static org.junit.Assert.*;
 /**
  * Test suite for Platform side AAM deployment scenarios.
  */
+@TestPropertySource("/platform.properties")
 public class PlatformAuthenticationAuthorizationManagerTests extends
         AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(PlatformAuthenticationAuthorizationManagerTests.class);
+
+
 
     /**
      * Feature: 3 (Authentication of components/ and applications registered in a platform)
@@ -41,7 +51,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
      * @throws TimeoutException
      */
     @Test
-    public void internalLoginRequestReplySuccessAndIssuesRelevantTokenType() throws IOException, TimeoutException {
+    public void internalLoginRequestReplySuccessAndIssuesPlatformTokenType() throws IOException, TimeoutException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
         byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(username, password))
@@ -53,8 +63,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
         assertNotNull(token.getToken());
         try {
             JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
-            // for tests the token type should be set to NULL
-            assertEquals(IssuingAuthorityType.NULL, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+            assertEquals(IssuingAuthorityType.PLATFORM, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
         } catch (MalformedJWTException | JSONException e) {
             e.printStackTrace();
         }
@@ -169,18 +178,18 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
              XXX federated Id and recovery mail are required for Test AAM but not for Plaftorm AAM
              */
             // register new application to db
-            ApplicationRegistrationRequest applicationRegistrationRequest = new ApplicationRegistrationRequest(new
-                    Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials
-                    (appUsername, "NewPassword"), "nullId", "nullMail");
-            ApplicationRegistrationResponse applicationRegistrationResponse = userRegistrationService.register
-                    (applicationRegistrationRequest);
+            UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new
+                    Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
+                    (appUsername, "NewPassword"), "nullId", "nullMail",UserRole.APPLICATION));
+            UserRegistrationResponse userRegistrationResponse = userRegistrationService.register
+                    (userRegistrationRequest);
 
             // verify that app really is in repository
             registeredUser = userRepository.findOne(appUsername);
             assertNotNull(registeredUser);
-            assertEquals(User.Role.APPLICATION, registeredUser.getRole());
+            assertEquals(UserRole.APPLICATION, registeredUser.getRole());
 
-            String cert = applicationRegistrationResponse.getPemCertificate();
+            String cert = userRegistrationResponse.getPemCertificate();
             log.debug(cert);
         } catch (Exception e) {
             assertEquals(ExistingUserException.class, e.getClass());
@@ -199,12 +208,12 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
      */
     @Test
     public void externalRegistrationSuccess() throws JsonProcessingException {
-        ApplicationRegistrationRequest request = new ApplicationRegistrationRequest(
+        UserRegistrationRequest request = new UserRegistrationRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new Credentials("NewApplication", "NewPassword"), "", "");
+                new UserDetails( new Credentials("NewApplication", "NewPassword"), "", "", UserRole.APPLICATION));
         try {
-            ResponseEntity<ApplicationRegistrationResponse> response = restTemplate.postForEntity(serverAddress +
-                    registrationUri, request, ApplicationRegistrationResponse.class);
+            ResponseEntity<UserRegistrationResponse> response = restTemplate.postForEntity(serverAddress +
+                    registrationUri, request, UserRegistrationResponse.class);
             assertEquals(HttpStatus.OK, response.getStatusCode());
             log.info(response.getBody().toJson());
         } catch (HttpClientErrorException e) {
@@ -250,9 +259,9 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
      */
     @Test
     public void externalUnregistrationSuccess() throws JsonProcessingException {
-        ApplicationRegistrationRequest request = new ApplicationRegistrationRequest(
+        UserRegistrationRequest request = new UserRegistrationRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new Credentials("NewApplication", "NewPassword"), "", "");
+                new UserDetails( new Credentials("NewApplication", "NewPassword"), "", "", UserRole.APPLICATION));
         try {
             ResponseEntity<Void> response = restTemplate.postForEntity(serverAddress + unregistrationUri, request,
                     Void.class);

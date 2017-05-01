@@ -5,30 +5,30 @@ import eu.h2020.symbiote.security.commons.CustomAAMException;
 import org.springframework.http.HttpStatus;
 
 /**
- * Custom exception thrown when application registration over AMQP fails
+ * Custom exception thrown when user registration over AMQP fails
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
  */
-public class ApplicationRegistrationException extends CustomAAMException {
+public class UserRegistrationException extends CustomAAMException {
 
     private static final long serialVersionUID = Constants.serialVersionUID;
-    private final static String errorMessage = "APP_REGISTRATION_ERROR";
-    private final HttpStatus statusCode = HttpStatus.BAD_REQUEST;
+    private final static String errorMessage = "USER_REGISTRATION_ERROR";
+    private final static HttpStatus statusCode = HttpStatus.BAD_REQUEST;
 
-    public ApplicationRegistrationException() {
+    public UserRegistrationException() {
         super(errorMessage);
     }
 
-    public ApplicationRegistrationException(String message) {
+    public UserRegistrationException(String message) {
         super(message);
     }
 
-    public ApplicationRegistrationException(Throwable cause) {
+    public UserRegistrationException(Throwable cause) {
         super(cause);
     }
 
-    public ApplicationRegistrationException(String message, Throwable cause) {
+    public UserRegistrationException(String message, Throwable cause) {
         super(message, cause);
     }
 

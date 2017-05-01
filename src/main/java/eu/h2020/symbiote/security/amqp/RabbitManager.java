@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.amqp.consumers.ApplicationRegistrationRequestC
 import eu.h2020.symbiote.security.amqp.consumers.CheckTokenRevocationRequestConsumerService;
 import eu.h2020.symbiote.security.amqp.consumers.LoginRequestConsumerService;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.commons.exceptions.AAMMisconfigurationException;
 import eu.h2020.symbiote.security.services.LoginService;
 import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
@@ -58,9 +59,14 @@ public class RabbitManager {
     private String loginRequestRoutingKey;
 
     @Value("${rabbit.routingKey.register.app.request}")
-    private String getApplicationRegistrationRequestRoutingKey;
+    private String applicationRegistrationRequestRoutingKey;
     @Value("${rabbit.queue.register.app.request}")
     private String applicationRegistrationRequestQueue;
+
+    @Value("${rabbit.routingKey.register.platform.request}")
+    private String platformRegistrationRequestRoutingKey;
+    @Value("${rabbit.queue.register.platform.request}")
+    private String platformRegistrationRequestQueue;
 
     private Connection connection;
 
@@ -109,7 +115,7 @@ public class RabbitManager {
     /**
      * Method gathers all of the rabbit consumer starter methods
      */
-    public void startConsumers() {
+    public void startConsumers() throws AAMMisconfigurationException {
         try {
             startConsumerOfLoginRequestMessages();
             startConsumerOfCheckTokenRevocationRequestMessages();
@@ -118,10 +124,10 @@ public class RabbitManager {
                     // PAAM doesn't expose this interface
                     break;
                 case CORE:
-                case NULL:
-                    // think of better way for TESTAAM
                     startConsumerOfApplicationRegistrationRequestMessages();
                     break;
+                case NULL:
+                    throw new AAMMisconfigurationException("Wrong deployment type");
             }
         } catch (InterruptedException | IOException e) {
             log.error(e);
@@ -209,7 +215,7 @@ public class RabbitManager {
         try {
             channel = this.connection.createChannel();
             channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.getApplicationRegistrationRequestRoutingKey);
+            channel.queueBind(queueName, this.AAMExchangeName, this.applicationRegistrationRequestRoutingKey);
 
             log.info("Authentication and Authorization Manager waiting for application registration request " +
                     "messages....");
@@ -227,7 +233,7 @@ public class RabbitManager {
      * Method creates channel and declares Rabbit exchanges for AAM features.
      * It triggers start of all consumers used in with AAM communication.
      */
-    public void init() {
+    public void init() throws AAMMisconfigurationException {
         Channel channel = null;
 
         try {

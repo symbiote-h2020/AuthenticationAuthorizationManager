@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.commons;
 
+import eu.h2020.symbiote.security.commons.enums.UserRole;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 
@@ -17,12 +18,14 @@ import java.util.List;
 public class User {
 
     @Indexed
-    private Role role = Role.NULL;
+    private UserRole role = UserRole.NULL;
     @Id
     private String username = "";
     private String passwordEncrypted = "";
     private String recoveryMail = "";
     private Certificate certificate = new Certificate();
+    // TODO Release 3 - add OAuth federated ID support
+
     /**
      * Might be used to assign in registration phase application-unique attributes
      */
@@ -38,10 +41,10 @@ public class User {
      * @param passwordEncrypted encrypted password for authentication
      * @param recoveryMail      for password reset/recovery purposes
      * @param certificate       user's public certificate
-     * @param role              user's role in symbIoTe ecosystem, see @{@link Role}
+     * @param role              user's role in symbIoTe ecosystem, see @{@link UserRole}
      * @param attributes        used to assign in registration phase application-unique attributes
      */
-    public User(String username, String passwordEncrypted, String recoveryMail, Certificate certificate, Role role,
+    public User(String username, String passwordEncrypted, String recoveryMail, Certificate certificate, UserRole role,
                 List<String> attributes) {
         this.username = username;
         this.passwordEncrypted = passwordEncrypted;
@@ -50,13 +53,12 @@ public class User {
         this.role = role;
         this.attributes = attributes;
     }
-    // TODO Release 3 - add OAuth federated ID support
 
-    public Role getRole() {
+    public UserRole getRole() {
         return role;
     }
 
-    public void setRole(Role role) {
+    public void setRole(UserRole role) {
         this.role = role;
     }
 
@@ -101,21 +103,4 @@ public class User {
         this.certificate = certificate;
     }
 
-    /**
-     * Denotes what kind of role a user in symbIoTe ecosystem has
-     */
-    public enum Role {
-        /**
-         * default symbIoTe's data consumer role
-         */
-        APPLICATION,
-        /**
-         * symbIoTe-enabled platform's owner account type, used to release administration attributes
-         */
-        PLATFORM_OWNER,
-        /**
-         * unitialized value of this enum
-         */
-        NULL;
-    }
 }

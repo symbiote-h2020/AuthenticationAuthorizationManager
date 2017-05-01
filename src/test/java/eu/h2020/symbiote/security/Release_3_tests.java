@@ -6,6 +6,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
@@ -18,6 +23,7 @@ import static org.junit.Assert.assertEquals;
  * @author Mikołaj Dobski (PSNC)
  */
 @Ignore("Release 3 tests")
+@TestPropertySource("/core.properties")
 public class Release_3_tests extends AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(Release_3_tests.class);
