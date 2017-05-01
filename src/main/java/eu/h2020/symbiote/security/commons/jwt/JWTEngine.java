@@ -34,6 +34,7 @@ import java.util.Map;
 @Component
 public class JWTEngine {
 
+    public static final String SYMBIOTE_ATTRIBUTES_PREFIX = "SYMBIOTE_";
     private static Log log = LogFactory.getLog(JWTEngine.class);
 
     private final RegistrationManager regManager;
@@ -68,35 +69,38 @@ public class JWTEngine {
 
         JSONObject jwtFields = new JSONObject(claimsString);
 
+        Map<String, String> attributes = new HashMap<>();
         Iterator<String> jwtKeys = jwtFields.keys();
         while (jwtKeys.hasNext()) {
             String key = jwtKeys.next();
             Object value = jwtFields.get(key);
-            retMap.put(key, value);
+            if (key.startsWith(SYMBIOTE_ATTRIBUTES_PREFIX))
+                attributes.put(key.substring(SYMBIOTE_ATTRIBUTES_PREFIX.length()), (String) value);
+            else
+                retMap.put(key, value);
         }
         return new JWTClaims(retMap.get("jti"), retMap.get("alg"), retMap.get("iss"), retMap.get("sub"), retMap
-                .get("iat"), retMap.get("exp"), retMap.get("ipk"), retMap.get("spk"), retMap.get("att"), retMap.get("ttyp"));
+                .get("iat"), retMap.get("exp"), retMap.get("ipk"), retMap.get("spk"), retMap.get("ttyp"), attributes);
     }
 
-    public String generateJWTToken(String appId, Map<String, Object> attributes, byte[] appCert)
+    public String generateJWTToken(String appId, Map<String, String> attributes, byte[] appCert)
             throws JWTCreationException {
 
         String jti = String.valueOf(random.nextInt());
         Map<String, Object> claimsMap = new HashMap<String, Object>();
 
         try {
-            //TODO use app public key once available from registration
-
             // Insert AAM Public Key
             claimsMap.put("ipk", regManager.getAAMPublicKey().getEncoded());
 
             //Insert issuee Public Key
+            //TODO use app public key once available from registration
             claimsMap.put("spk", appCert);
 
-            //Add attributes to token
+            //Add symbIoTe related attributes to token
             if (attributes != null && !attributes.isEmpty()) {
-                for (Map.Entry<String, Object> entry : attributes.entrySet()) {
-                    claimsMap.put(entry.getKey(), entry.getValue());
+                for (Map.Entry<String, String> entry : attributes.entrySet()) {
+                    claimsMap.put(SYMBIOTE_ATTRIBUTES_PREFIX + entry.getKey(), entry.getValue());
                 }
             }
 

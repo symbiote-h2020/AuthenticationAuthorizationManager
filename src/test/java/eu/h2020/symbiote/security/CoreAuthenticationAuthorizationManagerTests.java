@@ -9,13 +9,13 @@ import eu.h2020.symbiote.security.commons.exceptions.*;
 import eu.h2020.symbiote.security.commons.json.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.commons.jwt.attributes.CoreAttributes;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -26,6 +26,7 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
@@ -298,6 +299,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         // verify that the server returns certificate & privateKey
         assertNotNull(appRegistrationResponse.getPemCertificate());
         assertNotNull(appRegistrationResponse.getPemPrivateKey());
+
+        // TODO verify that released certificate has no CA property
     }
 
     /**
@@ -315,8 +318,11 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         try {
             JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
             assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
-            // TODO implement checking actual attributes
-            assertNull(claimsFromToken.getAtt());
+
+            // verify that this JWT contains attributes relevant for application owner
+            Map<String, String> attributes = claimsFromToken.getAtt();
+            // PO role
+            assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
         } catch (MalformedJWTException | JSONException e) {
             e.printStackTrace();
         }
@@ -370,11 +376,6 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      */
     @Test
     public void platformRegistrationWithGeneratedPlatformIdSuccess() throws IOException, TimeoutException {
-        // TODO implement similar to app registration
-        // check response certs,key,id and if public cert is CA type!!!
-        // check if platform in repo
-        // check if PO in repo
-
         // verify that our platformOwner is not in repository
         assertFalse(userRepository.exists(platformOwnerUsername));
 
@@ -400,7 +401,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertNotNull(registeredPlatformOwner);
         assertEquals(UserRole.PLATFORM_OWNER, registeredPlatformOwner.getRole());
 
-        // verify that platform with preferred id is in repository and is tied with the given PO
+        // verify that platform with the generated id is in repository and is tied with the given PO
         Platform registeredPlatform = platformRepository.findOne(generatedPlatformId);
         assertNotNull(registeredPlatform);
         assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
@@ -415,7 +416,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void platformOwnerLoginSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws IOException, TimeoutException {
+    public void platformOwnerLoginSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws IOException, TimeoutException, MalformedJWTException, JSONException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
@@ -427,14 +428,20 @@ public class CoreAuthenticationAuthorizationManagerTests extends
                 new Credentials(platformOwnerUsername, platformOwnerPassword), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
+        //verify that JWT was issued for user
         assertNotNull(headers.getFirst(tokenHeaderName));
-        try {
-            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
-            assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
-            // TODO check if contains admin role and platformId attributes
-        } catch (MalformedJWTException | JSONException e) {
-            e.printStackTrace();
-        }
+
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
+
+        //verify that JWT is of type Core as was released by a CoreAAM
+        assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+
+        // verify that this JWT contains attributes relevant for platform owner
+        Map<String, String> attributes = claimsFromToken.getAtt();
+        // PO role
+        assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+        // owned platform identifier
+        assertEquals(preferredPlatformId, attributes.get(CoreAttributes.OWNED_PLATFORM.toString()));
     }
 
     /**

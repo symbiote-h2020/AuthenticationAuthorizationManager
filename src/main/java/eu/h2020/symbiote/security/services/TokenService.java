@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.TokenManager;
+import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.security.commons.json.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.security.commons.json.RequestToken;
@@ -37,8 +38,14 @@ public class TokenService {
         return retToken;
     }
 
-    public RequestToken getHomeToken() throws JWTCreationException {
-        RequestToken retToken = tokenManager.createHomeToken();
+    /**
+     *
+     * @param user which the token belongs to
+     * @return Generates home token for given user
+     * @throws JWTCreationException
+     */
+    public RequestToken getHomeToken(User user) throws JWTCreationException {
+        RequestToken retToken = tokenManager.createHomeToken(user);
         saveToken(retToken);
         return retToken;
     }

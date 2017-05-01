@@ -1,5 +1,8 @@
 package eu.h2020.symbiote.security.commons.jwt;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Placeholder for jwt claims
  *
@@ -17,14 +20,15 @@ public class JWTClaims {
     private Long exp;
     private String ipk;
     private String spk;
-    private String att;
+    private Map<String, String> att = new HashMap<>();
     private String ttyp;
 
     public JWTClaims() {
+        // used by serializer
     }
 
     public JWTClaims(Object jti, Object alg, Object iss, Object sub, Object iat, Object exp, Object ipk, Object spk,
-                     Object att, Object ttyp) {
+                     Object ttyp, Map<String, String> att) {
         this.jti = (String) jti;
         this.alg = (String) alg;
         this.iss = (String) iss;
@@ -33,7 +37,7 @@ public class JWTClaims {
         this.exp = new Long((Integer) exp) * 1000;
         this.ipk = (String) ipk;
         this.spk = (String) spk;
-        this.att = att != null ? (String) att : null;
+        this.att = att;
         this.ttyp = (String) ttyp;
     }
 
@@ -101,17 +105,21 @@ public class JWTClaims {
         this.spk = spk;
     }
 
-    public String getAtt() {
+    public Map<String, String> getAtt() {
         return att;
     }
 
-    public void setAtt(String att) {
+    public void setAtt(Map<String, String> att) {
         this.att = att;
     }
 
-    public String getTtyp() { return ttyp; }
+    public String getTtyp() {
+        return ttyp;
+    }
 
-    public void setTtyp(String ttyp) { this.ttyp = ttyp; }
+    public void setTtyp(String ttyp) {
+        this.ttyp = ttyp;
+    }
 
     @Override
     public String toString() {

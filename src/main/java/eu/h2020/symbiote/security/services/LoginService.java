@@ -45,7 +45,6 @@ public class LoginService {
         if (userInDB == null || !passwordEncoder.matches(user.getPassword(), userInDB.getPasswordEncrypted()))
             throw new WrongCredentialsException();
 
-        // TODO tie token issuing request with resolved user role
-        return tokenService.getHomeToken();
+        return tokenService.getHomeToken(userInDB);
     }
 }
