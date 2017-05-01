@@ -1,16 +1,24 @@
 package eu.h2020.symbiote.security;
 
 import com.rabbitmq.client.RpcClient;
+import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.ExistingApplicationException;
+import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.MissingArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.WrongCredentialsException;
 import eu.h2020.symbiote.security.commons.json.*;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.codehaus.jettison.json.JSONException;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 import java.io.IOException;
 import java.security.*;
@@ -42,109 +50,6 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         appRegistrationClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 appRegistrationRequestQueue, 5000);
     }
-
-    /**
-     * Feature: CAAM - 3 (Platform Registration)
-     * Interface: CAAM - 2
-     * CommunicationType AMQP
-     */
-    @Test
-    @Ignore("Not yet implemented")
-    public void failurePlatformRegistrationUsernameExists() throws IOException, TimeoutException {
-        try {
-            RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                    platformRegistrationRequestQueue, 5000);
-            byte[] response;
-            /*
-            response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
-            PlainCredentials("Username","Password"), "federatedID",
-                "recoveryMail","platformIPAurl")).getBytes());
-            PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
-            PlatformRegistrationResponse.class);
-            */
-        } catch (Exception e) {
-            /*
-            assertEquals(new ExistingPlatformException().getErrorMessage(), e.getClass());
-            */
-        }
-
-    }
-
-    /**
-     * Feature: CAAM - 3 (Platform Registration)
-     * Interface: CAAM - 2
-     * CommunicationType AMQP
-     */
-    @Test
-    @Ignore("Not yet implemented")
-    public void failurePlatformRegistrationPlatformIdExists() throws IOException, TimeoutException {
-        try {
-            RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                    platformRegistrationRequestQueue, 5000);
-            byte[] response;
-            /*
-            response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
-            PlainCredentials("Username","Password"),"federatedID",
-                "preferredPlatformID","recoveryMail","platformIPAurl")).getBytes());
-            PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
-            PlatformRegistrationResponse.class);
-            */
-        } catch (Exception e) {
-            /*
-            assertEquals(new ExistingPlatformException().getErrorMessage(), e.getClass());
-            */
-        }
-
-    }
-
-    /**
-     * Feature: CAAM - 3 (Platform Registration)
-     * Interface: CAAM - 2
-     * CommunicationType AMQP
-     */
-    @Test
-    @Ignore("Not yet implemented")
-    public void successfulPlatformRegistrationWithPreferredPlatformId() throws IOException, TimeoutException {
-        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                platformRegistrationRequestQueue, 5000);
-        byte[] response;
-
-        response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
-                PlainCredentials("Username", "Password"), "federatedID",
-                "preferredPlatformID", recoveryMail, "platformIPAurl")).getBytes());
-        PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
-                PlatformRegistrationResponse.class);
-
-        log.info("Test Client received this key and certificate " + platformRegistrationResponse.toJson());
-
-        assertNotEquals(platformRegistrationResponse.getPemCertificate(), null);
-        assertNotEquals(platformRegistrationResponse.getPemPrivateKey(), null);
-    }
-
-    /**
-     * Feature: CAAM - 3 (Platform Registration)
-     * Interface: CAAM - 2
-     * CommunicationType AMQP
-     */
-    @Test
-    @Ignore("Not yet implemented")
-    public void successfulPlatformRegistrationWithGeneratedPlatformId() throws IOException, TimeoutException {
-        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                platformRegistrationRequestQueue, 5000);
-        byte[] response;
-
-        response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
-                PlainCredentials("Username", "Password"), "federatedID",
-                "recoveryMail", "platformIPAurl")).getBytes());
-        PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
-                PlatformRegistrationResponse.class);
-
-        log.info("Test Client received this key and certificate " + platformRegistrationResponse.toJson());
-
-        assertNotEquals(platformRegistrationResponse.getPemCertificate(), null);
-        assertNotEquals(platformRegistrationResponse.getPemPrivateKey(), null);
-    }
-
 
     /**
      * Feature: CAAM - 2 (App Registration)
@@ -298,4 +203,183 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertNotNull(appRegistrationResponse.getPemCertificate());
         assertNotNull(appRegistrationResponse.getPemPrivateKey());
     }
+
+    /**
+     * Features: PAAM - 3, CAAM - 5 (Authentication & relevent token issuing)
+     * Interfaces: PAAM - 3, CAAM - 7;
+     * CommunicationType REST
+     */
+    @Test
+    @Ignore("Not yet implemented")
+    public void applicationLoginSuccessAndIssuesRelevantTokenTypeWithoutPOAttributes() {
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+                new PlainCredentials(username, password), String.class);
+        HttpHeaders headers = response.getHeaders();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(headers.getFirst(tokenHeaderName));
+        try {
+            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
+            // for tests the token type should be set to NULL
+            assertEquals(IssuingAuthorityType.NULL, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+        } catch (MalformedJWTException | JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * Feature: CAAM - 3 (Platform Registration)
+     * Interface: CAAM - 2
+     * CommunicationType AMQP
+     */
+    @Test
+    @Ignore("Not yet implemented")
+    public void platformRegistrationWithPreferredPlatformIdSuccess() throws IOException, TimeoutException {
+        // TODO implement similar to app registration
+        // check no platform in repository
+        // check no PO in repository
+        // register platform with PO
+        // check response certs,key if platform id matches preffered
+        // check if platform in repo
+        // check if PO in repo
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+                platformRegistrationRequestQueue, 5000);
+        byte[] response;
+
+        response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
+                PlainCredentials("Username", "Password"), "federatedID",
+                "preferredPlatformID", recoveryMail, "platformIPAurl")).getBytes());
+        PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
+                PlatformRegistrationResponse.class);
+
+        log.info("Test Client received this key and certificate " + platformRegistrationResponse.toJson());
+
+        assertNotEquals(platformRegistrationResponse.getPemCertificate(), null);
+        assertNotEquals(platformRegistrationResponse.getPemPrivateKey(), null);
+    }
+
+    /**
+     * Feature: CAAM - 3 (Platform Registration)
+     * Interface: CAAM - 2
+     * CommunicationType AMQP
+     */
+    @Test
+    @Ignore("Not yet implemented")
+    public void platformRegistrationWithGeneratedPlatformIdSuccess() throws IOException, TimeoutException {
+        // TODO implement similar to app registration
+        // check no platform in repository
+        // check no PO in repository
+        // register platform with PO
+        // check response certs,key,id
+        // check if platform in repo
+        // check if PO in repo
+    }
+
+    /**
+     * Features: PAAM - 3, CAAM - 5 (Authentication & relevent token issuing)
+     * Interfaces: PAAM - 3, CAAM - 7;
+     * CommunicationType REST
+     */
+    @Test
+    @Ignore("Not yet implemented")
+    public void platformOwnerLoginSuccessAndIssuesRelevantTokenTypeWithPOAttributes() {
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+                new PlainCredentials(username, password), String.class);
+        HttpHeaders headers = response.getHeaders();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(headers.getFirst(tokenHeaderName));
+        try {
+            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
+            // for tests the token type should be set to NULL
+            assertEquals(IssuingAuthorityType.NULL, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+        } catch (MalformedJWTException | JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Feature: CAAM - 3 (Platform Registration)
+     * Interface: CAAM - 2
+     * CommunicationType AMQP
+     */
+    @Test
+    @Ignore("Not yet implemented")
+    public void platformRegistrationFailureUnauthorized() throws IOException, TimeoutException {
+        // TODO implement
+    }
+
+    /**
+     * Feature: CAAM - 3 (Platform Registration)
+     * Interface: CAAM - 2
+     * CommunicationType AMQP
+     */
+    @Test
+    @Ignore("Not yet implemented")
+    public void platformRegistrationFailureMissingArguments() throws IOException, TimeoutException {
+        // TODO implement
+    }
+
+    /**
+     * Feature: CAAM - 3 (Platform Registration)
+     * Interface: CAAM - 2
+     * CommunicationType AMQP
+     */
+    @Test
+    @Ignore("Not yet implemented")
+    public void platformRegistrationFailurePOUsernameExists() throws IOException, TimeoutException {
+        // TODO implement similar to existing app registration
+        // clear platforms & users repo
+        // register platform
+        // attempt to register it again with different preferred platform ID
+        try {
+            RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+                    platformRegistrationRequestQueue, 5000);
+            byte[] response;
+            /*
+            response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
+            PlainCredentials("Username","Password"), "federatedID",
+                "recoveryMail","platformIPAurl")).getBytes());
+            PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
+            PlatformRegistrationResponse.class);
+            */
+        } catch (Exception e) {
+            /*
+            assertEquals(new ExistingPlatformException().getErrorMessage(), e.getClass());
+            */
+        }
+
+    }
+
+    /**
+     * Feature: CAAM - 3 (Platform Registration)
+     * Interface: CAAM - 2
+     * CommunicationType AMQP
+     */
+    @Test
+    @Ignore("Not yet implemented")
+    public void platformRegistrationFailurePreferredPlatformIdExists() throws IOException, TimeoutException {
+        // TODO implement similar to existing app registration
+        // clear platforms & users repo
+        // register platform
+        // attempt to register it again with different username
+        try {
+            RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+                    platformRegistrationRequestQueue, 5000);
+            byte[] response;
+            /*
+            response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
+            PlainCredentials("Username","Password"),"federatedID",
+                "preferredPlatformID","recoveryMail","platformIPAurl")).getBytes());
+            PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
+            PlatformRegistrationResponse.class);
+            */
+        } catch (Exception e) {
+            /*
+            assertEquals(new ExistingPlatformException().getErrorMessage(), e.getClass());
+            */
+        }
+
+    }
+
+
 }

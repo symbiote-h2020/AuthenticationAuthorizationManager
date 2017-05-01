@@ -27,12 +27,6 @@ public class AuthenticationAuthorizationManager {
 
     public static void main(String[] args) {
         SpringApplication.run(AuthenticationAuthorizationManager.class, args);
-
-        try {
-            // todo: Subscribe to RabbitMQ messages
-        } catch (Exception e) {
-            log.error("Error occurred during subscribing from  Authentication Authorization Manager", e);
-        }
     }
 
     @Bean

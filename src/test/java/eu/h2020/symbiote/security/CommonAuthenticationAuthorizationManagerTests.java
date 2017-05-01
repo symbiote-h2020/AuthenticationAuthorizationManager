@@ -106,7 +106,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void externalLoginSuccessAndIssuesRelevantTokenType() {
+    public void externalLoginSuccess() {
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new PlainCredentials(username, password), String.class);
         HttpHeaders headers = response.getHeaders();
@@ -114,8 +114,11 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         assertNotNull(headers.getFirst(tokenHeaderName));
         try {
             JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
+            // confirm that relevant token type was issued
             // for tests the token type should be set to NULL
             assertEquals(IssuingAuthorityType.NULL, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+            // TODO when AAM attributes will be provisionable then confirm that they are released for this application
+            assertNull(claimsFromToken.getAtt());
         } catch (MalformedJWTException | JSONException e) {
             e.printStackTrace();
         }
@@ -154,7 +157,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void externalCheckTokenRevocationSucess() {
+    public void externalCheckTokenRevocationSuccess() {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new PlainCredentials(username, password), String.class);

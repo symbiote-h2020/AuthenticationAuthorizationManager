@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.repositories.ApplicationRepository;
 import eu.h2020.symbiote.security.services.ApplicationRegistrationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,6 +95,12 @@ public abstract class AuthenticationAuthorizationManagerTests {
         application.setUsername(username);
         application.setPasswordEncrypted(passwordEncoder.encode(password));
         applicationRepository.save(application);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        // cleanup db
+        applicationRepository.deleteAll();
     }
 
     @Configuration

@@ -62,7 +62,7 @@ public class ApplicationRegistrationRequestConsumerService extends DefaultConsum
         ApplicationRegistrationRequest request;
         String response;
 
-        log.info("[x] Received Application Registration Request: '" + message + "'");
+        log.debug("[x] Received Application Registration Request: '" + message + "'");
 
         if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
 
@@ -89,9 +89,9 @@ public class ApplicationRegistrationRequestConsumerService extends DefaultConsum
                 response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
             }
-            log.info("Application Registration Response: sent back");
+            log.debug("Application Registration Response: sent back");
         } else {
-            log.warn("Received RPC message without ReplyTo or CorrelationId properties.");
+            log.error("Received RPC message without ReplyTo or CorrelationId properties.");
         }
         this.getChannel().basicAck(envelope.getDeliveryTag(), false);
     }
