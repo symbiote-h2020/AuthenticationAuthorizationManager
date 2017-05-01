@@ -10,10 +10,10 @@ package eu.h2020.symbiote.security.commons.json;
  */
 public class ApplicationRegistrationRequest {
 
-    private PlainCredentials AAMOwnerCredentials = new PlainCredentials();
+    private Credentials AAMOwnerCredentials = new Credentials();
 
     // TODO Release 3 fix to support CertificateSignRequests
-    private PlainCredentials applicationCredentials = new PlainCredentials();
+    private Credentials applicationCredentials = new Credentials();
     private String federatedId = "";
     private String recoveryMail = "";
 
@@ -23,7 +23,7 @@ public class ApplicationRegistrationRequest {
     public ApplicationRegistrationRequest() { // used by JSON serializer
     }
 
-    public ApplicationRegistrationRequest(PlainCredentials AAMOwnerCredentials, PlainCredentials
+    public ApplicationRegistrationRequest(Credentials AAMOwnerCredentials, Credentials
             applicationCredentials, String federatedId, String
                                                   recoveryMail) {
         this.AAMOwnerCredentials = AAMOwnerCredentials;
@@ -33,11 +33,11 @@ public class ApplicationRegistrationRequest {
     }
 
 
-    public PlainCredentials getApplicationCredentials() {
+    public Credentials getApplicationCredentials() {
         return applicationCredentials;
     }
 
-    public void setApplicationCredentials(PlainCredentials applicationCredentials) {
+    public void setApplicationCredentials(Credentials applicationCredentials) {
         this.applicationCredentials = applicationCredentials;
     }
 
@@ -58,11 +58,11 @@ public class ApplicationRegistrationRequest {
     }
 
 
-    public PlainCredentials getAAMOwnerCredentials() {
+    public Credentials getAAMOwnerCredentials() {
         return AAMOwnerCredentials;
     }
 
-    public void setAAMOwnerCredentials(PlainCredentials AAMOwnerCredentials) {
+    public void setAAMOwnerCredentials(Credentials AAMOwnerCredentials) {
         this.AAMOwnerCredentials = AAMOwnerCredentials;
     }
 }

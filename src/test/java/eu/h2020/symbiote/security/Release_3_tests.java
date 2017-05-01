@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.security;
 
 import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.security.commons.exceptions.NotExistingApplicationException;
+import eu.h2020.symbiote.security.commons.exceptions.NotExistingUserException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Ignore;
@@ -72,7 +72,7 @@ public class Release_3_tests extends AuthenticationAuthorizationManagerTests {
             byte[] response;
             /*
             response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
-            PlainCredentials("username","password"), "federatedID"
+            Credentials("username","password"), "federatedID"
                 "recoveryMail","platformIPAurl")).getBytes());
             PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
             PlatformRegistrationResponse.class);
@@ -99,12 +99,12 @@ public class Release_3_tests extends AuthenticationAuthorizationManagerTests {
                     5000);
             byte[] response;
         /*
-            response= client.primitiveCall(mapper.writeValueAsString(new PlainCredentials("username", "password"))
+            response= client.primitiveCall(mapper.writeValueAsString(new Credentials("username", "password"))
             .getBytes());
             ErrorResponseContainer noResponse = mapper.readValue(response, ErrorResponseContainer.class);
         */
         } catch (Exception e) {
-            assertEquals(NotExistingApplicationException.class, e.getClass());
+            assertEquals(NotExistingUserException.class, e.getClass());
         }
     }
 

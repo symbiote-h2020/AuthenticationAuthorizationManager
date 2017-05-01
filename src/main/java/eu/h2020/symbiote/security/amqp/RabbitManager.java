@@ -5,9 +5,9 @@ import eu.h2020.symbiote.security.amqp.consumers.ApplicationRegistrationRequestC
 import eu.h2020.symbiote.security.amqp.consumers.CheckTokenRevocationRequestConsumerService;
 import eu.h2020.symbiote.security.amqp.consumers.LoginRequestConsumerService;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.services.ApplicationRegistrationService;
 import eu.h2020.symbiote.security.services.LoginService;
 import eu.h2020.symbiote.security.services.TokenService;
+import eu.h2020.symbiote.security.services.UserRegistrationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +23,7 @@ public class RabbitManager {
 
     private static Log log = LogFactory.getLog(RabbitManager.class);
 
-    private final ApplicationRegistrationService applicationRegistrationService;
+    private final UserRegistrationService userRegistrationService;
     private final LoginService loginService;
     private final TokenService tokenService;
 
@@ -65,9 +65,9 @@ public class RabbitManager {
     private Connection connection;
 
     @Autowired
-    public RabbitManager(ApplicationRegistrationService applicationRegistrationService, LoginService loginService,
+    public RabbitManager(UserRegistrationService userRegistrationService, LoginService loginService,
                          TokenService tokenService) {
-        this.applicationRegistrationService = applicationRegistrationService;
+        this.userRegistrationService = userRegistrationService;
         this.loginService = loginService;
         this.tokenService = tokenService;
     }
@@ -100,10 +100,8 @@ public class RabbitManager {
         try {
             if (channel != null && channel.isOpen())
                 channel.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (TimeoutException e) {
-            e.printStackTrace();
+        } catch (IOException | TimeoutException e) {
+            log.error(e);
         }
     }
 
@@ -125,10 +123,8 @@ public class RabbitManager {
                     startConsumerOfApplicationRegistrationRequestMessages();
                     break;
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (InterruptedException | IOException e) {
+            log.error(e);
         }
     }
 
@@ -157,7 +153,7 @@ public class RabbitManager {
             Consumer consumer = new LoginRequestConsumerService(channel, loginService);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e);
         }
     }
 
@@ -187,7 +183,7 @@ public class RabbitManager {
             Consumer consumer = new CheckTokenRevocationRequestConsumerService(channel, this, tokenService);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e);
         }
     }
 
@@ -219,10 +215,10 @@ public class RabbitManager {
                     "messages....");
 
             Consumer consumer = new ApplicationRegistrationRequestConsumerService(channel,
-                    applicationRegistrationService);
+                    userRegistrationService);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e);
         }
     }
 
@@ -237,7 +233,7 @@ public class RabbitManager {
         try {
             getConnection();
         } catch (IOException | TimeoutException e) {
-            e.printStackTrace();
+            log.error(e);
         }
 
         if (connection != null) {
@@ -254,7 +250,7 @@ public class RabbitManager {
                 startConsumers();
 
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error(e);
             } finally {
                 closeChannel(channel);
             }
@@ -297,7 +293,7 @@ public class RabbitManager {
                 this.connection.close();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e);
         }
     }
 
@@ -322,7 +318,7 @@ public class RabbitManager {
 
             channel.basicPublish(exchange, routingKey, props, message.getBytes());
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e);
         } finally {
             closeChannel(channel);
         }

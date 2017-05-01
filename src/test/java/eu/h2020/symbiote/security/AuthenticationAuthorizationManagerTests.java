@@ -2,10 +2,10 @@ package eu.h2020.symbiote.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.amqp.RabbitManager;
-import eu.h2020.symbiote.security.commons.Application;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
-import eu.h2020.symbiote.security.repositories.ApplicationRepository;
-import eu.h2020.symbiote.security.services.ApplicationRegistrationService;
+import eu.h2020.symbiote.security.commons.User;
+import eu.h2020.symbiote.security.repositories.UserRepository;
+import eu.h2020.symbiote.security.services.UserRegistrationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.After;
@@ -32,10 +32,10 @@ public abstract class AuthenticationAuthorizationManagerTests {
     private static Log log = LogFactory.getLog(AuthenticationAuthorizationManagerTests.class);
     protected final String foreignTokenUri = "request_foreign_token";
     protected final String checkHomeTokenRevocationUri = "check_home_token_revocation";
-    protected final String username = "testCloudAAMUser";
-    protected final String password = "testCloudAAMPass";
-    protected final String wrongusername = "veryWrongCloudAAMPass";
-    protected final String wrongpassword = "veryWrongCloudAAMPass";
+    protected final String username = "testApplicationUsername";
+    protected final String password = "testApplicationPassword";
+    protected final String wrongusername = "veryWrongTestApplicationUsername";
+    protected final String wrongpassword = "veryWrongTestApplicationPassword";
     protected final String homeTokenValue = "home_token_from_platform_aam-" + username;
     protected final String tokenHeaderName = "X-Auth-Token";
     protected final String loginUri = "login";
@@ -44,13 +44,13 @@ public abstract class AuthenticationAuthorizationManagerTests {
     @LocalServerPort
     protected int port;
     @Autowired
-    protected ApplicationRepository applicationRepository;
+    protected UserRepository userRepository;
     @Autowired
     protected RabbitManager rabbitManager;
     @Autowired
     protected RegistrationManager registrationManager;
     @Autowired
-    protected ApplicationRegistrationService applicationRegistrationService;
+    protected UserRegistrationService userRegistrationService;
     @Autowired
     protected PasswordEncoder passwordEncoder;
     // TODO rework tests to use Security Handler
@@ -88,19 +88,22 @@ public abstract class AuthenticationAuthorizationManagerTests {
         restTemplate = new RestTemplate();
 
         // cleanup db
-        applicationRepository.deleteAll();
+        userRepository.deleteAll();
 
-        // Insert username and password to DB
-        Application application = new Application();
-        application.setUsername(username);
-        application.setPasswordEncrypted(passwordEncoder.encode(password));
-        applicationRepository.save(application);
+        // Register test application user into DB
+        User user = new User();
+        user.setUsername(username);
+        user.setPasswordEncrypted(passwordEncoder.encode(password));
+        user.setRole(User.Role.APPLICATION);
+        user.setRecoveryMail("null@dev.null");
+        // user.setCertificate(certificate); // TODO create a testApplication's certificate
+        userRepository.save(user);
     }
 
     @After
     public void tearDown() throws Exception {
         // cleanup db
-        applicationRepository.deleteAll();
+        userRepository.deleteAll();
     }
 
     @Configuration

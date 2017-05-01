@@ -5,8 +5,8 @@ import eu.h2020.symbiote.security.commons.VirtualFile;
 import eu.h2020.symbiote.security.commons.json.ApplicationRegistrationRequest;
 import eu.h2020.symbiote.security.commons.json.ApplicationRegistrationResponse;
 import eu.h2020.symbiote.security.commons.json.ErrorResponseContainer;
-import eu.h2020.symbiote.security.commons.json.PlainCredentials;
-import eu.h2020.symbiote.security.services.ApplicationRegistrationService;
+import eu.h2020.symbiote.security.commons.json.Credentials;
+import eu.h2020.symbiote.security.services.UserRegistrationService;
 import eu.h2020.symbiote.security.services.LoginService;
 import eu.h2020.symbiote.security.services.ZipService;
 import net.lingala.zip4j.exception.ZipException;
@@ -39,13 +39,13 @@ import java.util.Map;
  * @see LoginService
  */
 @RestController
-public class RegistrationController {
+public class ApplicationRegistrationController {
 
-    private final ApplicationRegistrationService registrationService;
+    private final UserRegistrationService registrationService;
     private final ZipService zipService;
 
     @Autowired
-    public RegistrationController(ApplicationRegistrationService registrationService, ZipService zipService) {
+    public ApplicationRegistrationController(UserRegistrationService registrationService, ZipService zipService) {
         this.registrationService = registrationService;
         this.zipService = zipService;
     }
@@ -57,7 +57,7 @@ public class RegistrationController {
             OperatorCreationException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException,
             IOException, ZipException {
         ApplicationRegistrationRequest request = new ApplicationRegistrationRequest();
-        request.setApplicationCredentials(new PlainCredentials(requestMap.get("username"), requestMap.get("password")));
+        request.setApplicationCredentials(new Credentials(requestMap.get("username"), requestMap.get("password")));
         ApplicationRegistrationResponse regResponse = registrationService.register(request);
         String certificate = regResponse.getPemCertificate();
         String privateKey = regResponse.getPemPrivateKey();

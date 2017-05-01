@@ -1,24 +1,23 @@
 package eu.h2020.symbiote.security.commons.json;
 
 /**
- * Class that defines the structure of a simple credentials payload
+ * Class that defines the structure of a plain text credentials payload
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
  * @author Mikołaj Dobski (PSNC)
  */
-public class PlainCredentials {
+public class Credentials {
 
     private String username = "";
     private String password = "";
 
-
-    public PlainCredentials(String username, String password) {
+    public Credentials(String username, String password) {
         this.username = username;
         this.password = password;
     }
 
-    public PlainCredentials() {
+    public Credentials() {
         // empty payload might appear in communication
     }
 
@@ -41,7 +40,7 @@ public class PlainCredentials {
 
     @Override
     public String toString() {
-        return "PlainCredentials [Username=" + username + ", Password=" + password + "]";
+        return "Credentials [Username=" + username + ", Password=" + password + "]";
     }
 
 

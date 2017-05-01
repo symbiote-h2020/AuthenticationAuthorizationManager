@@ -1,12 +1,12 @@
 package eu.h2020.symbiote.security.services;
 
-import eu.h2020.symbiote.security.commons.Application;
+import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.MissingArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.WrongCredentialsException;
-import eu.h2020.symbiote.security.commons.json.PlainCredentials;
+import eu.h2020.symbiote.security.commons.json.Credentials;
 import eu.h2020.symbiote.security.commons.json.RequestToken;
-import eu.h2020.symbiote.security.repositories.ApplicationRepository;
+import eu.h2020.symbiote.security.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,32 +21,31 @@ import org.springframework.stereotype.Service;
 @Service
 public class LoginService {
 
-    private final ApplicationRepository applicationRepository;
+    private final UserRepository userRepository;
     private final TokenService tokenService;
     private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public LoginService(ApplicationRepository applicationRepository,
+    public LoginService(UserRepository userRepository,
                         TokenService tokenService, PasswordEncoder passwordEncoder) {
-        this.applicationRepository = applicationRepository;
+        this.userRepository = userRepository;
         this.tokenService = tokenService;
         this.passwordEncoder = passwordEncoder;
     }
 
-    public RequestToken login(PlainCredentials user) throws MissingArgumentsException, WrongCredentialsException,
+    public RequestToken login(Credentials user) throws MissingArgumentsException, WrongCredentialsException,
             JWTCreationException {
+        // validate request
+        if (user.getUsername().isEmpty() || user.getPassword().isEmpty()) throw new MissingArgumentsException();
 
-        if (user.getUsername() != "" || user.getPassword() != "") {
-            if (applicationRepository.exists(user.getUsername())) {
-                Application applicationInDB = applicationRepository.findOne(user.getUsername());
-                if (user.getUsername().equals(applicationInDB.getUsername())
-                        && passwordEncoder.matches(user.getPassword(), applicationInDB.getPasswordEncrypted())) {
-                    return tokenService.getHomeToken();
-                }
-            }
+        // try to find user
+        User userInDB = userRepository.findOne(user.getUsername());
+
+        // verify user credentials
+        if (userInDB == null || !passwordEncoder.matches(user.getPassword(), userInDB.getPasswordEncrypted()))
             throw new WrongCredentialsException();
-        }
-        throw new MissingArgumentsException();
 
+        // TODO tie token issuing request with resolved user role
+        return tokenService.getHomeToken();
     }
 }

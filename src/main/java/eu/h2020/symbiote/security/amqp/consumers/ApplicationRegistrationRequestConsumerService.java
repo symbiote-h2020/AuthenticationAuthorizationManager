@@ -9,7 +9,7 @@ import eu.h2020.symbiote.security.commons.exceptions.*;
 import eu.h2020.symbiote.security.commons.json.ApplicationRegistrationRequest;
 import eu.h2020.symbiote.security.commons.json.ApplicationRegistrationResponse;
 import eu.h2020.symbiote.security.commons.json.ErrorResponseContainer;
-import eu.h2020.symbiote.security.services.ApplicationRegistrationService;
+import eu.h2020.symbiote.security.services.UserRegistrationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -26,7 +26,7 @@ import java.security.cert.CertificateException;
 public class ApplicationRegistrationRequestConsumerService extends DefaultConsumer {
 
     private static Log log = LogFactory.getLog(ApplicationRegistrationRequestConsumerService.class);
-    private ApplicationRegistrationService applicationRegistrationService;
+    private UserRegistrationService userRegistrationService;
 
 
     /**
@@ -36,10 +36,10 @@ public class ApplicationRegistrationRequestConsumerService extends DefaultConsum
      * @param channel the channel to which this consumer is attached
      */
     public ApplicationRegistrationRequestConsumerService(Channel channel,
-                                                         ApplicationRegistrationService
-                                                                 applicationRegistrationService) {
+                                                         UserRegistrationService
+                                                                 userRegistrationService) {
         super(channel);
-        this.applicationRegistrationService = applicationRegistrationService;
+        this.userRegistrationService = userRegistrationService;
     }
 
     /**
@@ -72,7 +72,7 @@ public class ApplicationRegistrationRequestConsumerService extends DefaultConsum
                     .build();
             try {
                 request = om.readValue(message, ApplicationRegistrationRequest.class);
-                ApplicationRegistrationResponse registrationResponse = applicationRegistrationService.authRegister
+                ApplicationRegistrationResponse registrationResponse = userRegistrationService.authRegister
                         (request);
                 response = om.writeValueAsString(registrationResponse);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
@@ -83,7 +83,7 @@ public class ApplicationRegistrationRequestConsumerService extends DefaultConsum
                 response = (new ErrorResponseContainer(e.getMessage(), new ApplicationRegistrationException()
                         .getStatusCode().ordinal())).toJson();
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-            } catch (UnauthorizedRegistrationException | ExistingApplicationException | MissingArgumentsException |
+            } catch (UnauthorizedRegistrationException | ExistingUserException | MissingArgumentsException |
                     WrongCredentialsException e) {
                 log.error(e);
                 response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();

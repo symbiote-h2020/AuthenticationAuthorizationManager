@@ -8,8 +8,8 @@ import com.rabbitmq.client.Envelope;
 import eu.h2020.symbiote.security.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.MissingArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.json.Credentials;
 import eu.h2020.symbiote.security.commons.json.ErrorResponseContainer;
-import eu.h2020.symbiote.security.commons.json.PlainCredentials;
 import eu.h2020.symbiote.security.commons.json.RequestToken;
 import eu.h2020.symbiote.security.services.LoginService;
 import org.apache.commons.logging.Log;
@@ -55,7 +55,7 @@ public class LoginRequestConsumerService extends DefaultConsumer {
 
         String message = new String(body, "UTF-8");
         ObjectMapper om = new ObjectMapper();
-        PlainCredentials loginReq;
+        Credentials loginReq;
         String response;
 
         log.info("[x] Received Login Request: '" + message + "'");
@@ -67,19 +67,21 @@ public class LoginRequestConsumerService extends DefaultConsumer {
                 .correlationId(properties.getCorrelationId())
                 .build();
             try {
-                loginReq = om.readValue(message, PlainCredentials.class);
+                loginReq = om.readValue(message, Credentials.class);
 
                 try {
                     RequestToken token = loginService.login(loginReq);
                     response = om.writeValueAsString(token);
                     this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
                 } catch (MissingArgumentsException | WrongCredentialsException | JWTCreationException e) {
+                    log.error(e);
                     response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
                     this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
                 }
 
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error(e);
+                throw e;
             }
 
             log.info("Login Response: sent back");

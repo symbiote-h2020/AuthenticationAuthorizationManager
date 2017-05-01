@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rabbitmq.client.RpcClient;
+import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.*;
 import eu.h2020.symbiote.security.commons.json.*;
@@ -21,8 +22,7 @@ import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 /**
  * Test suite for Platform side AAM deployment scenarios.
@@ -44,7 +44,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     public void internalLoginRequestReplySuccessAndIssuesRelevantTokenType() throws IOException, TimeoutException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new PlainCredentials(username, password))
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(username, password))
                 .getBytes());
         RequestToken token = mapper.readValue(response, RequestToken.class);
 
@@ -74,19 +74,19 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
 
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new PlainCredentials(wrongusername, password))
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(wrongusername, password))
                 .getBytes());
         ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
 
-        byte[] response2 = client.primitiveCall(mapper.writeValueAsString(new PlainCredentials(username, wrongpassword))
+        byte[] response2 = client.primitiveCall(mapper.writeValueAsString(new Credentials(username, wrongpassword))
                 .getBytes());
         ErrorResponseContainer noToken2 = mapper.readValue(response2, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken2.getErrorMessage());
 
-        byte[] response3 = client.primitiveCall(mapper.writeValueAsString(new PlainCredentials(wrongusername,
+        byte[] response3 = client.primitiveCall(mapper.writeValueAsString(new Credentials(wrongusername,
                 wrongpassword)).getBytes());
         ErrorResponseContainer noToken3 = mapper.readValue(response3, ErrorResponseContainer.class);
 
@@ -111,7 +111,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     public void internalLoginRequestReplyMissingArguments() throws IOException, TimeoutException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new PlainCredentials(/* no username and/or
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(/* no username and/or
         password */)).getBytes());
         ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
 
@@ -159,21 +159,31 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     @Test
     public void successfulApplicationRegistration() throws Exception {
         try {
+            String appUsername = "NewApplication";
+
+            // verify that app is not in the repository
+            User registeredUser = userRepository.findOne(appUsername);
+            assertNull(registeredUser);
+
             /*
              XXX federated Id and recovery mail are required for Test AAM but not for Plaftorm AAM
              */
             // register new application to db
             ApplicationRegistrationRequest applicationRegistrationRequest = new ApplicationRegistrationRequest(new
-                    PlainCredentials(AAMOwnerUsername, AAMOwnerPassword), new PlainCredentials
-                    ("NewApplication", "NewPassword"), "nullId", "nullMail");
-            ApplicationRegistrationResponse applicationRegistrationResponse = applicationRegistrationService.register
+                    Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials
+                    (appUsername, "NewPassword"), "nullId", "nullMail");
+            ApplicationRegistrationResponse applicationRegistrationResponse = userRegistrationService.register
                     (applicationRegistrationRequest);
 
+            // verify that app really is in repository
+            registeredUser = userRepository.findOne(appUsername);
+            assertNotNull(registeredUser);
+            assertEquals(User.Role.APPLICATION, registeredUser.getRole());
+
             String cert = applicationRegistrationResponse.getPemCertificate();
-            System.out.println(cert);
-            X509Certificate certObj = registrationManager.convertPEMToX509(cert);
+            log.debug(cert);
         } catch (Exception e) {
-            assertEquals(ExistingApplicationException.class, e.getClass());
+            assertEquals(ExistingUserException.class, e.getClass());
             log.info(e.getMessage());
         }
 
@@ -190,8 +200,8 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     @Test
     public void externalRegistrationSuccess() throws JsonProcessingException {
         ApplicationRegistrationRequest request = new ApplicationRegistrationRequest(
-                new PlainCredentials(AAMOwnerUsername, AAMOwnerPassword),
-                new PlainCredentials("NewApplication", "NewPassword"), "", "");
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials("NewApplication", "NewPassword"), "", "");
         try {
             ResponseEntity<ApplicationRegistrationResponse> response = restTemplate.postForEntity(serverAddress +
                     registrationUri, request, ApplicationRegistrationResponse.class);
@@ -213,11 +223,20 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     @Test
     public void successfulApplicationUnregistration() throws Exception {
         try {
-            applicationRegistrationService.unregister(username);
-            log.info("Application successfully unregistered!");
+            // verify that app really is in repository
+            User user = userRepository.findOne(username);
+            assertNotNull(user);
+
+            // unregister
+            userRegistrationService.unregister(username);
+            log.debug("User successfully unregistered!");
+
+            // verify that app is not anymore in the repository
+            user = userRepository.findOne(username);
+            assertNull(user);
         } catch (Exception e) {
-            assertEquals(NotExistingApplicationException.class, e.getClass());
-            log.info(e.getMessage());
+            assertEquals(NotExistingUserException.class, e.getClass());
+            log.error(e.getMessage());
         }
     }
 
@@ -232,8 +251,8 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     @Test
     public void externalUnregistrationSuccess() throws JsonProcessingException {
         ApplicationRegistrationRequest request = new ApplicationRegistrationRequest(
-                new PlainCredentials(AAMOwnerUsername, AAMOwnerPassword),
-                new PlainCredentials("NewApplication", "NewPassword"), "", "");
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials("NewApplication", "NewPassword"), "", "");
         try {
             ResponseEntity<Void> response = restTemplate.postForEntity(serverAddress + unregistrationUri, request,
                     Void.class);

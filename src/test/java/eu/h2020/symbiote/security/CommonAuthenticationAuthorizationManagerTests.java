@@ -5,8 +5,8 @@ import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.Status;
 import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.json.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.security.commons.json.Credentials;
 import eu.h2020.symbiote.security.commons.json.ErrorResponseContainer;
-import eu.h2020.symbiote.security.commons.json.PlainCredentials;
 import eu.h2020.symbiote.security.commons.json.RequestToken;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
@@ -49,7 +49,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void internalCheckTokenRevocationRequestReplySuccess() throws IOException, TimeoutException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new PlainCredentials(username, password))
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(username, password))
                 .getBytes());
         RequestToken testToken = mapper.readValue(response, RequestToken.class);
 
@@ -74,7 +74,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void externalLoginWrongUsername() {
         ResponseEntity<ErrorResponseContainer> token = null;
         try {
-            token = restTemplate.postForEntity(serverAddress + loginUri, new PlainCredentials(wrongusername, password),
+            token = restTemplate.postForEntity(serverAddress + loginUri, new Credentials(wrongusername, password),
                     ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
             assertNull(token);
@@ -92,7 +92,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void externalLoginWrongPassword() {
         ResponseEntity<ErrorResponseContainer> token = null;
         try {
-            token = restTemplate.postForEntity(serverAddress + loginUri, new PlainCredentials(username, wrongpassword),
+            token = restTemplate.postForEntity(serverAddress + loginUri, new Credentials(username, wrongpassword),
                     ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
             assertNull(token);
@@ -108,7 +108,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     @Test
     public void externalLoginSuccess() {
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
-                new PlainCredentials(username, password), String.class);
+                new Credentials(username, password), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(headers.getFirst(tokenHeaderName));
@@ -134,7 +134,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void externalRequestForeignToken() {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
-                new PlainCredentials(username, password), String.class);
+                new Credentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
@@ -160,7 +160,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void externalCheckTokenRevocationSuccess() {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
-                new PlainCredentials(username, password), String.class);
+                new Credentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
@@ -184,7 +184,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void externalCheckTokenRevocationFailure() {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
-                new PlainCredentials(username, password), String.class);
+                new Credentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         //Introduce latency so that JWT expires

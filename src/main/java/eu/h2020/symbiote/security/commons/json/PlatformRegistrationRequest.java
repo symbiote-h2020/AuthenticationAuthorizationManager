@@ -7,7 +7,7 @@ package eu.h2020.symbiote.security.commons.json;
  * @author Maksymilian Marcinowski (PSNC)
  */
 public class PlatformRegistrationRequest {
-    private PlainCredentials platformOwnerPlainCredentials = new PlainCredentials();
+    private Credentials platformOwnerCredentials = new Credentials();
     private String federatedID = "";
     private String platformID = "";
     private String recoveryMail = "";
@@ -16,15 +16,15 @@ public class PlatformRegistrationRequest {
     /**
      * For use when a Platform Owner wants a preferred platform identifier
      *
-     * @param platformOwnerPlainCredentials
+     * @param platformOwnerCredentials
      * @param preferredPlatformID
      * @param recoveryMail
      * @param platformIPAURL
      */
-    public PlatformRegistrationRequest(PlainCredentials platformOwnerPlainCredentials, String federatedID, String preferredPlatformID,
+    public PlatformRegistrationRequest(Credentials platformOwnerCredentials, String federatedID, String preferredPlatformID,
                                        String recoveryMail, String
                                                platformIPAURL) {
-        this.platformOwnerPlainCredentials = platformOwnerPlainCredentials;
+        this.platformOwnerCredentials = platformOwnerCredentials;
         this.federatedID = federatedID;
         this.platformID = preferredPlatformID;
         this.recoveryMail = recoveryMail;
@@ -34,25 +34,25 @@ public class PlatformRegistrationRequest {
     /**
      * For use when Platform Owner registers and used generated platform identifier
      *
-     * @param platformOwnerPlainCredentials
+     * @param platformOwnerCredentials
      * @param recoveryMail
      * @param platformIPAURL
      */
-    public PlatformRegistrationRequest(PlainCredentials platformOwnerPlainCredentials, String federatedID, String recoveryMail, String
+    public PlatformRegistrationRequest(Credentials platformOwnerCredentials, String federatedID, String recoveryMail, String
             platformIPAURL) {
-        this.platformOwnerPlainCredentials = platformOwnerPlainCredentials;
+        this.platformOwnerCredentials = platformOwnerCredentials;
         this.federatedID = federatedID;
         this.recoveryMail = recoveryMail;
         this.platformIPAURL = platformIPAURL;
     }
 
 
-    public PlainCredentials getPlatformOwnerPlainCredentials() {
-        return platformOwnerPlainCredentials;
+    public Credentials getPlatformOwnerCredentials() {
+        return platformOwnerCredentials;
     }
 
-    public void setPlatformOwnerPlainCredentials(PlainCredentials platformOwnerPlainCredentials) {
-        this.platformOwnerPlainCredentials = platformOwnerPlainCredentials;
+    public void setPlatformOwnerCredentials(Credentials platformOwnerCredentials) {
+        this.platformOwnerCredentials = platformOwnerCredentials;
     }
 
     public String getPlatformID() {
