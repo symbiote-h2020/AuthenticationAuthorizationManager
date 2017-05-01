@@ -319,10 +319,11 @@ public class CoreAuthenticationAuthorizationManagerTests extends
             JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
             assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
-            // verify that this JWT contains attributes relevant for application owner
+            // verify that this JWT contains attributes relevant for application role
             Map<String, String> attributes = claimsFromToken.getAtt();
-            // PO role
             assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+
+            // TODO verify that the token contains the application certificate
         } catch (MalformedJWTException | JSONException e) {
             e.printStackTrace();
         }
@@ -442,6 +443,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
         // owned platform identifier
         assertEquals(preferredPlatformId, attributes.get(CoreAttributes.OWNED_PLATFORM.toString()));
+
+        // TODO verify that the token contains PO certificate
     }
 
     /**

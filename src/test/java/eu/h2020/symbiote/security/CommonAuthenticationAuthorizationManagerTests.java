@@ -124,10 +124,11 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             // As the AAM is now configured as core we confirm that relevant token type was issued.
             assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
-            // verify that this JWT contains attributes relevant for application owner
+            // verify that this JWT contains attributes relevant for application role
             Map<String, String> attributes = claimsFromToken.getAtt();
-            // PO role
             assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+
+            // TODO verify that the token contains the application certificate
         } catch (MalformedJWTException | JSONException e) {
             e.printStackTrace();
         }
