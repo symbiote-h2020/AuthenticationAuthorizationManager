@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.services;
 
+import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.*;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.Date;
 
 /**
  * Spring service used to register platforms and their owners in the AAM repository.
@@ -24,6 +26,8 @@ import java.security.cert.CertificateException;
  */
 @Service
 public class PlatformRegistrationService {
+
+    public static final String GENERATED_PLATFORM_IDENTIFIER_PREFIX = "PLATFORM_";
     private final UserRepository userRepository;
     private final UserRegistrationService userRegistrationService;
     private final PlatformRepository platformRepository;
@@ -50,8 +54,8 @@ public class PlatformRegistrationService {
             KeyStoreException, IOException, UnauthorizedRegistrationException, WrongCredentialsException, ExistingPlatformException, UserRegistrationException {
 
         // check if we received required credentials
-        if (request.getAAMOwnerCredentials() == null || request.getPlatformOwnerDetails().getCredentials() == null)
-            throw new MissingArgumentsException();
+        if (request.getAAMOwnerCredentials() == null || request.getPlatformOwnerDetails() == null || request.getPlatformOwnerDetails().getCredentials() == null)
+            throw new MissingArgumentsException("Missing credentials");
         // check if this operation is authorized
         if (!request.getAAMOwnerCredentials().getUsername().equals(AAMOwnerUsername)
                 || !request.getAAMOwnerCredentials().getPassword().equals(AAMOwnerPassword))
@@ -79,28 +83,38 @@ public class PlatformRegistrationService {
                 (platformOwnerDetails.getRecoveryMail()
                         .isEmpty() || platformOwnerDetails.getFederatedId().isEmpty()))
             throw new MissingArgumentsException("Missing recovery e-mail or federated identity");
-        if (platformOwnerDetails.getCredentials().getUsername().isEmpty() || platformOwnerDetails.getCredentials().getPassword().isEmpty()) {
+        if (platformOwnerDetails.getCredentials().getUsername().isEmpty() || platformOwnerDetails.getCredentials().getPassword().isEmpty())
             throw new MissingArgumentsException("Missing username or password");
-        }
+        if (platformRegistrationRequest.getPlatformAAMURL().isEmpty())
+            throw new MissingArgumentsException("Missing Platform AAM URL");
 
         // check if platform owner already in repository
         if (userRepository.exists(platformOwnerDetails.getCredentials().getUsername())) {
             throw new ExistingUserException();
         }
 
-        // check if platform already in repository
-        if (!platformRegistrationRequest.getPlatformId().isEmpty() && platformRepository.exists(platformRegistrationRequest.getPlatformId()))
+
+        String platformId;
+        // verify if platform owner provided a preferred platform identifier
+        if (platformRegistrationRequest.getPlatformId().isEmpty())
+            // generate a new 'random' platform identifier
+            platformId = GENERATED_PLATFORM_IDENTIFIER_PREFIX + new Date().getTime();
+        else if (platformRepository.exists(platformRegistrationRequest.getPlatformId())) // check if platform already in repository
             throw new ExistingPlatformException();
+        else {
+            // use PO preferred platform identifier
+            platformId = platformRegistrationRequest.getPlatformId();
+        }
 
         // register platform owner in user repository
         UserRegistrationResponse userRegistrationResponse = userRegistrationService.authRegister(
                 new UserRegistrationRequest(platformRegistrationRequest.getAAMOwnerCredentials(), platformOwnerDetails));
 
         // register platform in repository
-        String platformId = platformRegistrationRequest.getPlatformId();
-        // TODO implement
+        Platform platform = new Platform(platformId, platformRegistrationRequest.getPlatformAAMURL(), userRepository.findOne(platformOwnerDetails.getCredentials().getUsername()));
+        platformRepository.save(platform);
 
-        return new PlatformRegistrationResponse(userRegistrationResponse.getPemCertificate(), userRegistrationResponse.getPemPrivateKey(), platformId);
+        return new PlatformRegistrationResponse(userRegistrationResponse.getPemCertificate(), userRegistrationResponse.getPemPrivateKey(), platform.getPlatformId());
     }
 
 /*

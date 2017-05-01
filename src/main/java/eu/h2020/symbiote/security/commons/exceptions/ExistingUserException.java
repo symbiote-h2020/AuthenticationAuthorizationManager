@@ -15,8 +15,8 @@ import org.springframework.http.HttpStatus;
 public class ExistingUserException extends CustomAAMException {
 
     private static final long serialVersionUID = Constants.serialVersionUID;
-    private final static String errorMessage = "USER_ALREADY_REGISTERED";
-    private final static HttpStatus statusCode = HttpStatus.BAD_REQUEST;
+    public final static String errorMessage = "USER_ALREADY_REGISTERED";
+    public final static HttpStatus statusCode = HttpStatus.BAD_REQUEST;
 
     public ExistingUserException() {
         super(errorMessage);

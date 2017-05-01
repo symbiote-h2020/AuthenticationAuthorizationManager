@@ -13,8 +13,8 @@ import org.springframework.http.HttpStatus;
 public class UserRegistrationException extends CustomAAMException {
 
     private static final long serialVersionUID = Constants.serialVersionUID;
-    private final static String errorMessage = "USER_REGISTRATION_ERROR";
-    private final static HttpStatus statusCode = HttpStatus.BAD_REQUEST;
+    public final static String errorMessage = "USER_REGISTRATION_ERROR";
+    public final static HttpStatus statusCode = HttpStatus.BAD_REQUEST;
 
     public UserRegistrationException() {
         super(errorMessage);

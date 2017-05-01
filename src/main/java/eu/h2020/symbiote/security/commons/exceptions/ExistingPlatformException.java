@@ -13,7 +13,7 @@ import org.springframework.http.HttpStatus;
 public class ExistingPlatformException extends CustomAAMException {
 
     private static final long serialVersionUID = Constants.serialVersionUID;
-    private final static String errorMessage = "PLATFORM_ALREADY_REGISTERED";
+    public final static String errorMessage = "PLATFORM_ALREADY_REGISTERED";
     private final static HttpStatus statusCode = HttpStatus.BAD_REQUEST;
 
     public ExistingPlatformException() {

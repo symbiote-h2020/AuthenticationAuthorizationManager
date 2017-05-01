@@ -12,6 +12,11 @@ public class PlatformRegistrationRequest {
     private String platformAAMURL = "";
     private String platformId = "";
 
+
+    public PlatformRegistrationRequest() {
+        // required for serialization
+    }
+
     /**
      * For use when a Platform Owner is fine with generated platform identifier
      *

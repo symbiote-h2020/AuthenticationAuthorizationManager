@@ -5,11 +5,11 @@ import eu.h2020.symbiote.security.amqp.RabbitManager;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.repositories.CertificateRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,6 +83,8 @@ public abstract class AuthenticationAuthorizationManagerTests {
     protected String KEY_STORE_ALIAS;
     @Value("${aam.deployment.token.validityMillis}")
     protected Long tokenValidityPeriod;
+    @Autowired
+    private CertificateRepository certificateRepository;
 
     @Before
     public void setUp() throws Exception {
@@ -93,6 +95,7 @@ public abstract class AuthenticationAuthorizationManagerTests {
 
         // cleanup db
         userRepository.deleteAll();
+        certificateRepository.deleteAll();
 
         // Register test application user into DB
         User user = new User();
@@ -104,16 +107,9 @@ public abstract class AuthenticationAuthorizationManagerTests {
         userRepository.save(user);
     }
 
-    @After
-    public void tearDown() throws Exception {
-        // cleanup db
-        userRepository.deleteAll();
-    }
-
     @Configuration
     @ComponentScan(basePackages = {"eu.h2020.symbiote.security"})
     static class ContextConfiguration {
     }
-
 
 }

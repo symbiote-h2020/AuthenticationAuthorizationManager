@@ -5,7 +5,7 @@ import eu.h2020.symbiote.security.commons.CustomAAMException;
 import org.springframework.http.HttpStatus;
 
 /**
- * Custom exception thrown when an unauthorized client tries to register an application.
+ * Custom exception thrown when an unauthorized client tries to register a user or platform.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
@@ -13,8 +13,8 @@ import org.springframework.http.HttpStatus;
 public class UnauthorizedRegistrationException extends CustomAAMException {
 
     private static final long serialVersionUID = Constants.serialVersionUID;
-    private final static String errorMessage = "UNAUTHORIZED_APP_REGISTRATION";
-    private final HttpStatus statusCode = HttpStatus.UNAUTHORIZED;
+    public final static String errorMessage = "UNAUTHORIZED_REGISTRATION";
+    public final static HttpStatus statusCode = HttpStatus.UNAUTHORIZED;
 
     public UnauthorizedRegistrationException() {
         super(errorMessage);

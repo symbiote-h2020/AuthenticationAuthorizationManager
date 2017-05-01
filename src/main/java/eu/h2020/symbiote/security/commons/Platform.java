@@ -48,4 +48,12 @@ public class Platform {
     public void setPlatformAAMURL(String platformAAMURL) {
         this.platformAAMURL = platformAAMURL;
     }
+
+    public User getPlatformOwner() {
+        return platformOwner;
+    }
+
+    public void setPlatformOwner(User platformOwner) {
+        this.platformOwner = platformOwner;
+    }
 }

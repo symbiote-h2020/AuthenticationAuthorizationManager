@@ -15,8 +15,8 @@ import org.springframework.http.HttpStatus;
 public class MissingArgumentsException extends CustomAAMException {
 
     private static final long serialVersionUID = Constants.serialVersionUID;
-    private final static String errorMessage = "ERR_MISSING_ARGUMENTS";
-    private final HttpStatus statusCode = HttpStatus.BAD_REQUEST;
+    public final static String errorMessage = "ERR_MISSING_ARGUMENTS";
+    private final static HttpStatus statusCode = HttpStatus.BAD_REQUEST;
 
     public MissingArgumentsException() {
         super(errorMessage);

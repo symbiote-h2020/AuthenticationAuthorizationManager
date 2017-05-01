@@ -22,10 +22,6 @@ import java.util.Map;
 @Service
 public class TokenService {
 
-    // FIXME harcoded values for now
-    private final String appID = "dummyAPP";
-
-    private final Map<String, Object> attributes = new HashMap<String, Object>(); // empty claims map
     private final TokenRepository tokenRepository;
     private final TokenManager tokenManager;
 

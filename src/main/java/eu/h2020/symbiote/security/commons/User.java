@@ -31,9 +31,11 @@ public class User {
      */
     //@DBRef -- might come in useful
     private List<String> attributes = new ArrayList<>();
+
     public User() {
         // required by org.springframework.data.mapping.model.MappingInstantiationException
     }
+
     /**
      * Used to create a new user entity
      *
