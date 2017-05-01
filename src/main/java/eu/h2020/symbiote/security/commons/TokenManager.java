@@ -93,10 +93,7 @@ public class TokenManager {
                     // TODO not that I know of any
                     break;
             }
-
-            // TODO make use of User's public Certificate
-            return new RequestToken(
-                    jwtEngine.generateJWTToken(deploymentId, attributes, regManager.getAAMPublicKey().getEncoded()));
+            return new RequestToken(jwtEngine.generateJWTToken(user, attributes));
         } catch (Exception e) {
             log.error(e);
             throw new JWTCreationException(e);
@@ -109,8 +106,9 @@ public class TokenManager {
 
             JWTClaims claims = JWTEngine.getClaimsFromToken(foreignToken);
 
+            Map<String, String> federatedAttributes = new HashMap<>();
             return new RequestToken(
-                    jwtEngine.generateJWTToken(claims.getIss(), null, claims.getIpk().getBytes()));
+                    jwtEngine.generateJWTToken(claims.getIss(), federatedAttributes, claims.getIpk().getBytes()));
         } catch (Exception e) {
             log.error(e);
             throw new JWTCreationException(e);

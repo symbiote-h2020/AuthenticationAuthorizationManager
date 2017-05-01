@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.commons.jwt;
 
 import eu.h2020.symbiote.security.commons.Constants;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
+import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
@@ -18,7 +19,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.security.SecureRandom;
+import java.security.cert.CertificateException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -83,8 +86,11 @@ public class JWTEngine {
                 .get("iat"), retMap.get("exp"), retMap.get("ipk"), retMap.get("spk"), retMap.get("ttyp"), attributes);
     }
 
-    public String generateJWTToken(String appId, Map<String, String> attributes, byte[] appCert)
-            throws JWTCreationException {
+    public String generateJWTToken(User user, Map<String, String> attributes) throws JWTCreationException, IOException, CertificateException {
+        return this.generateJWTToken(user.getUsername(), attributes, regManager.convertPEMToX509(user.getCertificate().getPemCertificate()).getPublicKey().getEncoded());
+    }
+
+    public String generateJWTToken(String userId, Map<String, String> attributes, byte[] userCertificate) throws JWTCreationException {
 
         String jti = String.valueOf(random.nextInt());
         Map<String, Object> claimsMap = new HashMap<String, Object>();
@@ -94,8 +100,7 @@ public class JWTEngine {
             claimsMap.put("ipk", regManager.getAAMPublicKey().getEncoded());
 
             //Insert issuee Public Key
-            //TODO use app public key once available from registration
-            claimsMap.put("spk", appCert);
+            claimsMap.put("spk", userCertificate);
 
             //Add symbIoTe related attributes to token
             if (attributes != null && !attributes.isEmpty()) {
@@ -120,7 +125,7 @@ public class JWTEngine {
             jwtBuilder.setClaims(claimsMap);
             jwtBuilder.setId(jti);
             jwtBuilder.setIssuer(deploymentID);
-            jwtBuilder.setSubject(appId);
+            jwtBuilder.setSubject(userId);
             jwtBuilder.setIssuedAt(new Date());
             jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + tokenValidity));
             jwtBuilder.signWith(SignatureAlgorithm.ES256, regManager.getAAMPrivateKey());
@@ -132,6 +137,5 @@ public class JWTEngine {
             throw new JWTCreationException(message, e);
         }
     }
-
 }
 

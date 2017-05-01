@@ -3,8 +3,10 @@ package eu.h2020.symbiote.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.amqp.RabbitManager;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
-import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.json.Credentials;
+import eu.h2020.symbiote.security.commons.json.UserDetails;
+import eu.h2020.symbiote.security.commons.json.UserRegistrationRequest;
 import eu.h2020.symbiote.security.repositories.CertificateRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
@@ -98,13 +100,10 @@ public abstract class AuthenticationAuthorizationManagerTests {
         certificateRepository.deleteAll();
 
         // Register test application user into DB
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRole(UserRole.APPLICATION);
-        user.setRecoveryMail("null@dev.null");
-        // user.setCertificate(certificate); // TODO create a testApplication's certificate
-        userRepository.save(user);
+        UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
+                (username, password), "federatedId", "nullMail", UserRole.APPLICATION));
+        userRegistrationService.register(userRegistrationRequest);
     }
 
     @Configuration
