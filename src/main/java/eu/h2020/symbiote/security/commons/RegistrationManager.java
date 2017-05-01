@@ -58,12 +58,13 @@ public class RegistrationManager {
     @Value("${aam.security.KEY_STORE_ALIAS}")
     private String KEY_STORE_ALIAS;
 
-
-    // TODO find a better way to provision KeyStore credentials
     @Value("${aam.security.KEY_STORE_PASSWORD}")
     private String KEY_STORE_PASSWORD;
     @Value("${aam.security.PV_KEY_STORE_PASSWORD}")
     private String PV_KEY_STORE_PASSWORD;
+
+    @Value("${aam.deployment.id}")
+    private String deploymentId = "";
 
 
     public RegistrationManager() throws CertificateException, NoSuchProviderException {
@@ -130,7 +131,7 @@ public class RegistrationManager {
         PrivateKey privKey = this.getAAMPrivateKey();
 
         // distinguished name table.
-        X500NameBuilder issuerBuilder = createStdBuilder("AAM");
+        X500NameBuilder issuerBuilder = createStdBuilder(deploymentId);
         X500NameBuilder subjectBuilder = createStdBuilder(applicationUsername);
 
         // create the certificate - version 3
@@ -152,73 +153,19 @@ public class RegistrationManager {
         CertificateFactory certFact = CertificateFactory.getInstance("X.509", PROVIDER_NAME);
         cert = (X509Certificate) certFact.generateCertificate(bIn);
 
-        log.debug(cert.toString()); // TODO maybe delete it later
-
         return cert;
     }
 
-    // FIXME: THIS IS NOT THE WAY IT'GONNA BE IN FUTURE. JUST FOR TEST PURPOSES. Symbiote CORE is the root CA and IT
-    // should provide any AAM a certificate. AAM is not going to issue itself a certificate!
-    // ONLY FOR TESTS
 
     /**
-     * Used to generate the AAM Certificate and private key and store them on a file.
-     * Note: The Platform AAM private key will be retrieved any time Platform AAM (which acts as an intermediate CA)
-     * will generate a certificate for a registering application.
      *
-     * @implNote This function is only used ONE TIME. After that, PAAM certificate and PV key are stored in a file.
-     * @see RegistrationManager#createECCert(String, PublicKey)
+     * @return Retrieves AAM's public key from provisioned JavaKeyStore
+     * @throws NoSuchProviderException
+     * @throws KeyStoreException
+     * @throws IOException
+     * @throws CertificateException
+     * @throws NoSuchAlgorithmException
      */
-    public void createSelfSignedAAMECCert() throws InvalidAlgorithmParameterException,
-        NoSuchAlgorithmException,
-        NoSuchProviderException,
-        OperatorCreationException,
-        CertificateException,
-        IOException,
-        KeyStoreException {
-
-        // Create a pair of keys for the Platform AAM which will behave as Intermediate CA
-        KeyPair keyPair = createKeyPair();
-        PrivateKey privKey = keyPair.getPrivate();
-        PublicKey pubKey = keyPair.getPublic();
-
-        // distinguished name table.
-        X500NameBuilder builder = createStdBuilder("AAM");
-
-        // create the certificate - version 3
-        ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER_NAME).build
-            (privKey);
-
-        X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
-            builder.build(),
-            BigInteger.valueOf(1),
-            new Date(System.currentTimeMillis()),
-            new Date(System.currentTimeMillis() + 20L * 365L * 24L * 60L * 60L * 1000L), builder.build(),
-            pubKey);
-
-        X509Certificate cert = new JcaX509CertificateConverter().setProvider(PROVIDER_NAME).getCertificate(certGen
-            .build(sigGen));
-
-        ByteArrayInputStream bIn = new ByteArrayInputStream(cert.getEncoded());
-        CertificateFactory certFact = CertificateFactory.getInstance("X.509", PROVIDER_NAME);
-        cert = (X509Certificate) certFact.generateCertificate(bIn);
-
-        System.out.println(cert.toString() + '\n' + convertX509ToPEM(cert));
-
-        Certificate[] chain = new Certificate[1];
-        chain[0] = cert;
-
-        // Save AAM certificate and private key in a keystore
-        KeyStore store = KeyStore.getInstance("PKCS12", PROVIDER_NAME);
-        store.load(null, null);
-        store.setKeyEntry(KEY_STORE_ALIAS, privKey, PV_KEY_STORE_PASSWORD.toCharArray(), chain);
-        FileOutputStream fOut = new FileOutputStream(KEY_STORE_FILE_NAME); // from console $: openssl pkcs12 -in
-        // ./AAM.keystore to check it
-        store.store(fOut, KEY_STORE_PASSWORD.toCharArray());
-
-    }
-
-    // ONLY FOR TESTS
     public PublicKey getAAMPublicKey() throws NoSuchProviderException, KeyStoreException, IOException,
         CertificateException, NoSuchAlgorithmException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
@@ -227,7 +174,16 @@ public class RegistrationManager {
         return pubKey;
     }
 
-    // ONLY FOR TESTS
+    /**
+     *
+     * @return retrieves AAM's private key from provisioned JavaKeyStore
+     * @throws NoSuchProviderException
+     * @throws KeyStoreException
+     * @throws IOException
+     * @throws CertificateException
+     * @throws NoSuchAlgorithmException
+     * @throws UnrecoverableKeyException
+     */
     public PrivateKey getAAMPrivateKey() throws NoSuchProviderException, KeyStoreException, IOException,
         CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");

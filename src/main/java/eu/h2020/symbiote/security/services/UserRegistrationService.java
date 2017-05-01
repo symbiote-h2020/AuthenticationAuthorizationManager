@@ -6,9 +6,9 @@ import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.*;
+import eu.h2020.symbiote.security.commons.json.UserDetails;
 import eu.h2020.symbiote.security.commons.json.UserRegistrationRequest;
 import eu.h2020.symbiote.security.commons.json.UserRegistrationResponse;
-import eu.h2020.symbiote.security.commons.json.UserDetails;
 import eu.h2020.symbiote.security.repositories.CertificateRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -96,7 +96,7 @@ public class UserRegistrationService {
                         applicationKeyPair.getPublic());
                 break;
             case PLATFORM_OWNER:
-                // TODO create CA enabled certificate for the Platform Owner
+                //TODO create CA enabled certificate for the Platform Owner -- it probably is X.509 id-ce 19 or other relevant for CA certificates
                 userX509Certificate = registrationManager.createECCert(user.getCredentials().getUsername(),
                         applicationKeyPair.getPublic());
                 break;
