@@ -2,8 +2,10 @@ package eu.h2020.symbiote.security.commons;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
+import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -144,7 +146,11 @@ public class RegistrationManager {
             new Date(System.currentTimeMillis()),
             new Date(System.currentTimeMillis() + 1L * 365L * 24L * 60L * 60L * 1000L),
             subjectBuilder.build(),
-            pubKey);
+            pubKey)
+                .addExtension(
+                        new ASN1ObjectIdentifier("2.5.29.19"),
+                        false,
+                        new BasicConstraints(false));// true if it is allowed to sign other certs;
 
         X509Certificate cert = new JcaX509CertificateConverter().setProvider(PROVIDER_NAME).getCertificate(certGen
             .build(sigGen));
