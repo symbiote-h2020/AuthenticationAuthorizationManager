@@ -13,6 +13,7 @@ import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.commons.jwt.attributes.CoreAttributes;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.services.TokenService;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jettison.json.JSONException;
@@ -108,7 +109,7 @@ public class TokenManager {
 
             Map<String, String> federatedAttributes = new HashMap<>();
             return new RequestToken(
-                    jwtEngine.generateJWTToken(claims.getIss(), federatedAttributes, claims.getIpk().getBytes()));
+                    jwtEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.decodeBase64(claims.getIpk())));
         } catch (Exception e) {
             log.error(e);
             throw new JWTCreationException(e);

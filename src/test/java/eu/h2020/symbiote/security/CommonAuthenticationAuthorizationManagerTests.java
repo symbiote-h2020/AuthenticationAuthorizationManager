@@ -1,6 +1,8 @@
 package eu.h2020.symbiote.security;
 
 import com.rabbitmq.client.RpcClient;
+import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.Status;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
@@ -12,6 +14,7 @@ import eu.h2020.symbiote.security.commons.json.RequestToken;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.commons.jwt.attributes.CoreAttributes;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jettison.json.JSONException;
@@ -26,7 +29,11 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.io.IOException;
+import java.security.KeyFactory;
+import java.security.PublicKey;
 import java.security.cert.CertificateException;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -131,8 +138,9 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
             // verify that the token contains the application public key
             byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
-            byte[] publicKeyFromToken = claimsFromToken.getSpk().getBytes();
-            assertEquals(applicationPublicKeyInRepository,publicKeyFromToken);
+            byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
+
+            assertEquals(Arrays.equals(applicationPublicKeyInRepository,publicKeyFromToken),true);
 
         } catch (MalformedJWTException | JSONException | CertificateException | IOException e) {
             e.printStackTrace();

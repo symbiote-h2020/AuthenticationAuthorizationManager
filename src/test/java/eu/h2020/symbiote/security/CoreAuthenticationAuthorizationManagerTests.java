@@ -11,6 +11,7 @@ import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.commons.jwt.attributes.CoreAttributes;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -26,6 +27,7 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -325,8 +327,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
 
             // verify that the token contains the application public key
             byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
-            byte[] publicKeyFromToken = claimsFromToken.getSpk().getBytes();
-            assertEquals(applicationPublicKeyInRepository, publicKeyFromToken);
+            byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
+            assertEquals(Arrays.equals(applicationPublicKeyInRepository,publicKeyFromToken),true);
         } catch (MalformedJWTException | JSONException | CertificateException | IOException e) {
             e.printStackTrace();
         }
@@ -440,8 +442,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
 
         // verify that the token contains the platform owner public key
         byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(platformOwnerUsername).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
-        byte[] publicKeyFromToken = claimsFromToken.getSpk().getBytes();
-        assertEquals(applicationPublicKeyInRepository,publicKeyFromToken);
+        byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
+        assertEquals(Arrays.equals(applicationPublicKeyInRepository,publicKeyFromToken),true);
 
         // verify that this JWT contains attributes relevant for platform owner
         Map<String, String> attributes = claimsFromToken.getAtt();
