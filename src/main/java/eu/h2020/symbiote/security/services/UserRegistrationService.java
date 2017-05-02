@@ -39,7 +39,7 @@ public class UserRegistrationService {
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
-    private String AAMOwnerPassword; //FIXME this should be somehow encoded
+    private String AAMOwnerPassword;
     @Value("${aam.deployment.type}")
     private IssuingAuthorityType deploymentType;
 
@@ -87,22 +87,13 @@ public class UserRegistrationService {
         // Generate key pair for the new user
         KeyPair applicationKeyPair = registrationManager.createKeyPair();
 
-        // Generate certificate for the user
-        X509Certificate userX509Certificate = null;
+        // verify proper user role
+        if (user.getRole() == UserRole.NULL)
+            throw new UserRegistrationException();
 
-        switch (user.getRole()) {
-            case APPLICATION:
-                userX509Certificate = registrationManager.createECCert(user.getCredentials().getUsername(),
-                        applicationKeyPair.getPublic());
-                break;
-            case PLATFORM_OWNER:
-                //TODO create CA enabled certificate for the Platform Owner -- it probably is X.509 id-ce 19 or other relevant for CA certificates
-                userX509Certificate = registrationManager.createECCert(user.getCredentials().getUsername(),
-                        applicationKeyPair.getPublic());
-                break;
-            case NULL:
-                throw new UserRegistrationException();
-        }
+        // Generate certificate for the user
+        X509Certificate userX509Certificate = registrationManager.createECCert(user.getCredentials().getUsername(),
+                applicationKeyPair.getPublic());
 
         Certificate certificate = new Certificate(registrationManager.convertX509ToPEM
                 (userX509Certificate));

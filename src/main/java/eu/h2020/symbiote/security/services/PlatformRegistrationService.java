@@ -35,7 +35,7 @@ public class PlatformRegistrationService {
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
-    private String AAMOwnerPassword; //FIXME this should be somehow encoded
+    private String AAMOwnerPassword;
     @Value("${aam.deployment.type}")
     private IssuingAuthorityType deploymentType;
 
