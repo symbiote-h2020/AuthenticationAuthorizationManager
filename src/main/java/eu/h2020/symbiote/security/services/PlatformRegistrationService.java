@@ -4,7 +4,7 @@ import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.*;
-import eu.h2020.symbiote.security.commons.json.*;
+import eu.h2020.symbiote.security.commons.payloads.*;
 import eu.h2020.symbiote.security.repositories.CertificateRepository;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;

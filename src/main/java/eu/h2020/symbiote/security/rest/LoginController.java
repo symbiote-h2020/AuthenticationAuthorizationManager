@@ -2,9 +2,9 @@ package eu.h2020.symbiote.security.rest;
 
 import eu.h2020.symbiote.security.commons.Constants;
 import eu.h2020.symbiote.security.commons.CustomAAMException;
-import eu.h2020.symbiote.security.commons.json.Credentials;
-import eu.h2020.symbiote.security.commons.json.ErrorResponseContainer;
-import eu.h2020.symbiote.security.commons.json.RequestToken;
+import eu.h2020.symbiote.security.commons.payloads.Credentials;
+import eu.h2020.symbiote.security.commons.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.commons.payloads.RequestToken;
 import eu.h2020.symbiote.security.services.LoginService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;

@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
+import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;

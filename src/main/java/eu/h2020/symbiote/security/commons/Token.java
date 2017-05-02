@@ -2,7 +2,7 @@ package eu.h2020.symbiote.security.commons;
 
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
-import eu.h2020.symbiote.security.commons.json.RequestToken;
+import eu.h2020.symbiote.security.commons.payloads.RequestToken;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

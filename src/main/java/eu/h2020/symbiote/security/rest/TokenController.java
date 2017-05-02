@@ -2,8 +2,8 @@ package eu.h2020.symbiote.security.rest;
 
 import eu.h2020.symbiote.security.commons.Constants;
 import eu.h2020.symbiote.security.commons.exceptions.JWTCreationException;
-import eu.h2020.symbiote.security.commons.json.CheckTokenRevocationResponse;
-import eu.h2020.symbiote.security.commons.json.RequestToken;
+import eu.h2020.symbiote.security.commons.payloads.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.security.commons.payloads.RequestToken;
 import eu.h2020.symbiote.security.services.TokenService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

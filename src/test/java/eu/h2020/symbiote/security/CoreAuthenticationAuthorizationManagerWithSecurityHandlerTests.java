@@ -1,24 +1,11 @@
 package eu.h2020.symbiote.security;
 
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
-import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
-import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.commons.jwt.attributes.CoreAttributes;
 import eu.h2020.symbiote.security.exception.DisabledException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.codehaus.jettison.json.JSONException;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.test.context.TestPropertySource;
-
-import java.io.IOException;
-import java.security.cert.CertificateException;
-import java.util.Map;
-
-import static org.junit.Assert.*;
 
 /**
  * Test suite for generic AAM functionality irrelevant to actual deployment type (Core or Platform)

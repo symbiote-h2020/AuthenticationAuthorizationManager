@@ -3,7 +3,7 @@ package eu.h2020.symbiote.security.rest;
 import eu.h2020.symbiote.security.commons.CustomAAMException;
 import eu.h2020.symbiote.security.commons.VirtualFile;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.json.*;
+import eu.h2020.symbiote.security.commons.payloads.*;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
 import eu.h2020.symbiote.security.services.LoginService;
 import eu.h2020.symbiote.security.services.ZipService;

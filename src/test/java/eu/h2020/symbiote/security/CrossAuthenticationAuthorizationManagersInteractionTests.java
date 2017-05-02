@@ -1,18 +1,13 @@
 package eu.h2020.symbiote.security;
 
-import eu.h2020.symbiote.security.commons.json.Credentials;
+import eu.h2020.symbiote.security.commons.payloads.Credentials;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.junit4.SpringRunner;
 
 /**
  * Test suite for interactions between multiple AAMs

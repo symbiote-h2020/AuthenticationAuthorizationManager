@@ -4,15 +4,13 @@ import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.exceptions.JWTCreationException;
-import eu.h2020.symbiote.security.commons.json.CheckTokenRevocationResponse;
-import eu.h2020.symbiote.security.commons.json.RequestToken;
+import eu.h2020.symbiote.security.commons.payloads.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.security.commons.payloads.RequestToken;
 import eu.h2020.symbiote.security.repositories.TokenRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Spring service used to provide token related functionality of the AAM.
