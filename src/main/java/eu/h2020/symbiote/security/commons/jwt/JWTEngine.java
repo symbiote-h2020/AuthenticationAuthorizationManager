@@ -90,17 +90,19 @@ public class JWTEngine {
         return this.generateJWTToken(user.getUsername(), attributes, regManager.convertPEMToX509(user.getCertificate().getPemCertificate()).getPublicKey().getEncoded());
     }
 
-    public String generateJWTToken(String userId, Map<String, String> attributes, byte[] userCertificate) throws JWTCreationException {
+    public String generateJWTToken(String userId, Map<String, String> attributes,byte[] userPublicKey) throws JWTCreationException {
 
         String jti = String.valueOf(random.nextInt());
         Map<String, Object> claimsMap = new HashMap<String, Object>();
 
         try {
             // Insert AAM Public Key
-            claimsMap.put("ipk", regManager.getAAMPublicKey().getEncoded());
+
+            claimsMap.put("ipk", Base64.encodeBase64String(regManager.getAAMPublicKey().getEncoded()));
 
             //Insert issuee Public Key
-            claimsMap.put("spk", userCertificate);
+            claimsMap.put("spk", Base64.encodeBase64String(userPublicKey));
+
 
             //Add symbIoTe related attributes to token
             if (attributes != null && !attributes.isEmpty()) {
