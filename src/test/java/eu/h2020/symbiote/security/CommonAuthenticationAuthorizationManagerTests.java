@@ -127,8 +127,6 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             // verify that this JWT contains attributes relevant for application role
             Map<String, String> attributes = claimsFromToken.getAtt();
             assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
-
-            // TODO verify that the token contains the application certificate
         } catch (MalformedJWTException | JSONException e) {
             e.printStackTrace();
         }

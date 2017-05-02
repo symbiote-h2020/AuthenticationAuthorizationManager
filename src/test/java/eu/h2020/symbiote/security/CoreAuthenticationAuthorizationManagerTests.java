@@ -323,7 +323,6 @@ public class CoreAuthenticationAuthorizationManagerTests extends
             Map<String, String> attributes = claimsFromToken.getAtt();
             assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
 
-            // TODO verify that the token contains the application certificate
         } catch (MalformedJWTException | JSONException e) {
             e.printStackTrace();
         }
@@ -350,11 +349,10 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertNotNull(platformRegistrationResponse.getPemCertificate());
         assertNotNull(platformRegistrationResponse.getPemPrivateKey());
 
+        // TODO verify that released certificate has no CA property
+
         // verified that we received the preferred platformId
         assertEquals(preferredPlatformId, platformRegistrationResponse.getPlatformId());
-
-        // verify that certificate is CA_ENABLED
-        // TODO implement this check
 
         // verify that PO is in repository (as PO!)
         User registeredPlatformOwner = userRepository.findOne(platformOwnerUsername);
@@ -390,12 +388,11 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertNotNull(platformRegistrationResponse.getPemCertificate());
         assertNotNull(platformRegistrationResponse.getPemPrivateKey());
 
+        // TODO verify that released certificate has no CA property
+
         // verified that we received a generated platformId
         String generatedPlatformId = platformRegistrationResponse.getPlatformId();
         assertNotNull(generatedPlatformId);
-
-        // verify that certificate is CA_ENABLED
-        // TODO implement this check
 
         // verify that PO is in repository (as PO!)
         User registeredPlatformOwner = userRepository.findOne(platformOwnerUsername);
@@ -417,7 +414,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void platformOwnerLoginSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws IOException, TimeoutException, MalformedJWTException, JSONException {
+    public void platformOwnerLoginSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws IOException, TimeoutException, MalformedJWTException, JSONException, CertificateException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
@@ -443,8 +440,6 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
         // owned platform identifier
         assertEquals(preferredPlatformId, attributes.get(CoreAttributes.OWNED_PLATFORM.toString()));
-
-        // TODO verify that the token contains PO certificate
     }
 
     /**

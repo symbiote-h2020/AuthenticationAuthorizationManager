@@ -13,14 +13,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.io.IOException;
@@ -39,7 +34,6 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
         AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(PlatformAuthenticationAuthorizationManagerTests.class);
-
 
 
     /**
@@ -180,7 +174,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
             // register new application to db
             UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new
                     Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
-                    (appUsername, "NewPassword"), "nullId", "nullMail",UserRole.APPLICATION));
+                    (appUsername, "NewPassword"), "nullId", "nullMail", UserRole.APPLICATION));
             UserRegistrationResponse userRegistrationResponse = userRegistrationService.register
                     (userRegistrationRequest);
 
@@ -189,8 +183,11 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
             assertNotNull(registeredUser);
             assertEquals(UserRole.APPLICATION, registeredUser.getRole());
 
-            String cert = userRegistrationResponse.getPemCertificate();
-            log.debug(cert);
+            // verify that the server returns certificate & privateKey
+            assertNotNull(userRegistrationResponse.getPemCertificate());
+            assertNotNull(userRegistrationResponse.getPemPrivateKey());
+
+            // TODO verify that released certificate has no CA property
         } catch (Exception e) {
             assertEquals(ExistingUserException.class, e.getClass());
             log.info(e.getMessage());
@@ -208,14 +205,28 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
      */
     @Test
     public void externalRegistrationSuccess() throws JsonProcessingException {
+        String testAppUsername = "NewApplication";
         UserRegistrationRequest request = new UserRegistrationRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new UserDetails( new Credentials("NewApplication", "NewPassword"), "", "", UserRole.APPLICATION));
+                new UserDetails(new Credentials(testAppUsername, "NewPassword"), "", "", UserRole.APPLICATION));
         try {
+            // verify that app is not in the repository
+            User registeredUser = userRepository.findOne(testAppUsername);
+            assertNull(registeredUser);
+
             ResponseEntity<UserRegistrationResponse> response = restTemplate.postForEntity(serverAddress +
                     registrationUri, request, UserRegistrationResponse.class);
             assertEquals(HttpStatus.OK, response.getStatusCode());
-            log.info(response.getBody().toJson());
+            // verify that app really is in repository
+            registeredUser = userRepository.findOne(testAppUsername);
+            assertNotNull(registeredUser);
+            assertEquals(UserRole.APPLICATION, registeredUser.getRole());
+
+            // verify that the server returns certificate & privateKey
+            assertNotNull(response.getBody().getPemCertificate());
+            assertNotNull(response.getBody().getPemPrivateKey());
+
+            // TODO verify that released certificate has no CA property
         } catch (HttpClientErrorException e) {
             assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
         }
@@ -261,7 +272,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     public void externalUnregistrationSuccess() throws JsonProcessingException {
         UserRegistrationRequest request = new UserRegistrationRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new UserDetails( new Credentials("NewApplication", "NewPassword"), "", "", UserRole.APPLICATION));
+                new UserDetails(new Credentials("NewApplication", "NewPassword"), "", "", UserRole.APPLICATION));
         try {
             ResponseEntity<Void> response = restTemplate.postForEntity(serverAddress + unregistrationUri, request,
                     Void.class);
