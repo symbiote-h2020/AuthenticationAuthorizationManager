@@ -6,13 +6,12 @@ import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.*;
+import eu.h2020.symbiote.security.commons.payloads.*;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
-import eu.h2020.symbiote.security.commons.payloads.*;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.codehaus.jettison.json.JSONException;
-import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,8 +26,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.commons.codec.binary.Base64;
-
 import static org.junit.Assert.*;
 
 /**
@@ -39,6 +36,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
         AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(PlatformAuthenticationAuthorizationManagerTests.class);
+
 
     /**
      * Feature: 3 (Authentication of components/ and applications registered in a platform)

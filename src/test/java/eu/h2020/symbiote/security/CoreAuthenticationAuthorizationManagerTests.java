@@ -85,7 +85,6 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         platformOwnerUserDetails = new UserDetails(new Credentials(
                 platformOwnerUsername, platformOwnerPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER);
         platformRegistrationRequest = new PlatformRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), platformOwnerUserDetails, platformAAMURL, preferredPlatformId);
-
     }
 
     /**

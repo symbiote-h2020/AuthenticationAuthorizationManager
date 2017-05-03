@@ -15,8 +15,6 @@ import eu.h2020.symbiote.security.token.jwt.attributes.CoreAttributes;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.codehaus.jettison.json.JSONException;
-import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -43,6 +41,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(CommonAuthenticationAuthorizationManagerTests.class);
+
 
     /**
      * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token revocation),
