@@ -20,6 +20,7 @@ import org.springframework.web.client.HttpClientErrorException;
 
 import java.io.IOException;
 import java.security.KeyPair;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.concurrent.TimeoutException;
@@ -58,7 +59,12 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
         try {
             JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
             assertEquals(IssuingAuthorityType.PLATFORM, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
-        } catch (MalformedJWTException | JSONException e) {
+
+            // verify that the token contains the application public key
+            byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
+            byte[] publicKeyFromToken = claimsFromToken.getSpk().getBytes();
+            assertEquals(applicationPublicKeyInRepository, publicKeyFromToken);
+        } catch (MalformedJWTException | JSONException | CertificateException e) {
             e.printStackTrace();
         }
     }

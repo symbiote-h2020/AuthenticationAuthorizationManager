@@ -26,6 +26,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.io.IOException;
+import java.security.cert.CertificateException;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -127,7 +128,13 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             // verify that this JWT contains attributes relevant for application role
             Map<String, String> attributes = claimsFromToken.getAtt();
             assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
-        } catch (MalformedJWTException | JSONException e) {
+
+            // verify that the token contains the application public key
+            byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
+            byte[] publicKeyFromToken = claimsFromToken.getSpk().getBytes();
+            assertEquals(applicationPublicKeyInRepository,publicKeyFromToken);
+
+        } catch (MalformedJWTException | JSONException | CertificateException | IOException e) {
             e.printStackTrace();
         }
     }

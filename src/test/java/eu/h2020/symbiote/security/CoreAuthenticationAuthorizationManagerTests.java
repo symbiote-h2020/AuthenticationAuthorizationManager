@@ -323,7 +323,11 @@ public class CoreAuthenticationAuthorizationManagerTests extends
             Map<String, String> attributes = claimsFromToken.getAtt();
             assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
 
-        } catch (MalformedJWTException | JSONException e) {
+            // verify that the token contains the application public key
+            byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
+            byte[] publicKeyFromToken = claimsFromToken.getSpk().getBytes();
+            assertEquals(applicationPublicKeyInRepository, publicKeyFromToken);
+        } catch (MalformedJWTException | JSONException | CertificateException | IOException e) {
             e.printStackTrace();
         }
     }
@@ -434,12 +438,20 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         //verify that JWT is of type Core as was released by a CoreAAM
         assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
+        // verify that the token contains the platform owner public key
+        byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(platformOwnerUsername).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
+        byte[] publicKeyFromToken = claimsFromToken.getSpk().getBytes();
+        assertEquals(applicationPublicKeyInRepository,publicKeyFromToken);
+
         // verify that this JWT contains attributes relevant for platform owner
         Map<String, String> attributes = claimsFromToken.getAtt();
         // PO role
         assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
         // owned platform identifier
         assertEquals(preferredPlatformId, attributes.get(CoreAttributes.OWNED_PLATFORM.toString()));
+
+
+
     }
 
     /**
