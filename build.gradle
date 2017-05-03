@@ -76,10 +76,7 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
     //compile project(':SymbIoTeLibraries')
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:aam_development-SNAPSHOT') { changing = true }
-
-    // for the time being as there is some problem with SymbioteLibs transient dependencies
-    compile('io.jsonwebtoken:jjwt:0.7.0')
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT') { changing = true }
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
@@ -128,4 +125,4 @@ dependencyCheck {
 }
 
 // including code quality extensions into the build
-check.dependsOn(jacocoTestReport)//, 'dependencyCheck')
+check.dependsOn(jacocoTestReport, 'dependencyCheck')
