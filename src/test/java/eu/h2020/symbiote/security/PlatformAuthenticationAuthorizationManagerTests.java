@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.security.KeyPair;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.concurrent.TimeoutException;
 
@@ -64,7 +63,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
             // verify that the token contains the application public key
             byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
             byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
-            assertEquals(Arrays.equals(applicationPublicKeyInRepository,publicKeyFromToken),true);
+            assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
         } catch (MalformedJWTException | CertificateException e) {
             e.printStackTrace();
         }

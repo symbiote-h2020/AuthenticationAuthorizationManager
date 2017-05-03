@@ -6,11 +6,11 @@ import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.*;
+import eu.h2020.symbiote.security.commons.payloads.*;
+import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import eu.h2020.symbiote.security.token.jwt.attributes.CoreAttributes;
-import eu.h2020.symbiote.security.commons.payloads.*;
-import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -328,7 +328,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
             // verify that the token contains the application public key
             byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
             byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
-            assertEquals(Arrays.equals(applicationPublicKeyInRepository,publicKeyFromToken),true);
+            assertEquals(Arrays.equals(applicationPublicKeyInRepository, publicKeyFromToken), true);
         } catch (MalformedJWTException | CertificateException | IOException e) {
             e.printStackTrace();
         }
@@ -443,7 +443,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         // verify that the token contains the platform owner public key
         byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(platformOwnerUsername).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
-        assertEquals(Arrays.equals(applicationPublicKeyInRepository,publicKeyFromToken),true);
+        assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
 
         // verify that this JWT contains attributes relevant for platform owner
         Map<String, String> attributes = claimsFromToken.getAtt();
@@ -451,9 +451,6 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
         // owned platform identifier
         assertEquals(preferredPlatformId, attributes.get(CoreAttributes.OWNED_PLATFORM.toString()));
-
-
-
     }
 
     /**

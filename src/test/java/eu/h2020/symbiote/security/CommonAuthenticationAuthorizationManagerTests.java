@@ -134,7 +134,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
             byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
 
-            assertEquals(Arrays.equals(applicationPublicKeyInRepository,publicKeyFromToken),true);
+            assertArrayEquals(applicationPublicKeyInRepository,publicKeyFromToken);
 
         } catch (MalformedJWTException | CertificateException | IOException e) {
             e.printStackTrace();
