@@ -123,7 +123,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(headers.getFirst(tokenHeaderName));
         try {
-            JWTClaims claimsFromToken = jwtEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
+            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
             // As the AAM is now configured as core we confirm that relevant token type was issued.
             assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 

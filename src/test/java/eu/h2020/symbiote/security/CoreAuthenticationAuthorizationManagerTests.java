@@ -319,7 +319,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(headers.getFirst(tokenHeaderName));
         try {
-            JWTClaims claimsFromToken = jwtEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
+            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
             assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
             // verify that this JWT contains attributes relevant for application role
@@ -436,7 +436,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         //verify that JWT was issued for user
         assertNotNull(headers.getFirst(tokenHeaderName));
 
-        JWTClaims claimsFromToken = jwtEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
 
         //verify that JWT is of type Core as was released by a CoreAAM
         assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));

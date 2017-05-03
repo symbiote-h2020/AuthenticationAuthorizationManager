@@ -8,24 +8,18 @@ import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.TokenValidationException;
 import eu.h2020.symbiote.security.commons.payloads.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.security.commons.payloads.RequestToken;
+import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import eu.h2020.symbiote.security.token.jwt.attributes.CoreAttributes;
-import eu.h2020.symbiote.security.repositories.PlatformRepository;
-import eu.h2020.symbiote.security.services.TokenService;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.codehaus.jettison.json.JSONException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -61,22 +55,17 @@ public class TokenManager {
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
 
-    @Value("${aam.deployment.id}")
-    private String deploymentID = "";
-
     @Autowired
-    public TokenManager( RegistrationManager regManager, PlatformRepository platformRepository) {
+    public TokenManager(RegistrationManager regManager, PlatformRepository platformRepository) {
         this.jwtEngine = new JWTEngine();
         this.regManager = regManager;
         this.platformRepository = platformRepository;
     }
 
     /**
-     * Used to create CORE & PLATFORM tokens
-     *
-     * @param user
-     * @return
-     * @throws JWTCreationException
+     * @param user for which to issue to token
+     * @return core or platform token issued for given user
+     * @throws JWTCreationException on error
      */
     public RequestToken createHomeToken(User user)
             throws JWTCreationException {
@@ -98,13 +87,12 @@ public class TokenManager {
                     }
                     break;
                 case PLATFORM:
-                    // TODO not that I know of any
+                    // TODO R3 federation
                     break;
                 case NULL:
-                    // TODO not that I know of any
-                    break;
+                    throw new JWTCreationException("Misconfigured AAM deployment type");
             }
-            return new RequestToken(jwtEngine.generateJWTToken(user.getUsername(), attributes,regManager.convertPEMToX509(user.getCertificate().getPemCertificate()).getPublicKey().getEncoded(),deploymentType,tokenValidity,deploymentID,regManager.getAAMPublicKey(),regManager.getAAMPrivateKey()));
+            return new RequestToken(jwtEngine.generateJWTToken(user.getUsername(), attributes, regManager.convertPEMToX509(user.getCertificate().getPemCertificate()).getPublicKey().getEncoded(), deploymentType, tokenValidity, deploymentId, regManager.getAAMPublicKey(), regManager.getAAMPrivateKey()));
         } catch (Exception e) {
             log.error(e);
             throw new JWTCreationException(e);
@@ -115,11 +103,11 @@ public class TokenManager {
             throws JWTCreationException {
         try {
 
-            JWTClaims claims = jwtEngine.getClaimsFromToken(foreignToken);
+            JWTClaims claims = JWTEngine.getClaimsFromToken(foreignToken);
 
             Map<String, String> federatedAttributes = new HashMap<>();
             return new RequestToken(
-                    jwtEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.decodeBase64(claims.getIpk()),deploymentType,tokenValidity,deploymentID,regManager.getAAMPublicKey(),regManager.getAAMPrivateKey()));
+                    jwtEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.decodeBase64(claims.getIpk()), deploymentType, tokenValidity, deploymentId, regManager.getAAMPublicKey(), regManager.getAAMPrivateKey()));
         } catch (Exception e) {
             log.error(e);
             throw new JWTCreationException(e);
@@ -134,7 +122,7 @@ public class TokenManager {
             if (dbToken == null) {
                 throw new TokenValidationException(Constants.ERR_TOKEN_WRONG_ISSUER);
             }
-            JWTClaims claims = jwtEngine.getClaimsFromToken(token.getToken());
+            JWTClaims claims = JWTEngine.getClaimsFromToken(token.getToken());
 
             //Check if token expired
             Long now = System.currentTimeMillis();
@@ -148,9 +136,9 @@ public class TokenManager {
             }
             return outcome;
         } catch (MalformedJWTException e) {
-            log.error("JWT Format error: " + e.toString());
+            log.error("JWT Format error", e);
         } catch (TokenValidationException e) {
-            log.error("JWT validation error: " + e.toString());
+            log.error("JWT validation error", e);
         }
 
         outcome.setStatus(Status.FAILURE);

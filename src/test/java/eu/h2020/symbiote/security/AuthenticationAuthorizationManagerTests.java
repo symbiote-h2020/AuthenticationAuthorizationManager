@@ -89,8 +89,6 @@ public abstract class AuthenticationAuthorizationManagerTests {
     @Autowired
     private CertificateRepository certificateRepository;
 
-    protected JWTEngine jwtEngine;
-
     @Before
     public void setUp() throws Exception {
         // Catch the random port
@@ -107,8 +105,6 @@ public abstract class AuthenticationAuthorizationManagerTests {
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
                 (username, password), "federatedId", "nullMail", UserRole.APPLICATION));
         userRegistrationService.register(userRegistrationRequest);
-
-        jwtEngine = new JWTEngine();
     }
 
     @Configuration

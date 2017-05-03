@@ -60,7 +60,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
 
         assertNotNull(token.getToken());
         try {
-            JWTClaims claimsFromToken = jwtEngine.getClaimsFromToken(token.getToken());
+            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
             assertEquals(IssuingAuthorityType.PLATFORM, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
             // verify that the token contains the application public key
