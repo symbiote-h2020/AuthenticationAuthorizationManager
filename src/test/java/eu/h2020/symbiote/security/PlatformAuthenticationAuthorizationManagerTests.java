@@ -3,10 +3,10 @@ package eu.h2020.symbiote.security;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.commons.User;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.*;
-import eu.h2020.symbiote.security.commons.payloads.*;
+import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.exceptions.aam.*;
+import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import org.apache.commons.codec.binary.Base64;
@@ -51,7 +51,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
         byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(username, password))
                 .getBytes());
-        RequestToken token = mapper.readValue(response, RequestToken.class);
+        Token token = mapper.readValue(response, Token.class);
 
         log.info("Test Client received this Token: " + token.toJson());
 

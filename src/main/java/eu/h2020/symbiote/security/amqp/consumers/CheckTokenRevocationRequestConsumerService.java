@@ -6,8 +6,8 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import eu.h2020.symbiote.security.amqp.RabbitManager;
-import eu.h2020.symbiote.security.commons.payloads.CheckTokenRevocationResponse;
-import eu.h2020.symbiote.security.commons.payloads.RequestToken;
+import eu.h2020.symbiote.security.payloads.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.security.payloads.Token;
 import eu.h2020.symbiote.security.services.TokenService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -56,7 +56,7 @@ public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer 
 
         String message = new String(body, "UTF-8");
         ObjectMapper om = new ObjectMapper();
-        RequestToken requestToken;
+        Token token;
         String response;
 
         log.info("[x] Received Check Token Revocation Request: '" + message + "'");
@@ -68,10 +68,10 @@ public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer 
                 .correlationId(properties.getCorrelationId())
                 .build();
             try {
-                requestToken = om.readValue(message, RequestToken.class);
+                token = om.readValue(message, Token.class);
 
                 CheckTokenRevocationResponse checkTokenRevocationResponse = tokenService.checkHomeTokenRevocation
-                    (requestToken);
+                        (token);
                 response = om.writeValueAsString(checkTokenRevocationResponse);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
 

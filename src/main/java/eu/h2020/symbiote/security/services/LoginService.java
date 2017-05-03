@@ -1,11 +1,11 @@
 package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.User;
-import eu.h2020.symbiote.security.commons.exceptions.JWTCreationException;
-import eu.h2020.symbiote.security.commons.exceptions.MissingArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.WrongCredentialsException;
-import eu.h2020.symbiote.security.commons.payloads.Credentials;
-import eu.h2020.symbiote.security.commons.payloads.RequestToken;
+import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
+import eu.h2020.symbiote.security.exceptions.aam.MissingArgumentsException;
+import eu.h2020.symbiote.security.exceptions.aam.WrongCredentialsException;
+import eu.h2020.symbiote.security.payloads.Credentials;
+import eu.h2020.symbiote.security.payloads.Token;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,7 +33,7 @@ public class LoginService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public RequestToken login(Credentials user) throws MissingArgumentsException, WrongCredentialsException,
+    public Token login(Credentials user) throws MissingArgumentsException, WrongCredentialsException,
             JWTCreationException {
         // validate request
         if (user.getUsername().isEmpty() || user.getPassword().isEmpty()) throw new MissingArgumentsException();

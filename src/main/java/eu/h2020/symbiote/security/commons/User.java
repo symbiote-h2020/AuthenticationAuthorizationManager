@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.commons;
 
-import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.enums.UserRole;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 

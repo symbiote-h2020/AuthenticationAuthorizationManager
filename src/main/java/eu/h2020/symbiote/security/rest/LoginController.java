@@ -1,10 +1,10 @@
 package eu.h2020.symbiote.security.rest;
 
-import eu.h2020.symbiote.security.commons.Constants;
-import eu.h2020.symbiote.security.commons.CustomAAMException;
-import eu.h2020.symbiote.security.commons.payloads.Credentials;
-import eu.h2020.symbiote.security.commons.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.commons.payloads.RequestToken;
+import eu.h2020.symbiote.security.constants.AAMConstants;
+import eu.h2020.symbiote.security.exceptions.AAMException;
+import eu.h2020.symbiote.security.payloads.Credentials;
+import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.payloads.Token;
 import eu.h2020.symbiote.security.services.LoginService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -38,11 +38,11 @@ public class LoginController {
     public ResponseEntity<?> login(@RequestBody Credentials user) {
 
         try {
-            RequestToken token = loginService.login(user);
+            Token token = loginService.login(user);
             HttpHeaders headers = new HttpHeaders();
-            headers.add(Constants.TOKEN_HEADER_NAME, token.getToken());
+            headers.add(AAMConstants.TOKEN_HEADER_NAME, token.getToken());
             return new ResponseEntity<>(headers, HttpStatus.OK);
-        } catch (CustomAAMException e) {
+        } catch (AAMException e) {
             return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
                 .getStatusCode().ordinal()), e.getStatusCode());
         }

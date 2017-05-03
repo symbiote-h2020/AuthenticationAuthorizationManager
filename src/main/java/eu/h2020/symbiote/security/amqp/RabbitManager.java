@@ -5,8 +5,8 @@ import eu.h2020.symbiote.security.amqp.consumers.ApplicationRegistrationRequestC
 import eu.h2020.symbiote.security.amqp.consumers.CheckTokenRevocationRequestConsumerService;
 import eu.h2020.symbiote.security.amqp.consumers.LoginRequestConsumerService;
 import eu.h2020.symbiote.security.amqp.consumers.PlatformRegistrationRequestConsumerService;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.exceptions.AAMMisconfigurationException;
+import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.exceptions.aam.AAMMisconfigurationException;
 import eu.h2020.symbiote.security.services.LoginService;
 import eu.h2020.symbiote.security.services.PlatformRegistrationService;
 import eu.h2020.symbiote.security.services.TokenService;

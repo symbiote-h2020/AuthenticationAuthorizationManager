@@ -1,16 +1,12 @@
 package eu.h2020.symbiote.security;
 
 import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.security.commons.exceptions.NotExistingUserException;
+import eu.h2020.symbiote.security.exceptions.aam.NotExistingUserException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;

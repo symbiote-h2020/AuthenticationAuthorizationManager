@@ -1,11 +1,11 @@
 package eu.h2020.symbiote.security.rest;
 
-import eu.h2020.symbiote.security.commons.CustomAAMException;
 import eu.h2020.symbiote.security.commons.VirtualFile;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.payloads.*;
-import eu.h2020.symbiote.security.services.UserRegistrationService;
+import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.exceptions.AAMException;
+import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.services.LoginService;
+import eu.h2020.symbiote.security.services.UserRegistrationService;
 import eu.h2020.symbiote.security.services.ZipService;
 import net.lingala.zip4j.exception.ZipException;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -51,7 +51,7 @@ public class ApplicationRegistrationController {
     @PreAuthorize("isAuthenticated()")
     @RequestMapping(value = "/registration", method = RequestMethod.POST)
     public ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response)
-            throws CustomAAMException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException,
+            throws AAMException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException,
             OperatorCreationException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException,
             IOException, ZipException {
         UserRegistrationRequest request = new UserRegistrationRequest();
@@ -81,7 +81,7 @@ public class ApplicationRegistrationController {
         try {
             UserRegistrationResponse response = registrationService.authRegister(request);
             return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (CustomAAMException e) {
+        } catch (AAMException e) {
             return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
                     .getStatusCode().ordinal()), e.getStatusCode());
         }
@@ -95,7 +95,7 @@ public class ApplicationRegistrationController {
         try {
             registrationService.authUnregister(request);
             return new ResponseEntity<>(HttpStatus.OK);
-        } catch (CustomAAMException e) {
+        } catch (AAMException e) {
             return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
                     .getStatusCode().ordinal()), e.getStatusCode());
         }

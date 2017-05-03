@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.commons.filters;
 
-import eu.h2020.symbiote.security.commons.Constants;
+import eu.h2020.symbiote.security.constants.AAMConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -28,8 +28,8 @@ public class CORSFilter implements Filter {
 
         response.setHeader("Access-Control-Allow-Origin", request.getHeader("Origin"));
         response.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT");
-        response.setHeader("Access-Control-Expose-Headers", Constants.TOKEN_HEADER_NAME);
-        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, " + Constants.TOKEN_HEADER_NAME);
+        response.setHeader("Access-Control-Expose-Headers", AAMConstants.TOKEN_HEADER_NAME);
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Accept, " + AAMConstants.TOKEN_HEADER_NAME);
 
         chain.doFilter(req, res);
     }

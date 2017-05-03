@@ -1,27 +1,25 @@
 package eu.h2020.symbiote.security.commons;
 
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
-import eu.h2020.symbiote.security.commons.payloads.RequestToken;
+import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.codehaus.jettison.json.JSONException;
 import org.springframework.data.annotation.Id;
 
 import java.util.Date;
 
 /**
- * Token entity.
+ * Token Entity.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
  * @author Mikołaj Dobski (PSNC)
- * @see RequestToken
+ * @see eu.h2020.symbiote.security.payloads.Token
  */
-public class Token {
+public class TokenEntity {
 
-    private static Log log = LogFactory.getLog(Token.class);
+    private static Log log = LogFactory.getLog(TokenEntity.class);
 
     @Id
     private String id = "";
@@ -32,18 +30,17 @@ public class Token {
     /**
      * required by JPA
      */
-    public Token() {
+    public TokenEntity() {
         // required by JPA
     }
 
-    public Token(RequestToken requestToken) {
-        this.token = requestToken.getToken();
+    public TokenEntity(String token) {
+        this.token = token;
         try {
-            JWTEngine jwtEngine = new JWTEngine();
-            this.createdAt = new Date(jwtEngine.getClaimsFromToken(token).getIat());
+            this.id = JWTEngine.getClaimsFromToken(token).getJti();
+            this.createdAt = new Date(JWTEngine.getClaimsFromToken(this.token).getIat());
         } catch (MalformedJWTException e) {
-            e.printStackTrace();
-            log.error("Token creation error", e);
+            log.error("TokenEntity creation error", e);
         }
     }
 

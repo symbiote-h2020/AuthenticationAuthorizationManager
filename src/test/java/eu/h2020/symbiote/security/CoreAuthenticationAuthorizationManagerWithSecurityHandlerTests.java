@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security;
 
-import eu.h2020.symbiote.security.exception.DisabledException;
+import eu.h2020.symbiote.security.exceptions.sh.SecurityHandlerDisabledException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Ignore;
@@ -23,7 +23,7 @@ public class CoreAuthenticationAuthorizationManagerWithSecurityHandlerTests exte
      */
     @Test
     @Ignore("WIP")
-    public void externalLoginUsingSecurityHandlerSuccess() throws DisabledException {
+    public void externalLoginUsingSecurityHandlerSuccess() throws SecurityHandlerDisabledException {
         SecurityHandler securityHandler = new SecurityHandler("http://localhost:8080/", "127.0.0.1",true);
         securityHandler.appRequestCoreToken(username,password);
 

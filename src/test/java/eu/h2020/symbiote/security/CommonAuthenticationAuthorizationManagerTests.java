@@ -1,17 +1,17 @@
 package eu.h2020.symbiote.security;
 
 import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.enums.Status;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
-import eu.h2020.symbiote.security.commons.payloads.CheckTokenRevocationResponse;
-import eu.h2020.symbiote.security.commons.payloads.Credentials;
-import eu.h2020.symbiote.security.commons.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.commons.payloads.RequestToken;
+import eu.h2020.symbiote.security.enums.CoreAttributes;
+import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.enums.Status;
+import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
+import eu.h2020.symbiote.security.payloads.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.security.payloads.Credentials;
+import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.payloads.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
-import eu.h2020.symbiote.security.token.jwt.attributes.CoreAttributes;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -27,7 +27,6 @@ import org.springframework.web.client.HttpClientErrorException;
 
 import java.io.IOException;
 import java.security.cert.CertificateException;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -64,7 +63,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", checkTokenRevocationRequestQueue,
                 10000);
-        byte[] amqpResponse = client.primitiveCall(mapper.writeValueAsString(new RequestToken(token)).getBytes());
+        byte[] amqpResponse = client.primitiveCall(mapper.writeValueAsString(new Token(token)).getBytes());
         CheckTokenRevocationResponse checkTokenRevocationResponse = mapper.readValue(amqpResponse,
                 CheckTokenRevocationResponse.class);
 

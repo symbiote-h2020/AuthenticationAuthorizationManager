@@ -1,11 +1,11 @@
 package eu.h2020.symbiote.security.services;
 
-import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.TokenEntity;
 import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
-import eu.h2020.symbiote.security.commons.exceptions.JWTCreationException;
-import eu.h2020.symbiote.security.commons.payloads.CheckTokenRevocationResponse;
-import eu.h2020.symbiote.security.commons.payloads.RequestToken;
+import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
+import eu.h2020.symbiote.security.payloads.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.security.payloads.Token;
 import eu.h2020.symbiote.security.repositories.TokenRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,41 +30,40 @@ public class TokenService {
         this.tokenManager = tokenManager;
     }
 
-    public RequestToken exchangeForForeignToken(String foreignToken) throws JWTCreationException {
-        RequestToken retToken = tokenManager.createForeignToken(foreignToken);
+    public Token exchangeForForeignToken(String foreignToken) throws JWTCreationException {
+        Token retToken = tokenManager.createForeignToken(foreignToken);
         saveToken(retToken);
         return retToken;
     }
 
     /**
-     *
      * @param user which the token belongs to
      * @return Generates home token for given user
      * @throws JWTCreationException
      */
-    public RequestToken getHomeToken(User user) throws JWTCreationException {
-        RequestToken retToken = tokenManager.createHomeToken(user);
+    public Token getHomeToken(User user) throws JWTCreationException {
+        Token retToken = tokenManager.createHomeToken(user);
         saveToken(retToken);
         return retToken;
     }
 
-    public CheckTokenRevocationResponse checkHomeTokenRevocation(RequestToken token) {
-        return tokenManager.checkHomeTokenRevocation(token, getToken(token.getToken()));
+    public CheckTokenRevocationResponse checkHomeTokenRevocation(Token token) {
+        return tokenManager.checkHomeTokenRevocation(token, tokenRepository.findByToken(token.getToken()));
     }
 
     public void removeAllTokens() {
         tokenRepository.deleteAll();
     }
 
-    public void saveToken(RequestToken token) {
-        tokenRepository.save(new Token(token));
+    public void saveToken(Token token) {
+        tokenRepository.save(new TokenEntity(token.getToken()));
     }
 
     public Token getToken(String jwt) {
-        return tokenRepository.findByToken(jwt);
+        return new Token(tokenRepository.findByToken(jwt).getToken());
     }
 
-    public List<Token> getAllTokens() {
+    public List<TokenEntity> getAllTokens() {
         return tokenRepository.findAll();
     }
 }
