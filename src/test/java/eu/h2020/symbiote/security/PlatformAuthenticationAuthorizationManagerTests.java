@@ -7,11 +7,12 @@ import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.*;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
-import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import eu.h2020.symbiote.security.commons.payloads.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jettison.json.JSONException;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,7 +40,6 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
 
     private static Log log = LogFactory.getLog(PlatformAuthenticationAuthorizationManagerTests.class);
 
-
     /**
      * Feature: 3 (Authentication of components/ and applications registered in a platform)
      * Interface: PAAM - 1
@@ -60,14 +60,14 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
 
         assertNotNull(token.getToken());
         try {
-            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
+            JWTClaims claimsFromToken = jwtEngine.getClaimsFromToken(token.getToken());
             assertEquals(IssuingAuthorityType.PLATFORM, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
             // verify that the token contains the application public key
             byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
             byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
             assertEquals(Arrays.equals(applicationPublicKeyInRepository,publicKeyFromToken),true);
-        } catch (MalformedJWTException | JSONException | CertificateException e) {
+        } catch (MalformedJWTException | CertificateException e) {
             e.printStackTrace();
         }
     }

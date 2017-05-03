@@ -9,8 +9,8 @@ import eu.h2020.symbiote.security.commons.exceptions.TokenValidationException;
 import eu.h2020.symbiote.security.commons.payloads.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.security.commons.payloads.RequestToken;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
-import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.token.jwt.CoreAttributes;
+import eu.h2020.symbiote.security.token.jwt.JWTEngine;
+import eu.h2020.symbiote.security.token.jwt.attributes.CoreAttributes;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.services.TokenService;
 import org.apache.commons.codec.binary.Base64;
@@ -21,6 +21,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,7 +44,7 @@ public class TokenManager {
 
     private static Log log = LogFactory.getLog(TokenManager.class);
 
-    private final JWTEngine jwtEngine;
+    private JWTEngine jwtEngine;
     private RegistrationManager regManager;
 
     private PlatformRepository platformRepository;
@@ -53,10 +58,15 @@ public class TokenManager {
     @Value("${aam.deployment.type}")
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
 
+    @Value("${aam.deployment.token.validityMillis}")
+    private Long tokenValidity;
+
+    @Value("${aam.deployment.id}")
+    private String deploymentID = "";
 
     @Autowired
-    public TokenManager(JWTEngine jwtEngine, RegistrationManager regManager, PlatformRepository platformRepository) {
-        this.jwtEngine = jwtEngine;
+    public TokenManager( RegistrationManager regManager, PlatformRepository platformRepository) {
+        this.jwtEngine = new JWTEngine();
         this.regManager = regManager;
         this.platformRepository = platformRepository;
     }
@@ -94,7 +104,7 @@ public class TokenManager {
                     // TODO not that I know of any
                     break;
             }
-            return new RequestToken(jwtEngine.generateJWTToken(user, attributes));
+            return new RequestToken(jwtEngine.generateJWTToken(user.getUsername(), attributes,regManager.convertPEMToX509(user.getCertificate().getPemCertificate()).getPublicKey().getEncoded(),deploymentType,tokenValidity,deploymentID,regManager.getAAMPublicKey(),regManager.getAAMPrivateKey()));
         } catch (Exception e) {
             log.error(e);
             throw new JWTCreationException(e);
@@ -105,11 +115,11 @@ public class TokenManager {
             throws JWTCreationException {
         try {
 
-            JWTClaims claims = JWTEngine.getClaimsFromToken(foreignToken);
+            JWTClaims claims = jwtEngine.getClaimsFromToken(foreignToken);
 
             Map<String, String> federatedAttributes = new HashMap<>();
             return new RequestToken(
-                    jwtEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.decodeBase64(claims.getIpk())));
+                    jwtEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.decodeBase64(claims.getIpk()),deploymentType,tokenValidity,deploymentID,regManager.getAAMPublicKey(),regManager.getAAMPrivateKey()));
         } catch (Exception e) {
             log.error(e);
             throw new JWTCreationException(e);
@@ -124,7 +134,8 @@ public class TokenManager {
             if (dbToken == null) {
                 throw new TokenValidationException(Constants.ERR_TOKEN_WRONG_ISSUER);
             }
-            JWTClaims claims = JWTEngine.getClaimsFromToken(token.getToken());
+            JWTClaims claims = jwtEngine.getClaimsFromToken(token.getToken());
+
             //Check if token expired
             Long now = System.currentTimeMillis();
             if ((claims.getExp() < now || (claims.getIat() > now))) {
@@ -138,8 +149,6 @@ public class TokenManager {
             return outcome;
         } catch (MalformedJWTException e) {
             log.error("JWT Format error: " + e.toString());
-        } catch (JSONException e) {
-            log.error("JWT data reading error: " + e.toString());
         } catch (TokenValidationException e) {
             log.error("JWT validation error: " + e.toString());
         }

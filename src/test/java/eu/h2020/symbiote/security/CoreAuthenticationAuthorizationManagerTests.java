@@ -7,8 +7,8 @@ import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.*;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
-import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.token.jwt.CoreAttributes;
+import eu.h2020.symbiote.security.token.jwt.JWTEngine;
+import eu.h2020.symbiote.security.token.jwt.attributes.CoreAttributes;
 import eu.h2020.symbiote.security.commons.payloads.*;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import org.apache.commons.codec.binary.Base64;
@@ -85,6 +85,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         platformOwnerUserDetails = new UserDetails(new Credentials(
                 platformOwnerUsername, platformOwnerPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER);
         platformRegistrationRequest = new PlatformRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), platformOwnerUserDetails, platformAAMURL, preferredPlatformId);
+
     }
 
     /**
@@ -318,7 +319,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(headers.getFirst(tokenHeaderName));
         try {
-            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
+            JWTClaims claimsFromToken = jwtEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
             assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
             // verify that this JWT contains attributes relevant for application role
@@ -329,7 +330,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
             byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
             byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
             assertEquals(Arrays.equals(applicationPublicKeyInRepository,publicKeyFromToken),true);
-        } catch (MalformedJWTException | JSONException | CertificateException | IOException e) {
+        } catch (MalformedJWTException | CertificateException | IOException e) {
             e.printStackTrace();
         }
     }
@@ -435,7 +436,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         //verify that JWT was issued for user
         assertNotNull(headers.getFirst(tokenHeaderName));
 
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
+        JWTClaims claimsFromToken = jwtEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
 
         //verify that JWT is of type Core as was released by a CoreAAM
         assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));

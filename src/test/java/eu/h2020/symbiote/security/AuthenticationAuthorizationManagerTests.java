@@ -10,6 +10,7 @@ import eu.h2020.symbiote.security.commons.payloads.UserRegistrationRequest;
 import eu.h2020.symbiote.security.repositories.CertificateRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
+import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
@@ -88,6 +89,8 @@ public abstract class AuthenticationAuthorizationManagerTests {
     @Autowired
     private CertificateRepository certificateRepository;
 
+    protected JWTEngine jwtEngine;
+
     @Before
     public void setUp() throws Exception {
         // Catch the random port
@@ -104,6 +107,8 @@ public abstract class AuthenticationAuthorizationManagerTests {
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
                 (username, password), "federatedId", "nullMail", UserRole.APPLICATION));
         userRegistrationService.register(userRegistrationRequest);
+
+        jwtEngine = new JWTEngine();
     }
 
     @Configuration

@@ -10,12 +10,13 @@ import eu.h2020.symbiote.security.commons.payloads.Credentials;
 import eu.h2020.symbiote.security.commons.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.commons.payloads.RequestToken;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
-import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.token.jwt.CoreAttributes;
+import eu.h2020.symbiote.security.token.jwt.JWTEngine;
+import eu.h2020.symbiote.security.token.jwt.attributes.CoreAttributes;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jettison.json.JSONException;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -42,7 +43,6 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(CommonAuthenticationAuthorizationManagerTests.class);
-
 
     /**
      * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token revocation),
@@ -123,7 +123,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(headers.getFirst(tokenHeaderName));
         try {
-            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
+            JWTClaims claimsFromToken = jwtEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
             // As the AAM is now configured as core we confirm that relevant token type was issued.
             assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
@@ -137,7 +137,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
             assertEquals(Arrays.equals(applicationPublicKeyInRepository,publicKeyFromToken),true);
 
-        } catch (MalformedJWTException | JSONException | CertificateException | IOException e) {
+        } catch (MalformedJWTException | CertificateException | IOException e) {
             e.printStackTrace();
         }
     }

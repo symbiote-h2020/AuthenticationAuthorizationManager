@@ -3,7 +3,7 @@ package eu.h2020.symbiote.security.commons;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.payloads.RequestToken;
-import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jettison.json.JSONException;
@@ -39,8 +39,9 @@ public class Token {
     public Token(RequestToken requestToken) {
         this.token = requestToken.getToken();
         try {
-            this.createdAt = new Date(JWTEngine.getClaimsFromToken(token).getIat());
-        } catch (MalformedJWTException | JSONException e) {
+            JWTEngine jwtEngine = new JWTEngine();
+            this.createdAt = new Date(jwtEngine.getClaimsFromToken(token).getIat());
+        } catch (MalformedJWTException e) {
             e.printStackTrace();
             log.error("Token creation error", e);
         }
