@@ -46,7 +46,8 @@ public class User {
      * @param role              user's role in symbIoTe ecosystem, see @{@link UserRole}
      * @param attributes        used to assign in registration phase application-unique attributes
      */
-    public User(String username, String passwordEncrypted, String recoveryMail, Certificate certificate, UserRole role,
+    public User(String username, String passwordEncrypted, String recoveryMail, Certificate certificate,
+                UserRole role,
                 List<String> attributes) {
         this.username = username;
         this.passwordEncrypted = passwordEncrypted;

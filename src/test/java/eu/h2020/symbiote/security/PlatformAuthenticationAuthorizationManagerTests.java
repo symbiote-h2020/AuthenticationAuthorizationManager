@@ -60,12 +60,12 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
             assertEquals(IssuingAuthorityType.PLATFORM, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
             // verify that the token contains the application public key
-            byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne
-                    (username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
+            byte[] applicationPublicKeyInRepository = userRepository.findOne
+                    (username).getCertificate().getX509().getPublicKey().getEncoded();
             byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
             assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
         } catch (MalformedJWTException | CertificateException e) {
-            e.printStackTrace();
+            log.error(e);
         }
     }
 

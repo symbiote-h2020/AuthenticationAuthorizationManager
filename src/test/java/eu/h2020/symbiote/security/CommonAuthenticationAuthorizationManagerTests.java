@@ -136,12 +136,12 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
 
             // verify that the token contains the application public key
-            byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne
-                    (username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
+            byte[] applicationPublicKeyInRepository = userRepository.findOne
+                    (username).getCertificate().getX509().getPublicKey().getEncoded();
             byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
 
             assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
-        } catch (MalformedJWTException | CertificateException | IOException e) {
+        } catch (MalformedJWTException | CertificateException e) {
             log.error(e);
         }
     }
@@ -283,7 +283,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             // get user certficate
             Certificate userCertificate = user.getCertificate();
             // verify the certificate is not yet revoked
-            assertFalse(revokedCertificatesRepository.exists(userCertificate.getPemCertificate()));
+            assertFalse(revokedCertificatesRepository.exists(userCertificate.toString()));
 
             // unregister
             userRegistrationService.unregister(username);
@@ -292,7 +292,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             // verify that app is not anymore in the repository
             assertFalse(userRepository.exists(username));
             // verify that the user certificate was indeed revoked
-            assertTrue(revokedCertificatesRepository.exists(userCertificate.getPemCertificate()));
+            assertTrue(revokedCertificatesRepository.exists(userCertificate.toString()));
         } catch (Exception e) {
             assertEquals(NotExistingUserException.class, e.getClass());
             log.error(e.getMessage());

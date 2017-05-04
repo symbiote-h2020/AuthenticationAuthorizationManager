@@ -80,7 +80,8 @@ public class TokenManager {
                             break;
                         case PLATFORM_OWNER:
                             attributes.put(CoreAttributes.ROLE.toString(), UserRole.PLATFORM_OWNER.toString());
-                            attributes.put(CoreAttributes.OWNED_PLATFORM.toString(), platformRepository.findByPlatformOwner(user).getPlatformId());
+                            attributes.put(CoreAttributes.OWNED_PLATFORM.toString(), platformRepository
+                                    .findByPlatformOwner(user).getPlatformId());
                             break;
                         case NULL:
                             throw new JWTCreationException("User Role unspecified");
@@ -92,7 +93,9 @@ public class TokenManager {
                 case NULL:
                     throw new JWTCreationException("Misconfigured AAM deployment type");
             }
-            return new Token(jwtEngine.generateJWTToken(user.getUsername(), attributes, regManager.convertPEMToX509(user.getCertificate().getPemCertificate()).getPublicKey().getEncoded(), deploymentType, tokenValidity, deploymentId, regManager.getAAMPublicKey(), regManager.getAAMPrivateKey()));
+            return new Token(jwtEngine.generateJWTToken(user.getUsername(), attributes, user.getCertificate().getX509()
+                    .getPublicKey().getEncoded(), deploymentType, tokenValidity, deploymentId, regManager
+                    .getAAMPublicKey(), regManager.getAAMPrivateKey()));
         } catch (Exception e) {
             log.error(e);
             throw new JWTCreationException(e);
@@ -107,7 +110,10 @@ public class TokenManager {
 
             Map<String, String> federatedAttributes = new HashMap<>();
             return new Token(
-                    jwtEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.decodeBase64(claims.getIpk()), deploymentType, tokenValidity, deploymentId, regManager.getAAMPublicKey(), regManager.getAAMPrivateKey()));
+                    jwtEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.decodeBase64(claims
+                                    .getIpk()), deploymentType, tokenValidity, deploymentId, regManager
+                                    .getAAMPublicKey(),
+                            regManager.getAAMPrivateKey()));
         } catch (Exception e) {
             log.error(e);
             throw new JWTCreationException(e);

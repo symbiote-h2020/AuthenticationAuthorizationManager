@@ -416,8 +416,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
         // verify that the token contains the platform owner public key
-        byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne
-                (platformOwnerUsername).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
+        byte[] applicationPublicKeyInRepository = userRepository.findOne
+                (platformOwnerUsername).getCertificate().getX509().getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
         assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
 

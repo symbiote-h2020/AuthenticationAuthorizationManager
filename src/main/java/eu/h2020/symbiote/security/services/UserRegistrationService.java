@@ -23,7 +23,6 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 
 /**
  * Spring service used to register users in the AAM repository.
@@ -81,24 +80,20 @@ public class UserRegistrationService {
         if (user.getRole() == UserRole.NULL)
             throw new UserRegistrationException();
 
+
         Certificate certificate;
-        String pemApplicationCertificate;
-        String pemApplicationPrivateKey;
+        String applicationPEMPrivateKey;
 
         try {
             // Generate key pair for the new user
             KeyPair applicationKeyPair = registrationManager.createKeyPair();
 
-            // Generate certificate for the user
-            X509Certificate userX509Certificate = registrationManager.createECCert(user.getCredentials().getUsername(),
-                    applicationKeyPair.getPublic());
-
+            // Generate PEM certificate for the user
             certificate = new Certificate(registrationManager.convertX509ToPEM
-                    (userX509Certificate));
+                    (registrationManager.createECCert(user.getCredentials().getUsername(),
+                            applicationKeyPair.getPublic())));
 
-            pemApplicationCertificate = registrationManager.convertX509ToPEM(userX509Certificate);
-
-            pemApplicationPrivateKey = registrationManager.convertPrivateKeyToPEM(applicationKeyPair
+            applicationPEMPrivateKey = registrationManager.convertPrivateKeyToPEM(applicationKeyPair
                     .getPrivate());
 
         } catch (NoSuchProviderException | NoSuchAlgorithmException | IOException |
@@ -117,7 +112,7 @@ public class UserRegistrationService {
         application.setCertificate(certificate);
         userRepository.save(application);
 
-        return new UserRegistrationResponse(pemApplicationCertificate, pemApplicationPrivateKey);
+        return new UserRegistrationResponse(certificate.toString(), applicationPEMPrivateKey);
     }
 
     public UserRegistrationResponse authRegister(UserRegistrationRequest request) throws

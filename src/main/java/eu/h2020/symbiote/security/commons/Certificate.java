@@ -2,12 +2,15 @@ package eu.h2020.symbiote.security.commons;
 
 import org.springframework.data.annotation.Id;
 
-import java.security.NoSuchProviderException;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.security.cert.CertificateException;
-import java.util.Date;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 
 /**
- * AAM certificate entity definition for database persistence.
+ * SymbIoTe certificate with stored PEM value
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
@@ -15,8 +18,7 @@ import java.util.Date;
 public class Certificate {
 
     @Id
-    private String pemCertificate;
-    private Date asyncNotAfter;
+    private String cerficateString;
 
     /**
      * required by JPA
@@ -25,30 +27,39 @@ public class Certificate {
         // required by JPA
     }
 
-    public Certificate(String pemCertificate) throws CertificateException, NoSuchProviderException {
-        this.pemCertificate = pemCertificate;
+    /**
+     * @param cerficateString in PEM format
+     */
+    public Certificate(String cerficateString) {
+        this.cerficateString = cerficateString;
     }
 
-    public Certificate(String pemCertificate, Date asyncNotAfter) throws CertificateException,
-            NoSuchProviderException {
-        this.pemCertificate = pemCertificate;
-        this.asyncNotAfter = asyncNotAfter;
+    /**
+     * @return retrieve the X509 certificate that corresponds to the stored string
+     * @throws CertificateException
+     */
+    public X509Certificate getX509() throws CertificateException {
+        InputStream stream = new ByteArrayInputStream(this.getCerficateString().getBytes(StandardCharsets.UTF_8));
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        return (X509Certificate) cf.generateCertificate(stream);
     }
 
-    @Id
-    public String getPemCertificate() {
-        return this.pemCertificate;
+    /**
+     * @return in PEM format
+     */
+    public String getCerficateString() {
+        return cerficateString;
     }
 
-    public void setPemCertificate(String pemCertificate) {
-        this.pemCertificate = pemCertificate;
+    /**
+     * @param cerficateString in PEM format
+     */
+    public void setCerficateString(String cerficateString) {
+        this.cerficateString = cerficateString;
     }
 
-    public Date getAsyncNotAfter() {
-        return asyncNotAfter;
-    }
-
-    public void setAsyncNotAfter(Date asyncNotAfter) {
-        this.asyncNotAfter = asyncNotAfter;
+    @Override
+    public String toString() {
+        return this.cerficateString;
     }
 }
