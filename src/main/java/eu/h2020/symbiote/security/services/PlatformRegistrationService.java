@@ -1,7 +1,6 @@
 package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Platform;
-import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.exceptions.aam.ExistingPlatformException;
@@ -10,11 +9,9 @@ import eu.h2020.symbiote.security.exceptions.aam.MissingArgumentsException;
 import eu.h2020.symbiote.security.exceptions.aam.UnauthorizedRegistrationException;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
-import eu.h2020.symbiote.security.repositories.RevokedCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -41,10 +38,7 @@ public class PlatformRegistrationService {
 
     @Autowired
     public PlatformRegistrationService(UserRepository userRepository, UserRegistrationService
-            userRegistrationService, PlatformRepository platformRepository, RevokedCertificatesRepository
-
-                                               revokedCertificatesRepository, RegistrationManager
-                                               registrationManager, PasswordEncoder passwordEncoder) {
+            userRegistrationService, PlatformRepository platformRepository) {
         this.userRepository = userRepository;
         this.userRegistrationService = userRegistrationService;
         this.platformRepository = platformRepository;
@@ -109,8 +103,8 @@ public class PlatformRegistrationService {
                 .findOne(platformOwnerDetails.getCredentials().getUsername()));
         platformRepository.save(platform);
 
-        return new PlatformRegistrationResponse(userRegistrationResponse.getPemCertificate(),
-                userRegistrationResponse.getPemPrivateKey(), platform.getPlatformId());
+        return new PlatformRegistrationResponse(userRegistrationResponse.getUserCertificate(),
+                userRegistrationResponse.getUserPrivateKey(), platform.getPlatformId());
     }
 
 /*

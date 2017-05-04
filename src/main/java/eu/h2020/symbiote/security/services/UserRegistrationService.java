@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.services;
 
-import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
@@ -112,7 +112,7 @@ public class UserRegistrationService {
         application.setCertificate(certificate);
         userRepository.save(application);
 
-        return new UserRegistrationResponse(certificate.toString(), applicationPEMPrivateKey);
+        return new UserRegistrationResponse(certificate, applicationPEMPrivateKey);
     }
 
     public UserRegistrationResponse authRegister(UserRegistrationRequest request) throws

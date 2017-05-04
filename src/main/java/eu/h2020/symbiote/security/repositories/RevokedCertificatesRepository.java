@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.repositories;
 
-import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.certificate.Certificate;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**

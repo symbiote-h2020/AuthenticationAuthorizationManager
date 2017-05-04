@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.security;
 
 import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
@@ -258,8 +258,10 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             assertEquals(UserRole.APPLICATION, registeredUser.getRole());
 
             // verify that the server returns certificate & privateKey
-            assertNotNull(userRegistrationResponse.getPemCertificate());
-            assertNotNull(userRegistrationResponse.getPemPrivateKey());
+            assertNotNull(userRegistrationResponse.getUserCertificate());
+            assertNotNull(userRegistrationResponse.getUserPrivateKey());
+
+            // TODO verify that released certificate has no CA property
         } catch (Exception e) {
             assertEquals(ExistingUserException.class, e.getClass());
             log.info(e.getMessage());

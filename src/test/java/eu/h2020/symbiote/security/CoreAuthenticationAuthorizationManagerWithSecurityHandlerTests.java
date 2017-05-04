@@ -39,7 +39,8 @@ public class CoreAuthenticationAuthorizationManagerWithSecurityHandlerTests exte
             assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
 
             // verify that the token contains the application public key
-            byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
+            byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne
+            (username).getCertificate().getPlatformOwnerCertificate()).getPublicKey().getEncoded();
             byte[] publicKeyFromToken = claimsFromToken.getSpk().getBytes();
             assertEquals(applicationPublicKeyInRepository,publicKeyFromToken);
 

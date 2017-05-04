@@ -304,8 +304,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(UserRole.APPLICATION, registeredUser.getRole());
 
         // verify that the server returns certificate & privateKey
-        assertNotNull(appRegistrationResponse.getPemCertificate());
-        assertNotNull(appRegistrationResponse.getPemPrivateKey());
+        assertNotNull(appRegistrationResponse.getUserCertificate());
+        assertNotNull(appRegistrationResponse.getUserPrivateKey());
 
         // TODO verify that released certificate has no CA property
     }
@@ -328,8 +328,12 @@ public class CoreAuthenticationAuthorizationManagerTests extends
                 PlatformRegistrationResponse.class);
 
         // verify that the server returns certificate & privateKey
-        assertNotNull(platformRegistrationOverAMQPResponse.getPemCertificate());
-        assertNotNull(platformRegistrationOverAMQPResponse.getPemPrivateKey());
+        assertNotNull(platformRegistrationOverAMQPResponse.getPlatformOwnerCertificate());
+        assertNotNull(platformRegistrationOverAMQPResponse.getPlatformOwnerPrivateKey());
+
+        // TODO verify that released PO certificate has no CA property
+
+        // TODO R3 verify that released platform certificate has CA property
 
         // verified that we received the preferred platformId
         assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
@@ -366,8 +370,12 @@ public class CoreAuthenticationAuthorizationManagerTests extends
                 PlatformRegistrationResponse.class);
 
         // verify that the server returns certificate & privateKey
-        assertNotNull(platformRegistrationOverAMQPResponse.getPemCertificate());
-        assertNotNull(platformRegistrationOverAMQPResponse.getPemPrivateKey());
+        assertNotNull(platformRegistrationOverAMQPResponse.getPlatformOwnerCertificate());
+        assertNotNull(platformRegistrationOverAMQPResponse.getPlatformOwnerPrivateKey());
+
+        // TODO verify that released PO certificate has no CA property
+
+        // TODO R3 verify that released platform certificate has CA property
 
         // verified that we received a generated platformId
         String generatedPlatformId = platformRegistrationOverAMQPResponse.getPlatformId();

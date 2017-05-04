@@ -158,8 +158,8 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
             assertEquals(UserRole.APPLICATION, registeredUser.getRole());
 
             // verify that the server returns certificate & privateKey
-            assertNotNull(response.getBody().getPemCertificate());
-            assertNotNull(response.getBody().getPemPrivateKey());
+            assertNotNull(response.getBody().getUserCertificate());
+            assertNotNull(response.getBody().getUserPrivateKey());
         } catch (HttpClientErrorException e) {
             assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
         }
