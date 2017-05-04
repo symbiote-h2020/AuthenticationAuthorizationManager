@@ -11,6 +11,7 @@ import eu.h2020.symbiote.security.exceptions.aam.ExistingUserException;
 import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
 import eu.h2020.symbiote.security.exceptions.aam.NotExistingUserException;
 import eu.h2020.symbiote.security.payloads.*;
+import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import org.apache.commons.codec.binary.Base64;

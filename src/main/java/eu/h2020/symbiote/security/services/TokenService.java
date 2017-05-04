@@ -5,8 +5,8 @@ import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
 import eu.h2020.symbiote.security.payloads.CheckTokenRevocationResponse;
-import eu.h2020.symbiote.security.payloads.Token;
 import eu.h2020.symbiote.security.repositories.TokenRepository;
+import eu.h2020.symbiote.security.token.Token;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

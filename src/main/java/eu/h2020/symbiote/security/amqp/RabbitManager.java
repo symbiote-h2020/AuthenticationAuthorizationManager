@@ -189,7 +189,7 @@ public class RabbitManager {
 
             log.info("Authentication and Authorization Manager waiting for check token revocation request messages");
 
-            Consumer consumer = new CheckTokenRevocationRequestConsumerService(channel, this, tokenService);
+            Consumer consumer = new CheckTokenRevocationRequestConsumerService(channel, tokenService);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
             log.error(e);

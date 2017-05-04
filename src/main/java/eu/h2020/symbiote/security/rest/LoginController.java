@@ -4,8 +4,10 @@ import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.payloads.Token;
 import eu.h2020.symbiote.security.services.LoginService;
+import eu.h2020.symbiote.security.token.Token;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class LoginController {
 
+    private static final Log log = LogFactory.getLog(LoginController.class);
     private final LoginService loginService;
 
     @Autowired
@@ -43,8 +46,9 @@ public class LoginController {
             headers.add(AAMConstants.TOKEN_HEADER_NAME, token.getToken());
             return new ResponseEntity<>(headers, HttpStatus.OK);
         } catch (AAMException e) {
+            log.error(e);
             return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
-                .getStatusCode().ordinal()), e.getStatusCode());
+                    .getStatusCode().ordinal()), e.getStatusCode());
         }
     }
 }

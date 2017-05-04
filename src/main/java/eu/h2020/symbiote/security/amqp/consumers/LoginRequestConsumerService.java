@@ -10,8 +10,8 @@ import eu.h2020.symbiote.security.exceptions.aam.MissingArgumentsException;
 import eu.h2020.symbiote.security.exceptions.aam.WrongCredentialsException;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.payloads.Token;
 import eu.h2020.symbiote.security.services.LoginService;
+import eu.h2020.symbiote.security.token.Token;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

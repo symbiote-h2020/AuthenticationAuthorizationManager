@@ -15,7 +15,6 @@ import java.util.Date;
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
  * @author Mikołaj Dobski (PSNC)
- * @see eu.h2020.symbiote.security.payloads.Token
  */
 public class TokenEntity {
 

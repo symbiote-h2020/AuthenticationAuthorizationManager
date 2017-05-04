@@ -9,6 +9,7 @@ import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
 import eu.h2020.symbiote.security.exceptions.aam.MissingArgumentsException;
 import eu.h2020.symbiote.security.exceptions.aam.WrongCredentialsException;
 import eu.h2020.symbiote.security.payloads.*;
+import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import org.apache.commons.codec.binary.Base64;
@@ -52,7 +53,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
                 .getBytes());
         Token token = mapper.readValue(response, Token.class);
 
-        log.info("Test Client received this Token: " + token.toJson());
+        log.info("Test Client received this Token: " + token.toString());
 
         assertNotNull(token.getToken());
         try {

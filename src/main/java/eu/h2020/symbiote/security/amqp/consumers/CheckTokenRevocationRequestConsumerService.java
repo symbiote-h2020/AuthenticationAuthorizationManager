@@ -5,10 +5,9 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import eu.h2020.symbiote.security.amqp.RabbitManager;
 import eu.h2020.symbiote.security.payloads.CheckTokenRevocationResponse;
-import eu.h2020.symbiote.security.payloads.Token;
 import eu.h2020.symbiote.security.services.TokenService;
+import eu.h2020.symbiote.security.token.Token;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -20,7 +19,6 @@ import java.io.IOException;
 public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer {
 
     private static Log log = LogFactory.getLog(CheckTokenRevocationRequestConsumerService.class);
-    private RabbitManager rabbitManager;
     private TokenService tokenService;
 
 
@@ -28,14 +26,11 @@ public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer 
      * Constructs a new instance and records its association to the passed-in channel.
      * Managers beans passed as parameters because of lack of possibility to inject it to consumer.
      *
-     * @param channel       the channel to which this consumer is attached
-     * @param rabbitManager rabbit manager bean passed for access to messages manager
+     * @param channel the channel to which this consumer is attached
      */
     public CheckTokenRevocationRequestConsumerService(Channel channel,
-                                                      RabbitManager rabbitManager,
                                                       TokenService tokenService) {
         super(channel);
-        this.rabbitManager = rabbitManager;
         this.tokenService = tokenService;
     }
 
@@ -52,7 +47,7 @@ public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer 
     @Override
     public void handleDelivery(String consumerTag, Envelope envelope,
                                AMQP.BasicProperties properties, byte[] body)
-        throws IOException {
+            throws IOException {
 
         String message = new String(body, "UTF-8");
         ObjectMapper om = new ObjectMapper();
@@ -64,9 +59,9 @@ public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer 
         if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
 
             AMQP.BasicProperties replyProps = new AMQP.BasicProperties
-                .Builder()
-                .correlationId(properties.getCorrelationId())
-                .build();
+                    .Builder()
+                    .correlationId(properties.getCorrelationId())
+                    .build();
             try {
                 token = om.readValue(message, Token.class);
 
@@ -76,12 +71,12 @@ public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer 
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
 
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error(e);
             }
 
             log.info("Check Token Revocation Response: sent back");
         } else {
-            log.warn("Received RPC message without ReplyTo or CorrelationId properties.");
+            log.error("Received RPC message without ReplyTo or CorrelationId properties.");
         }
         this.getChannel().basicAck(envelope.getDeliveryTag(), false);
     }
