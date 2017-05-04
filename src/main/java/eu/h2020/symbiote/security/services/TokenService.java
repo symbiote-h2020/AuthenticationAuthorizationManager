@@ -1,6 +1,5 @@
 package eu.h2020.symbiote.security.services;
 
-import eu.h2020.symbiote.security.commons.TokenEntity;
 import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
@@ -56,14 +55,14 @@ public class TokenService {
     }
 
     public void saveToken(Token token) {
-        tokenRepository.save(new TokenEntity(token.getToken()));
+        tokenRepository.save(token);
     }
 
     public Token getToken(String jwt) {
         return new Token(tokenRepository.findByToken(jwt).getToken());
     }
 
-    public List<TokenEntity> getAllTokens() {
+    public List<Token> getAllTokens() {
         return tokenRepository.findAll();
     }
 }

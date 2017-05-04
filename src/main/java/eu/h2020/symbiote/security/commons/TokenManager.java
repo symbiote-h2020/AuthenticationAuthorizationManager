@@ -21,6 +21,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,7 +42,6 @@ public class TokenManager {
 
     private static Log log = LogFactory.getLog(TokenManager.class);
 
-    private JWTEngine jwtEngine;
     private RegistrationManager regManager;
 
     private PlatformRepository platformRepository;
@@ -56,7 +60,6 @@ public class TokenManager {
 
     @Autowired
     public TokenManager(RegistrationManager regManager, PlatformRepository platformRepository) {
-        this.jwtEngine = new JWTEngine();
         this.regManager = regManager;
         this.platformRepository = platformRepository;
     }
@@ -92,7 +95,7 @@ public class TokenManager {
                 case NULL:
                     throw new JWTCreationException("Misconfigured AAM deployment type");
             }
-            return new Token(jwtEngine.generateJWTToken(user.getUsername(), attributes, user.getCertificate().getX509()
+            return new Token(JWTEngine.generateJWTToken(user.getUsername(), attributes, user.getCertificate().getX509()
                     .getPublicKey().getEncoded(), deploymentType, tokenValidity, deploymentId, regManager
                     .getAAMPublicKey(), regManager.getAAMPrivateKey()));
         } catch (Exception e) {
@@ -109,7 +112,7 @@ public class TokenManager {
 
             Map<String, String> federatedAttributes = new HashMap<>();
             return new Token(
-                    jwtEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.decodeBase64(claims
+                    JWTEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.decodeBase64(claims
                                     .getIpk()), deploymentType, tokenValidity, deploymentId, regManager
                                     .getAAMPublicKey(),
                             regManager.getAAMPrivateKey()));
@@ -119,7 +122,7 @@ public class TokenManager {
         }
     }
 
-    public CheckTokenRevocationResponse checkHomeTokenRevocation(Token token, TokenEntity dbToken) {
+    public CheckTokenRevocationResponse checkHomeTokenRevocation(Token token, Token dbToken) {
 
         CheckTokenRevocationResponse outcome = new CheckTokenRevocationResponse(TokenValidationStatus.VALID);
 
@@ -127,27 +130,35 @@ public class TokenManager {
             if (dbToken == null) {
                 throw new TokenValidationException(AAMConstants.ERR_TOKEN_WRONG_ISSUER);
             }
-            JWTClaims claims = JWTEngine.getClaimsFromToken(token.getToken());
+            JWTClaims claims = JWTEngine.getClaimsFromToken(dbToken.getToken());
+            //Convert IPK claim to publicKey for validation
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(Base64.decodeBase64(claims.getIpk()));
+            KeyFactory keyFactory = KeyFactory.getInstance("EC");
+            PublicKey pubKey = keyFactory.generatePublic(keySpec);
 
-            //Check if token expired
-            Long now = System.currentTimeMillis();
-            if ((claims.getExp() < now || (claims.getIat() > now))) {
-                throw new TokenValidationException(AAMConstants.ERR_TOKEN_EXPIRED);
+            switch (JWTEngine.validateToken(token, pubKey)) {
+                case VALID:
+                    outcome.setStatus(TokenValidationStatus.VALID);
+                    break;
+                case EXPIRED:
+                    outcome.setStatus(TokenValidationStatus.EXPIRED);
+                    break;
+                case REVOKED:
+                    outcome.setStatus(TokenValidationStatus.REVOKED);
+                    break;
+                case INVALID:
+                    outcome.setStatus(TokenValidationStatus.INVALID);
+                    break;
+
             }
-
             //Check if issuer of the token is this platform
             if (!claims.getIss().equals(deploymentId)) {
-                throw new TokenValidationException(AAMConstants.ERR_TOKEN_WRONG_ISSUER);
+                outcome.setStatus(TokenValidationStatus.INVALID);
             }
-            return outcome;
-        } catch (MalformedJWTException e) {
-            log.error("JWT Format error", e);
-        } catch (TokenValidationException e) {
+        } catch (MalformedJWTException | TokenValidationException | NoSuchAlgorithmException | InvalidKeySpecException e) {
             log.error("JWT validation error", e);
+            outcome.setStatus(TokenValidationStatus.INVALID);
         }
-
-        outcome.setStatus(TokenValidationStatus.REVOKED);
-
         return outcome;
     }
 

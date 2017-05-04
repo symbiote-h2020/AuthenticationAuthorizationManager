@@ -58,7 +58,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * @throws TimeoutException
      */
     @Test
-    public void checkTokenRevocationOverAMQPRequestReplySuccess() throws IOException, TimeoutException {
+    public void checkTokenRevocationOverAMQPRequestReplyValid() throws IOException, TimeoutException {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new Credentials(username, password), String.class);
@@ -180,7 +180,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void checkTokenRevocationOverRESTSuccess() {
+    public void checkTokenRevocationOverRESTValid() {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new Credentials(username, password), String.class);
@@ -205,7 +205,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void checkTokenRevocationOverRESTFailure() {
+    public void checkTokenRevocationOverRESTExpired() {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new Credentials(username, password), String.class);
@@ -225,7 +225,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress +
                 checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
 
-        assertEquals(TokenValidationStatus.REVOKED.toString(), status.getBody().getStatus());
+        // TODO cover other situaations (bad key, on purpose revocation)
+        assertEquals(TokenValidationStatus.EXPIRED.toString(), status.getBody().getStatus());
     }
 
     /**
