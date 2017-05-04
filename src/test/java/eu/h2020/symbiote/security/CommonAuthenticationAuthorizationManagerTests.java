@@ -5,7 +5,7 @@ import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.enums.Status;
+import eu.h2020.symbiote.security.enums.TokenValidationStatus;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.exceptions.aam.ExistingUserException;
 import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
@@ -74,9 +74,9 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         CheckTokenRevocationResponse checkTokenRevocationResponse = mapper.readValue(amqpResponse,
                 CheckTokenRevocationResponse.class);
 
-        log.info("Test Client received this Status: " + checkTokenRevocationResponse.toJson());
+        log.info("Test Client received this TokenValidationStatus: " + checkTokenRevocationResponse.toJson());
 
-        assertEquals(Status.SUCCESS.toString(), checkTokenRevocationResponse.getStatus());
+        assertEquals(TokenValidationStatus.VALID.toString(), checkTokenRevocationResponse.getStatus());
     }
 
 
@@ -194,7 +194,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress +
                 checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
 
-        assertEquals(Status.SUCCESS.toString(), status.getBody().getStatus());
+        assertEquals(TokenValidationStatus.VALID.toString(), status.getBody().getStatus());
     }
 
     /**
@@ -225,7 +225,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress +
                 checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
 
-        assertEquals(Status.FAILURE.toString(), status.getBody().getStatus());
+        assertEquals(TokenValidationStatus.REVOKED.toString(), status.getBody().getStatus());
     }
 
     /**

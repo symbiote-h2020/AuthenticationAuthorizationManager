@@ -3,7 +3,7 @@ package eu.h2020.symbiote.security.commons;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.enums.Status;
+import eu.h2020.symbiote.security.enums.TokenValidationStatus;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
@@ -121,7 +121,7 @@ public class TokenManager {
 
     public CheckTokenRevocationResponse checkHomeTokenRevocation(Token token, TokenEntity dbToken) {
 
-        CheckTokenRevocationResponse outcome = new CheckTokenRevocationResponse(Status.SUCCESS);
+        CheckTokenRevocationResponse outcome = new CheckTokenRevocationResponse(TokenValidationStatus.VALID);
 
         try {
             if (dbToken == null) {
@@ -146,7 +146,7 @@ public class TokenManager {
             log.error("JWT validation error", e);
         }
 
-        outcome.setStatus(Status.FAILURE);
+        outcome.setStatus(TokenValidationStatus.REVOKED);
 
         return outcome;
     }
