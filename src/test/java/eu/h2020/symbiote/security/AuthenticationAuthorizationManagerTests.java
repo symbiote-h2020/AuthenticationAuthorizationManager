@@ -7,7 +7,7 @@ import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.UserDetails;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
-import eu.h2020.symbiote.security.repositories.CertificateRepository;
+import eu.h2020.symbiote.security.repositories.RevokedCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
 import org.apache.commons.logging.Log;
@@ -95,7 +95,7 @@ public abstract class AuthenticationAuthorizationManagerTests {
     @Value("${aam.deployment.token.validityMillis}")
     protected Long tokenValidityPeriod;
     @Autowired
-    private CertificateRepository certificateRepository;
+    protected RevokedCertificatesRepository revokedCertificatesRepository;
 
     @Before
     public void setUp() throws Exception {
@@ -126,7 +126,7 @@ public abstract class AuthenticationAuthorizationManagerTests {
 
         // cleanup db
         userRepository.deleteAll();
-        certificateRepository.deleteAll();
+        revokedCertificatesRepository.deleteAll();
 
         // Register test application user into DB
         UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new

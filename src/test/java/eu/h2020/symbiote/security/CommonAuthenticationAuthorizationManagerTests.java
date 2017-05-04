@@ -1,15 +1,16 @@
 package eu.h2020.symbiote.security;
 
 import com.rabbitmq.client.RpcClient;
+import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.Status;
 import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.exceptions.aam.ExistingUserException;
 import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
-import eu.h2020.symbiote.security.payloads.CheckTokenRevocationResponse;
-import eu.h2020.symbiote.security.payloads.Credentials;
-import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.payloads.Token;
+import eu.h2020.symbiote.security.exceptions.aam.NotExistingUserException;
+import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import org.apache.commons.codec.binary.Base64;
@@ -26,7 +27,10 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.io.IOException;
+import java.security.KeyPair;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -43,7 +47,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
 
     /**
-     * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token revocation),
+     * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
+     * revocation),
      * CAAM - 5 (Revoking tokens based on expiration date or illegal access)
      * Interface: PAAM - 2, CAAM - 1
      * CommunicationType AMQP
@@ -52,7 +57,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * @throws TimeoutException
      */
     @Test
-    public void internalCheckTokenRevocationRequestReplySuccess() throws IOException, TimeoutException {
+    public void checkTokenRevocationOverAMQPRequestReplySuccess() throws IOException, TimeoutException {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new Credentials(username, password), String.class);
@@ -61,7 +66,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         assertNotNull(headers.getFirst(tokenHeaderName));
         String token = headers.getFirst(tokenHeaderName);
 
-        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", checkTokenRevocationRequestQueue,
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+                checkTokenRevocationRequestQueue,
                 10000);
         byte[] amqpResponse = client.primitiveCall(mapper.writeValueAsString(new Token(token)).getBytes());
         CheckTokenRevocationResponse checkTokenRevocationResponse = mapper.readValue(amqpResponse,
@@ -79,7 +85,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void externalLoginWrongUsername() {
+    public void userLoginOverRESTWrongUsernameFailure() {
         ResponseEntity<ErrorResponseContainer> token = null;
         try {
             token = restTemplate.postForEntity(serverAddress + loginUri, new Credentials(wrongusername, password),
@@ -97,7 +103,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void externalLoginWrongPassword() {
+    public void userLoginOverRESTWrongPasswordFailure() {
         ResponseEntity<ErrorResponseContainer> token = null;
         try {
             token = restTemplate.postForEntity(serverAddress + loginUri, new Credentials(username, wrongpassword),
@@ -114,7 +120,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void externalLoginSuccess() {
+    public void applicationLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() {
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new Credentials(username, password), String.class);
         HttpHeaders headers = response.getHeaders();
@@ -130,16 +136,15 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
 
             // verify that the token contains the application public key
-            byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
+            byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne
+                    (username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
             byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
 
-            assertArrayEquals(applicationPublicKeyInRepository,publicKeyFromToken);
-
+            assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
         } catch (MalformedJWTException | CertificateException | IOException e) {
-            e.printStackTrace();
+            log.error(e);
         }
     }
-
 
     /**
      * Features: PAAM - 4, CAAM - 5 (tokens issueing)
@@ -147,7 +152,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void externalRequestForeignToken() {
+    public void foreignTokenRequestOverRESTSuccess() {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new Credentials(username, password), String.class);
@@ -167,13 +172,14 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     }
 
     /**
-     * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token revocation),
+     * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
+     * revocation),
      * CAAM - 5 (Revoking tokens based on expiration date or illegal access)
      * Interfaces: PAAM - 4, CAAM - 10;
      * CommunicationType REST
      */
     @Test
-    public void externalCheckTokenRevocationSuccess() {
+    public void checkTokenRevocationOverRESTSuccess() {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new Credentials(username, password), String.class);
@@ -191,13 +197,14 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     }
 
     /**
-     * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token revocation),
+     * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
+     * revocation),
      * CAAM - 5 (Revoking tokens based on expiration date or illegal access)
      * Interfaces: PAAM - 4, CAAM - 10;
      * CommunicationType REST
      */
     @Test
-    public void externalCheckTokenRevocationFailure() {
+    public void checkTokenRevocationOverRESTFailure() {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new Credentials(username, password), String.class);
@@ -220,5 +227,98 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         assertEquals(Status.FAILURE.toString(), status.getBody().getStatus());
     }
 
+    /**
+     * Feature: User Repository
+     *
+     * @throws IOException
+     * @throws TimeoutException
+     */
+    @Test
+    public void applicationInternalRegistrationSuccess() throws Exception {
+        try {
+            String appUsername = "NewApplication";
+
+            // verify that app is not in the repository
+            User registeredUser = userRepository.findOne(appUsername);
+            assertNull(registeredUser);
+
+            /*
+             XXX federated Id and recovery mail are required for Test & Core AAM but not for Plaftorm AAM
+             */
+            // register new application to db
+            UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new
+                    Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
+                    (appUsername, "NewPassword"), "nullId", "nullMail", UserRole.APPLICATION));
+            UserRegistrationResponse userRegistrationResponse = userRegistrationService.register
+                    (userRegistrationRequest);
+
+            // verify that app really is in repository
+            registeredUser = userRepository.findOne(appUsername);
+            assertNotNull(registeredUser);
+            assertEquals(UserRole.APPLICATION, registeredUser.getRole());
+
+            // verify that the server returns certificate & privateKey
+            assertNotNull(userRegistrationResponse.getPemCertificate());
+            assertNotNull(userRegistrationResponse.getPemPrivateKey());
+        } catch (Exception e) {
+            assertEquals(ExistingUserException.class, e.getClass());
+            log.info(e.getMessage());
+        }
+    }
+
+
+    /**
+     * Feature: User Repository
+     *
+     * @throws IOException
+     * @throws TimeoutException
+     */
+    @Test
+    public void applicationInternalUnregistrationSuccess() throws Exception {
+        try {
+            // verify that app really is in repository
+            User user = userRepository.findOne(username);
+            assertNotNull(user);
+
+            // get user certficate
+            Certificate userCertificate = user.getCertificate();
+            // verify the certificate is not yet revoked
+            assertFalse(revokedCertificatesRepository.exists(userCertificate.getPemCertificate()));
+
+            // unregister
+            userRegistrationService.unregister(username);
+            log.debug("User successfully unregistered!");
+
+            // verify that app is not anymore in the repository
+            assertFalse(userRepository.exists(username));
+            // verify that the user certificate was indeed revoked
+            assertTrue(revokedCertificatesRepository.exists(userCertificate.getPemCertificate()));
+        } catch (Exception e) {
+            assertEquals(NotExistingUserException.class, e.getClass());
+            log.error(e.getMessage());
+        }
+    }
+
+    /**
+     * Feature:
+     * Interface: PAAM - 3a
+     * CommunicationType REST
+     *
+     * @throws IOException
+     * @throws TimeoutException
+     */
+    @Test
+    public void certificateCreationAndVerification() throws Exception {
+        // Generate certificate for given application username (ie. "Daniele")
+        KeyPair keyPair = registrationManager.createKeyPair();
+        X509Certificate cert = registrationManager.createECCert("Daniele", keyPair.getPublic());
+
+        // retrieves Platform AAM ("Daniele"'s certificate issuer) public key from keystore in order to verify
+        // "Daniele"'s certificate
+        cert.verify(registrationManager.getAAMPublicKey());
+
+        // also check time validity
+        cert.checkValidity(new Date());
+    }
 
 }

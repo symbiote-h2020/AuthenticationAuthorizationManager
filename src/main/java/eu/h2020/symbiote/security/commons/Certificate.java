@@ -7,14 +7,14 @@ import java.security.cert.CertificateException;
 import java.util.Date;
 
 /**
- * Platform AAM certificate entity definition for database persistence.
+ * AAM certificate entity definition for database persistence.
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
  */
 public class Certificate {
 
-
+    @Id
     private String pemCertificate;
     private Date asyncNotAfter;
 

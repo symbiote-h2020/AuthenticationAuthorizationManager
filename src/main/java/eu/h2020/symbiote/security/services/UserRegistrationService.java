@@ -5,12 +5,15 @@ import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.exceptions.aam.*;
 import eu.h2020.symbiote.security.payloads.UserDetails;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import eu.h2020.symbiote.security.payloads.UserRegistrationResponse;
-import eu.h2020.symbiote.security.repositories.CertificateRepository;
+import eu.h2020.symbiote.security.repositories.RevokedCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,11 +34,11 @@ import java.security.cert.X509Certificate;
  */
 @Service
 public class UserRegistrationService {
+    private static Log log = LogFactory.getLog(UserRegistrationService.class);
     private final UserRepository userRepository;
-    private final CertificateRepository certificateRepository;
+    private final RevokedCertificatesRepository revokedCertificatesRepository;
     private final RegistrationManager registrationManager;
     private final PasswordEncoder passwordEncoder;
-
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
@@ -44,26 +47,16 @@ public class UserRegistrationService {
     private IssuingAuthorityType deploymentType;
 
     @Autowired
-    public UserRegistrationService(UserRepository userRepository, CertificateRepository
-            certificateRepository, RegistrationManager registrationManager, PasswordEncoder passwordEncoder) {
+    public UserRegistrationService(UserRepository userRepository, RevokedCertificatesRepository
+            revokedCertificatesRepository, RegistrationManager registrationManager, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.certificateRepository = certificateRepository;
+        this.revokedCertificatesRepository = revokedCertificatesRepository;
         this.registrationManager = registrationManager;
         this.passwordEncoder = passwordEncoder;
     }
 
     public UserRegistrationResponse register(UserRegistrationRequest userRegistrationRequest)
-            throws MissingArgumentsException,
-            ExistingUserException,
-            WrongCredentialsException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            InvalidAlgorithmParameterException,
-            UnrecoverableKeyException,
-            CertificateException,
-            OperatorCreationException,
-            KeyStoreException,
-            IOException, UserRegistrationException {
+            throws AAMException {
 
         UserDetails user = userRegistrationRequest.getUserDetails();
 
@@ -84,19 +77,36 @@ public class UserRegistrationService {
             throw new ExistingUserException();
         }
 
-        // Generate key pair for the new user
-        KeyPair applicationKeyPair = registrationManager.createKeyPair();
-
         // verify proper user role
         if (user.getRole() == UserRole.NULL)
             throw new UserRegistrationException();
 
-        // Generate certificate for the user
-        X509Certificate userX509Certificate = registrationManager.createECCert(user.getCredentials().getUsername(),
-                applicationKeyPair.getPublic());
+        Certificate certificate;
+        String pemApplicationCertificate;
+        String pemApplicationPrivateKey;
 
-        Certificate certificate = new Certificate(registrationManager.convertX509ToPEM
-                (userX509Certificate));
+        try {
+            // Generate key pair for the new user
+            KeyPair applicationKeyPair = registrationManager.createKeyPair();
+
+            // Generate certificate for the user
+            X509Certificate userX509Certificate = registrationManager.createECCert(user.getCredentials().getUsername(),
+                    applicationKeyPair.getPublic());
+
+            certificate = new Certificate(registrationManager.convertX509ToPEM
+                    (userX509Certificate));
+
+            pemApplicationCertificate = registrationManager.convertX509ToPEM(userX509Certificate);
+
+            pemApplicationPrivateKey = registrationManager.convertPrivateKeyToPEM(applicationKeyPair
+                    .getPrivate());
+
+        } catch (NoSuchProviderException | NoSuchAlgorithmException | IOException |
+                InvalidAlgorithmParameterException | UnrecoverableKeyException | OperatorCreationException |
+                KeyStoreException | CertificateException e) {
+            log.error(e);
+            throw new UserRegistrationException(e);
+        }
 
         // Register the user
         User application = new User();
@@ -107,22 +117,11 @@ public class UserRegistrationService {
         application.setCertificate(certificate);
         userRepository.save(application);
 
-        // Save Certificate to DB
-        // TODO do we need to store it there if it is already stored with the application?
-        certificateRepository.save(certificate);
-
-        String pemApplicationCertificate = registrationManager.convertX509ToPEM(userX509Certificate);
-        String pemApplicationPrivateKey = registrationManager.convertPrivateKeyToPEM(applicationKeyPair
-                .getPrivate());
-
         return new UserRegistrationResponse(pemApplicationCertificate, pemApplicationPrivateKey);
     }
 
     public UserRegistrationResponse authRegister(UserRegistrationRequest request) throws
-            ExistingUserException,
-            MissingArgumentsException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
-            NoSuchProviderException, UnrecoverableKeyException, CertificateException, OperatorCreationException,
-            KeyStoreException, IOException, UnauthorizedRegistrationException, WrongCredentialsException, UserRegistrationException {
+            AAMException {
 
         // check if we received required credentials
         if (request.getAAMOwnerCredentials() == null || request.getUserDetails().getCredentials() == null)
@@ -134,19 +133,21 @@ public class UserRegistrationService {
         return this.register(request);
     }
 
-    public void unregister(String username) throws NotExistingUserException, MissingArgumentsException {
+    public void unregister(String username) throws AAMException {
         // validate request
         if (username.isEmpty())
             throw new MissingArgumentsException();
         // try-find user
         if (!userRepository.exists(username))
             throw new NotExistingUserException();
+
+        // add user certificated to revoked repository
+        revokedCertificatesRepository.save(userRepository.findOne(username).getCertificate());
         // do it
         userRepository.delete(username);
     }
 
-    public void authUnregister(UserRegistrationRequest request) throws MissingArgumentsException,
-            NotExistingUserException, UnauthorizedUnregistrationException {
+    public void authUnregister(UserRegistrationRequest request) throws AAMException {
 
         // validate request
         if (request.getAAMOwnerCredentials() == null || request.getUserDetails().getCredentials() == null)

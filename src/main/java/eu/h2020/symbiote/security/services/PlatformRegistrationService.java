@@ -3,20 +3,20 @@ package eu.h2020.symbiote.security.services;
 import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.exceptions.aam.*;
+import eu.h2020.symbiote.security.exceptions.AAMException;
+import eu.h2020.symbiote.security.exceptions.aam.ExistingPlatformException;
+import eu.h2020.symbiote.security.exceptions.aam.ExistingUserException;
+import eu.h2020.symbiote.security.exceptions.aam.MissingArgumentsException;
+import eu.h2020.symbiote.security.exceptions.aam.UnauthorizedRegistrationException;
 import eu.h2020.symbiote.security.payloads.*;
-import eu.h2020.symbiote.security.repositories.CertificateRepository;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.repositories.RevokedCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.security.*;
-import java.security.cert.CertificateException;
 import java.util.Date;
 
 /**
@@ -27,7 +27,7 @@ import java.util.Date;
 @Service
 public class PlatformRegistrationService {
 
-    public static final String GENERATED_PLATFORM_IDENTIFIER_PREFIX = "PLATFORM_";
+    private static final String GENERATED_PLATFORM_IDENTIFIER_PREFIX = "PLATFORM_";
     private final UserRepository userRepository;
     private final UserRegistrationService userRegistrationService;
     private final PlatformRepository platformRepository;
@@ -40,21 +40,22 @@ public class PlatformRegistrationService {
     private IssuingAuthorityType deploymentType;
 
     @Autowired
-    public PlatformRegistrationService(UserRepository userRepository, UserRegistrationService userRegistrationService, PlatformRepository platformRepository, CertificateRepository
-            certificateRepository, RegistrationManager registrationManager, PasswordEncoder passwordEncoder) {
+    public PlatformRegistrationService(UserRepository userRepository, UserRegistrationService
+            userRegistrationService, PlatformRepository platformRepository, RevokedCertificatesRepository
+
+                                               revokedCertificatesRepository, RegistrationManager
+                                               registrationManager, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.userRegistrationService = userRegistrationService;
         this.platformRepository = platformRepository;
     }
 
     public PlatformRegistrationResponse authRegister(PlatformRegistrationRequest request) throws
-            ExistingUserException,
-            MissingArgumentsException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
-            NoSuchProviderException, UnrecoverableKeyException, CertificateException, OperatorCreationException,
-            KeyStoreException, IOException, UnauthorizedRegistrationException, WrongCredentialsException, ExistingPlatformException, UserRegistrationException {
+            AAMException {
 
         // check if we received required credentials
-        if (request.getAAMOwnerCredentials() == null || request.getPlatformOwnerDetails() == null || request.getPlatformOwnerDetails().getCredentials() == null)
+        if (request.getAAMOwnerCredentials() == null || request.getPlatformOwnerDetails() == null || request
+                .getPlatformOwnerDetails().getCredentials() == null)
             throw new MissingArgumentsException("Missing credentials");
         // check if this operation is authorized
         if (!request.getAAMOwnerCredentials().getUsername().equals(AAMOwnerUsername)
@@ -64,17 +65,7 @@ public class PlatformRegistrationService {
     }
 
     public PlatformRegistrationResponse register(PlatformRegistrationRequest platformRegistrationRequest)
-            throws MissingArgumentsException,
-            ExistingUserException,
-            WrongCredentialsException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            InvalidAlgorithmParameterException,
-            UnrecoverableKeyException,
-            CertificateException,
-            OperatorCreationException,
-            KeyStoreException,
-            IOException, ExistingPlatformException, UserRegistrationException, UnauthorizedRegistrationException {
+            throws AAMException {
 
         UserDetails platformOwnerDetails = platformRegistrationRequest.getPlatformOwnerDetails();
 
@@ -83,7 +74,8 @@ public class PlatformRegistrationService {
                 (platformOwnerDetails.getRecoveryMail()
                         .isEmpty() || platformOwnerDetails.getFederatedId().isEmpty()))
             throw new MissingArgumentsException("Missing recovery e-mail or federated identity");
-        if (platformOwnerDetails.getCredentials().getUsername().isEmpty() || platformOwnerDetails.getCredentials().getPassword().isEmpty())
+        if (platformOwnerDetails.getCredentials().getUsername().isEmpty() || platformOwnerDetails.getCredentials()
+                .getPassword().isEmpty())
             throw new MissingArgumentsException("Missing username or password");
         if (platformRegistrationRequest.getPlatformAAMURL().isEmpty())
             throw new MissingArgumentsException("Missing Platform AAM URL");
@@ -99,7 +91,8 @@ public class PlatformRegistrationService {
         if (platformRegistrationRequest.getPlatformId().isEmpty())
             // generate a new 'random' platform identifier
             platformId = GENERATED_PLATFORM_IDENTIFIER_PREFIX + new Date().getTime();
-        else if (platformRepository.exists(platformRegistrationRequest.getPlatformId())) // check if platform already in repository
+        else if (platformRepository.exists(platformRegistrationRequest.getPlatformId())) // check if platform already
+            // in repository
             throw new ExistingPlatformException();
         else {
             // use PO preferred platform identifier
@@ -108,13 +101,16 @@ public class PlatformRegistrationService {
 
         // register platform owner in user repository
         UserRegistrationResponse userRegistrationResponse = userRegistrationService.authRegister(
-                new UserRegistrationRequest(platformRegistrationRequest.getAAMOwnerCredentials(), platformOwnerDetails));
+                new UserRegistrationRequest(platformRegistrationRequest.getAAMOwnerCredentials(),
+                        platformOwnerDetails));
 
         // register platform in repository
-        Platform platform = new Platform(platformId, platformRegistrationRequest.getPlatformAAMURL(), userRepository.findOne(platformOwnerDetails.getCredentials().getUsername()));
+        Platform platform = new Platform(platformId, platformRegistrationRequest.getPlatformAAMURL(), userRepository
+                .findOne(platformOwnerDetails.getCredentials().getUsername()));
         platformRepository.save(platform);
 
-        return new PlatformRegistrationResponse(userRegistrationResponse.getPemCertificate(), userRegistrationResponse.getPemPrivateKey(), platform.getPlatformId());
+        return new PlatformRegistrationResponse(userRegistrationResponse.getPemCertificate(),
+                userRegistrationResponse.getPemPrivateKey(), platform.getPlatformId());
     }
 
 /*

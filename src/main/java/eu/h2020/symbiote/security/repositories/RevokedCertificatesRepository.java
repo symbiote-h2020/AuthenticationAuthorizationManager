@@ -10,5 +10,5 @@ import org.springframework.data.mongodb.repository.MongoRepository;
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
  */
-public interface CertificateRepository extends MongoRepository<Certificate, String> {
+public interface RevokedCertificatesRepository extends MongoRepository<Certificate, String> {
 }

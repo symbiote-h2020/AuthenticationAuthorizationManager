@@ -27,7 +27,6 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -55,9 +54,9 @@ public class CoreAuthenticationAuthorizationManagerTests extends
     private RpcClient appRegistrationClient;
     private UserDetails appUserDetails;
 
-    private RpcClient platformRegistrationClient;
+    private RpcClient platformRegistrationOverAMQPClient;
     private UserDetails platformOwnerUserDetails;
-    private PlatformRegistrationRequest platformRegistrationRequest;
+    private PlatformRegistrationRequest platformRegistrationOverAMQPRequest;
 
     @Autowired
     private PlatformRepository platformRepository;
@@ -80,11 +79,12 @@ public class CoreAuthenticationAuthorizationManagerTests extends
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), appUserDetails);
 
         // platform registration useful
-        platformRegistrationClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+        platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 platformRegistrationRequestQueue, 5000);
         platformOwnerUserDetails = new UserDetails(new Credentials(
                 platformOwnerUsername, platformOwnerPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER);
-        platformRegistrationRequest = new PlatformRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), platformOwnerUserDetails, platformAAMURL, preferredPlatformId);
+        platformRegistrationOverAMQPRequest = new PlatformRegistrationRequest(new Credentials(AAMOwnerUsername,
+                AAMOwnerPassword), platformOwnerUserDetails, platformAAMURL, preferredPlatformId);
     }
 
     /**
@@ -93,7 +93,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationFailureUnauthorized() throws IOException, TimeoutException {
+    public void applicationRegistrationOverAMQPFailureUnauthorized() throws IOException, TimeoutException {
 
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
@@ -131,7 +131,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationFailureWrongUserRole() throws IOException, TimeoutException {
+    public void applicationRegistrationOverAMQPFailureWrongUserRole() throws IOException, TimeoutException {
 
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
@@ -140,7 +140,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserRegistrationRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER))).getBytes());
+                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER)))
+                .getBytes());
 
         // verify that our app was not registered in the repository
         assertNull(userRepository.findOne(coreAppUsername));
@@ -170,7 +171,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationFailureUsernameExists() throws IOException, TimeoutException {
+    public void applicationRegistrationOverAMQPFailureUsernameExists() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
 
@@ -200,13 +201,14 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationFailureMissingAppUsername() throws IOException, TimeoutException {
+    public void applicationRegistrationOverAMQPFailureMissingAppUsername() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
 
         // issue app registration over AMQP with missing username
         appUserDetails.getCredentials().setUsername("");
-        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest).getBytes());
+        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
+                .getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
         assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
@@ -219,13 +221,14 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationFailureMissingAppPassword() throws IOException, TimeoutException {
+    public void applicationRegistrationOverAMQPFailureMissingAppPassword() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
 
         // issue app registration over AMQP with missing password
         appUserDetails.getCredentials().setPassword("");
-        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest).getBytes());
+        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
+                .getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
         assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
@@ -237,14 +240,15 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationFailureMissingAppFederatedId() throws IOException, TimeoutException {
+    public void applicationRegistrationOverAMQPFailureMissingAppFederatedId() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
 
 
         // issue app registration over AMQP with missing federatedId
         appUserDetails.setFederatedID("");
-        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest).getBytes());
+        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
+                .getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
         assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
@@ -256,13 +260,14 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationFailureMissingRecoveryMail() throws IOException, TimeoutException {
+    public void applicationRegistrationOverAMQPFailureMissingRecoveryMail() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
 
         // issue app registration over AMQP with missing recovery mail
         appUserDetails.setRecoveryMail("");
-        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest).getBytes());
+        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
+                .getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
         assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
@@ -274,7 +279,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationSuccess() throws IOException, TimeoutException, CertificateException,
+    public void applicationRegistrationOverAMQPSuccess() throws IOException, TimeoutException, CertificateException,
             NoSuchAlgorithmException, UnrecoverableKeyException, MissingArgumentsException, KeyStoreException,
             InvalidAlgorithmParameterException, NoSuchProviderException, OperatorCreationException,
             WrongCredentialsException, ExistingUserException {
@@ -306,59 +311,28 @@ public class CoreAuthenticationAuthorizationManagerTests extends
     }
 
     /**
-     * Features: PAAM - 3, CAAM - 5 (Authentication & relevent token issuing)
-     * Interfaces: PAAM - 3, CAAM - 7;
-     * CommunicationType REST
-     */
-    @Test
-    public void applicationLoginSuccessAndIssuesCoreTokenWithoutPOAttributes() {
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
-                new Credentials(username, password), String.class);
-        HttpHeaders headers = response.getHeaders();
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(headers.getFirst(tokenHeaderName));
-        try {
-            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
-            assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
-
-            // verify that this JWT contains attributes relevant for application role
-            Map<String, String> attributes = claimsFromToken.getAtt();
-            assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
-
-            // verify that the token contains the application public key
-            byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(username).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
-            byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
-            assertEquals(Arrays.equals(applicationPublicKeyInRepository, publicKeyFromToken), true);
-        } catch (MalformedJWTException | CertificateException | IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    /**
      * Feature: CAAM - 3 (Platform Registration)
      * Interface: CAAM - 2
      * CommunicationType AMQP
      */
     @Test
-    public void platformRegistrationWithPreferredPlatformIdSuccess() throws IOException, TimeoutException {
+    public void platformRegistrationOverAMQPWithPreferredPlatformIdSuccess() throws IOException, TimeoutException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP
-        byte[] response = platformRegistrationClient.primitiveCall(mapper.writeValueAsString(platformRegistrationRequest).getBytes());
-        PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
+        byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+        PlatformRegistrationResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
                 PlatformRegistrationResponse.class);
 
         // verify that the server returns certificate & privateKey
-        assertNotNull(platformRegistrationResponse.getPemCertificate());
-        assertNotNull(platformRegistrationResponse.getPemPrivateKey());
-
-        // TODO verify that released certificate has no CA property
+        assertNotNull(platformRegistrationOverAMQPResponse.getPemCertificate());
+        assertNotNull(platformRegistrationOverAMQPResponse.getPemPrivateKey());
 
         // verified that we received the preferred platformId
-        assertEquals(preferredPlatformId, platformRegistrationResponse.getPlatformId());
+        assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
 
         // verify that PO is in repository (as PO!)
         User registeredPlatformOwner = userRepository.findOne(platformOwnerUsername);
@@ -380,24 +354,23 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void platformRegistrationWithGeneratedPlatformIdSuccess() throws IOException, TimeoutException {
+    public void platformRegistrationOverAMQPWithGeneratedPlatformIdSuccess() throws IOException, TimeoutException {
         // verify that our platformOwner is not in repository
         assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without preferred platform identifier
-        platformRegistrationRequest.setPlatformId("");
-        byte[] response = platformRegistrationClient.primitiveCall(mapper.writeValueAsString(platformRegistrationRequest).getBytes());
-        PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
+        platformRegistrationOverAMQPRequest.setPlatformId("");
+        byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+        PlatformRegistrationResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
                 PlatformRegistrationResponse.class);
 
         // verify that the server returns certificate & privateKey
-        assertNotNull(platformRegistrationResponse.getPemCertificate());
-        assertNotNull(platformRegistrationResponse.getPemPrivateKey());
-
-        // TODO verify that released certificate has no CA property
+        assertNotNull(platformRegistrationOverAMQPResponse.getPemCertificate());
+        assertNotNull(platformRegistrationOverAMQPResponse.getPemPrivateKey());
 
         // verified that we received a generated platformId
-        String generatedPlatformId = platformRegistrationResponse.getPlatformId();
+        String generatedPlatformId = platformRegistrationOverAMQPResponse.getPlatformId();
         assertNotNull(generatedPlatformId);
 
         // verify that PO is in repository (as PO!)
@@ -415,18 +388,20 @@ public class CoreAuthenticationAuthorizationManagerTests extends
     }
 
     /**
-     * Features: PAAM - 3, CAAM - 5 (Authentication & relevent token issuing)
-     * Interfaces: PAAM - 3, CAAM - 7;
+     * Features: CAAM - 5 (Authentication & relevent token issuing)
+     * Interfaces: CAAM - 7;
      * CommunicationType REST
      */
     @Test
-    public void platformOwnerLoginSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws IOException, TimeoutException, MalformedJWTException, JSONException, CertificateException {
+    public void platformOwnerLoginOverRESTSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws IOException,
+            TimeoutException, MalformedJWTException, JSONException, CertificateException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP
-        platformRegistrationClient.primitiveCall(mapper.writeValueAsString(platformRegistrationRequest).getBytes());
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new Credentials(platformOwnerUsername, platformOwnerPassword), String.class);
@@ -441,7 +416,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
         // verify that the token contains the platform owner public key
-        byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne(platformOwnerUsername).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
+        byte[] applicationPublicKeyInRepository = registrationManager.convertPEMToX509(userRepository.findOne
+                (platformOwnerUsername).getCertificate().getPemCertificate()).getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
         assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
 
@@ -459,15 +435,15 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void platformRegistrationFailureUnauthorized() throws IOException, TimeoutException {
-
+    public void platformRegistrationOverAMQPFailureUnauthorized() throws IOException, TimeoutException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP expecting with wrong AAMOwnerUsername
-        platformRegistrationRequest.getAAMOwnerCredentials().setUsername(AAMOwnerUsername + "somethingWrong");
-        byte[] response = platformRegistrationClient.primitiveCall(mapper.writeValueAsString(platformRegistrationRequest).getBytes());
+        platformRegistrationOverAMQPRequest.getAAMOwnerCredentials().setUsername(AAMOwnerUsername + "somethingWrong");
+        byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
 
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
@@ -478,9 +454,10 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(UnauthorizedRegistrationException.errorMessage, errorResponse.getErrorMessage());
 
         // issue platform registration over AMQP expecting with wrong AAMOwnerUsername
-        platformRegistrationRequest.getAAMOwnerCredentials().setUsername(AAMOwnerUsername);
-        platformRegistrationRequest.getAAMOwnerCredentials().setPassword(AAMOwnerPassword + "somethingWrong");
-        response = platformRegistrationClient.primitiveCall(mapper.writeValueAsString(platformRegistrationRequest).getBytes());
+        platformRegistrationOverAMQPRequest.getAAMOwnerCredentials().setUsername(AAMOwnerUsername);
+        platformRegistrationOverAMQPRequest.getAAMOwnerCredentials().setPassword(AAMOwnerPassword + "somethingWrong");
+        response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
 
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
@@ -497,14 +474,15 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void platformRegistrationFailureMissingArguments() throws IOException, TimeoutException {
+    public void platformRegistrationOverAMQPFailureMissingArguments() throws IOException, TimeoutException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without required Platform's AAM URL
-        platformRegistrationRequest.setPlatformAAMURL("");
-        byte[] response = platformRegistrationClient.primitiveCall(mapper.writeValueAsString(platformRegistrationRequest).getBytes());
+        platformRegistrationOverAMQPRequest.setPlatformAAMURL("");
+        byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
         assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
@@ -516,24 +494,26 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void platformRegistrationFailurePOUsernameExists() throws IOException, TimeoutException {
+    public void platformRegistrationOverAMQPFailurePOUsernameExists() throws IOException, TimeoutException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP
-        byte[] response = platformRegistrationClient.primitiveCall(mapper.writeValueAsString(platformRegistrationRequest).getBytes());
+        byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
 
         // verify that platform with preferred id is in repository and is tied with the given PO
-        PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
+        PlatformRegistrationResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
                 PlatformRegistrationResponse.class);
         // verified that we received the preferred platformId
-        assertEquals(preferredPlatformId, platformRegistrationResponse.getPlatformId());
+        assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
         assertNotNull(platformRepository.findOne(preferredPlatformId));
 
         // issue registration request with different preferred platform identifier but for the same PO
-        platformRegistrationRequest.setPlatformId(preferredPlatformId + "different");
-        response = platformRegistrationClient.primitiveCall(mapper.writeValueAsString(platformRegistrationRequest).getBytes());
+        platformRegistrationOverAMQPRequest.setPlatformId(preferredPlatformId + "different");
+        response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
         assertEquals(ExistingUserException.errorMessage, errorResponse.getErrorMessage());
@@ -545,24 +525,27 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void platformRegistrationFailurePreferredPlatformIdExists() throws IOException, TimeoutException {
+    public void platformRegistrationOverAMQPFailurePreferredPlatformIdExists() throws IOException, TimeoutException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP
-        byte[] response = platformRegistrationClient.primitiveCall(mapper.writeValueAsString(platformRegistrationRequest).getBytes());
+        byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
 
         // verify that platform with preferred id is in repository and is tied with the given PO
-        PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
+        PlatformRegistrationResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
                 PlatformRegistrationResponse.class);
         // verified that we received the preferred platformId
-        assertEquals(preferredPlatformId, platformRegistrationResponse.getPlatformId());
+        assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
         assertNotNull(platformRepository.findOne(preferredPlatformId));
 
         // issue registration request with the same preferred platform identifier but different PO
-        platformRegistrationRequest.getPlatformOwnerDetails().getCredentials().setUsername(platformOwnerUsername + "differentOne");
-        response = platformRegistrationClient.primitiveCall(mapper.writeValueAsString(platformRegistrationRequest).getBytes());
+        platformRegistrationOverAMQPRequest.getPlatformOwnerDetails().getCredentials().setUsername
+                (platformOwnerUsername + "differentOne");
+        response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
         assertEquals(ExistingPlatformException.errorMessage, errorResponse.getErrorMessage());

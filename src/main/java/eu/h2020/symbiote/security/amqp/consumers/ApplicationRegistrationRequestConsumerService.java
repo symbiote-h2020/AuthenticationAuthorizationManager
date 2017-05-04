@@ -6,18 +6,16 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.exceptions.aam.*;
+import eu.h2020.symbiote.security.exceptions.AAMException;
+import eu.h2020.symbiote.security.exceptions.aam.UserRegistrationException;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import eu.h2020.symbiote.security.payloads.UserRegistrationResponse;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.operator.OperatorCreationException;
 
 import java.io.IOException;
-import java.security.*;
-import java.security.cert.CertificateException;
 
 /**
  * RabbitMQ Consumer implementation used for Applications' Registration actions
@@ -81,15 +79,7 @@ public class ApplicationRegistrationRequestConsumerService extends DefaultConsum
                         (request);
                 response = om.writeValueAsString(registrationResponse);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-            } catch (OperatorCreationException | NoSuchAlgorithmException | CertificateException |
-                    InvalidAlgorithmParameterException | KeyStoreException | NoSuchProviderException |
-                    UnrecoverableKeyException e) {
-                log.error(message, e);
-                response = (new ErrorResponseContainer(e.getMessage(), new UserRegistrationException()
-                        .getStatusCode().ordinal())).toJson();
-                this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-            } catch (UserRegistrationException | UnauthorizedRegistrationException | ExistingUserException | MissingArgumentsException |
-                    WrongCredentialsException e) {
+            } catch (AAMException e) {
                 log.error(e);
                 response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
