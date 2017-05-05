@@ -73,6 +73,8 @@ public class PlatformRegistrationService {
             throw new MissingArgumentsException("Missing username or password");
         if (platformRegistrationRequest.getPlatformAAMURL().isEmpty())
             throw new MissingArgumentsException("Missing Platform AAM URL");
+        if (platformRegistrationRequest.getPlatformInstanceFriendlyName().isEmpty())
+            throw new MissingArgumentsException("Missing Platform Instance Friendly Name");
 
         // check if platform owner already in repository
         if (userRepository.exists(platformOwnerDetails.getCredentials().getUsername())) {
@@ -82,15 +84,16 @@ public class PlatformRegistrationService {
 
         String platformId;
         // verify if platform owner provided a preferred platform identifier
-        if (platformRegistrationRequest.getPlatformId().isEmpty())
+        if (platformRegistrationRequest.getPlatformInstanceId().isEmpty())
             // generate a new 'random' platform identifier
             platformId = GENERATED_PLATFORM_IDENTIFIER_PREFIX + new Date().getTime();
-        else if (platformRepository.exists(platformRegistrationRequest.getPlatformId())) // check if platform already
+        else if (platformRepository.exists(platformRegistrationRequest.getPlatformInstanceId())) // check if platform
+            // already
             // in repository
             throw new ExistingPlatformException();
         else {
             // use PO preferred platform identifier
-            platformId = platformRegistrationRequest.getPlatformId();
+            platformId = platformRegistrationRequest.getPlatformInstanceId();
         }
 
         // register platform owner in user repository
@@ -99,12 +102,13 @@ public class PlatformRegistrationService {
                         platformOwnerDetails));
 
         // register platform in repository
-        Platform platform = new Platform(platformId, platformRegistrationRequest.getPlatformAAMURL(), userRepository
+        Platform platform = new Platform(platformId, platformRegistrationRequest.getPlatformAAMURL(),
+                platformRegistrationRequest.getPlatformInstanceFriendlyName(), userRepository
                 .findOne(platformOwnerDetails.getCredentials().getUsername()));
         platformRepository.save(platform);
 
         return new PlatformRegistrationResponse(userRegistrationResponse.getUserCertificate(),
-                userRegistrationResponse.getUserPrivateKey(), platform.getPlatformId());
+                userRegistrationResponse.getUserPrivateKey(), platform.getPlatformInstanceId());
     }
 
 /*

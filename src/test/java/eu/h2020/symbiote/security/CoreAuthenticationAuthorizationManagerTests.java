@@ -46,6 +46,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
     private final String recoveryMail = "null@dev.null";
     private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
+    private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformAAMURL = "https://platform1.eu/AAM/";
     private final String platformOwnerUsername = "testPlatformOwnerUsername";
     private final String platformOwnerPassword = "testPlatormOwnerPassword";
@@ -84,7 +85,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         platformOwnerUserDetails = new UserDetails(new Credentials(
                 platformOwnerUsername, platformOwnerPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER);
         platformRegistrationOverAMQPRequest = new PlatformRegistrationRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserDetails, platformAAMURL, preferredPlatformId);
+                AAMOwnerPassword), platformOwnerUserDetails, platformAAMURL, platformInstanceFriendlyName,
+                preferredPlatformId);
     }
 
     /**
@@ -273,6 +275,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
     }
 
+
     /**
      * Feature: CAAM - 2 (App Registration)
      * Interface: CAAM - 3
@@ -363,7 +366,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without preferred platform identifier
-        platformRegistrationOverAMQPRequest.setPlatformId("");
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId("");
         byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
         PlatformRegistrationResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
@@ -482,13 +485,33 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void platformRegistrationOverAMQPFailureMissingArguments() throws IOException, TimeoutException {
+    public void platformRegistrationOverAMQPFailureMissingAAMURL() throws IOException, TimeoutException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without required Platform's AAM URL
         platformRegistrationOverAMQPRequest.setPlatformAAMURL("");
+        byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
+        assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
+    }
+
+    /**
+     * Feature: CAAM - 3 (Platform Registration)
+     * Interface: CAAM - 2
+     * CommunicationType AMQP
+     */
+    @Test
+    public void platformRegistrationOverAMQPFailureMissingFriendlyName() throws IOException, TimeoutException {
+        // verify that our platform and platformOwner are not in repositories
+        assertFalse(platformRepository.exists(preferredPlatformId));
+        assertFalse(userRepository.exists(platformOwnerUsername));
+
+        // issue platform registration over AMQP without required Platform's instance friendly name
+        platformRegistrationOverAMQPRequest.setPlatformInstanceFriendlyName("");
         byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -519,7 +542,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertNotNull(platformRepository.findOne(preferredPlatformId));
 
         // issue registration request with different preferred platform identifier but for the same PO
-        platformRegistrationOverAMQPRequest.setPlatformId(preferredPlatformId + "different");
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId(preferredPlatformId + "different");
         response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 

@@ -83,7 +83,7 @@ public class TokenManager {
                         case PLATFORM_OWNER:
                             attributes.put(CoreAttributes.ROLE.toString(), UserRole.PLATFORM_OWNER.toString());
                             attributes.put(CoreAttributes.OWNED_PLATFORM.toString(), platformRepository
-                                    .findByPlatformOwner(user).getPlatformId());
+                                    .findByPlatformOwner(user).getPlatformInstanceId());
                             break;
                         case NULL:
                             throw new JWTCreationException("User Role unspecified");
