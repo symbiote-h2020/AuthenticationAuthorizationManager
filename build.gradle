@@ -100,6 +100,14 @@ dependencies {
     //testCompile('de.flapdoodle.embed:de.flapdoodle.embed.mongo')
 }
 
+sourceSets {
+    main {
+        resources {
+            srcDirs "src/main/webapp"
+        }
+    }
+}
+
 // code quality below
 task generateJavaDocs(type: Javadoc) {
     source = sourceSets.main.allJava
