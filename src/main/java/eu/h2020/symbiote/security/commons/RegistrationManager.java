@@ -162,6 +162,22 @@ public class RegistrationManager {
         return cert;
     }
 
+    /**
+     * @return Retrieves AAM's certificate in PEM format
+     * @throws NoSuchProviderException
+     * @throws KeyStoreException
+     * @throws IOException
+     * @throws CertificateException
+     * @throws NoSuchAlgorithmException
+     */
+    public String getAAMCert() throws NoSuchProviderException, KeyStoreException, IOException,
+            CertificateException, NoSuchAlgorithmException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWORD.toCharArray());
+        Certificate certificate = pkcs12Store.getCertificate(KEY_STORE_ALIAS);
+        return this.convertX509ToPEM((X509Certificate) certificate);
+    }
+
 
     /**
      *

@@ -27,7 +27,8 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                         "/request_foreign_token",
                         "/check_home_token_revocation",
                         "/register",
-                        "/unregister");
+                        "/unregister",
+                        "/get_ca_cert");
     }
 
     @Override

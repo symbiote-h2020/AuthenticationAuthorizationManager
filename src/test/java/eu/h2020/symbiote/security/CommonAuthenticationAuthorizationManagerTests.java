@@ -29,6 +29,9 @@ import org.springframework.web.client.HttpClientErrorException;
 
 import java.io.IOException;
 import java.security.KeyPair;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
@@ -45,6 +48,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(CommonAuthenticationAuthorizationManagerTests.class);
+    private final String ca_cert_uri = "get_ca_cert";
 
 
     /**
@@ -323,6 +327,24 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
         // also check time validity
         cert.checkValidity(new Date());
+    }
+
+    /**
+     * Features: CAAM - 12 (AAM as a CA)
+     * Interfaces: CAAM - 15;
+     * CommunicationType REST
+     */
+    @Test
+    public void getCACertOverRESTSuccess() {
+        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + ca_cert_uri, String.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        try {
+            assertEquals(registrationManager.getAAMCert(), response.getBody());
+        } catch (IOException | NoSuchProviderException | KeyStoreException | CertificateException |
+                NoSuchAlgorithmException e) {
+            log.error(e);
+            assertNull(e);
+        }
     }
 
 }
