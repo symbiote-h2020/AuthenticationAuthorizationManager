@@ -21,9 +21,13 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.Certificate;
@@ -74,7 +78,7 @@ public class RegistrationManager {
     }
 
     public KeyPair createKeyPair() throws NoSuchProviderException, NoSuchAlgorithmException,
-        InvalidAlgorithmParameterException {
+            InvalidAlgorithmParameterException {
         ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
         KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
         g.initialize(ecGenSpec, new SecureRandom());
@@ -122,12 +126,12 @@ public class RegistrationManager {
     }
 
     public X509Certificate createECCert(String applicationUsername, PublicKey pubKey) throws NoSuchProviderException,
-        KeyStoreException,
-        IOException,
-        CertificateException,
-        NoSuchAlgorithmException,
-        UnrecoverableKeyException,
-        OperatorCreationException {
+            KeyStoreException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            UnrecoverableKeyException,
+            OperatorCreationException {
 
         // retrieves AAM private key from keystore
         PrivateKey privKey = this.getAAMPrivateKey();
@@ -138,22 +142,22 @@ public class RegistrationManager {
 
         // create the certificate - version 3
         ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER_NAME).build
-            (privKey); //
+                (privKey); //
 
         X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
-            issuerBuilder.build(),
-            BigInteger.valueOf(1),
-            new Date(System.currentTimeMillis()),
-            new Date(System.currentTimeMillis() + 1L * 365L * 24L * 60L * 60L * 1000L),
-            subjectBuilder.build(),
-            pubKey)
+                issuerBuilder.build(),
+                BigInteger.valueOf(1),
+                new Date(System.currentTimeMillis()),
+                new Date(System.currentTimeMillis() + 1L * 365L * 24L * 60L * 60L * 1000L),
+                subjectBuilder.build(),
+                pubKey)
                 .addExtension(
                         new ASN1ObjectIdentifier("2.5.29.19"),
                         false,
                         new BasicConstraints(false));// true if it is allowed to sign other certs;
 
         X509Certificate cert = new JcaX509CertificateConverter().setProvider(PROVIDER_NAME).getCertificate(certGen
-            .build(sigGen));
+                .build(sigGen));
 
         ByteArrayInputStream bIn = new ByteArrayInputStream(cert.getEncoded());
         CertificateFactory certFact = CertificateFactory.getInstance("X.509", PROVIDER_NAME);
@@ -173,14 +177,13 @@ public class RegistrationManager {
     public String getAAMCert() throws NoSuchProviderException, KeyStoreException, IOException,
             CertificateException, NoSuchAlgorithmException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWORD.toCharArray());
+        pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         Certificate certificate = pkcs12Store.getCertificate(KEY_STORE_ALIAS);
         return this.convertX509ToPEM((X509Certificate) certificate);
     }
 
 
     /**
-     *
      * @return Retrieves AAM's public key from provisioned JavaKeyStore
      * @throws NoSuchProviderException
      * @throws KeyStoreException
@@ -189,15 +192,14 @@ public class RegistrationManager {
      * @throws NoSuchAlgorithmException
      */
     public PublicKey getAAMPublicKey() throws NoSuchProviderException, KeyStoreException, IOException,
-        CertificateException, NoSuchAlgorithmException {
+            CertificateException, NoSuchAlgorithmException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWORD.toCharArray());
+        pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         PublicKey pubKey = pkcs12Store.getCertificate(KEY_STORE_ALIAS).getPublicKey();
         return pubKey;
     }
 
     /**
-     *
      * @return retrieves AAM's private key from provisioned JavaKeyStore
      * @throws NoSuchProviderException
      * @throws KeyStoreException
@@ -207,9 +209,9 @@ public class RegistrationManager {
      * @throws UnrecoverableKeyException
      */
     public PrivateKey getAAMPrivateKey() throws NoSuchProviderException, KeyStoreException, IOException,
-        CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
+            CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new FileInputStream(KEY_STORE_FILE_NAME), KEY_STORE_PASSWORD.toCharArray());
+        pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         PrivateKey privKey = (PrivateKey) pkcs12Store.getKey(KEY_STORE_ALIAS, PV_KEY_STORE_PASSWORD.toCharArray());
         return privKey;
     }
