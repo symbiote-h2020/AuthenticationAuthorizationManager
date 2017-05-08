@@ -7,9 +7,7 @@ import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.TokenValidationStatus;
 import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.exceptions.aam.ExistingUserException;
-import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
-import eu.h2020.symbiote.security.exceptions.aam.NotExistingUserException;
+import eu.h2020.symbiote.security.exceptions.aam.*;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
@@ -49,6 +47,100 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
     private static Log log = LogFactory.getLog(CommonAuthenticationAuthorizationManagerTests.class);
     private final String ca_cert_uri = "get_ca_cert";
+
+
+    /**
+     * Feature: 3 (Authentication of components/ and applications registered in a platform)
+     * Interface: PAAM - 1 and CAAM (for Administration)
+     * CommunicationType AMQP
+     *
+     * @throws IOException
+     * @throws TimeoutException
+     */
+    @Test
+    public void applicationLoginOverAMQPSuccessAndIssuesCoreTokenType() throws IOException, TimeoutException {
+
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(username, password))
+                .getBytes());
+        Token token = mapper.readValue(response, Token.class);
+
+        log.info("Test Client received this Token: " + token.toString());
+
+        assertNotNull(token.getToken());
+        try {
+            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
+            assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+
+            // verify that the token contains the application public key
+            byte[] applicationPublicKeyInRepository = userRepository.findOne
+                    (username).getCertificate().getX509().getPublicKey().getEncoded();
+            byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
+            assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
+        } catch (MalformedJWTException | CertificateException e) {
+            log.error(e);
+        }
+    }
+
+
+    /**
+     * Feature: 3 (Authentication of components/ and applications registered in a platform)
+     * Interface: PAAM - 1, CAAM (for Administration)
+     * CommunicationType AMQP
+     *
+     * @throws IOException
+     * @throws TimeoutException
+     */
+    @Test
+    public void applicationLoginOverAMQPWrongCredentialsFailure() throws IOException, TimeoutException {
+
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(wrongusername, password))
+                .getBytes());
+        ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
+
+        log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
+
+        byte[] response2 = client.primitiveCall(mapper.writeValueAsString(new Credentials(username, wrongpassword))
+                .getBytes());
+        ErrorResponseContainer noToken2 = mapper.readValue(response2, ErrorResponseContainer.class);
+
+        log.info("Test Client received this error message instead of token: " + noToken2.getErrorMessage());
+
+        byte[] response3 = client.primitiveCall(mapper.writeValueAsString(new Credentials(wrongusername,
+                wrongpassword)).getBytes());
+        ErrorResponseContainer noToken3 = mapper.readValue(response3, ErrorResponseContainer.class);
+
+        log.info("Test Client received this error message instead of token: " + noToken3.getErrorMessage());
+
+        String expectedErrorMessage = new WrongCredentialsException().getErrorMessage();
+
+        assertEquals(expectedErrorMessage, noToken.getErrorMessage());
+        assertEquals(expectedErrorMessage, noToken2.getErrorMessage());
+        assertEquals(expectedErrorMessage, noToken3.getErrorMessage());
+    }
+
+    /**
+     * Feature: 3 (Authentication of components/ and applications registered in a platform)
+     * Interface: PAAM - 1, CAAM (for Administration)
+     * CommunicationType AMQP
+     *
+     * @throws IOException
+     * @throws TimeoutException
+     */
+    @Test
+    public void applicationLoginOverAMQPMissingArgumentsFailure() throws IOException, TimeoutException {
+
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(/* no username and/or
+        password */)).getBytes());
+        ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
+
+        log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
+
+        assertEquals(new MissingArgumentsException().getErrorMessage(), noToken.getErrorMessage());
+    }
 
 
     /**

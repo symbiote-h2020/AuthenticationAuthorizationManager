@@ -129,6 +129,7 @@ public class RabbitManager {
                 case CORE:
                     startConsumerOfApplicationRegistrationRequestMessages();
                     startConsumerOfPlatformRegistrationRequestMessages();
+                    startConsumerOfLoginRequestMessages();
                     break;
                 case NULL:
                     throw new AAMMisconfigurationException("Wrong deployment type");
@@ -317,6 +318,10 @@ public class RabbitManager {
                         // platform registration
                         channel.queueUnbind(this.platformRegistrationRequestQueue, this.AAMExchangeName, this.platformRegistrationRequestRoutingKey);
                         channel.queueDelete(this.platformRegistrationRequestQueue);
+                        // login
+                        channel.queueUnbind(this.loginRequestQueue, this.AAMExchangeName,
+                                this.loginRequestRoutingKey);
+                        channel.queueDelete(this.loginRequestQueue);
                         break;
                     case NULL:
                         break;
