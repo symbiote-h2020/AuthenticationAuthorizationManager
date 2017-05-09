@@ -74,7 +74,7 @@ dependencies {
     */
     //compile project(':SymbIoTeLibraries')
     compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT') { changing = true }
-    //compile('com.github.symbiote-h2020:SymbIoTeLibraries:eb1162c731'){ changing = true }
+    //compile('com.github.symbiote-h2020:SymbIoTeLibraries:e29c61ffe08'){ changing = true }
 
 
     // Spring
@@ -98,14 +98,6 @@ dependencies {
     testCompile('org.springframework.boot:spring-boot-starter-test')
     // todo rework tests to use embedded mongoDB instead of actual server
     //testCompile('de.flapdoodle.embed:de.flapdoodle.embed.mongo')
-}
-
-sourceSets {
-    main {
-        resources {
-            srcDirs "src/main/webapp"
-        }
-    }
 }
 
 // code quality below
