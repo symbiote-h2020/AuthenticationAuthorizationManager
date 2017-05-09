@@ -55,7 +55,7 @@ public class ApplicationRegistrationController {
         UserRegistrationRequest request = new UserRegistrationRequest();
         // TODO R3 incorporate federated Id (and possibly recovery e-mail)
         request.setUserDetails(new UserDetails(new Credentials(requestMap.get("username"), requestMap.get("password")
-        ), "", "", UserRole.APPLICATION));
+        ), "R3-feature", "not-applicable", UserRole.APPLICATION));
         UserRegistrationResponse regResponse = registrationService.register(request);
         String certificate = regResponse.getUserCertificate().toString();
         String privateKey = regResponse.getUserPrivateKey();
