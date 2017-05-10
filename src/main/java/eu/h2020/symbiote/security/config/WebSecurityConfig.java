@@ -22,7 +22,8 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     public void configure(WebSecurity web) throws Exception {
         web.ignoring()
                 // Spring Security should completely ignore URLs starting with:
-                .antMatchers("/login",
+                .antMatchers("/webjars/**",
+                        "/login",
                         "/request_foreign_token",
                         "/check_home_token_revocation",
                         "/register",
