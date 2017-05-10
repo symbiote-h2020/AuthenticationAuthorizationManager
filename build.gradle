@@ -76,6 +76,8 @@ dependencies {
     compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT') { changing = true }
     //compile('com.github.symbiote-h2020:SymbIoTeLibraries:e29c61ffe08'){ changing = true }
 
+    // for Certificates conversion
+    compile('org.bouncycastle:bcpkix-jdk15on:1.56');
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
