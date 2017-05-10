@@ -24,7 +24,8 @@ public class CoreAuthenticationAuthorizationManagerWithSecurityHandlerTests exte
     @Test
     @Ignore("WIP")
     public void externalLoginUsingSecurityHandlerSuccess() throws SecurityHandlerDisabledException {
-        SecurityHandler securityHandler = new SecurityHandler("http://localhost:8080/", "127.0.0.1",true);
+        SecurityHandler securityHandler = new SecurityHandler("http://localhost:8080/", "127.0.0.1", "guest",
+                "guest", true);
         securityHandler.appRequestCoreToken(username,password);
 
         // TODO continue

@@ -55,9 +55,10 @@ public class TokenController {
 
     // L1 Diagrams - check_token_revocation()
     @RequestMapping(value = "/check_home_token_revocation", method = RequestMethod.POST)
-    public ResponseEntity<?> checkHomeTokenRevocation(@RequestHeader(AAMConstants.TOKEN_HEADER_NAME) String token) {
+    public ResponseEntity<CheckTokenRevocationResponse> checkHomeTokenRevocation(@RequestHeader(AAMConstants
+            .TOKEN_HEADER_NAME) String token) {
 
-        return new ResponseEntity<CheckTokenRevocationResponse>(tokenService.checkHomeTokenRevocation(new
+        return new ResponseEntity<>(tokenService.checkHomeTokenRevocation(new
                 Token(token)), HttpStatus.OK);
     }
 }
