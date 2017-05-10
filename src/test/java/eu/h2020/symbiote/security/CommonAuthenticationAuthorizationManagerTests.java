@@ -453,7 +453,11 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         ResponseEntity<List> response = restTemplate.getForEntity(serverAddress + availableAAMs_uri, List.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
 
-        response.getBody().add(new Platform("CoreAAM", "CoreAMM", "CoreAAM", new User()));
+        response.getBody().add(new Platform("Core", "CoreURL", "CoreFriendlyName", new User()));
+
+        Platform responsePlatform = (Platform) response.getBody().get(0);
+        assertEquals(responsePlatform.getPlatformAAMURL(), "CoreURL");
+        assertEquals(responsePlatform.getPlatformInstanceFriendlyName(), "CoreFriendlyName");
 
         assertEquals(response.getBody(), null);
     }

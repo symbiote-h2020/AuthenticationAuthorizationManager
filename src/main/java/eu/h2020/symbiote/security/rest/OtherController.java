@@ -60,7 +60,7 @@ public class OtherController {
     public ResponseEntity<List<Platform>> availableAAMs() {
 
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(platformRepository.findAllByPlatformOwner(user));
+            return ResponseEntity.status(HttpStatus.OK).body(platformRepository.findAll());
         } catch (Exception e) {
             log.error(e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
