@@ -2,11 +2,13 @@ package eu.h2020.symbiote.security;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.certificate.Certificate;
+import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.TokenValidationStatus;
 import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.exceptions.aam.*;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.token.Token;
@@ -47,7 +49,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
     private static Log log = LogFactory.getLog(CommonAuthenticationAuthorizationManagerTests.class);
     private final String ca_cert_uri = "get_ca_cert";
-
+    private final String availableAAMs_uri = "availableAAMs";
 
     /**
      * Feature: 3 (Authentication of components/ and applications registered in a platform)
@@ -437,6 +439,32 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             log.error(e);
             assertNull(e);
         }
+    }
+
+    /**
+     * Features: CAAM - 12 (AAM as a CA)
+     * Interfaces: CAAM - 9;
+     * CommunicationType REST
+     */
+    @Test
+    public void getAvailableAAMsOverRESTEmpty() {
+        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + availableAAMs_uri, String.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        assertEquals(response.getBody(),null);
+    }
+
+    @Test
+    public void getAvailableAAMsOverRESTSuccess() throws AAMException {
+        platformRegistrationService.register(new PlatformRegistrationRequest((new Credentials(username,password)),
+                new UserDetails(),platformAAMURL,platformInstanceFriendlyName,platformInstanceId));
+
+        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + availableAAMs_uri, String.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotEquals(platformRepository.count(),0);
+        Platform platform = platformRepository.findOne(platformInstanceId);
+
+        assertEquals(response.getBody(),platform);
     }
 
 }

@@ -1,6 +1,9 @@
 package eu.h2020.symbiote.security.rest;
 
+import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
+import eu.h2020.symbiote.security.commons.User;
+import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +18,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
+import java.util.List;
 
 /**
  * Spring controller to handle HTTPS requests related to the RESTful web service associated to other AAM features
@@ -26,12 +30,18 @@ public class OtherController {
 
     private static final Log log = LogFactory.getLog(OtherController.class);
     private RegistrationManager registrationManager;
+    private User user;
+    private PlatformRepository platformRepository;
 
     @Autowired
     public OtherController(RegistrationManager registrationManager) {
         this.registrationManager = registrationManager;
     }
 
+    public OtherController(User user, PlatformRepository platformRepository) {
+        this.user = user;
+        this.platformRepository = platformRepository;
+    }
 
     @RequestMapping(value = "/get_ca_cert", method = RequestMethod.GET)
     public ResponseEntity<String> getCACert() {
@@ -44,5 +54,18 @@ public class OtherController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
+
+
+    @RequestMapping(value = "/aams/available", method = RequestMethod.GET)
+    public ResponseEntity<List<Platform>> availableAAMs() {
+
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(platformRepository.findAllByPlatformOwner(user));
+        } catch (Exception e) {
+            log.error(e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
 }
 
