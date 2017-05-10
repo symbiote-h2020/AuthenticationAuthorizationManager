@@ -35,6 +35,7 @@ import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -448,23 +449,32 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      */
     @Test
     public void getAvailableAAMsOverRESTEmpty() {
-        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + availableAAMs_uri, String.class);
+
+        ResponseEntity<List> response = restTemplate.getForEntity(serverAddress + availableAAMs_uri, List.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
 
-        assertEquals(response.getBody(),null);
+        response.getBody().add(new Platform("CoreAAM", "CoreAMM", "CoreAAM", new User()));
+
+        assertEquals(response.getBody(), null);
     }
 
     @Test
     public void getAvailableAAMsOverRESTSuccess() throws AAMException {
-        platformRegistrationService.register(new PlatformRegistrationRequest((new Credentials(username,password)),
-                new UserDetails(),platformAAMURL,platformInstanceFriendlyName,platformInstanceId));
+        platformRegistrationService.register(new PlatformRegistrationRequest((new Credentials(username, password)),
+                new UserDetails(), platformInstanceFriendlyName, platformAAMURL, platformInstanceId));
 
-        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + availableAAMs_uri, String.class);
+        ResponseEntity<List> response = restTemplate.getForEntity(serverAddress + availableAAMs_uri, List.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotEquals(platformRepository.count(),0);
-        Platform platform = platformRepository.findOne(platformInstanceId);
 
-        assertEquals(response.getBody(),platform);
+        assertNotEquals(platformRepository.count(), 0);
+        Platform platform = platformRepository.findOne(platformInstanceId);
+        assertNotNull(platform);
+
+        Platform responsePlatform = (Platform) response.getBody().get(0);
+        assertEquals(responsePlatform.getPlatformOwner(), platform.getPlatformOwner());
+        assertEquals(responsePlatform.getPlatformAAMURL(), platform.getPlatformAAMURL());
+        assertEquals(responsePlatform.getPlatformInstanceFriendlyName(), platform.getPlatformInstanceFriendlyName());
+
     }
 
 }
