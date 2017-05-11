@@ -352,7 +352,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
 
         // verify that platform oriented fields are properly stored
-        assertEquals(platformAAMURL, registeredPlatform.getPlatformAAMURL());
+        assertEquals(platformAAMURL, registeredPlatform.getPlatformInterworkingInterfaceAddress());
     }
 
     /**
@@ -395,7 +395,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
 
         // verify that platform oriented fields are properly stored
-        assertEquals(platformAAMURL, registeredPlatform.getPlatformAAMURL());
+        assertEquals(platformAAMURL, registeredPlatform.getPlatformInterworkingInterfaceAddress());
     }
 
     /**
@@ -491,7 +491,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without required Platform's AAM URL
-        platformRegistrationOverAMQPRequest.setPlatformAAMURL("");
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress("");
         byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 

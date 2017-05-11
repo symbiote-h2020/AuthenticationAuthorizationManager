@@ -12,21 +12,24 @@ public class Platform {
 
     @Id
     private String platformInstanceId = "";
-    private String platformAAMURL = "";
-    private String platformInstanceFriendlyName;
+    private String platformInterworkingInterfaceAddress = "";
+    private String platformInstanceFriendlyName = "";
     @DBRef
     private User platformOwner;
 
+
     /**
-     * @param platformInstanceId           SymbIoTe-unique platform identifier
-     * @param platformAAMURL               Address where the Platform exposes its AAM
-     * @param platformInstanceFriendlyName a label for the end user to be able to identify the login endrypoint
-     * @param platformOwner                details of the Platform Owner
+     * @param platformInstanceId                   SymbIoTe-unique platform identifier
+     * @param platformInterworkingInterfaceAddress Address where the Platform exposes its Interworking Interface
+     * @param platformInstanceFriendlyName         a label for the end user to be able to identify the login endrypoint
+     * @param platformOwner                        details of the Platform Owner
      */
-    public Platform(String platformInstanceId, String platformAAMURL, String platformInstanceFriendlyName, User
-            platformOwner) {
+    public Platform(String platformInstanceId,
+                    String platformInterworkingInterfaceAddress,
+                    String platformInstanceFriendlyName,
+                    User platformOwner) {
         this.platformInstanceId = platformInstanceId;
-        this.platformAAMURL = platformAAMURL;
+        this.platformInterworkingInterfaceAddress = platformInterworkingInterfaceAddress;
         this.platformInstanceFriendlyName = platformInstanceFriendlyName;
         this.platformOwner = platformOwner;
     }
@@ -43,14 +46,14 @@ public class Platform {
     }
 
     /**
-     * @return Address where the Platform exposes its AAM
+     * @return Address where the Platform exposes its Interworking Interface
      */
-    public String getPlatformAAMURL() {
-        return platformAAMURL;
+    public String getPlatformInterworkingInterfaceAddress() {
+        return platformInterworkingInterfaceAddress;
     }
 
-    public void setPlatformAAMURL(String platformAAMURL) {
-        this.platformAAMURL = platformAAMURL;
+    public void setPlatformInterworkingInterfaceAddress(String platformInterworkingInterfaceAddress) {
+        this.platformInterworkingInterfaceAddress = platformInterworkingInterfaceAddress;
     }
 
     public User getPlatformOwner() {

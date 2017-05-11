@@ -74,7 +74,7 @@ dependencies {
     */
     //compile project(':SymbIoTeLibraries')
     //compile('com.github.symbiote-h2020:SymbIoTeLibraries:aam_integration-SNAPSHOT') { changing = true }
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:0b1808eeb9') { changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:66f9168911') { changing = true }
 
     // for Certificates conversion
     compile('org.bouncycastle:bcpkix-jdk15on:1.56');
