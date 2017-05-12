@@ -154,7 +154,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * @throws TimeoutException
      */
     @Test
-    public void checkTokenRevocationOverAMQPRequestReplyValid() throws IOException, TimeoutException {
+    public void checkTokenRevocationOverAMQPRequestReplyValid() throws IOException, TimeoutException,
+            TokenValidationException {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
                 new Credentials(username, password), String.class);

@@ -3,6 +3,7 @@ package eu.h2020.symbiote.security.services;
 import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
+import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
 import eu.h2020.symbiote.security.payloads.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.security.repositories.TokenRepository;
 import eu.h2020.symbiote.security.token.Token;
@@ -58,7 +59,7 @@ public class TokenService {
         tokenRepository.save(token);
     }
 
-    public Token getToken(String jwt) {
+    public Token getToken(String jwt) throws TokenValidationException {
         return new Token(tokenRepository.findByToken(jwt).getToken());
     }
 

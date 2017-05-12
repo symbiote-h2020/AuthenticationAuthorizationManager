@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.rest;
 
 import eu.h2020.symbiote.security.commons.RegistrationManager;
+import eu.h2020.symbiote.security.constants.AAMConstants;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,9 +34,8 @@ public class OtherController {
     }
 
 
-    @RequestMapping(value = "/get_ca_cert", method = RequestMethod.GET)
+    @RequestMapping(value = AAMConstants.AAM_GET_CA_CERTIFICATE, method = RequestMethod.GET)
     public ResponseEntity<String> getCACert() {
-
         try {
             return ResponseEntity.status(HttpStatus.OK).body(registrationManager.getAAMCert());
         } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException |
