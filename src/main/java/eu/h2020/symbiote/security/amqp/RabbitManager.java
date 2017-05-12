@@ -1,12 +1,11 @@
 package eu.h2020.symbiote.security.amqp;
 
 import com.rabbitmq.client.*;
-import eu.h2020.symbiote.security.amqp.consumers.ApplicationRegistrationRequestConsumerService;
-import eu.h2020.symbiote.security.amqp.consumers.CheckTokenRevocationRequestConsumerService;
-import eu.h2020.symbiote.security.amqp.consumers.LoginRequestConsumerService;
-import eu.h2020.symbiote.security.amqp.consumers.PlatformRegistrationRequestConsumerService;
+import eu.h2020.symbiote.security.amqp.consumers.*;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.exceptions.aam.AAMMisconfigurationException;
+import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.LoginService;
 import eu.h2020.symbiote.security.services.PlatformRegistrationService;
 import eu.h2020.symbiote.security.services.TokenService;
@@ -30,6 +29,8 @@ public class RabbitManager {
     private final PlatformRegistrationService platformRegistrationService;
     private final LoginService loginService;
     private final TokenService tokenService;
+    private final UserRepository userRepository;
+    private final PlatformRepository platformRepository;
 
     @Value("${aam.deployment.type}")
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
@@ -71,15 +72,24 @@ public class RabbitManager {
     @Value("${rabbit.queue.register.platform.request}")
     private String platformRegistrationRequestQueue;
 
+    @Value("${rabbit.routingKey.ownedplatformdetails.request:defaultOverridenBySpringConfigInCoreEnvironment}")
+    private String ownedPlatformDetailsRequestRoutingKey;
+    @Value("${rabbit.queue.ownedplatformdetails.request:defaultOverridenBySpringConfigInCoreEnvironment}")
+    private String ownedPlatformDetailsRequestQueue;
+
     private Connection connection;
 
     @Autowired
-    public RabbitManager(UserRegistrationService userRegistrationService, PlatformRegistrationService platformRegistrationService, LoginService loginService,
-                         TokenService tokenService) {
+    public RabbitManager(UserRegistrationService userRegistrationService, PlatformRegistrationService
+            platformRegistrationService, LoginService loginService,
+                         TokenService tokenService, UserRepository userRepository, PlatformRepository
+                                 platformRepository) {
         this.userRegistrationService = userRegistrationService;
         this.platformRegistrationService = platformRegistrationService;
         this.loginService = loginService;
         this.tokenService = tokenService;
+        this.userRepository = userRepository;
+        this.platformRepository = platformRepository;
     }
 
 
@@ -130,6 +140,7 @@ public class RabbitManager {
                     startConsumerOfApplicationRegistrationRequestMessages();
                     startConsumerOfPlatformRegistrationRequestMessages();
                     startConsumerOfLoginRequestMessages();
+                    startConsumerOfOwnedPlatformDetailsRequestMessages();
                     break;
                 case NULL:
                     throw new AAMMisconfigurationException("Wrong deployment type");
@@ -157,7 +168,6 @@ public class RabbitManager {
             channel = this.connection.createChannel();
             channel.queueDeclare(queueName, true, false, false, null);
             channel.queueBind(queueName, this.AAMExchangeName, this.loginRequestRoutingKey);
-            //channel.basicQos(1); // to spread the load over multiple servers we set the prefetchCount setting
 
             log.info("Authentication and Authorization Manager waiting for login request messages....");
 
@@ -186,7 +196,6 @@ public class RabbitManager {
             channel = this.connection.createChannel();
             channel.queueDeclare(queueName, true, false, false, null);
             channel.queueBind(queueName, this.AAMExchangeName, this.checkTokenRevocationRequestRoutingKey);
-            //channel.basicQos(1); // to spread the load over multiple servers we set the prefetchCount setting
 
             log.info("Authentication and Authorization Manager waiting for check token revocation request messages");
 
@@ -225,6 +234,36 @@ public class RabbitManager {
             log.error(e);
         }
     }
+
+    /**
+     * Method creates queue and binds it globally available exchange and adequate Routing Key.
+     * It also creates a consumer for messages incoming to this queue, regarding to Owned Platform Details requests.
+     *
+     * @throws InterruptedException
+     * @throws IOException
+     */
+    private void startConsumerOfOwnedPlatformDetailsRequestMessages() throws InterruptedException, IOException {
+
+        String queueName = this.ownedPlatformDetailsRequestQueue;
+
+        Channel channel;
+
+        try {
+            channel = this.connection.createChannel();
+            channel.queueDeclare(queueName, true, false, false, null);
+            channel.queueBind(queueName, this.AAMExchangeName, this.ownedPlatformDetailsRequestRoutingKey);
+
+            log.info("Authentication and Authorization Manager waiting for owned platform details requests messages");
+
+            Consumer consumer = new OwnedPlatformDetailsRequestConsumerService(channel, userRepository,
+                    platformRepository);
+
+            channel.basicConsume(queueName, false, consumer);
+        } catch (IOException e) {
+            log.error(e);
+        }
+    }
+
 
     /**
      * Method creates queue and binds it globally available exchange and adequate Routing Key.
@@ -313,15 +352,21 @@ public class RabbitManager {
                         break;
                     case CORE:
                         // application registration
-                        channel.queueUnbind(this.applicationRegistrationRequestQueue, this.AAMExchangeName, this.applicationRegistrationRequestRoutingKey);
+                        channel.queueUnbind(this.applicationRegistrationRequestQueue, this.AAMExchangeName, this
+                                .applicationRegistrationRequestRoutingKey);
                         channel.queueDelete(this.applicationRegistrationRequestQueue);
                         // platform registration
-                        channel.queueUnbind(this.platformRegistrationRequestQueue, this.AAMExchangeName, this.platformRegistrationRequestRoutingKey);
+                        channel.queueUnbind(this.platformRegistrationRequestQueue, this.AAMExchangeName, this
+                                .platformRegistrationRequestRoutingKey);
                         channel.queueDelete(this.platformRegistrationRequestQueue);
                         // login
                         channel.queueUnbind(this.loginRequestQueue, this.AAMExchangeName,
                                 this.loginRequestRoutingKey);
                         channel.queueDelete(this.loginRequestQueue);
+                        // owned platform details
+                        channel.queueUnbind(this.ownedPlatformDetailsRequestQueue, this.AAMExchangeName,
+                                this.ownedPlatformDetailsRequestRoutingKey);
+                        channel.queueDelete(this.ownedPlatformDetailsRequestQueue);
                         break;
                     case NULL:
                         break;
