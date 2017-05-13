@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.rest;
 
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
+import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
 import eu.h2020.symbiote.security.payloads.CheckTokenRevocationResponse;
 import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.token.Token;
@@ -33,10 +34,14 @@ public class TokenController {
         this.tokenService = tokenService;
     }
 
-    //L1 Diagrams - request_foreign_token()
-    @RequestMapping(value = "/request_foreign_token", method = RequestMethod.POST)
+
+    /**
+     * L1 Diagrams - request_foreign_token()
+     * TODO R3
+     */
+    @RequestMapping(value = AAMConstants.AAM_REQUEST_FOREIGN_TOKEN, method = RequestMethod.POST)
     public ResponseEntity<?> requestForeignToken(@RequestHeader(AAMConstants.TOKEN_HEADER_NAME) String token) throws
-            JWTCreationException {
+            JWTCreationException, TokenValidationException {
 
         /*
         Token(s) Validation through challenge-response (client-side)
@@ -53,11 +58,15 @@ public class TokenController {
         return new ResponseEntity<>(headers, HttpStatus.OK);
     }
 
-    // L1 Diagrams - check_token_revocation()
-    @RequestMapping(value = "/check_home_token_revocation", method = RequestMethod.POST)
-    public ResponseEntity<?> checkHomeTokenRevocation(@RequestHeader(AAMConstants.TOKEN_HEADER_NAME) String token) {
+    /**
+     * L1 Diagrams - check_token_revocation()
+     * TODO R3
+     */
+    @RequestMapping(value = AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, method = RequestMethod.POST)
+    public ResponseEntity<CheckTokenRevocationResponse> checkHomeTokenRevocation(@RequestHeader(AAMConstants
+            .TOKEN_HEADER_NAME) String token) throws TokenValidationException {
 
-        return new ResponseEntity<CheckTokenRevocationResponse>(tokenService.checkHomeTokenRevocation(new
+        return new ResponseEntity<>(tokenService.checkHomeTokenRevocation(new
                 Token(token)), HttpStatus.OK);
     }
 }

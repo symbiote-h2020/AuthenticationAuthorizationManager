@@ -71,7 +71,7 @@ public class PlatformRegistrationService {
         if (platformOwnerDetails.getCredentials().getUsername().isEmpty() || platformOwnerDetails.getCredentials()
                 .getPassword().isEmpty())
             throw new MissingArgumentsException("Missing username or password");
-        if (platformRegistrationRequest.getPlatformAAMURL().isEmpty())
+        if (platformRegistrationRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
             throw new MissingArgumentsException("Missing Platform AAM URL");
         if (platformRegistrationRequest.getPlatformInstanceFriendlyName().isEmpty())
             throw new MissingArgumentsException("Missing Platform Instance Friendly Name");
@@ -102,7 +102,8 @@ public class PlatformRegistrationService {
                         platformOwnerDetails));
 
         // register platform in repository
-        Platform platform = new Platform(platformId, platformRegistrationRequest.getPlatformAAMURL(),
+        Platform platform = new Platform(platformId, platformRegistrationRequest
+                .getPlatformInterworkingInterfaceAddress(),
                 platformRegistrationRequest.getPlatformInstanceFriendlyName(), userRepository
                 .findOne(platformOwnerDetails.getCredentials().getUsername()));
         platformRepository.save(platform);

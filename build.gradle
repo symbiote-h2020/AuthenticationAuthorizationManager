@@ -73,11 +73,11 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
     //compile project(':SymbIoTeLibraries')
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT') { changing = true }
-    //compile('com.github.symbiote-h2020:SymbIoTeLibraries:e29c61ffe08'){ changing = true }
+    //compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT') { changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:d38ef86b62') { changing = true }
 
     // for Certificates conversion
-    compile('org.bouncycastle:bcpkix-jdk15on:1.56');
+    compile('org.bouncycastle:bcpkix-jdk15on:1.56')
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')

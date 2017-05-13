@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.constants.AAMConstants;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,18 +35,14 @@ public class OtherController {
     private PlatformRepository platformRepository;
 
     @Autowired
-    public OtherController(RegistrationManager registrationManager) {
+    public OtherController(RegistrationManager registrationManager, PlatformRepository platformRepository) {
         this.registrationManager = registrationManager;
-    }
-
-    public OtherController(User user, PlatformRepository platformRepository) {
-        this.user = user;
         this.platformRepository = platformRepository;
     }
 
-    @RequestMapping(value = "/get_ca_cert", method = RequestMethod.GET)
-    public ResponseEntity<String> getCACert() {
 
+    @RequestMapping(value = AAMConstants.AAM_GET_CA_CERTIFICATE, method = RequestMethod.GET)
+    public ResponseEntity<String> getCACert() {
         try {
             return ResponseEntity.status(HttpStatus.OK).body(registrationManager.getAAMCert());
         } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException |

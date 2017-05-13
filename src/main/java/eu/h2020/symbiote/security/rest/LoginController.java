@@ -37,9 +37,8 @@ public class LoginController {
     }
 
     //L1 Diagrams - login()
-    @RequestMapping(value = "/login", method = RequestMethod.POST)
+    @RequestMapping(value = AAMConstants.AAM_LOGIN, method = RequestMethod.POST)
     public ResponseEntity<?> login(@RequestBody Credentials user) {
-
         try {
             Token token = loginService.login(user);
             HttpHeaders headers = new HttpHeaders();

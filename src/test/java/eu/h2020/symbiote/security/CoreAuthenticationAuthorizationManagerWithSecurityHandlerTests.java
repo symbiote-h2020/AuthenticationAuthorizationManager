@@ -24,11 +24,11 @@ public class CoreAuthenticationAuthorizationManagerWithSecurityHandlerTests exte
     @Test
     @Ignore("WIP")
     public void externalLoginUsingSecurityHandlerSuccess() throws SecurityHandlerDisabledException {
-        SecurityHandler securityHandler = new SecurityHandler("http://localhost:8080/", "127.0.0.1",true);
-        securityHandler.appRequestCoreToken(username,password);
+        /*
+        SecurityHandler securityHandler = new SecurityHandler("http://localhost:8080/", "127.0.0.1", true);
+        securityHandler.appRequestCoreToken(username, password);
 
         // TODO continue
-        /*
         try {
             JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
             // As the AAM is now configured as core we confirm that relevant token type was issued.

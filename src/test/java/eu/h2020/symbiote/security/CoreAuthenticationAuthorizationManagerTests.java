@@ -19,6 +19,7 @@ import org.codehaus.jettison.json.JSONException;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -50,15 +51,14 @@ public class CoreAuthenticationAuthorizationManagerTests extends
     private final String platformAAMURL = "https://platform1.eu/AAM/";
     private final String platformOwnerUsername = "testPlatformOwnerUsername";
     private final String platformOwnerPassword = "testPlatormOwnerPassword";
-
+    @Value("${rabbit.queue.ownedplatformdetails.request}")
+    protected String ownedPlatformDetailsRequestQueue;
     private UserRegistrationRequest appUserRegistrationRequest;
     private RpcClient appRegistrationClient;
     private UserDetails appUserDetails;
-
     private RpcClient platformRegistrationOverAMQPClient;
     private UserDetails platformOwnerUserDetails;
     private PlatformRegistrationRequest platformRegistrationOverAMQPRequest;
-
     @Autowired
     private PlatformRepository platformRepository;
 
@@ -87,6 +87,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         platformRegistrationOverAMQPRequest = new PlatformRegistrationRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword), platformOwnerUserDetails, platformAAMURL, platformInstanceFriendlyName,
                 preferredPlatformId);
+
     }
 
     /**
@@ -352,7 +353,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
 
         // verify that platform oriented fields are properly stored
-        assertEquals(platformAAMURL, registeredPlatform.getPlatformAAMURL());
+        assertEquals(platformAAMURL, registeredPlatform.getPlatformInterworkingInterfaceAddress());
     }
 
     /**
@@ -395,7 +396,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
 
         // verify that platform oriented fields are properly stored
-        assertEquals(platformAAMURL, registeredPlatform.getPlatformAAMURL());
+        assertEquals(platformAAMURL, registeredPlatform.getPlatformInterworkingInterfaceAddress());
     }
 
     /**
@@ -491,7 +492,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without required Platform's AAM URL
-        platformRegistrationOverAMQPRequest.setPlatformAAMURL("");
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress("");
         byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -583,4 +584,88 @@ public class CoreAuthenticationAuthorizationManagerTests extends
     }
 
 
+    /**
+     * Features: CAAM - Providing platform details for Administration upon giving a correct Core Token
+     * Interfaces: CAAM ;
+     * CommunicationType AMQP
+     */
+    @Test
+    public void platformOwnerLoginOverRESTAndReceivesInAdministrationDetailsOfHisOwnedPlatform() throws IOException,
+            TimeoutException, MalformedJWTException, JSONException, CertificateException, TokenValidationException {
+        // verify that our platform and platformOwner are not in repositories
+        assertFalse(platformRepository.exists(preferredPlatformId));
+        assertFalse(userRepository.exists(platformOwnerUsername));
+
+        // issue platform registration over AMQP
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        // login the platform owner
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+                new Credentials(platformOwnerUsername, platformOwnerPassword), String.class);
+        HttpHeaders headers = response.getHeaders();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        //verify that JWT was issued for user
+        assertNotNull(headers.getFirst(tokenHeaderName));
+
+        // issue owned platform details request with the given token
+        RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+                ownedPlatformDetailsRequestQueue, 5000);
+        byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
+                (headers.getFirst(tokenHeaderName)).getBytes());
+        OwnedPlatformDetails ownedPlatformDetails = mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails
+                .class);
+
+        Platform ownedPlatformInDB = platformRepository.findOne(preferredPlatformId);
+
+        // verify the contents of the response
+        assertEquals(ownedPlatformInDB.getPlatformInstanceFriendlyName(), ownedPlatformDetails
+                .getPlatformInstanceFriendlyName());
+        assertEquals(ownedPlatformInDB.getPlatformInstanceId(), ownedPlatformDetails.getPlatformInstanceId());
+        assertEquals(ownedPlatformInDB.getPlatformInterworkingInterfaceAddress(), ownedPlatformDetails
+                .getPlatformInterworkingInterfaceAddress());
+    }
+
+    /**
+     * Features: CAAM - Providing platform details for Administration upon giving a correct Core Token
+     * Interfaces: CAAM ;
+     * CommunicationType AMQP
+     */
+    @Test
+    public void nonPlatformOwnerLoginOverRESTAndIsDeclinedOwnedPlatformDetailsRequest() throws IOException,
+            TimeoutException, MalformedJWTException, JSONException, CertificateException, TokenValidationException {
+        // verify that our platform and platformOwner are not in repositories
+        assertFalse(platformRepository.exists(preferredPlatformId));
+        assertFalse(userRepository.exists(platformOwnerUsername));
+
+        // issue platform registration over AMQP
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        // issue app registration over AMQP
+        appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
+                UserRegistrationRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
+                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.APPLICATION))).getBytes());
+
+
+        // login an ordinary user to get token
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+                new Credentials(coreAppUsername, coreAppPassword), String.class);
+        HttpHeaders headers = response.getHeaders();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        //verify that JWT was issued for user
+        assertNotNull(headers.getFirst(tokenHeaderName));
+
+        // issue owned platform details request with the given token
+        RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+                ownedPlatformDetailsRequestQueue, 5000);
+        byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
+                (headers.getFirst(tokenHeaderName)).getBytes());
+
+        // verify error response
+        ErrorResponseContainer errorResponse = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer
+                .class);
+        assertEquals(HttpStatus.UNAUTHORIZED.ordinal(), errorResponse.getErrorCode());
+    }
 }
