@@ -3,12 +3,15 @@ package eu.h2020.symbiote.security;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.User;
+import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.exceptions.aam.*;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import org.apache.commons.codec.binary.Base64;
@@ -20,7 +23,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
@@ -28,6 +33,7 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -41,18 +47,20 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(CoreAuthenticationAuthorizationManagerTests.class);
-
     private final String coreAppUsername = "testCoreAppUsername";
     private final String coreAppPassword = "testCoreAppPassword";
     private final String recoveryMail = "null@dev.null";
     private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
-    private final String platformAAMURL = "https://platform1.eu/AAM/";
+    private final String platformInterworkingInterfaceAddress = "platform1.eu/someFancyHiddenPath/andHiddenAgain/";
+    private final String platformExposedAAMEntryPoint = "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain/paam";
     private final String platformOwnerUsername = "testPlatformOwnerUsername";
     private final String platformOwnerPassword = "testPlatormOwnerPassword";
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
+    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
+    String coreInterfaceAddress;
     private UserRegistrationRequest appUserRegistrationRequest;
     private RpcClient appRegistrationClient;
     private UserDetails appUserDetails;
@@ -85,7 +93,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         platformOwnerUserDetails = new UserDetails(new Credentials(
                 platformOwnerUsername, platformOwnerPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER);
         platformRegistrationOverAMQPRequest = new PlatformRegistrationRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserDetails, platformAAMURL, platformInstanceFriendlyName,
+                AAMOwnerPassword), platformOwnerUserDetails, platformInterworkingInterfaceAddress, platformInstanceFriendlyName,
                 preferredPlatformId);
 
     }
@@ -353,7 +361,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
 
         // verify that platform oriented fields are properly stored
-        assertEquals(platformAAMURL, registeredPlatform.getPlatformInterworkingInterfaceAddress());
+        assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress());
     }
 
     /**
@@ -396,7 +404,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
 
         // verify that platform oriented fields are properly stored
-        assertEquals(platformAAMURL, registeredPlatform.getPlatformInterworkingInterfaceAddress());
+        assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress());
     }
 
     /**
@@ -667,5 +675,69 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         ErrorResponseContainer errorResponse = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer
                 .class);
         assertEquals(HttpStatus.UNAUTHORIZED.ordinal(), errorResponse.getErrorCode());
+    }
+
+
+    /**
+     * Features: Core AAM  providing list of available security entry points
+     * CommunicationType REST
+     */
+    @Test
+    public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+        ResponseEntity<List<AAM>> response = restTemplate.exchange(serverAddress + AAMConstants.AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<List<AAM>>() {
+        });
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        // verify the body
+        List<AAM> aams = response.getBody();
+        // there should be only core AAM in the list
+        assertEquals(1, aams.size());
+
+        // verifying the contents
+        AAM aam = aams.get(0);
+        // this expected PlatformAAM is due to the value stored in the issued certificate in the test keystore
+        assertEquals("PlatformAAM", aam.getAamInstanceId());
+        assertEquals(coreInterfaceAddress, aam.getAamAddress());
+        // maybe we could externalize it to spring config
+        assertEquals("SymbIoTe Core AAM", aam.getAamInstanceFriendlyName());
+        assertEquals(registrationManager.getAAMCert(), aam.getCertificate().getCertificateString());
+    }
+
+    /**
+     * Features: Core AAM  providing list of available security entrypoints
+     * CommunicationType REST
+     */
+    @Test
+    public void getAvailableAAMsOverRESTWithRegisteredPlatform() throws AAMException, IOException, TimeoutException {
+        // issue platform registration over AMQP
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        // get the list
+        ResponseEntity<List<AAM>> response = restTemplate.exchange(serverAddress + AAMConstants.AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<List<AAM>>() {
+        });
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        // verify the body
+        List<AAM> aams = response.getBody();
+        // there should be Core AAM and the registered platform
+        assertEquals(2, aams.size());
+
+        // verifying the contents
+        // first should be served the core AAM
+        AAM coreAAM = aams.get(0);
+        // this expected PlatformAAM is due to the value stored in the issued certificate in the test keystore
+        assertEquals("PlatformAAM", coreAAM.getAamInstanceId());
+        assertEquals(coreInterfaceAddress, coreAAM.getAamAddress());
+        assertEquals("SymbIoTe Core AAM", coreAAM.getAamInstanceFriendlyName());
+
+        // then comes the registered platform
+        AAM platformAAM = aams.get(1);
+        assertEquals(preferredPlatformId, platformAAM.getAamInstanceId());
+        assertEquals(platformExposedAAMEntryPoint, platformAAM.getAamAddress());
+        assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
+        // TODO we don't know the cert... until R3 when we will know it
+        assertEquals("", platformAAM.getCertificate().getCertificateString());
+
     }
 }

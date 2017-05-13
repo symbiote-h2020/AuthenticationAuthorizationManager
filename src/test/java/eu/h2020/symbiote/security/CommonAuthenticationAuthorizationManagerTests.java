@@ -2,13 +2,11 @@ package eu.h2020.symbiote.security;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.certificate.Certificate;
-import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.TokenValidationStatus;
 import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.exceptions.aam.*;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.token.Token;
@@ -35,7 +33,6 @@ import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -50,7 +47,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
     private static Log log = LogFactory.getLog(CommonAuthenticationAuthorizationManagerTests.class);
     private final String ca_cert_uri = "get_ca_cert";
-    private final String availableAAMs_uri = "availableAAMs";
+
 
     /**
      * Feature: 3 (Authentication of components/ and applications registered in a platform)
@@ -442,44 +439,4 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             assertNull(e);
         }
     }
-
-    /**
-     * Features: CAAM - 12 (AAM as a CA)
-     * Interfaces: CAAM - 9;
-     * CommunicationType REST
-     */
-    @Test
-    public void getAvailableAAMsOverRESTEmpty() {
-
-        ResponseEntity<List> response = restTemplate.getForEntity(serverAddress + availableAAMs_uri, List.class);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-
-        response.getBody().add(new Platform("Core", "CoreURL", "CoreFriendlyName", new User()));
-
-        Platform responsePlatform = (Platform) response.getBody().get(0);
-        assertEquals(responsePlatform.getPlatformAAMURL(), "CoreURL");
-        assertEquals(responsePlatform.getPlatformInstanceFriendlyName(), "CoreFriendlyName");
-
-        assertEquals(response.getBody(), null);
-    }
-
-    @Test
-    public void getAvailableAAMsOverRESTSuccess() throws AAMException {
-        platformRegistrationService.register(new PlatformRegistrationRequest((new Credentials(username, password)),
-                new UserDetails(), platformInstanceFriendlyName, platformAAMURL, platformInstanceId));
-
-        ResponseEntity<List> response = restTemplate.getForEntity(serverAddress + availableAAMs_uri, List.class);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-
-        assertNotEquals(platformRepository.count(), 0);
-        Platform platform = platformRepository.findOne(platformInstanceId);
-        assertNotNull(platform);
-
-        Platform responsePlatform = (Platform) response.getBody().get(0);
-        assertEquals(responsePlatform.getPlatformOwner(), platform.getPlatformOwner());
-        assertEquals(responsePlatform.getPlatformAAMURL(), platform.getPlatformAAMURL());
-        assertEquals(responsePlatform.getPlatformInstanceFriendlyName(), platform.getPlatformInstanceFriendlyName());
-
-    }
-
 }

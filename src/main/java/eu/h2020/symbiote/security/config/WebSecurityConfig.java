@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.config;
 
+import eu.h2020.symbiote.security.constants.AAMConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -23,12 +24,14 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         web.ignoring()
                 // Spring Security should completely ignore URLs starting with:
                 .antMatchers("/webjars/**",
-                        "/login",
-                        "/request_foreign_token",
-                        "/check_home_token_revocation",
                         "/register",
                         "/unregister",
-                        "/get_ca_cert");
+                        AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
+                        AAMConstants.AAM_GET_AVAILABLE_AAMS,
+                        AAMConstants.AAM_GET_CA_CERTIFICATE,
+                        AAMConstants.AAM_LOGIN,
+                        AAMConstants.AAM_REQUEST_FOREIGN_TOKEN
+                );
     }
 
     @Override

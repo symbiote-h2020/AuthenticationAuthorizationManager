@@ -7,11 +7,9 @@ import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.UserDetails;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
-import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.TokenRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
-import eu.h2020.symbiote.security.services.PlatformRegistrationService;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -59,9 +57,7 @@ public abstract class AuthenticationAuthorizationManagerTests {
     protected final String loginUri = "login";
     protected final String registrationUri = "register";
     protected final String unregistrationUri = "unregister";
-    protected final String platformInstanceId = "testPlatformId";
-    protected final String platformAAMURL = "testPlatformAAMURL";
-    protected final String platformInstanceFriendlyName = "testPlatformInstanceFriendlyName";
+
 
     @LocalServerPort
     protected int port;
@@ -75,11 +71,6 @@ public abstract class AuthenticationAuthorizationManagerTests {
     protected UserRegistrationService userRegistrationService;
     @Autowired
     protected PasswordEncoder passwordEncoder;
-    @Autowired
-    protected PlatformRegistrationService platformRegistrationService;
-    @Autowired
-    protected PlatformRepository platformRepository;
-
 
 
     // TODO rework tests to use Security Handler
@@ -117,7 +108,7 @@ public abstract class AuthenticationAuthorizationManagerTests {
     @Before
     public void setUp() throws Exception {
         // Catch the random port
-        serverAddress = "https://localhost:" + port + "/";
+        serverAddress = "https://localhost:" + port;
 
 
         // dirty definition of HttpClient to connect to HTTPS endpoints.

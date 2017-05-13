@@ -17,6 +17,7 @@ public class Platform {
     @DBRef
     private User platformOwner;
 
+    // TODO R3 once we implement CSR, the platform should also contain the certificate issued for its PAAM
 
     /**
      * @param platformInstanceId                   SymbIoTe-unique platform identifier
