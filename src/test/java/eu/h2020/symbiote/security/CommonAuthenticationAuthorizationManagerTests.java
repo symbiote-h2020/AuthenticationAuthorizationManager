@@ -3,6 +3,7 @@ package eu.h2020.symbiote.security;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.User;
+import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
@@ -46,8 +47,6 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(CommonAuthenticationAuthorizationManagerTests.class);
-    private final String ca_cert_uri = "get_ca_cert";
-
 
     /**
      * Feature: 3 (Authentication of components/ and applications registered in a platform)
@@ -157,12 +156,12 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void checkTokenRevocationOverAMQPRequestReplyValid() throws IOException, TimeoutException,
             TokenValidationException {
 
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(username, password), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(headers.getFirst(tokenHeaderName));
-        String token = headers.getFirst(tokenHeaderName);
+        assertNotNull(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        String token = headers.getFirst(AAMConstants.TOKEN_HEADER_NAME);
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 checkTokenRevocationRequestQueue,
@@ -186,7 +185,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void userLoginOverRESTWrongUsernameFailure() {
         ResponseEntity<ErrorResponseContainer> token = null;
         try {
-            token = restTemplate.postForEntity(serverAddress + loginUri, new Credentials(wrongusername, password),
+            token = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN, new Credentials(wrongusername,
+                            password),
                     ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
             assertNull(token);
@@ -204,7 +204,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     public void userLoginOverRESTWrongPasswordFailure() {
         ResponseEntity<ErrorResponseContainer> token = null;
         try {
-            token = restTemplate.postForEntity(serverAddress + loginUri, new Credentials(username, wrongpassword),
+            token = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN, new Credentials(username,
+                            wrongpassword),
                     ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
             assertNull(token);
@@ -219,13 +220,13 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      */
     @Test
     public void applicationLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() {
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(username, password), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(headers.getFirst(tokenHeaderName));
+        assertNotNull(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
         try {
-            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
+            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
             // As the AAM is now configured as core we confirm that relevant token type was issued.
             assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
@@ -252,21 +253,22 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     @Test
     public void foreignTokenRequestOverRESTSuccess() {
 
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(tokenHeaderName, loginHeaders.getFirst(tokenHeaderName));
+        headers.add(AAMConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
-        ResponseEntity<String> responseToken = restTemplate.postForEntity(serverAddress + foreignTokenUri, request,
+        ResponseEntity<String> responseToken = restTemplate.postForEntity(serverAddress + AAMConstants
+                        .AAM_REQUEST_FOREIGN_TOKEN, request,
                 String.class);
         HttpHeaders rspHeaders = responseToken.getHeaders();
 
         assertEquals(HttpStatus.OK, responseToken.getStatusCode());
-        assertNotNull(rspHeaders.getFirst(tokenHeaderName));
+        assertNotNull(rspHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
     }
 
     /**
@@ -279,17 +281,17 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     @Test
     public void checkTokenRevocationOverRESTValid() {
 
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(tokenHeaderName, loginHeaders.getFirst(tokenHeaderName));
+        headers.add(AAMConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
         ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(serverAddress +
-                checkHomeTokenRevocationUri, request, CheckRevocationResponse.class);
+                AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, request, CheckRevocationResponse.class);
 
         assertEquals(ValidationStatus.VALID.toString(), status.getBody().getStatus());
     }
@@ -304,7 +306,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     @Test
     public void checkTokenRevocationOverRESTExpired() {
 
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
@@ -315,12 +317,12 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             log.error(e);
         }
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(tokenHeaderName, loginHeaders.getFirst(tokenHeaderName));
+        headers.add(AAMConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
         ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(serverAddress +
-                checkHomeTokenRevocationUri, request, CheckRevocationResponse.class);
+                AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, request, CheckRevocationResponse.class);
 
         // TODO cover other situaations (bad key, on purpose revocation)
         assertEquals(ValidationStatus.EXPIRED.toString(), status.getBody().getStatus());
@@ -429,7 +431,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      */
     @Test
     public void getCACertOverRESTSuccess() {
-        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + ca_cert_uri, String.class);
+        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + AAMConstants
+                .AAM_GET_CA_CERTIFICATE, String.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         try {
             assertEquals(registrationManager.getAAMCert(), response.getBody());

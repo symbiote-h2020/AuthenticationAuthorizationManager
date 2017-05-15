@@ -13,11 +13,6 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.TrustStrategy;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,15 +21,16 @@ import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.RestTemplate;
 
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
-import java.security.cert.X509Certificate;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 /**
  * AAM test suite stub with possibly shareable fields.
@@ -46,15 +42,11 @@ import java.security.cert.X509Certificate;
 public abstract class AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(AuthenticationAuthorizationManagerTests.class);
-    protected final String foreignTokenUri = "request_foreign_token";
-    protected final String checkHomeTokenRevocationUri = "check_home_token_revocation";
     protected final String username = "testApplicationUsername";
     protected final String password = "testApplicationPassword";
     protected final String wrongusername = "veryWrongTestApplicationUsername";
     protected final String wrongpassword = "veryWrongTestApplicationPassword";
     protected final String homeTokenValue = "home_token_from_platform_aam-" + username;
-    protected final String tokenHeaderName = "X-Auth-Token";
-    protected final String loginUri = "login";
     protected final String registrationUri = "register";
     protected final String unregistrationUri = "unregister";
 
@@ -111,26 +103,30 @@ public abstract class AuthenticationAuthorizationManagerTests {
         serverAddress = "https://localhost:" + port;
 
 
-        // dirty definition of HttpClient to connect to HTTPS endpoints.
-        TrustStrategy acceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
+        // Create a trust manager that does not validate certificate chains
+        TrustManager[] trustAllCerts = new TrustManager[]{
+                new X509TrustManager() {
+                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                        return null;
+                    }
 
-        SSLContext sslContext = org.apache.http.ssl.SSLContexts.custom()
-                .loadTrustMaterial(null, acceptingTrustStrategy)
-                .build();
+                    public void checkClientTrusted(
+                            java.security.cert.X509Certificate[] certs, String authType) {
+                    }
 
-        SSLConnectionSocketFactory csf = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
+                    public void checkServerTrusted(
+                            java.security.cert.X509Certificate[] certs, String authType) {
+                    }
+                }
+        };
 
-        CloseableHttpClient httpClient = HttpClients.custom()
-                .setSSLSocketFactory(csf)
-                .build();
-
-        HttpComponentsClientHttpRequestFactory requestFactory =
-                new HttpComponentsClientHttpRequestFactory();
-
-        requestFactory.setHttpClient(httpClient);
+        // Install the all-trusting trust manager
+        SSLContext sc = SSLContext.getInstance("SSL");
+        sc.init(null, trustAllCerts, new java.security.SecureRandom());
+        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
 
         // Test rest template
-        restTemplate = new RestTemplate(requestFactory);
+        restTemplate = new RestTemplate();
 
         // cleanup db
         userRepository.deleteAll();

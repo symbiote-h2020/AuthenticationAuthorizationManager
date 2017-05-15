@@ -54,7 +54,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress = "platform1.eu/someFancyHiddenPath/andHiddenAgain/";
-    private final String platformExposedAAMEntryPoint = "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain/paam";
+    private final String platformExposedAAMEntryPoint =
+            "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain/paam";
     private final String platformOwnerUsername = "testPlatformOwnerUsername";
     private final String platformOwnerPassword = "testPlatormOwnerPassword";
     @Value("${rabbit.queue.ownedplatformdetails.request}")
@@ -93,7 +94,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         platformOwnerUserDetails = new UserDetails(new Credentials(
                 platformOwnerUsername, platformOwnerPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER);
         platformRegistrationOverAMQPRequest = new PlatformRegistrationRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserDetails, platformInterworkingInterfaceAddress, platformInstanceFriendlyName,
+                AAMOwnerPassword), platformOwnerUserDetails, platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
                 preferredPlatformId);
 
     }
@@ -361,7 +363,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
 
         // verify that platform oriented fields are properly stored
-        assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress());
+        assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress
+                ());
     }
 
     /**
@@ -404,7 +407,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
 
         // verify that platform oriented fields are properly stored
-        assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress());
+        assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress
+                ());
     }
 
     /**
@@ -423,14 +427,14 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(platformOwnerUsername, platformOwnerPassword), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user
-        assertNotNull(headers.getFirst(tokenHeaderName));
+        assertNotNull(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
 
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(tokenHeaderName));
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
 
         //verify that JWT is of type Core as was released by a CoreAAM
         assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
@@ -609,18 +613,18 @@ public class CoreAuthenticationAuthorizationManagerTests extends
                 (platformRegistrationOverAMQPRequest).getBytes());
 
         // login the platform owner
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(platformOwnerUsername, platformOwnerPassword), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user
-        assertNotNull(headers.getFirst(tokenHeaderName));
+        assertNotNull(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
 
         // issue owned platform details request with the given token
         RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (headers.getFirst(tokenHeaderName)).getBytes());
+                (headers.getFirst(AAMConstants.TOKEN_HEADER_NAME)).getBytes());
         OwnedPlatformDetails ownedPlatformDetails = mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails
                 .class);
 
@@ -658,18 +662,18 @@ public class CoreAuthenticationAuthorizationManagerTests extends
 
 
         // login an ordinary user to get token
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + loginUri,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(coreAppUsername, coreAppPassword), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user
-        assertNotNull(headers.getFirst(tokenHeaderName));
+        assertNotNull(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
 
         // issue owned platform details request with the given token
         RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (headers.getFirst(tokenHeaderName)).getBytes());
+                (headers.getFirst(AAMConstants.TOKEN_HEADER_NAME)).getBytes());
 
         // verify error response
         ErrorResponseContainer errorResponse = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer
@@ -683,8 +687,10 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        ResponseEntity<List<AAM>> response = restTemplate.exchange(serverAddress + AAMConstants.AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<List<AAM>>() {
+    public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
+            CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+        ResponseEntity<List<AAM>> response = restTemplate.exchange(serverAddress + AAMConstants
+                .AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<List<AAM>>() {
         });
         assertEquals(HttpStatus.OK, response.getStatusCode());
 
@@ -714,7 +720,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
                 (platformRegistrationOverAMQPRequest).getBytes());
 
         // get the list
-        ResponseEntity<List<AAM>> response = restTemplate.exchange(serverAddress + AAMConstants.AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<List<AAM>>() {
+        ResponseEntity<List<AAM>> response = restTemplate.exchange(serverAddress + AAMConstants
+                .AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<List<AAM>>() {
         });
         assertEquals(HttpStatus.OK, response.getStatusCode());
 
