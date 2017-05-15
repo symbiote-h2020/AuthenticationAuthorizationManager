@@ -4,7 +4,7 @@ import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
-import eu.h2020.symbiote.security.payloads.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.repositories.TokenRepository;
 import eu.h2020.symbiote.security.token.Token;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +47,7 @@ public class TokenService {
         return retToken;
     }
 
-    public CheckTokenRevocationResponse checkHomeTokenRevocation(Token token) {
+    public CheckRevocationResponse checkHomeTokenRevocation(Token token) {
         return tokenManager.checkHomeTokenRevocation(token, tokenRepository.findByToken(token.getToken()));
     }
 

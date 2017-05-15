@@ -3,12 +3,12 @@ package eu.h2020.symbiote.security.commons;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.enums.TokenValidationStatus;
 import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
-import eu.h2020.symbiote.security.payloads.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.token.Token;
@@ -122,9 +122,9 @@ public class TokenManager {
         }
     }
 
-    public CheckTokenRevocationResponse checkHomeTokenRevocation(Token token, Token dbToken) {
+    public CheckRevocationResponse checkHomeTokenRevocation(Token token, Token dbToken) {
 
-        CheckTokenRevocationResponse outcome = new CheckTokenRevocationResponse(TokenValidationStatus.VALID);
+        CheckRevocationResponse outcome = new CheckRevocationResponse(ValidationStatus.VALID);
 
         try {
             if (dbToken == null) {
@@ -138,26 +138,26 @@ public class TokenManager {
 
             switch (JWTEngine.validateToken(token, pubKey)) {
                 case VALID:
-                    outcome.setStatus(TokenValidationStatus.VALID);
+                    outcome.setStatus(ValidationStatus.VALID);
                     break;
                 case EXPIRED:
-                    outcome.setStatus(TokenValidationStatus.EXPIRED);
+                    outcome.setStatus(ValidationStatus.EXPIRED);
                     break;
                 case REVOKED:
-                    outcome.setStatus(TokenValidationStatus.REVOKED);
+                    outcome.setStatus(ValidationStatus.REVOKED);
                     break;
                 case INVALID:
-                    outcome.setStatus(TokenValidationStatus.INVALID);
+                    outcome.setStatus(ValidationStatus.INVALID);
                     break;
 
             }
             //Check if issuer of the token is this platform
             if (!claims.getIss().equals(deploymentId)) {
-                outcome.setStatus(TokenValidationStatus.INVALID);
+                outcome.setStatus(ValidationStatus.INVALID);
             }
         } catch (MalformedJWTException | TokenValidationException | NoSuchAlgorithmException | InvalidKeySpecException e) {
             log.error("JWT validation error", e);
-            outcome.setStatus(TokenValidationStatus.INVALID);
+            outcome.setStatus(ValidationStatus.INVALID);
         }
         return outcome;
     }

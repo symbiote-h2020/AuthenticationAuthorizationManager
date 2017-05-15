@@ -5,8 +5,8 @@ import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.enums.TokenValidationStatus;
 import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.aam.*;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.token.Token;
@@ -168,12 +168,12 @@ public class CommonAuthenticationAuthorizationManagerTests extends
                 checkTokenRevocationRequestQueue,
                 10000);
         byte[] amqpResponse = client.primitiveCall(mapper.writeValueAsString(new Token(token)).getBytes());
-        CheckTokenRevocationResponse checkTokenRevocationResponse = mapper.readValue(amqpResponse,
-                CheckTokenRevocationResponse.class);
+        CheckRevocationResponse checkRevocationResponse = mapper.readValue(amqpResponse,
+                CheckRevocationResponse.class);
 
-        log.info("Test Client received this TokenValidationStatus: " + checkTokenRevocationResponse.toJson());
+        log.info("Test Client received this TokenValidationStatus: " + checkRevocationResponse.toJson());
 
-        assertEquals(TokenValidationStatus.VALID.toString(), checkTokenRevocationResponse.getStatus());
+        assertEquals(ValidationStatus.VALID.toString(), checkRevocationResponse.getStatus());
     }
 
 
@@ -288,10 +288,10 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
-        ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress +
-                checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
+        ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(serverAddress +
+                checkHomeTokenRevocationUri, request, CheckRevocationResponse.class);
 
-        assertEquals(TokenValidationStatus.VALID.toString(), status.getBody().getStatus());
+        assertEquals(ValidationStatus.VALID.toString(), status.getBody().getStatus());
     }
 
     /**
@@ -319,11 +319,11 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
-        ResponseEntity<CheckTokenRevocationResponse> status = restTemplate.postForEntity(serverAddress +
-                checkHomeTokenRevocationUri, request, CheckTokenRevocationResponse.class);
+        ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(serverAddress +
+                checkHomeTokenRevocationUri, request, CheckRevocationResponse.class);
 
         // TODO cover other situaations (bad key, on purpose revocation)
-        assertEquals(TokenValidationStatus.EXPIRED.toString(), status.getBody().getStatus());
+        assertEquals(ValidationStatus.EXPIRED.toString(), status.getBody().getStatus());
     }
 
     /**

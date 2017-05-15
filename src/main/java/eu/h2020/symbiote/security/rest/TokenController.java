@@ -3,7 +3,7 @@ package eu.h2020.symbiote.security.rest;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
-import eu.h2020.symbiote.security.payloads.CheckTokenRevocationResponse;
+import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.token.Token;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,7 +63,7 @@ public class TokenController {
      * TODO R3
      */
     @RequestMapping(value = AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, method = RequestMethod.POST)
-    public ResponseEntity<CheckTokenRevocationResponse> checkHomeTokenRevocation(@RequestHeader(AAMConstants
+    public ResponseEntity<CheckRevocationResponse> checkHomeTokenRevocation(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String token) throws TokenValidationException {
 
         return new ResponseEntity<>(tokenService.checkHomeTokenRevocation(new
