@@ -8,8 +8,6 @@ import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.exceptions.AAMException;
-import eu.h2020.symbiote.security.exceptions.aam.*;
-import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
@@ -53,13 +51,14 @@ public class CoreAuthenticationAuthorizationManagerTests extends
     private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
-    private final String platformInterworkingInterfaceAddress = "platform1.eu/someFancyHiddenPath/andHiddenAgain/";
-    private final String platformExposedAAMEntryPoint =
-            "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain/paam";
+    private final String platformInterworkingInterfaceAddress =
+            "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
     private final String platformOwnerUsername = "testPlatformOwnerUsername";
     private final String platformOwnerPassword = "testPlatormOwnerPassword";
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
+    @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
+    String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
     private UserRegistrationRequest appUserRegistrationRequest;
@@ -702,10 +701,10 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         // verifying the contents
         AAM aam = aams.get(0);
         // this expected PlatformAAM is due to the value stored in the issued certificate in the test keystore
-        assertEquals("PlatformAAM", aam.getAamInstanceId());
+        assertEquals(AAMConstants.AAM_CORE_AAM_INSTANCE_ID, aam.getAamInstanceId());
         assertEquals(coreInterfaceAddress, aam.getAamAddress());
         // maybe we could externalize it to spring config
-        assertEquals("SymbIoTe Core AAM", aam.getAamInstanceFriendlyName());
+        assertEquals(AAMConstants.AAM_CORE_AAM_FRIENDLY_NAME, aam.getAamInstanceFriendlyName());
         assertEquals(registrationManager.getAAMCert(), aam.getCertificate().getCertificateString());
     }
 
@@ -734,14 +733,14 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         // first should be served the core AAM
         AAM coreAAM = aams.get(0);
         // this expected PlatformAAM is due to the value stored in the issued certificate in the test keystore
-        assertEquals("PlatformAAM", coreAAM.getAamInstanceId());
+        assertEquals(AAMConstants.AAM_CORE_AAM_INSTANCE_ID, coreAAM.getAamInstanceId());
         assertEquals(coreInterfaceAddress, coreAAM.getAamAddress());
-        assertEquals("SymbIoTe Core AAM", coreAAM.getAamInstanceFriendlyName());
+        assertEquals(AAMConstants.AAM_CORE_AAM_FRIENDLY_NAME, coreAAM.getAamInstanceFriendlyName());
 
         // then comes the registered platform
         AAM platformAAM = aams.get(1);
         assertEquals(preferredPlatformId, platformAAM.getAamInstanceId());
-        assertEquals(platformExposedAAMEntryPoint, platformAAM.getAamAddress());
+        assertEquals(platformInterworkingInterfaceAddress + platformAAMSuffixAtInterWorkingInterface, platformAAM.getAamAddress());
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
         // TODO we don't know the cert... until R3 when we will know it
         assertEquals("", platformAAM.getCertificate().getCertificateString());

@@ -8,8 +8,6 @@ import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.exceptions.aam.*;
-import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
@@ -324,7 +322,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(serverAddress +
                 AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, request, CheckRevocationResponse.class);
 
-        // TODO cover other situaations (bad key, on purpose revocation)
+        // TODO cover other situations (bad key, on purpose revocation)
         assertEquals(ValidationStatus.EXPIRED.toString(), status.getBody().getStatus());
     }
 

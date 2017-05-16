@@ -42,7 +42,6 @@ public class OtherController {
     private RegistrationManager registrationManager;
     private PlatformRepository platformRepository;
 
-
     @Autowired
     public OtherController(RegistrationManager registrationManager, PlatformRepository platformRepository) {
         this.registrationManager = registrationManager;
@@ -61,40 +60,36 @@ public class OtherController {
         }
     }
 
-    @RequestMapping(value = AAMConstants.AAM_GET_AVAILABLE_AAMS, method = RequestMethod.GET, produces = "application/json")
+    @RequestMapping(value = AAMConstants.AAM_GET_AVAILABLE_AAMS, method = RequestMethod.GET, produces =
+            "application/json")
     public ResponseEntity<List<AAM>> getAvailableAAMs() {
         List<AAM> availableAAMs = new ArrayList<>();
         try {
             // Core AAM
             Certificate coreCertificate = new Certificate(registrationManager.getAAMCert());
             // fetching the identifier from certificate
-            String coreAAMInstanceIdentifier = coreCertificate.getX509().getSubjectX500Principal().getName("RFC1779").split(",")[1].split("=")[1];
+
+            /* TODO R3 think of a better resolving the core instance from the certificate.
+            String coreAAMInstanceIdentifier = coreCertificate.getX509().getSubjectX500Principal()
+                    .getName("RFC1779").split(",")[1].split("=")[1];
+            */
 
             // adding core aam info to the response
-            availableAAMs.add(new AAM(coreInterfaceAddress, "SymbIoTe Core AAM", coreAAMInstanceIdentifier, coreCertificate));
+            availableAAMs.add(new AAM(coreInterfaceAddress,
+                    AAMConstants.AAM_CORE_AAM_FRIENDLY_NAME,
+                    AAMConstants.AAM_CORE_AAM_INSTANCE_ID,
+                    coreCertificate));
 
             // registered platforms' AAMs
             for (Platform platform : platformRepository.findAll()) {
-                AAM platformAAM = new AAM("temporary", platform.getPlatformInstanceFriendlyName(), platform.getPlatformInstanceId(), new Certificate());
+                // TODO R3 include the real platform certificate
+                AAM platformAAM = new AAM("temporary", platform.getPlatformInstanceFriendlyName(), platform
+                        .getPlatformInstanceId(), new Certificate());
                 // building paam path
-                String[] splitInterworkingInterface = platform.getPlatformInterworkingInterfaceAddress().trim().split("/");
-                // protocol
-                StringBuilder paamAddress = new StringBuilder("https://");
-                // hostname
-                paamAddress.append(splitInterworkingInterface[0]);
-                // port
-                paamAddress.append(interworkingInterfacePort);
-                if (splitInterworkingInterface.length > 0) // interworking interface is hidden on a custom path on that host
-                {
-                    for (int i = 1; i < splitInterworkingInterface.length; i++) {
-                        paamAddress.append("/").append(splitInterworkingInterface[i]);
-                    }
-                }
-                // paam suffix
+                StringBuilder paamAddress = new StringBuilder(platform.getPlatformInterworkingInterfaceAddress());
                 paamAddress.append(platformAAMSuffixAtInterWorkingInterface);
                 // setting the AAM properly
                 platformAAM.setAamAddress(paamAddress.toString());
-
                 // add the platform AAM entrypoint to the results
                 availableAAMs.add(platformAAM);
             }
