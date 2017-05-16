@@ -21,8 +21,11 @@ cache:
   - "$HOME/.gradle/caches/"
   - "$HOME/.gradle/wrapper/"
 before_script:
+- rm -rf  $HOME/.gradle/caches/modules-2/files-2.1/com.github.symbiote-h2020
+- rm -rf  $HOME/.gradle/caches/modules-2/metadata-2.23/descriptors/com.github.symbiote-h2020
 - chmod a+x merge_script.sh
 - "./merge_script.sh"
+- gradle clean --refresh-dependencies
 after_success:
 - chmod a+x pushing_script.sh
 - "./pushing_script.sh"
