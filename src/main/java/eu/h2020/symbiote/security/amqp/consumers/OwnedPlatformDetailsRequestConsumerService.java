@@ -75,7 +75,7 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
         Token token;
         String response;
 
-        log.info("[x] Received Owned Platform Details Request");
+
 
         if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
 
@@ -118,7 +118,7 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
                         ownedPlatform.getPlatformInstanceFriendlyName());
                 response = om.writeValueAsString(ownedPlatformDetails);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-                log.info("Owned Platform Details response: sent back");
+                log.debug("Owned Platform Details response: sent back");
             } catch (IOException | MalformedJWTException | TokenValidationException | CertificateException e) {
                 log.error(e);
                 response = (new ErrorResponseContainer(e.getMessage(), HttpStatus.UNAUTHORIZED.ordinal()).toJson());

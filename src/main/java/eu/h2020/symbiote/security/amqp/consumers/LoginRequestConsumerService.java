@@ -58,8 +58,6 @@ public class LoginRequestConsumerService extends DefaultConsumer {
         Credentials loginReq;
         String response;
 
-        log.info("[x] Received Login Request: '" + message + "'");
-
         if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
 
             AMQP.BasicProperties replyProps = new AMQP.BasicProperties
@@ -68,7 +66,7 @@ public class LoginRequestConsumerService extends DefaultConsumer {
                 .build();
             try {
                 loginReq = om.readValue(message, Credentials.class);
-
+                log.debug("[x] Received Login Request by: '" + loginReq.getUsername() + "'");
                 try {
                     Token token = loginService.login(loginReq);
                     response = om.writeValueAsString(token);

@@ -61,8 +61,6 @@ public class ApplicationRegistrationRequestConsumerService extends DefaultConsum
         UserRegistrationRequest request;
         String response;
 
-        log.debug("[x] Received Application Registration Request: '" + message + "'");
-
         if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
 
             AMQP.BasicProperties replyProps = new AMQP.BasicProperties
@@ -71,6 +69,9 @@ public class ApplicationRegistrationRequestConsumerService extends DefaultConsum
                     .build();
             try {
                 request = om.readValue(message, UserRegistrationRequest.class);
+                log.debug("[x] Received Application Registration Request for: " + request.getUserDetails()
+                        .getCredentials().getUsername() + " on behalf of " + request.getAAMOwnerCredentials()
+                        .getUsername());
                 // this endpoint should only allow registering applications
                 if (request.getUserDetails().getRole() != UserRole.APPLICATION)
                     throw new UserRegistrationException();

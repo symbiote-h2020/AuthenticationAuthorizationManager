@@ -54,7 +54,7 @@ public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer 
         Token token;
         String response;
 
-        log.info("[x] Received Check Token Revocation Request: '" + message + "'");
+        log.debug("[x] Received Check Token Revocation Request");
 
         if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
 
@@ -74,7 +74,7 @@ public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer 
                 log.error(e);
             }
 
-            log.info("Check Token Revocation Response: sent back");
+            log.debug("Check Token Revocation Response: sent back");
         } else {
             log.error("Received RPC message without ReplyTo or CorrelationId properties.");
         }

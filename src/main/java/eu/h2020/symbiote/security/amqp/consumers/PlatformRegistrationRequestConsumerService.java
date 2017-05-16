@@ -61,8 +61,6 @@ public class PlatformRegistrationRequestConsumerService extends DefaultConsumer 
         PlatformRegistrationRequest request;
         String response;
 
-        log.debug("[x] Received Platform Registration Request: '" + message + "'");
-
         if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
 
             AMQP.BasicProperties replyProps = new AMQP.BasicProperties
@@ -71,6 +69,8 @@ public class PlatformRegistrationRequestConsumerService extends DefaultConsumer 
                     .build();
             try {
                 request = om.readValue(message, PlatformRegistrationRequest.class);
+                log.debug("[x] Received Platform Registration Request for: " + request.getAAMOwnerCredentials()
+                        .getUsername());
                 // this endpoint should only allow registering platform owners
                 if (request.getPlatformOwnerDetails().getRole() != UserRole.PLATFORM_OWNER)
                     throw new UserRegistrationException();
