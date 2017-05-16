@@ -8,6 +8,8 @@ import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.exceptions.AAMException;
+import eu.h2020.symbiote.security.exceptions.aam.*;
+import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
@@ -740,7 +742,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         // then comes the registered platform
         AAM platformAAM = aams.get(1);
         assertEquals(preferredPlatformId, platformAAM.getAamInstanceId());
-        assertEquals(platformInterworkingInterfaceAddress + platformAAMSuffixAtInterWorkingInterface, platformAAM.getAamAddress());
+        assertEquals(platformInterworkingInterfaceAddress + platformAAMSuffixAtInterWorkingInterface, platformAAM
+                .getAamAddress());
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
         // TODO we don't know the cert... until R3 when we will know it
         assertEquals("", platformAAM.getCertificate().getCertificateString());
