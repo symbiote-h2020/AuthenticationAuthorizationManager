@@ -1,5 +1,7 @@
 package eu.h2020.symbiote.security.commons;
 
+import eu.h2020.symbiote.security.constants.AAMConstants;
+import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -30,7 +32,6 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigInteger;
 import java.security.*;
-import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -57,8 +58,6 @@ public class RegistrationManager {
     private String CURVE_NAME;
     @Value("${aam.security.SIGNATURE_ALGORITHM}")
     private String SIGNATURE_ALGORITHM;
-    @Value("${aam.security.ORG_NAME}")
-    private String ORG_NAME;
     @Value("${aam.security.KEY_STORE_FILE_NAME}")
     private String KEY_STORE_FILE_NAME;
     @Value("${aam.security.KEY_STORE_ALIAS}")
@@ -69,12 +68,33 @@ public class RegistrationManager {
     @Value("${aam.security.PV_KEY_STORE_PASSWORD}")
     private String PV_KEY_STORE_PASSWORD;
 
-    @Value("${aam.deployment.id}")
-    private String deploymentId = "";
-
 
     public RegistrationManager() throws CertificateException, NoSuchProviderException {
         Security.addProvider(new BouncyCastleProvider());
+    }
+
+    /**
+     * @return resolves the deployment type using the AAM certificate
+     */
+    public IssuingAuthorityType getDeploymentType() {
+        if (getAAMInstanceIdentifier().isEmpty())
+            return IssuingAuthorityType.NULL;
+        if (getAAMInstanceIdentifier().equals(AAMConstants.AAM_CORE_AAM_INSTANCE_ID))
+            return IssuingAuthorityType.CORE;
+        return IssuingAuthorityType.PLATFORM;
+    }
+
+    /**
+     * @return resolves the aam instance identifier using the AAM certificate
+     */
+    public String getAAMInstanceIdentifier() {
+        try {
+            return getAAMCertificate().getSubjectX500Principal().getName().split(",")[0].split("=")[1];
+        } catch (KeyStoreException | NoSuchProviderException | NoSuchAlgorithmException | IOException |
+                CertificateException e) {
+            log.error(e);
+            return "";
+        }
     }
 
     public KeyPair createKeyPair() throws NoSuchProviderException, NoSuchAlgorithmException,
@@ -118,10 +138,18 @@ public class RegistrationManager {
         return kp.getPrivate();
     }
 
-    private X500NameBuilder createStdBuilder(String givenName) {
+    private X500NameBuilder createStdBuilder(String givenName) throws NoSuchProviderException {
         X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
         builder.addRDN(BCStyle.NAME, givenName);
-        builder.addRDN(BCStyle.O, ORG_NAME);
+        try {
+            builder.addRDN(BCStyle.OU,
+                    getAAMCertificate().getSubjectX500Principal().getName().split(",")[1].split("=")[1]);
+            builder.addRDN(BCStyle.O,
+                    getAAMCertificate().getSubjectX500Principal().getName().split(",")[2].split("=")[1]);
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException e) {
+            log.error(e);
+            return null;
+        }
         return builder;
     }
 
@@ -137,7 +165,7 @@ public class RegistrationManager {
         PrivateKey privKey = this.getAAMPrivateKey();
 
         // distinguished name table.
-        X500NameBuilder issuerBuilder = createStdBuilder(deploymentId);
+        X500NameBuilder issuerBuilder = createStdBuilder(getAAMInstanceIdentifier());
         X500NameBuilder subjectBuilder = createStdBuilder(applicationUsername);
 
         // create the certificate - version 3
@@ -176,10 +204,22 @@ public class RegistrationManager {
      */
     public String getAAMCert() throws NoSuchProviderException, KeyStoreException, IOException,
             CertificateException, NoSuchAlgorithmException {
+        return this.convertX509ToPEM(getAAMCertificate());
+    }
+
+    /**
+     * @return AAM certificate in X509 format
+     * @throws KeyStoreException
+     * @throws NoSuchProviderException
+     * @throws IOException
+     * @throws NoSuchAlgorithmException
+     * @throws CertificateException
+     */
+    public X509Certificate getAAMCertificate() throws KeyStoreException, NoSuchProviderException, IOException,
+            NoSuchAlgorithmException, CertificateException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        Certificate certificate = pkcs12Store.getCertificate(KEY_STORE_ALIAS);
-        return this.convertX509ToPEM((X509Certificate) certificate);
+        return (X509Certificate) pkcs12Store.getCertificate(KEY_STORE_ALIAS);
     }
 
 

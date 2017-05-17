@@ -42,7 +42,6 @@ public class UserRegistrationService {
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
-    @Value("${aam.deployment.type}")
     private IssuingAuthorityType deploymentType;
 
     @Autowired
@@ -52,6 +51,7 @@ public class UserRegistrationService {
         this.revokedCertificatesRepository = revokedCertificatesRepository;
         this.registrationManager = registrationManager;
         this.passwordEncoder = passwordEncoder;
+        this.deploymentType = registrationManager.getDeploymentType();
     }
 
     public UserRegistrationResponse register(UserRegistrationRequest userRegistrationRequest)

@@ -41,18 +41,9 @@ import java.util.Map;
 public class TokenManager {
 
     private static Log log = LogFactory.getLog(TokenManager.class);
-
     private RegistrationManager regManager;
-
     private PlatformRepository platformRepository;
-
-    /**
-     * Acts as either CoreAAM or acquired PlatformId for PlatformAAM
-     */
-    @Value("${aam.deployment.id}")
     private String deploymentId = "";
-
-    @Value("${aam.deployment.type}")
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
 
     @Value("${aam.deployment.token.validityMillis}")
@@ -61,6 +52,8 @@ public class TokenManager {
     @Autowired
     public TokenManager(RegistrationManager regManager, PlatformRepository platformRepository) {
         this.regManager = regManager;
+        this.deploymentId = regManager.getAAMInstanceIdentifier();
+        this.deploymentType = regManager.getDeploymentType();
         this.platformRepository = platformRepository;
     }
 
@@ -107,9 +100,8 @@ public class TokenManager {
     public Token createForeignToken(String foreignToken)
             throws JWTCreationException {
         try {
-
             JWTClaims claims = JWTEngine.getClaimsFromToken(foreignToken);
-
+            // TODO R3 Attribute Mapping Function
             Map<String, String> federatedAttributes = new HashMap<>();
             return new Token(
                     JWTEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.decodeBase64(claims
@@ -155,7 +147,8 @@ public class TokenManager {
             if (!claims.getIss().equals(deploymentId)) {
                 outcome.setStatus(ValidationStatus.INVALID);
             }
-        } catch (MalformedJWTException | TokenValidationException | NoSuchAlgorithmException | InvalidKeySpecException e) {
+        } catch (MalformedJWTException | TokenValidationException | NoSuchAlgorithmException |
+                InvalidKeySpecException e) {
             log.error("JWT validation error", e);
             outcome.setStatus(ValidationStatus.INVALID);
         }

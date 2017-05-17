@@ -30,7 +30,7 @@ public class TokenService {
         this.tokenManager = tokenManager;
     }
 
-    public Token exchangeForForeignToken(String foreignToken) throws JWTCreationException {
+    public Token createFederatedHomeTokenForForeignToken(String foreignToken) throws JWTCreationException {
         Token retToken = tokenManager.createForeignToken(foreignToken);
         saveToken(retToken);
         return retToken;

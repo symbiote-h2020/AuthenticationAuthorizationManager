@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.amqp;
 
 import com.rabbitmq.client.*;
 import eu.h2020.symbiote.security.amqp.consumers.*;
+import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.exceptions.aam.AAMMisconfigurationException;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
@@ -31,9 +32,9 @@ public class RabbitManager {
     private final TokenService tokenService;
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
+    private final RegistrationManager registrationManager;
 
-    @Value("${aam.deployment.type}")
-    private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
+    private IssuingAuthorityType deploymentType;
 
     @Value("${rabbit.host}")
     private String rabbitHost;
@@ -83,13 +84,17 @@ public class RabbitManager {
     public RabbitManager(UserRegistrationService userRegistrationService, PlatformRegistrationService
             platformRegistrationService, LoginService loginService,
                          TokenService tokenService, UserRepository userRepository, PlatformRepository
-                                 platformRepository) {
+                                 platformRepository, RegistrationManager registrationManager) {
         this.userRegistrationService = userRegistrationService;
         this.platformRegistrationService = platformRegistrationService;
         this.loginService = loginService;
         this.tokenService = tokenService;
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
+        this.registrationManager = registrationManager;
+
+        // setting the deployment type from the provisioned certificate
+        deploymentType = registrationManager.getDeploymentType();
     }
 
 

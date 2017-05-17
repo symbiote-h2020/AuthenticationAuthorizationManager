@@ -1,6 +1,8 @@
 package eu.h2020.symbiote.security.services;
 
+import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.Platform;
+import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.exceptions.aam.ExistingPlatformException;
@@ -28,20 +30,22 @@ public class PlatformRegistrationService {
     private final UserRepository userRepository;
     private final UserRegistrationService userRegistrationService;
     private final PlatformRepository platformRepository;
+    private final RegistrationManager registrationManager;
 
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
-    @Value("${aam.deployment.type}")
     private IssuingAuthorityType deploymentType;
 
     @Autowired
     public PlatformRegistrationService(UserRepository userRepository, UserRegistrationService
-            userRegistrationService, PlatformRepository platformRepository) {
+            userRegistrationService, PlatformRepository platformRepository, RegistrationManager registrationManager) {
         this.userRepository = userRepository;
         this.userRegistrationService = userRegistrationService;
         this.platformRepository = platformRepository;
+        this.registrationManager = registrationManager;
+        this.deploymentType = registrationManager.getDeploymentType();
     }
 
     public PlatformRegistrationResponse authRegister(PlatformRegistrationRequest request) throws
@@ -102,10 +106,11 @@ public class PlatformRegistrationService {
                         platformOwnerDetails));
 
         // register platform in repository
+        // TODO R3 set the certificate from the received CSR.
         Platform platform = new Platform(platformId, platformRegistrationRequest
                 .getPlatformInterworkingInterfaceAddress(),
                 platformRegistrationRequest.getPlatformInstanceFriendlyName(), userRepository
-                .findOne(platformOwnerDetails.getCredentials().getUsername()));
+                .findOne(platformOwnerDetails.getCredentials().getUsername()), new Certificate());
         platformRepository.save(platform);
 
         return new PlatformRegistrationResponse(userRegistrationResponse.getUserCertificate(),
