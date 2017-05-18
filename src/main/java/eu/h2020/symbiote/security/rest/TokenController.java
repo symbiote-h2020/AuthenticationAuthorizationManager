@@ -45,7 +45,7 @@ public class TokenController {
     private String deploymentId = "";
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
 
-    @Value("$symbiote.coreaam.url:localhost")
+    @Value("${symbiote.coreaam.url:localhost}")
     private String coreAAMAddress = "";
 
     @Autowired
