@@ -15,7 +15,7 @@ public class Platform {
     private String platformInstanceId = "";
     private String platformInterworkingInterfaceAddress = "";
     private String platformInstanceFriendlyName = "";
-    private Certificate plaformAAMCertificate = new Certificate();
+    private Certificate platformAAMCertificate = new Certificate();
     @DBRef
     private User platformOwner;
 
@@ -31,12 +31,12 @@ public class Platform {
                     String platformInterworkingInterfaceAddress,
                     String platformInstanceFriendlyName,
                     User platformOwner,
-                    Certificate plaformAAMCertificate) {
+                    Certificate platformAAMCertificate) {
         this.platformInstanceId = platformInstanceId;
         this.platformInterworkingInterfaceAddress = platformInterworkingInterfaceAddress;
         this.platformInstanceFriendlyName = platformInstanceFriendlyName;
         this.platformOwner = platformOwner;
-        this.plaformAAMCertificate = plaformAAMCertificate;
+        this.platformAAMCertificate = platformAAMCertificate;
     }
 
     /**
@@ -80,11 +80,11 @@ public class Platform {
         this.platformInstanceFriendlyName = platformInstanceFriendlyName;
     }
 
-    public Certificate getPlaformAAMCertificate() {
-        return plaformAAMCertificate;
+    public Certificate getPlatformAAMCertificate() {
+        return platformAAMCertificate;
     }
 
-    public void setPlaformAAMCertificate(Certificate plaformAAMCertificate) {
-        this.plaformAAMCertificate = plaformAAMCertificate;
+    public void setPlatformAAMCertificate(Certificate platformAAMCertificate) {
+        this.platformAAMCertificate = platformAAMCertificate;
     }
 }

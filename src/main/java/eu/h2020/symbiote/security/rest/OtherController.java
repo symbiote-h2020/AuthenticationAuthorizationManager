@@ -84,7 +84,7 @@ public class OtherController {
             for (Platform platform : platformRepository.findAll()) {
                 // TODO R3 include the real platform certificate
                 AAM platformAAM = new AAM("temporary", platform.getPlatformInstanceFriendlyName(), platform
-                        .getPlatformInstanceId(), platform.getPlaformAAMCertificate());
+                        .getPlatformInstanceId(), platform.getPlatformAAMCertificate());
                 // building paam path
                 StringBuilder paamAddress = new StringBuilder(platform.getPlatformInterworkingInterfaceAddress());
                 paamAddress.append(platformAAMSuffixAtInterWorkingInterface);
