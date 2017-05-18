@@ -65,8 +65,8 @@ public class RegistrationManager {
 
     @Value("${aam.security.KEY_STORE_PASSWORD}")
     private String KEY_STORE_PASSWORD;
-    @Value("${aam.security.PV_KEY_STORE_PASSWORD}")
-    private String PV_KEY_STORE_PASSWORD;
+    @Value("${aam.security.PV_KEY_PASSWORD}")
+    private String PV_KEY_PASSWORD;
 
 
     public RegistrationManager() throws CertificateException, NoSuchProviderException {
@@ -252,7 +252,7 @@ public class RegistrationManager {
             CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        PrivateKey privKey = (PrivateKey) pkcs12Store.getKey(KEY_STORE_ALIAS, PV_KEY_STORE_PASSWORD.toCharArray());
+        PrivateKey privKey = (PrivateKey) pkcs12Store.getKey(KEY_STORE_ALIAS, PV_KEY_PASSWORD.toCharArray());
         return privKey;
     }
 
