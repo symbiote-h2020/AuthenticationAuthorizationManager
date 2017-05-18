@@ -25,13 +25,16 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
@@ -50,9 +53,12 @@ import static org.junit.Assert.*;
 /**
  * Created by Maks on 2017-05-16.
  */
+@TestPropertySource("/core.properties")
 public class SecurityHandlerTests extends AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(CoreAuthenticationAuthorizationManagerTests.class);
+    @Rule
+    public final ExpectedException exception = ExpectedException.none();
     private final String coreAppUsername = "testCoreAppUsername";
     private final String coreAppPassword = "testCoreAppPassword";
     private final String recoveryMail = "null@dev.null";
@@ -77,7 +83,6 @@ public class SecurityHandlerTests extends AuthenticationAuthorizationManagerTest
     private PlatformRegistrationRequest platformRegistrationOverAMQPRequest;
     @Autowired
     private PlatformRepository platformRepository;
-
 
     /**
      * Features: CAAM - 5 (Authentication & relevent token issuing)
@@ -223,19 +228,11 @@ public class SecurityHandlerTests extends AuthenticationAuthorizationManagerTest
      */
     @Test
     public void userLoginOverRESTWrongUsernameFailureUsingSecurityHandler() {
-        /*ResponseEntity<ErrorResponseContainer> token = null;
-        try {
-            token = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN, new Credentials(wrongusername,
-                            password),
-                    ErrorResponseContainer.class);
-        } catch (HttpClientErrorException e) {
-            assertNull(token);
-            assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
-        }*/
-
         SecurityHandler securityHandler = new SecurityHandler(serverAddress+ AAMConstants.AAM_LOGIN);
-        Token token = securityHandler.requestCoreToken(wrongusername,password);
-        assertNull(token.getToken());
+        securityHandler.requestCoreToken(wrongusername, password);
+        exception.expect(SecurityException.class);
+        //exception.expectMessage("It was not possible to validate you with the give credentials. Please " +
+        //       "check them");
     }
 
     /**
@@ -245,18 +242,11 @@ public class SecurityHandlerTests extends AuthenticationAuthorizationManagerTest
      */
     @Test
     public void userLoginOverRESTWrongPasswordFailureUsingSecurityHandler() {
-        /*ResponseEntity<ErrorResponseContainer> token = null;
-        try {
-            token = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN, new Credentials(username,
-                            wrongpassword),
-                    ErrorResponseContainer.class);
-        } catch (HttpClientErrorException e) {
-            assertNull(token);
-            assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
-        }*/
         SecurityHandler securityHandler = new SecurityHandler(serverAddress+ AAMConstants.AAM_LOGIN);
         Token token = securityHandler.requestCoreToken(username,wrongpassword);
-        assertNull(token.getToken());
+        exception.expect(SecurityException.class);
+        //exception.expectMessage("It was not possible to validate you with the give credentials. Please " +
+        //        "check them");
     }
 
     /**
