@@ -1,5 +1,7 @@
-package eu.h2020.symbiote.security;
+package eu.h2020.symbiote.security.functional;
 
+import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.SecurityHandler;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;

@@ -1,6 +1,7 @@
-package eu.h2020.symbiote.security;
+package eu.h2020.symbiote.security.functional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.payloads.Credentials;

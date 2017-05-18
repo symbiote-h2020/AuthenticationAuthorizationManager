@@ -1,5 +1,6 @@
-package eu.h2020.symbiote.security;
+package eu.h2020.symbiote.security.functional;
 
+import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import org.apache.commons.logging.Log;
