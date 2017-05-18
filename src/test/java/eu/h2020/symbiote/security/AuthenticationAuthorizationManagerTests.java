@@ -83,8 +83,8 @@ public abstract class AuthenticationAuthorizationManagerTests {
     protected String AAMOwnerPassword;
     @Value("${aam.security.KEY_STORE_PASSWORD}")
     protected String KEY_STORE_PASSWORD;
-    @Value("${aam.security.PV_KEY_STORE_PASSWORD}")
-    protected String PV_KEY_STORE_PASSWORD;
+    @Value("${aam.security.PV_KEY_PASSWORD}")
+    protected String PV_KEY_PASSWORD;
     @Value("${aam.security.KEY_STORE_FILE_NAME}")
     protected String KEY_STORE_FILE_NAME;
     @Value("${aam.security.KEY_STORE_ALIAS}")
