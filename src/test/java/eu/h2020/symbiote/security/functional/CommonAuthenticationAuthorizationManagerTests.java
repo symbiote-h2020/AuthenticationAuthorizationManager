@@ -14,10 +14,10 @@ import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
+import eu.h2020.symbiote.security.utils.DummyPlatformAAMLoginService;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -30,6 +30,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 
 import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -54,7 +57,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * @throws TimeoutException
      */
     @Test
-    public void applicationLoginOverAMQPSuccessAndIssuesCoreTokenType() throws IOException, TimeoutException {
+    public void applicationLoginOverAMQPSuccessAndIssuesCoreTokenType() throws IOException, TimeoutException,
+            MalformedJWTException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
         byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(username, password))
@@ -63,19 +67,9 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
         log.info("Test Client received this Token: " + token.toString());
 
-        assertNotNull(token.getToken());
-        try {
-            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
-            assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
-
-            // verify that the token contains the application public key
-            byte[] applicationPublicKeyInRepository = userRepository.findOne
-                    (username).getCertificate().getX509().getPublicKey().getEncoded();
-            byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
-            assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
-        } catch (MalformedJWTException | CertificateException e) {
-            log.error(e);
-        }
+        assertNotNull(token);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
+        assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
     }
 
 
@@ -277,23 +271,24 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    @Ignore("We need to think how to initiate to local AAMs (a core and a platform one")
-    public void foreignTokenRequestOverRESTSuccess() {
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
-                new Credentials(username, password), String.class);
-        HttpHeaders loginHeaders = response.getHeaders();
+    public void federatedLoginToCoreUsingPlatformTokenOverRESTSuccess() throws TokenValidationException {
+        // issuing dummy platform token
+        DummyPlatformAAMLoginService dummyPlatformAAMLoginService = new DummyPlatformAAMLoginService();
+        Token dummyHomeToken = new Token(dummyPlatformAAMLoginService.doLogin(new Credentials("user", "password"))
+                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(AAMConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        // preparing request
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(AAMConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
 
-        HttpEntity<String> request = new HttpEntity<String>(null, headers);
+        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
 
-        ResponseEntity<String> responseToken = restTemplate.postForEntity(serverAddress + AAMConstants
-                        .AAM_REQUEST_FOREIGN_TOKEN, request,
-                String.class);
-        HttpHeaders rspHeaders = responseToken.getHeaders();
+        // checking issuing of federated token using the dummy platform token
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants
+                .AAM_REQUEST_FOREIGN_TOKEN, entity, String.class);
+        HttpHeaders rspHeaders = response.getHeaders();
 
-        assertEquals(HttpStatus.OK, responseToken.getStatusCode());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(rspHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
     }
 
@@ -425,6 +420,25 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         } catch (Exception e) {
             assertEquals(NotExistingUserException.class, e.getClass());
             log.error(e.getMessage());
+        }
+    }
+
+    /**
+     * Features: CAAM - 12 (AAM as a CA)
+     * Interfaces: CAAM - 15;
+     * CommunicationType REST
+     */
+    @Test
+    public void getCACertOverRESTSuccess() {
+        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + AAMConstants
+                .AAM_GET_CA_CERTIFICATE, String.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        try {
+            assertEquals(registrationManager.getAAMCert(), response.getBody());
+        } catch (IOException | NoSuchProviderException | KeyStoreException | CertificateException |
+                NoSuchAlgorithmException e) {
+            log.error(e);
+            assertNull(e);
         }
     }
 }
