@@ -14,7 +14,6 @@ import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAMLoginService;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -263,33 +262,6 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             assertNotNull(e);
         }
 
-    }
-
-    /**
-     * Features: PAAM - 4, CAAM - 5 (tokens issueing)
-     * Interfaces: PAAM - 5, CAAM - 11;
-     * CommunicationType REST
-     */
-    @Test
-    public void federatedLoginToCoreUsingPlatformTokenOverRESTSuccess() throws TokenValidationException {
-        // issuing dummy platform token
-        DummyPlatformAAMLoginService dummyPlatformAAMLoginService = new DummyPlatformAAMLoginService();
-        Token dummyHomeToken = new Token(dummyPlatformAAMLoginService.doLogin(new Credentials("user", "password"))
-                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
-
-        // preparing request
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(AAMConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
-
-        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
-
-        // checking issuing of federated token using the dummy platform token
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants
-                .AAM_REQUEST_FOREIGN_TOKEN, entity, String.class);
-        HttpHeaders rspHeaders = response.getHeaders();
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(rspHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
     }
 
     /**

@@ -39,13 +39,10 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.io.IOException;
-import java.security.KeyPair;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -355,29 +352,6 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             assertEquals(NotExistingUserException.class, e.getClass());
             log.error(e.getMessage());
         }
-    }
-
-    /**
-     * Feature:
-     * Interface: PAAM - 3a
-     * CommunicationType REST
-     *
-     * @throws IOException
-     * @throws TimeoutException
-     */
-    @Test
-    @Ignore("moved to unit tests")
-    public void certificateCreationAndVerification() throws Exception {
-        // Generate certificate for given application username (ie. "Daniele")
-        KeyPair keyPair = registrationManager.createKeyPair();
-        X509Certificate cert = registrationManager.createECCert("Daniele", keyPair.getPublic());
-
-        // retrieves Platform AAM ("Daniele"'s certificate issuer) public key from keystore in order to verify
-        // "Daniele"'s certificate
-        cert.verify(registrationManager.getAAMPublicKey());
-
-        // also check time validity
-        cert.checkValidity(new Date());
     }
 
     /**

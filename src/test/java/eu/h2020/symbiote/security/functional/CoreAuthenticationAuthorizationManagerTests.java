@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.constants.AAMConstants;
@@ -13,27 +14,31 @@ import eu.h2020.symbiote.security.exceptions.aam.*;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.session.AAM;
+import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
+import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.test.context.TestPropertySource;
 
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -72,6 +77,11 @@ public class CoreAuthenticationAuthorizationManagerTests extends
     private PlatformRegistrationRequest platformRegistrationOverAMQPRequest;
     @Autowired
     private PlatformRepository platformRepository;
+
+    @Bean
+    DummyPlatformAAM getDummyPlatformAAM() {
+        return new DummyPlatformAAM();
+    }
 
     @Override
     @Before
@@ -749,5 +759,57 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         // TODO we don't know the cert... until R3 when we will know it
         assertEquals("", platformAAM.getCertificate().getCertificateString());
 
+    }
+
+
+    /**
+     * Features: PAAM - 4, CAAM - 5 (tokens issueing)
+     * Interfaces: PAAM - 5, CAAM - 11;
+     * CommunicationType REST
+     */
+    @Test
+    public void federatedLoginToCoreUsingPlatformTokenOverRESTSuccess() throws TokenValidationException, IOException,
+            TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException,
+            NoSuchAlgorithmException {
+        // issuing dummy platform token
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
+                        .AAM_LOGIN,
+                new Credentials(username, password), String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+
+        String platformId = "testaam-1";
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        //inject platform PEM Certificate to the database
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/TestAAM-1.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate(platformId);
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
+        Platform dummyPlatform = platformRepository.findOne(platformId);
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
+        platformRepository.save(dummyPlatform);
+
+        // preparing request
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(AAMConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
+
+        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
+
+        // checking issuing of federated token using the dummy platform token
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants
+                .AAM_REQUEST_FOREIGN_TOKEN, entity, String.class);
+        HttpHeaders rspHeaders = response.getHeaders();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(rspHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
     }
 }
