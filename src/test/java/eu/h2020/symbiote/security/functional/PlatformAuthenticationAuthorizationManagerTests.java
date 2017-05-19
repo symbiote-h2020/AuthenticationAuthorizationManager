@@ -30,7 +30,6 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
 
     private static Log log = LogFactory.getLog(PlatformAuthenticationAuthorizationManagerTests.class);
 
-
     /**
      * Feature: PAAM - 2 (Application Registration)
      * Interface: PAAM - 3a

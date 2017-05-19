@@ -337,6 +337,57 @@ public class CoreAuthenticationAuthorizationManagerTests extends
     }
 
     /**
+     * Features: PAAM - 4, CAAM - 5 (tokens issueing)
+     * Interfaces: PAAM - 5, CAAM - 11;
+     * CommunicationType REST
+     */
+    @Test
+    public void federatedLoginToCoreUsingPlatformTokenOverRESTSuccess() throws TokenValidationException, IOException,
+            TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException,
+            NoSuchAlgorithmException {
+        // issuing dummy platform token
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
+                        .AAM_LOGIN,
+                new Credentials(username, password), String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+
+        String platformId = "testaam-1";
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        //inject platform PEM Certificate to the database
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/TestAAM-1.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate(platformId);
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
+        Platform dummyPlatform = platformRepository.findOne(platformId);
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
+        platformRepository.save(dummyPlatform);
+
+        // preparing request
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(AAMConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
+
+        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
+
+        // checking issuing of federated token using the dummy platform token
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants
+                .AAM_REQUEST_FOREIGN_TOKEN, entity, String.class);
+        HttpHeaders rspHeaders = response.getHeaders();
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(rspHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+    }
+
+    /**
      * Feature: CAAM - 3 (Platform Registration)
      * Interface: CAAM - 2
      * CommunicationType AMQP
@@ -762,54 +813,5 @@ public class CoreAuthenticationAuthorizationManagerTests extends
     }
 
 
-    /**
-     * Features: PAAM - 4, CAAM - 5 (tokens issueing)
-     * Interfaces: PAAM - 5, CAAM - 11;
-     * CommunicationType REST
-     */
-    @Test
-    public void federatedLoginToCoreUsingPlatformTokenOverRESTSuccess() throws TokenValidationException, IOException,
-            TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException,
-            NoSuchAlgorithmException {
-        // issuing dummy platform token
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
-                        .AAM_LOGIN,
-                new Credentials(username, password), String.class);
-        Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
-        String platformId = "testaam-1";
-        // registering the platform to the Core AAM so it will be available for token revocation
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
-        //inject platform PEM Certificate to the database
-        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/TestAAM-1.p12"), "1234567".toCharArray());
-        X509Certificate certificate = (X509Certificate) ks.getCertificate(platformId);
-        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
-        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
-        pemWriter.writeObject(certificate);
-        pemWriter.close();
-        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
-        Platform dummyPlatform = platformRepository.findOne(platformId);
-        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
-        platformRepository.save(dummyPlatform);
-
-        // preparing request
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(AAMConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
-
-        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
-
-        // checking issuing of federated token using the dummy platform token
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants
-                .AAM_REQUEST_FOREIGN_TOKEN, entity, String.class);
-        HttpHeaders rspHeaders = response.getHeaders();
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(rspHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
-    }
 }

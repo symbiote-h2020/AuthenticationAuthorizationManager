@@ -2,15 +2,18 @@ package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
-import eu.h2020.symbiote.security.certificate.Certificate;
-import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.exceptions.aam.*;
-import eu.h2020.symbiote.security.payloads.*;
+import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
+import eu.h2020.symbiote.security.exceptions.aam.MissingArgumentsException;
+import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import eu.h2020.symbiote.security.exceptions.aam.WrongCredentialsException;
+import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
+import eu.h2020.symbiote.security.payloads.Credentials;
+import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
@@ -241,7 +244,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void foreignTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() {
+    public void federatedTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() {
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
@@ -321,79 +324,6 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         assertEquals(ValidationStatus.EXPIRED.toString(), status.getBody().getStatus());
     }
 
-    /**
-     * Feature: User Repository
-     *
-     * @throws IOException
-     * @throws TimeoutException
-     */
-    @Test
-    public void applicationInternalRegistrationSuccess() throws Exception {
-        try {
-            String appUsername = "NewApplication";
-
-            // verify that app is not in the repository
-            User registeredUser = userRepository.findOne(appUsername);
-            assertNull(registeredUser);
-
-            /*
-             XXX federated Id and recovery mail are required for Test & Core AAM but not for Plaftorm AAM
-             */
-            // register new application to db
-            UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new
-                    Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
-                    (appUsername, "NewPassword"), "nullId", "nullMail", UserRole.APPLICATION));
-            UserRegistrationResponse userRegistrationResponse = userRegistrationService.register
-                    (userRegistrationRequest);
-
-            // verify that app really is in repository
-            registeredUser = userRepository.findOne(appUsername);
-            assertNotNull(registeredUser);
-            assertEquals(UserRole.APPLICATION, registeredUser.getRole());
-
-            // verify that the server returns certificate & privateKey
-            assertNotNull(userRegistrationResponse.getUserCertificate());
-            assertNotNull(userRegistrationResponse.getUserPrivateKey());
-
-            // TODO verify that released certificate has no CA property
-        } catch (Exception e) {
-            assertEquals(ExistingUserException.class, e.getClass());
-            log.info(e.getMessage());
-        }
-    }
-
-
-    /**
-     * Feature: User Repository
-     *
-     * @throws IOException
-     * @throws TimeoutException
-     */
-    @Test
-    public void applicationInternalUnregistrationSuccess() throws Exception {
-        try {
-            // verify that app really is in repository
-            User user = userRepository.findOne(username);
-            assertNotNull(user);
-
-            // get user certficate
-            Certificate userCertificate = user.getCertificate();
-            // verify the certificate is not yet revoked
-            assertFalse(revokedCertificatesRepository.exists(userCertificate.toString()));
-
-            // unregister
-            userRegistrationService.unregister(username);
-            log.debug("User successfully unregistered!");
-
-            // verify that app is not anymore in the repository
-            assertFalse(userRepository.exists(username));
-            // verify that the user certificate was indeed revoked
-            assertTrue(revokedCertificatesRepository.exists(userCertificate.toString()));
-        } catch (Exception e) {
-            assertEquals(NotExistingUserException.class, e.getClass());
-            log.error(e.getMessage());
-        }
-    }
 
     /**
      * Features: CAAM - 12 (AAM as a CA)
