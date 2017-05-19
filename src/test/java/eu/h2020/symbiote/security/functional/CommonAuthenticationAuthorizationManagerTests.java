@@ -30,13 +30,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 
 import java.io.IOException;
-import java.security.KeyPair;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -431,47 +425,6 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         } catch (Exception e) {
             assertEquals(NotExistingUserException.class, e.getClass());
             log.error(e.getMessage());
-        }
-    }
-
-    /**
-     * Feature:
-     * Interface: PAAM - 3a
-     * CommunicationType REST
-     *
-     * @throws IOException
-     * @throws TimeoutException
-     */
-    @Test
-    public void certificateCreationAndVerification() throws Exception {
-        // Generate certificate for given application username (ie. "Daniele")
-        KeyPair keyPair = registrationManager.createKeyPair();
-        X509Certificate cert = registrationManager.createECCert("Daniele", keyPair.getPublic());
-
-        // retrieves Platform AAM ("Daniele"'s certificate issuer) public key from keystore in order to verify
-        // "Daniele"'s certificate
-        cert.verify(registrationManager.getAAMPublicKey());
-
-        // also check time validity
-        cert.checkValidity(new Date());
-    }
-
-    /**
-     * Features: CAAM - 12 (AAM as a CA)
-     * Interfaces: CAAM - 15;
-     * CommunicationType REST
-     */
-    @Test
-    public void getCACertOverRESTSuccess() {
-        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + AAMConstants
-                .AAM_GET_CA_CERTIFICATE, String.class);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        try {
-            assertEquals(registrationManager.getAAMCert(), response.getBody());
-        } catch (IOException | NoSuchProviderException | KeyStoreException | CertificateException |
-                NoSuchAlgorithmException e) {
-            log.error(e);
-            assertNull(e);
         }
     }
 }

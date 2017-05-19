@@ -15,7 +15,11 @@ import eu.h2020.symbiote.security.exceptions.aam.ExistingUserException;
 import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
 import eu.h2020.symbiote.security.exceptions.aam.NotExistingUserException;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
-import eu.h2020.symbiote.security.payloads.*;
+import eu.h2020.symbiote.security.payloads.Credentials;
+import eu.h2020.symbiote.security.payloads.UserDetails;
+import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
+import eu.h2020.symbiote.security.payloads.UserRegistrationResponse;
+import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
@@ -33,7 +37,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClientException;
 
 import java.io.IOException;
 import java.security.KeyPair;
@@ -43,6 +46,7 @@ import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -138,45 +142,33 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
         Token token = internalSecurityHandler.requestHomeToken(username, password);
 
-//        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-//                checkTokenRevocationRequestQueue,
-//                10000);
-//        byte[] amqpResponse = client.primitiveCall(mapper.writeValueAsString(token).getBytes());
-//        CheckRevocationResponse checkRevocationResponse = mapper.readValue(amqpResponse,
-//                CheckRevocationResponse.class);
-
         ValidationStatus status = internalSecurityHandler.verifyHomeToken(token);
         log.info("Test Client received this TokenValidationStatus: " + status.toString());
-        // check if can do it better
-        assertEquals(ValidationStatus.VALID.toString(), status.toString());
+
+        assertEquals(ValidationStatus.VALID, status);
     }
 
 
-    // MOVE returned message to constants?
     @Test
     public void userLoginOverRESTWrongCredentialsFailure() {
-        SecurityHandler securityHandler = new SecurityHandler(serverAddress);
         Token token = null;
         try {
             token = securityHandler.requestCoreToken(wrongusername, password);
         } catch (SecurityException e) {
-            assertEquals(e.getMessage(), "It was not possible to validate you with the give credentials. Please " +
-                    "check them");
+            assertEquals(AAMConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
         }
         assertNull(token);
         try {
             token = securityHandler.requestCoreToken(username, wrongpassword);
         } catch (SecurityException e) {
-            assertEquals(e.getMessage(), "It was not possible to validate you with the give credentials. Please " +
-                    "check them");
+            assertEquals(AAMConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
         }
         assertNull(token);
 
         try {
             token = securityHandler.requestCoreToken(wrongusername, wrongpassword);
         } catch (SecurityException e) {
-            assertEquals(e.getMessage(), "It was not possible to validate you with the give credentials. Please " +
-                    "check them");
+            assertEquals(AAMConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
         }
         assertNull(token);
     }
@@ -189,7 +181,6 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     @Test
     public void applicationLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() {
 
-        SecurityHandler securityHandler = new SecurityHandler(serverAddress);
         Token token = securityHandler.requestCoreToken(username, password);
         assertNotNull(token.getToken());
 
@@ -220,27 +211,12 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void foreignTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() {
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
-                new Credentials(username, password), String.class);
-        HttpHeaders loginHeaders = response.getHeaders();
-
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(AAMConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
-
-        HttpEntity<String> request = new HttpEntity<String>(null, headers);
-
-        try {
-            restTemplate.postForEntity(serverAddress + AAMConstants
-                            .AAM_REQUEST_FOREIGN_TOKEN, request,
-                    String.class);
-            assert false;
-        } catch (RestClientException e) {
-            // TODO think of a better way to assert that BAD_REQUEST
-            log.error(e);
-            assertNotNull(e);
-        }
-
+    public void foreignTokenRequestOverRESTSuccessWithoutCoreToken() throws SecurityHandlerException {
+        List<AAM> aams = securityHandler.getAvailableAAMs();
+        securityHandler.requestCoreToken(username, password);
+        Map<String, Token> foreignTokens = securityHandler.requestForeignTokens(aams);
+        assertNotNull(foreignTokens);
+        assertFalse(foreignTokens.containsKey(AAMConstants.AAM_CORE_AAM_INSTANCE_ID));
     }
 
     /**
@@ -278,20 +254,10 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      */
     @Test
     public void checkTokenRevocationOverRESTValid() {
-
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
-                new Credentials(username, password), String.class);
-        HttpHeaders loginHeaders = response.getHeaders();
-
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(AAMConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
-
-        HttpEntity<String> request = new HttpEntity<String>(null, headers);
-
-        ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(serverAddress +
-                AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, request, CheckRevocationResponse.class);
-
-        assertEquals(ValidationStatus.VALID.toString(), status.getBody().getStatus());
+        Token token = securityHandler.requestCoreToken(username, password);
+        assertNotNull(token.getToken());
+        ValidationStatus status = securityHandler.verifyCoreToken(token);
+        assertEquals(ValidationStatus.VALID, status);
     }
 
     /**
@@ -303,27 +269,16 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      */
     @Test
     public void checkTokenRevocationOverRESTExpired() {
-
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
-                new Credentials(username, password), String.class);
-        HttpHeaders loginHeaders = response.getHeaders();
-
+        Token token = securityHandler.requestCoreToken(username, password);
+        assertNotNull(token.getToken());
         //Introduce latency so that JWT expires
         try {
             Thread.sleep(tokenValidityPeriod + 1000);
         } catch (InterruptedException e) {
             log.error(e);
         }
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(AAMConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
-
-        HttpEntity<String> request = new HttpEntity<String>(null, headers);
-
-        ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(serverAddress +
-                AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, request, CheckRevocationResponse.class);
-
-        // TODO cover other situations (bad key, on purpose revocation)
-        assertEquals(ValidationStatus.EXPIRED.toString(), status.getBody().getStatus());
+        ValidationStatus status = securityHandler.verifyCoreToken(token);
+        assertEquals(ValidationStatus.EXPIRED, status);
     }
 
     /**
@@ -333,6 +288,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * @throws TimeoutException
      */
     @Test
+    @Ignore // SH does not support registration procedure
     public void applicationInternalRegistrationSuccess() throws Exception {
         try {
             String appUsername = "NewApplication";
@@ -375,6 +331,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * @throws TimeoutException
      */
     @Test
+    @Ignore // SH does not support registration procedure
     public void applicationInternalUnregistrationSuccess() throws Exception {
         try {
             // verify that app really is in repository
@@ -409,6 +366,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * @throws TimeoutException
      */
     @Test
+    @Ignore("moved to unit tests")
     public void certificateCreationAndVerification() throws Exception {
         // Generate certificate for given application username (ie. "Daniele")
         KeyPair keyPair = registrationManager.createKeyPair();
@@ -428,6 +386,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
+    @Ignore("moved to unit tests")
     public void getCACertOverRESTSuccess() {
         ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + AAMConstants
                 .AAM_GET_CA_CERTIFICATE, String.class);
