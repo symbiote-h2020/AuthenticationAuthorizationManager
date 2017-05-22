@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.constants.AAMConstants;
+import eu.h2020.symbiote.security.interfaces.ICoreServices;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.session.AAM;
 import org.apache.commons.logging.Log;
@@ -30,9 +31,9 @@ import java.util.List;
  * @author Mikołaj Dobski (PSNC)
  */
 @RestController
-public class OtherController {
+public class CoreServicesController implements ICoreServices {
 
-    private static final Log log = LogFactory.getLog(OtherController.class);
+    private static final Log log = LogFactory.getLog(CoreServicesController.class);
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}")
@@ -43,12 +44,13 @@ public class OtherController {
     private PlatformRepository platformRepository;
 
     @Autowired
-    public OtherController(RegistrationManager registrationManager, PlatformRepository platformRepository) {
+    public CoreServicesController(RegistrationManager registrationManager, PlatformRepository platformRepository) {
         this.registrationManager = registrationManager;
         this.platformRepository = platformRepository;
     }
 
 
+    @Override
     @RequestMapping(value = AAMConstants.AAM_GET_CA_CERTIFICATE, method = RequestMethod.GET)
     public ResponseEntity<String> getCACert() {
         try {
@@ -60,6 +62,7 @@ public class OtherController {
         }
     }
 
+    @Override
     @RequestMapping(value = AAMConstants.AAM_GET_AVAILABLE_AAMS, method = RequestMethod.GET, produces =
             "application/json")
     public ResponseEntity<List<AAM>> getAvailableAAMs() {

@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import eu.h2020.symbiote.security.interfaces.ICoreServices;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.session.AAM;
@@ -40,7 +41,7 @@ public class TokenController {
 
     private final TokenService tokenService;
     private Log log = LogFactory.getLog(TokenController.class);
-    private OtherController otherController;
+    private ICoreServices coreServices;
     private RegistrationManager registrationManager;
     private String deploymentId = "";
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
@@ -49,10 +50,10 @@ public class TokenController {
     private String coreAAMAddress = "";
 
     @Autowired
-    public TokenController(TokenService tokenService, OtherController otherController, RegistrationManager
+    public TokenController(TokenService tokenService, ICoreServices coreServices, RegistrationManager
             registrationManager) {
         this.tokenService = tokenService;
-        this.otherController = otherController;
+        this.coreServices = coreServices;
         this.registrationManager = registrationManager;
         this.deploymentId = registrationManager.getAAMInstanceIdentifier();
         this.deploymentType = registrationManager.getDeploymentType();
@@ -82,7 +83,7 @@ public class TokenController {
                 List<AAM> availableAAMs;
                 if (deploymentType == IssuingAuthorityType.CORE) {
                     // if Core AAM then we know the available AAMs
-                    availableAAMs = otherController.getAvailableAAMs().getBody();
+                    availableAAMs = coreServices.getAvailableAAMs().getBody();
                 } else {
                     // a PAAM needs to fetch them from core
                     availableAAMs = securityHandler.getAvailableAAMs();
