@@ -13,8 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
@@ -50,8 +48,6 @@ public class CoreServicesController implements ICoreServices {
     }
 
 
-    @Override
-    @RequestMapping(value = AAMConstants.AAM_GET_CA_CERTIFICATE, method = RequestMethod.GET)
     public ResponseEntity<String> getCACert() {
         try {
             return ResponseEntity.status(HttpStatus.OK).body(registrationManager.getAAMCert());
@@ -62,9 +58,6 @@ public class CoreServicesController implements ICoreServices {
         }
     }
 
-    @Override
-    @RequestMapping(value = AAMConstants.AAM_GET_AVAILABLE_AAMS, method = RequestMethod.GET, produces =
-            "application/json")
     public ResponseEntity<List<AAM>> getAvailableAAMs() {
         List<AAM> availableAAMs = new ArrayList<>();
         try {

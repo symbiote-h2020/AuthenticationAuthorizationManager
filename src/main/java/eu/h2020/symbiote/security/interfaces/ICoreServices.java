@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import java.util.List;
 
 /**
- * Access to CoreAAM services by other services.
+ * Access to other services that Core AAM offers.
  *
  * @author Mikołaj Dobski (PSNC)
  */
