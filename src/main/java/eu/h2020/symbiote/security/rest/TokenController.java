@@ -12,6 +12,7 @@ import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.Token;
+import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -126,12 +127,13 @@ public class TokenController {
     @RequestMapping(value = AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, method = RequestMethod.POST)
     public ResponseEntity<CheckRevocationResponse> checkHomeTokenRevocation(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String tokenString) {
-        Token token;
         try {
-            token = new Token(tokenString);
+            // static JWT string validation
+            ValidationStatus validationStatus = JWTEngine.validateTokenString(tokenString);
+            // revocation check
+            return new ResponseEntity<>(tokenService.checkHomeTokenRevocation(tokenString), HttpStatus.OK);
         } catch (TokenValidationException e) {
             return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.INVALID), HttpStatus.OK);
         }
-        return new ResponseEntity<>(tokenService.checkHomeTokenRevocation(token), HttpStatus.OK);
     }
 }

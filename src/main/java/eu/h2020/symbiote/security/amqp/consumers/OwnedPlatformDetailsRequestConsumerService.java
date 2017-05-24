@@ -18,6 +18,7 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
+import io.jsonwebtoken.ExpiredJwtException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -32,7 +33,7 @@ import java.util.Map;
  * RabbitMQ Consumer implementation used for providing owned platform instances details for the platform owners
  * through Administration module
  */
-public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer {
+public class    OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer {
 
     private static Log log = LogFactory.getLog(OwnedPlatformDetailsRequestConsumerService.class);
     private UserRepository userRepository;
@@ -119,9 +120,9 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
                 response = om.writeValueAsString(ownedPlatformDetails);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
                 log.debug("Owned Platform Details response: sent back");
-            } catch (IOException | MalformedJWTException | TokenValidationException | CertificateException e) {
+            } catch (ExpiredJwtException | IOException | MalformedJWTException | TokenValidationException | CertificateException e) {
                 log.error(e);
-                response = (new ErrorResponseContainer(e.getMessage(), HttpStatus.UNAUTHORIZED.ordinal()).toJson());
+                response = (new ErrorResponseContainer(e.getMessage(), HttpStatus.UNAUTHORIZED.value()).toJson());
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
             }
         } else {

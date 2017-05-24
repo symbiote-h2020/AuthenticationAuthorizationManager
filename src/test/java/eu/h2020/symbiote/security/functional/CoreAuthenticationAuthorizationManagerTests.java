@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.functional;
 
+import com.netflix.ribbon.proxy.annotation.Http;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
 import eu.h2020.symbiote.security.certificate.Certificate;
@@ -666,7 +667,8 @@ public class CoreAuthenticationAuthorizationManagerTests extends
      */
     @Test
     public void platformOwnerLoginOverRESTAndReceivesInAdministrationDetailsOfHisOwnedPlatform() throws IOException,
-            TimeoutException, MalformedJWTException, JSONException, CertificateException, TokenValidationException {
+            TimeoutException, MalformedJWTException, JSONException, CertificateException, TokenValidationException,
+            InterruptedException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
@@ -699,6 +701,50 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(ownedPlatformInDB.getPlatformInstanceId(), ownedPlatformDetails.getPlatformInstanceId());
         assertEquals(ownedPlatformInDB.getPlatformInterworkingInterfaceAddress(), ownedPlatformDetails
                 .getPlatformInterworkingInterfaceAddress());
+    }
+
+
+    /**
+     * Features: CAAM - Providing platform details for Administration upon giving a correct Core Token
+     * Interfaces: CAAM ;
+     * CommunicationType AMQP
+     */
+    @Test
+    public void platformOwnerLoginOverRESTAndUsesExpiredTokenToReceivesInAdministrationDetailsOfHisOwnedPlatform() throws IOException,
+            TimeoutException, MalformedJWTException, JSONException, CertificateException, TokenValidationException,
+            InterruptedException {
+        // verify that our platform and platformOwner are not in repositories
+        assertFalse(platformRepository.exists(preferredPlatformId));
+        assertFalse(userRepository.exists(platformOwnerUsername));
+
+        // issue platform registration over AMQP
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        // login the platform owner
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
+                new Credentials(platformOwnerUsername, platformOwnerPassword), String.class);
+        HttpHeaders headers = response.getHeaders();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        //verify that JWT was issued for user
+        assertNotNull(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+
+        // waiting for the token to expire
+        Thread.sleep(tokenValidityPeriod + 1000);
+
+        // issue owned platform details request with the given token
+        RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+                ownedPlatformDetailsRequestQueue, 5000);
+        byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
+                (headers.getFirst(AAMConstants.TOKEN_HEADER_NAME)).getBytes());
+
+        try {
+            mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails.class);
+            assert false;
+        } catch (Exception e){
+            ErrorResponseContainer error = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer.class);
+            assertEquals(HttpStatus.UNAUTHORIZED.value(),error.getErrorCode());
+        }
     }
 
     /**
@@ -741,7 +787,7 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         // verify error response
         ErrorResponseContainer errorResponse = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer
                 .class);
-        assertEquals(HttpStatus.UNAUTHORIZED.ordinal(), errorResponse.getErrorCode());
+        assertEquals(HttpStatus.UNAUTHORIZED.value(), errorResponse.getErrorCode());
     }
 
 

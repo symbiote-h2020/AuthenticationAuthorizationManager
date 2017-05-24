@@ -47,8 +47,8 @@ public class TokenService {
         return retToken;
     }
 
-    public CheckRevocationResponse checkHomeTokenRevocation(Token token) {
-        return tokenManager.checkHomeTokenRevocation(token, tokenRepository.findByToken(token.getToken()));
+    public CheckRevocationResponse checkHomeTokenRevocation(String tokenString) {
+        return tokenManager.checkHomeTokenRevocation(tokenString, tokenRepository.findByToken(tokenString));
     }
 
     public void removeAllTokens() {
