@@ -20,6 +20,8 @@ import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 import org.springframework.beans.factory.annotation.Value;
@@ -254,6 +256,35 @@ public class RegistrationManager {
         pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         PrivateKey privKey = (PrivateKey) pkcs12Store.getKey(KEY_STORE_ALIAS, PV_KEY_PASSWORD.toCharArray());
         return privKey;
+    }
+
+    public X509Certificate generateCertificateFromCSR(PKCS10CertificationRequest request) throws NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, KeyStoreException, IOException, CertificateException, UnrecoverableKeyException, OperatorCreationException {
+
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        X509Certificate caCert = (X509Certificate) pkcs12Store.getCertificate(KEY_STORE_ALIAS);
+        PrivateKey privKey = this.getAAMPrivateKey();
+
+        JcaPKCS10CertificationRequest jcaRequest = new JcaPKCS10CertificationRequest(request);
+
+        ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER_NAME).build
+                (privKey);
+
+        X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
+                caCert,
+                BigInteger.valueOf(1),
+                new Date(System.currentTimeMillis()),
+                new Date(System.currentTimeMillis() + 1L * 365L * 24L * 60L * 60L * 1000L),
+                jcaRequest.getSubject(),
+                jcaRequest.getPublicKey())
+                .addExtension(
+                        new ASN1ObjectIdentifier("2.5.29.19"),
+                        false,
+                        new BasicConstraints(false));
+
+        X509Certificate cert = new JcaX509CertificateConverter().setProvider(PROVIDER_NAME).getCertificate(certGen
+                .build(sigGen));
+
+        return cert;
     }
 
 }
