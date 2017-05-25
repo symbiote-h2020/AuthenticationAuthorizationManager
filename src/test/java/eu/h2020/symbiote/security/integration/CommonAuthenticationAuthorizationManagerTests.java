@@ -290,10 +290,4 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             assertNull(e);
         }
     }
-
-    @Test
-    @Ignore
-    public void generateCertificateFromCSRSuccess(){
-
-    }
 }

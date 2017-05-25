@@ -12,13 +12,23 @@ import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import eu.h2020.symbiote.security.payloads.UserRegistrationResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.test.context.TestPropertySource;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
-import java.security.KeyPair;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.spec.ECGenParameterSpec;
 import java.util.Date;
 import java.util.concurrent.TimeoutException;
 
@@ -133,5 +143,26 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
         // also check time validity
         cert.checkValidity(new Date());
+    }
+
+
+
+
+    @Test
+    public void generateCertificateFromCSRSuccess() throws OperatorCreationException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidKeyException, IOException, InvalidAlgorithmParameterException {
+        KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
+        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
+        g.initialize(ecGenSpec, new SecureRandom());
+        KeyPair keyPair = g.generateKeyPair();
+
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
+                new X500Principal("CN=Requested Test Certificate"), keyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(keyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+
+        X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
+        assertNotNull(cert);
+        assertEquals(new X500Name(cert.getSubjectDN().getName()),csr.getSubject());
     }
 }

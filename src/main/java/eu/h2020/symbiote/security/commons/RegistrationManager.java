@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x500.X500NameBuilder;
 import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.BasicConstraints;
@@ -261,16 +262,17 @@ public class RegistrationManager {
     public X509Certificate generateCertificateFromCSR(PKCS10CertificationRequest request) throws NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, KeyStoreException, IOException, CertificateException, UnrecoverableKeyException, OperatorCreationException {
 
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         X509Certificate caCert = (X509Certificate) pkcs12Store.getCertificate(KEY_STORE_ALIAS);
+        X500Name issuer = new X500Name( caCert.getSubjectX500Principal().getName() );
         PrivateKey privKey = this.getAAMPrivateKey();
-
         JcaPKCS10CertificationRequest jcaRequest = new JcaPKCS10CertificationRequest(request);
 
         ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER_NAME).build
                 (privKey);
 
         X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
-                caCert,
+                issuer,
                 BigInteger.valueOf(1),
                 new Date(System.currentTimeMillis()),
                 new Date(System.currentTimeMillis() + 1L * 365L * 24L * 60L * 60L * 1000L),

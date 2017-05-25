@@ -13,6 +13,7 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -91,6 +92,13 @@ public abstract class AuthenticationAuthorizationManagerTests {
     protected String KEY_STORE_ALIAS;
     @Value("${aam.deployment.token.validityMillis}")
     protected Long tokenValidityPeriod;
+    @Value("${aam.security.SIGNATURE_ALGORITHM}")
+    protected String SIGNATURE_ALGORITHM;
+    protected final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
+    @Value("${aam.security.KEY_PAIR_GEN_ALGORITHM}")
+    protected String KEY_PAIR_GEN_ALGORITHM;
+    @Value("${aam.security.CURVE_NAME}")
+    protected String CURVE_NAME;
     @Autowired
     protected RevokedCertificatesRepository revokedCertificatesRepository;
 
