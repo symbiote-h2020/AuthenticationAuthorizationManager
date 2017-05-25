@@ -114,7 +114,7 @@ public class TokenManager {
         }
     }
 
-    public CheckRevocationResponse checkHomeTokenRevocation(Token token, Token dbToken) {
+    public CheckRevocationResponse checkHomeTokenRevocation(String token, Token dbToken) {
 
         CheckRevocationResponse outcome = new CheckRevocationResponse(ValidationStatus.VALID);
 
@@ -128,7 +128,7 @@ public class TokenManager {
             KeyFactory keyFactory = KeyFactory.getInstance("EC");
             PublicKey pubKey = keyFactory.generatePublic(keySpec);
 
-            switch (JWTEngine.validateToken(token, pubKey)) {
+            switch (JWTEngine.validateTokenString(token, pubKey)) {
                 case VALID:
                     outcome.setStatus(ValidationStatus.VALID);
                     break;

@@ -66,7 +66,7 @@ public class CheckTokenRevocationRequestConsumerService extends DefaultConsumer 
                 token = om.readValue(message, Token.class);
 
                 CheckRevocationResponse checkRevocationResponse = tokenService.checkHomeTokenRevocation
-                        (token);
+                        (token.getToken());
                 response = om.writeValueAsString(checkRevocationResponse);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
 

@@ -3,7 +3,6 @@ package eu.h2020.symbiote.security.integration;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
 import eu.h2020.symbiote.security.SecurityHandler;
-import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
@@ -11,8 +10,10 @@ import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
 import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
-import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
-import eu.h2020.symbiote.security.payloads.*;
+import eu.h2020.symbiote.security.payloads.Credentials;
+import eu.h2020.symbiote.security.payloads.PlatformRegistrationRequest;
+import eu.h2020.symbiote.security.payloads.UserDetails;
+import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.Token;
@@ -26,7 +27,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -142,84 +142,6 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
         // owned platform identifier
         assertEquals(preferredPlatformId, attributes.get(CoreAttributes.OWNED_PLATFORM.toString()));
-    }
-
-    /**
-     * Features: CAAM - Providing platform details for Administration upon giving a correct Core Token
-     * Interfaces: CAAM ;
-     * CommunicationType AMQP
-     */
-    @Test
-    public void platformOwnerLoginOverRESTAndReceivesInAdministrationDetailsOfHisOwnedPlatform() throws IOException,
-            TimeoutException, MalformedJWTException, JSONException, CertificateException, TokenValidationException {
-        // verify that our platform and platformOwner are not in repositories
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
-
-        // issue platform registration over AMQP
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
-        // login the platform owner
-        Token token = securityHandler.requestCoreToken(platformOwnerUsername, platformOwnerPassword);
-        //verify that JWT was issued for user
-        assertNotNull(token.getToken());
-
-        // issue owned platform details request with the given token
-        RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                ownedPlatformDetailsRequestQueue, 5000);
-        byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (token.getToken()).getBytes());
-        OwnedPlatformDetails ownedPlatformDetails = mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails
-                .class);
-
-        Platform ownedPlatformInDB = platformRepository.findOne(preferredPlatformId);
-
-        // verify the contents of the response
-        assertEquals(ownedPlatformInDB.getPlatformInstanceFriendlyName(), ownedPlatformDetails
-                .getPlatformInstanceFriendlyName());
-        assertEquals(ownedPlatformInDB.getPlatformInstanceId(), ownedPlatformDetails.getPlatformInstanceId());
-        assertEquals(ownedPlatformInDB.getPlatformInterworkingInterfaceAddress(), ownedPlatformDetails
-                .getPlatformInterworkingInterfaceAddress());
-    }
-
-    /**
-     * Features: CAAM - Providing platform details for Administration upon giving a correct Core Token
-     * Interfaces: CAAM ;
-     * CommunicationType AMQP
-     */
-    @Test
-    public void nonPlatformOwnerLoginOverRESTAndIsDeclinedOwnedPlatformDetailsRequest() throws IOException,
-            TimeoutException, MalformedJWTException, JSONException, CertificateException, TokenValidationException {
-        // verify that our platform and platformOwner are not in repositories
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
-
-        // issue platform registration over AMQP
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
-        // issue app registration over AMQP
-        appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
-                UserRegistrationRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.APPLICATION))).getBytes());
-
-        // login an ordinary user to get token
-        Token token = securityHandler.requestCoreToken(coreAppUsername, coreAppPassword);
-        //verify that JWT was issued for user
-        assertNotNull(token.getToken());
-
-        // issue owned platform details request with the given token
-        RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                ownedPlatformDetailsRequestQueue, 5000);
-        byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (token.getToken()).getBytes());
-
-        // verify error response
-        ErrorResponseContainer errorResponse = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer
-                .class);
-        assertEquals(HttpStatus.UNAUTHORIZED.ordinal(), errorResponse.getErrorCode());
     }
 
 
