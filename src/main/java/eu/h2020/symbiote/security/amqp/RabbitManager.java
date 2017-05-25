@@ -7,7 +7,6 @@ import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.exceptions.aam.AAMMisconfigurationException;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
-import eu.h2020.symbiote.security.services.LoginService;
 import eu.h2020.symbiote.security.services.PlatformRegistrationService;
 import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
@@ -28,7 +27,6 @@ public class RabbitManager {
 
     private final UserRegistrationService userRegistrationService;
     private final PlatformRegistrationService platformRegistrationService;
-    private final LoginService loginService;
     private final TokenService tokenService;
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
@@ -82,12 +80,10 @@ public class RabbitManager {
 
     @Autowired
     public RabbitManager(UserRegistrationService userRegistrationService, PlatformRegistrationService
-            platformRegistrationService, LoginService loginService,
-                         TokenService tokenService, UserRepository userRepository, PlatformRepository
-                                 platformRepository, RegistrationManager registrationManager) {
+            platformRegistrationService, TokenService tokenService, UserRepository userRepository,
+                         PlatformRepository platformRepository, RegistrationManager registrationManager) {
         this.userRegistrationService = userRegistrationService;
         this.platformRegistrationService = platformRegistrationService;
-        this.loginService = loginService;
         this.tokenService = tokenService;
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
@@ -176,7 +172,7 @@ public class RabbitManager {
 
             log.info("Authentication and Authorization Manager waiting for login request messages....");
 
-            Consumer consumer = new LoginRequestConsumerService(channel, loginService);
+            Consumer consumer = new LoginRequestConsumerService(channel, tokenService);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
             log.error(e);

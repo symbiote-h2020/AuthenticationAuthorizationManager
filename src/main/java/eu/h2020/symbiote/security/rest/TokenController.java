@@ -5,11 +5,14 @@ import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
+import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
 import eu.h2020.symbiote.security.interfaces.ICoreServices;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
+import eu.h2020.symbiote.security.payloads.Credentials;
+import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.Token;
@@ -21,10 +24,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -135,6 +135,21 @@ public class TokenController {
             return new ResponseEntity<>(tokenService.checkHomeTokenRevocation(tokenString), HttpStatus.OK);
         } catch (TokenValidationException e) {
             return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.INVALID), HttpStatus.OK);
+        }
+    }
+
+    //L1 Diagrams - login()
+    @RequestMapping(value = AAMConstants.AAM_LOGIN, method = RequestMethod.POST)
+    public ResponseEntity<?> login(@RequestBody Credentials user) {
+        try {
+            Token token = tokenService.login(user);
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(AAMConstants.TOKEN_HEADER_NAME, token.getToken());
+            return new ResponseEntity<>(headers, HttpStatus.OK);
+        } catch (AAMException e) {
+            log.error(e);
+            return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
+                    .getStatusCode().ordinal()), e.getStatusCode());
         }
     }
 }

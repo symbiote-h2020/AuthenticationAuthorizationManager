@@ -10,7 +10,7 @@ import eu.h2020.symbiote.security.exceptions.aam.MissingArgumentsException;
 import eu.h2020.symbiote.security.exceptions.aam.WrongCredentialsException;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.services.LoginService;
+import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.token.Token;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -23,7 +23,7 @@ import java.io.IOException;
 public class LoginRequestConsumerService extends DefaultConsumer {
 
     private static Log log = LogFactory.getLog(LoginRequestConsumerService.class);
-    private LoginService loginService;
+    private TokenService tokenService;
 
 
     /**
@@ -33,9 +33,9 @@ public class LoginRequestConsumerService extends DefaultConsumer {
      * @param channel the channel to which this consumer is attached
      */
     public LoginRequestConsumerService(Channel channel,
-                                       LoginService loginService) {
+                                       TokenService tokenService) {
         super(channel);
-        this.loginService = loginService;
+        this.tokenService = tokenService;
     }
 
     /**
@@ -68,7 +68,7 @@ public class LoginRequestConsumerService extends DefaultConsumer {
                 loginReq = om.readValue(message, Credentials.class);
                 log.debug("[x] Received Login Request by: '" + loginReq.getUsername() + "'");
                 try {
-                    Token token = loginService.login(loginReq);
+                    Token token = tokenService.login(loginReq);
                     response = om.writeValueAsString(token);
                     this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
                 } catch (MissingArgumentsException | WrongCredentialsException | JWTCreationException e) {

@@ -4,7 +4,7 @@ import eu.h2020.symbiote.security.commons.VirtualFile;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.payloads.*;
-import eu.h2020.symbiote.security.services.LoginService;
+import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
 import eu.h2020.symbiote.security.services.ZipService;
 import net.lingala.zip4j.exception.ZipException;
@@ -33,7 +33,7 @@ import java.util.Map;
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
- * @see LoginService
+ * @see TokenService
  */
 @RestController
 public class ApplicationRegistrationController {
