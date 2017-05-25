@@ -7,7 +7,7 @@ import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.UserDetails;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
-import eu.h2020.symbiote.security.repositories.RevokedCertificatesRepository;
+import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
@@ -58,6 +58,8 @@ public abstract class AuthenticationAuthorizationManagerTests {
     @Autowired
     protected RevokedTokensRepository revokedTokensRepository;
     @Autowired
+    protected RevokedKeysRepository revokedKeysRepository;
+    @Autowired
     protected RabbitManager rabbitManager;
     @Autowired
     protected RegistrationManager registrationManager;
@@ -93,8 +95,7 @@ public abstract class AuthenticationAuthorizationManagerTests {
     protected String KEY_STORE_ALIAS;
     @Value("${aam.deployment.token.validityMillis}")
     protected Long tokenValidityPeriod;
-    @Autowired
-    protected RevokedCertificatesRepository revokedCertificatesRepository;
+
 
     @Before
     public void setUp() throws Exception {
@@ -129,7 +130,7 @@ public abstract class AuthenticationAuthorizationManagerTests {
 
         // cleanup db
         userRepository.deleteAll();
-        revokedCertificatesRepository.deleteAll();
+        revokedKeysRepository.deleteAll();
         revokedTokensRepository.deleteAll();
 
 

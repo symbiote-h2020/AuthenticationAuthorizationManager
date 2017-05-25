@@ -1,7 +1,6 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
-import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.exceptions.aam.ExistingUserException;
@@ -94,10 +93,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             User user = userRepository.findOne(username);
             assertNotNull(user);
 
-            // get user certficate
-            Certificate userCertificate = user.getCertificate();
-            // verify the certificate is not yet revoked
-            assertFalse(revokedCertificatesRepository.exists(userCertificate.toString()));
+            // verify the user keys are not yet revoked
+            assertFalse(revokedKeysRepository.exists(username));
 
             // unregister
             userRegistrationService.unregister(username);
@@ -106,7 +103,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             // verify that app is not anymore in the repository
             assertFalse(userRepository.exists(username));
             // verify that the user certificate was indeed revoked
-            assertTrue(revokedCertificatesRepository.exists(userCertificate.toString()));
+            assertTrue(revokedKeysRepository.exists(username));
         } catch (Exception e) {
             assertEquals(NotExistingUserException.class, e.getClass());
             log.error(e.getMessage());

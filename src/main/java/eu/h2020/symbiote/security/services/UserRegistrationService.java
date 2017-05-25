@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
+import eu.h2020.symbiote.security.commons.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
@@ -10,7 +11,7 @@ import eu.h2020.symbiote.security.exceptions.aam.*;
 import eu.h2020.symbiote.security.payloads.UserDetails;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import eu.h2020.symbiote.security.payloads.UserRegistrationResponse;
-import eu.h2020.symbiote.security.repositories.RevokedCertificatesRepository;
+import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -23,6 +24,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Spring service used to register users in the AAM repository.
@@ -35,7 +38,7 @@ import java.security.cert.CertificateException;
 public class UserRegistrationService {
     private static Log log = LogFactory.getLog(UserRegistrationService.class);
     private final UserRepository userRepository;
-    private final RevokedCertificatesRepository revokedCertificatesRepository;
+    private final RevokedKeysRepository revokedKeysRepository;
     private final RegistrationManager registrationManager;
     private final PasswordEncoder passwordEncoder;
     @Value("${aam.deployment.owner.username}")
@@ -45,10 +48,9 @@ public class UserRegistrationService {
     private IssuingAuthorityType deploymentType;
 
     @Autowired
-    public UserRegistrationService(UserRepository userRepository, RevokedCertificatesRepository
-            revokedCertificatesRepository, RegistrationManager registrationManager, PasswordEncoder passwordEncoder) {
+    public UserRegistrationService(UserRepository userRepository, RevokedKeysRepository revokedKeysRepository, RegistrationManager registrationManager, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.revokedCertificatesRepository = revokedCertificatesRepository;
+        this.revokedKeysRepository = revokedKeysRepository;
         this.registrationManager = registrationManager;
         this.passwordEncoder = passwordEncoder;
         this.deploymentType = registrationManager.getDeploymentType();
@@ -137,7 +139,13 @@ public class UserRegistrationService {
             throw new NotExistingUserException();
 
         // add user certificated to revoked repository
-        revokedCertificatesRepository.save(userRepository.findOne(username).getCertificate());
+        List<String> keysList = new ArrayList<>();
+        try {
+            keysList.add(userRepository.findOne(username).getCertificate().getX509().getPublicKey().toString());
+            revokedKeysRepository.save(new SubjectsRevokedKeys(username, keysList));
+        } catch (CertificateException e) {
+            log.error(e);
+        }
         // do it
         userRepository.delete(username);
     }
