@@ -1,10 +1,10 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.commons.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.exceptions.aam.ExistingUserException;
-import eu.h2020.symbiote.security.exceptions.aam.NotExistingUserException;
+import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.UserDetails;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
@@ -17,6 +17,7 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
 import java.security.KeyPair;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.concurrent.TimeoutException;
@@ -45,38 +46,35 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * @throws TimeoutException
      */
     @Test
-    public void applicationInternalRegistrationSuccess() throws Exception {
-        try {
-            String appUsername = "NewApplication";
+    public void applicationInternalRegistrationSuccess() throws AAMException {
+        String appUsername = "NewApplication";
 
-            // verify that app is not in the repository
-            User registeredUser = userRepository.findOne(appUsername);
-            assertNull(registeredUser);
+        // verify that app is not in the repository
+        User registeredUser = userRepository.findOne(appUsername);
+        assertNull(registeredUser);
 
             /*
              XXX federated Id and recovery mail are required for Test & Core AAM but not for Plaftorm AAM
              */
-            // register new application to db
-            UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new
-                    Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
-                    (appUsername, "NewPassword"), "nullId", "nullMail", UserRole.APPLICATION));
-            UserRegistrationResponse userRegistrationResponse = userRegistrationService.register
-                    (userRegistrationRequest);
+        // register new application to db
+        UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
+                (appUsername, "NewPassword"), "nullId", "nullMail", UserRole.APPLICATION));
+        UserRegistrationResponse userRegistrationResponse = userRegistrationService.register
+                (userRegistrationRequest);
 
-            // verify that app really is in repository
-            registeredUser = userRepository.findOne(appUsername);
-            assertNotNull(registeredUser);
-            assertEquals(UserRole.APPLICATION, registeredUser.getRole());
+        // verify that app really is in repository
+        registeredUser = userRepository.findOne(appUsername);
+        assertNotNull(registeredUser);
+        assertEquals(UserRole.APPLICATION, registeredUser.getRole());
 
-            // verify that the server returns certificate & privateKey
-            assertNotNull(userRegistrationResponse.getUserCertificate());
-            assertNotNull(userRegistrationResponse.getUserPrivateKey());
+        // verify that the server returns certificate & privateKey
+        assertNotNull(userRegistrationResponse.getUserCertificate());
+        assertNotNull(userRegistrationResponse.getUserPrivateKey());
 
-            // TODO verify that released certificate has no CA property
-        } catch (Exception e) {
-            assertEquals(ExistingUserException.class, e.getClass());
-            log.info(e.getMessage());
-        }
+        // TODO verify that released certificate has no CA property
+        //assertFalse(registeredUser.getCertificate().getX509().getExtensionValue(new ASN1ObjectIdentifier
+        // ("2.5.29.19"),));
     }
 
 
@@ -87,27 +85,26 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * @throws TimeoutException
      */
     @Test
-    public void applicationInternalUnregistrationSuccess() throws Exception {
-        try {
-            // verify that app really is in repository
-            User user = userRepository.findOne(username);
-            assertNotNull(user);
+    public void applicationInternalUnregistrationSuccess() throws AAMException, CertificateException {
+        // verify that app really is in repository
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
 
-            // verify the user keys are not yet revoked
-            assertFalse(revokedKeysRepository.exists(username));
+        // verify the user keys are not yet revoked
+        assertFalse(revokedKeysRepository.exists(username));
 
-            // unregister
-            userRegistrationService.unregister(username);
-            log.debug("User successfully unregistered!");
+        // unregister the user
+        userRegistrationService.unregister(username);
+        log.debug("User successfully unregistered!");
 
-            // verify that app is not anymore in the repository
-            assertFalse(userRepository.exists(username));
-            // verify that the user certificate was indeed revoked
-            assertTrue(revokedKeysRepository.exists(username));
-        } catch (Exception e) {
-            assertEquals(NotExistingUserException.class, e.getClass());
-            log.error(e.getMessage());
-        }
+        // verify that app is not anymore in the repository
+        assertFalse(userRepository.exists(username));
+
+        // verify that the user certificate was indeed revoked
+        assertTrue(revokedKeysRepository.exists(username));
+        SubjectsRevokedKeys revokedKeys = revokedKeysRepository.findOne(username);
+        assertNotNull(revokedKeys);
+        assertTrue(revokedKeys.getRevokedKeysSet().contains(user.getCertificate().getX509().getPublicKey().toString()));
     }
 
     /**

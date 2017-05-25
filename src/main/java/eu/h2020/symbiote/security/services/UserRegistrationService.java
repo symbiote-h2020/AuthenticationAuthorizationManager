@@ -24,8 +24,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Spring service used to register users in the AAM repository.
@@ -139,12 +139,13 @@ public class UserRegistrationService {
             throw new NotExistingUserException();
 
         // add user certificated to revoked repository
-        List<String> keysList = new ArrayList<>();
+        Set<String> keys = new HashSet<>();
         try {
-            keysList.add(userRepository.findOne(username).getCertificate().getX509().getPublicKey().toString());
-            revokedKeysRepository.save(new SubjectsRevokedKeys(username, keysList));
+            keys.add(userRepository.findOne(username).getCertificate().getX509().getPublicKey().toString());
+            revokedKeysRepository.save(new SubjectsRevokedKeys(username, keys));
         } catch (CertificateException e) {
             log.error(e);
+            throw new UserRegistrationException(e);
         }
         // do it
         userRepository.delete(username);
