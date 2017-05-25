@@ -8,7 +8,7 @@ import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.UserDetails;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import eu.h2020.symbiote.security.repositories.RevokedCertificatesRepository;
-import eu.h2020.symbiote.security.repositories.TokenRepository;
+import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
 import org.apache.commons.logging.Log;
@@ -56,6 +56,8 @@ public abstract class AuthenticationAuthorizationManagerTests {
     @Autowired
     protected UserRepository userRepository;
     @Autowired
+    protected RevokedTokensRepository revokedTokensRepository;
+    @Autowired
     protected RabbitManager rabbitManager;
     @Autowired
     protected RegistrationManager registrationManager;
@@ -94,9 +96,6 @@ public abstract class AuthenticationAuthorizationManagerTests {
     @Autowired
     protected RevokedCertificatesRepository revokedCertificatesRepository;
 
-    @Autowired
-    protected TokenRepository tokenRepository;
-
     @Before
     public void setUp() throws Exception {
         // Catch the random port
@@ -131,7 +130,8 @@ public abstract class AuthenticationAuthorizationManagerTests {
         // cleanup db
         userRepository.deleteAll();
         revokedCertificatesRepository.deleteAll();
-        tokenRepository.deleteAll();
+        revokedTokensRepository.deleteAll();
+
 
         // Register test application user into DB
         UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new

@@ -2,15 +2,18 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
+import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
-import eu.h2020.symbiote.security.repositories.TokenRepository;
+import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
 import eu.h2020.symbiote.security.token.Token;
+import eu.h2020.symbiote.security.token.jwt.JWTEngine;
+import io.jsonwebtoken.ExpiredJwtException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 /**
  * Spring service used to provide token related functionality of the AAM.
@@ -20,20 +23,18 @@ import java.util.List;
  */
 @Service
 public class TokenService {
-
-    private final TokenRepository tokenRepository;
+    private static Log log = LogFactory.getLog(TokenService.class);
     private final TokenManager tokenManager;
+    private RevokedTokensRepository revokedTokensRepository;
 
     @Autowired
-    public TokenService(TokenRepository tokenRepository, TokenManager tokenManager) {
-        this.tokenRepository = tokenRepository;
+    public TokenService(TokenManager tokenManager, RevokedTokensRepository revokedTokensRepository) {
         this.tokenManager = tokenManager;
+        this.revokedTokensRepository = revokedTokensRepository;
     }
 
     public Token createFederatedHomeTokenForForeignToken(String foreignToken) throws JWTCreationException {
-        Token retToken = tokenManager.createForeignToken(foreignToken);
-        saveToken(retToken);
-        return retToken;
+        return tokenManager.createForeignToken(foreignToken);
     }
 
     /**
@@ -42,28 +43,24 @@ public class TokenService {
      * @throws JWTCreationException
      */
     public Token getHomeToken(User user) throws JWTCreationException {
-        Token retToken = tokenManager.createHomeToken(user);
-        saveToken(retToken);
-        return retToken;
+        return tokenManager.createHomeToken(user);
     }
 
     public CheckRevocationResponse checkHomeTokenRevocation(String tokenString) {
-        return tokenManager.checkHomeTokenRevocation(tokenString, tokenRepository.findByToken(tokenString));
+        String tokenId;
+        try {
+            tokenId = JWTEngine.getClaims(tokenString).getId();
+        } catch (ExpiredJwtException e) {
+            log.info(e);
+            return new CheckRevocationResponse((ValidationStatus.EXPIRED));
+        } catch (TokenValidationException e) {
+            log.error(e);
+            return new CheckRevocationResponse(ValidationStatus.INVALID);
+        }
+        if (revokedTokensRepository.exists(tokenId)) {
+            return new CheckRevocationResponse(ValidationStatus.REVOKED);
+        }
+        return new CheckRevocationResponse(ValidationStatus.VALID);
     }
 
-    public void removeAllTokens() {
-        tokenRepository.deleteAll();
-    }
-
-    public void saveToken(Token token) {
-        tokenRepository.save(token);
-    }
-
-    public Token getToken(String jwt) throws TokenValidationException {
-        return new Token(tokenRepository.findByToken(jwt).getToken());
-    }
-
-    public List<Token> getAllTokens() {
-        return tokenRepository.findAll();
-    }
 }
