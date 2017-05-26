@@ -1,18 +1,21 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.SecurityHandler;
 import eu.h2020.symbiote.security.commons.SubjectsRevokedKeys;
+import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.AAMException;
-import eu.h2020.symbiote.security.payloads.Credentials;
-import eu.h2020.symbiote.security.payloads.UserDetails;
-import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
-import eu.h2020.symbiote.security.payloads.UserRegistrationResponse;
+import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
+import eu.h2020.symbiote.security.payloads.*;
+import eu.h2020.symbiote.security.token.Token;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -32,11 +35,16 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(CommonAuthenticationAuthorizationManagerTests.class);
+    private SecurityHandler securityHandler;
+
+    @Autowired
+    private TokenManager tokenManager;
 
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        securityHandler = new SecurityHandler(serverAddress);
     }
 
     /**
@@ -128,4 +136,84 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         // also check time validity
         cert.checkValidity(new Date());
     }
+
+    @Test
+    public void checkRevocationWrongToken() throws AAMException, CertificateException, SecurityHandlerException {
+        // verify that app really is in repository
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+
+        // verify the user keys are not yet revoked
+        assertFalse(revokedKeysRepository.exists(username));
+
+        //check if home token revoked properly
+        CheckRevocationResponse response = tokenManager.checkHomeTokenRevocation("tokenString");
+        assertEquals(ValidationStatus.INVALID, ValidationStatus.valueOf(response.getStatus()));
+    }
+
+    @Test
+    public void checkRevocationExpiredToken() throws AAMException, CertificateException, SecurityHandlerException {
+        // verify that app really is in repository
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+
+        // verify the user keys are not yet revoked
+        assertFalse(revokedKeysRepository.exists(username));
+
+        // acquiring valid token
+        Token homeToken = tokenManager.createHomeToken(user);
+
+        //Introduce latency so that JWT expires
+        try {
+            Thread.sleep(tokenValidityPeriod + 1000);
+        } catch (InterruptedException e) {
+            log.error(e);
+        }
+
+        //check if home token revoked properly
+        CheckRevocationResponse response = tokenManager.checkHomeTokenRevocation(homeToken.getToken());
+        assertEquals(ValidationStatus.EXPIRED, ValidationStatus.valueOf(response.getStatus()));
+    }
+
+    @Test
+    public void checkRevocationAfterUnregistration() throws AAMException, CertificateException, SecurityHandlerException {
+        // verify that app really is in repository
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+
+        // verify the user keys are not yet revoked
+        assertFalse(revokedKeysRepository.exists(username));
+
+        // acquiring valid token
+        Token homeToken = tokenManager.createHomeToken(user);
+
+        // unregister the user
+        userRegistrationService.unregister(username);
+        //log.debug("User successfully unregistered!");
+
+        //check if home token revoked properly
+        CheckRevocationResponse response = tokenManager.checkHomeTokenRevocation(homeToken.getToken());
+        assertEquals(ValidationStatus.REVOKED, ValidationStatus.valueOf(response.getStatus()));
+    }
+
+    @Test
+    public void checkRevocationRevokedToken() throws AAMException, CertificateException, SecurityHandlerException {
+        // verify that app really is in repository
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+
+        // verify the user keys are not yet revoked
+        assertFalse(revokedKeysRepository.exists(username));
+
+        // acquiring valid token
+        Token homeToken = tokenManager.createHomeToken(user);
+
+        //add token to repository
+        revokedTokensRepository.save(homeToken);
+
+        //check if home token revoked properly
+        CheckRevocationResponse response = tokenManager.checkHomeTokenRevocation(homeToken.getToken());
+        assertEquals(ValidationStatus.REVOKED, ValidationStatus.valueOf(response.getStatus()));
+    }
+
 }
