@@ -116,14 +116,14 @@ public class TokenManager {
 
     public CheckRevocationResponse checkHomeTokenRevocation(String tokenString) {
         try {
-            // basic validation (spk, exp)
+            // basic validation (signature and exp)
             ValidationStatus validationStatus = JWTEngine.validateTokenString(tokenString);
             if (validationStatus != ValidationStatus.VALID) {
                 return new CheckRevocationResponse(validationStatus);
             }
 
             Claims claims = JWTEngine.getClaims(tokenString);
-            // flow for Platfom AAM
+            // flow for Platform AAM
             if (deploymentType != IssuingAuthorityType.CORE) {
                 if (!deploymentId.equals(claims.getIssuer())) {
                     // todo think of better status for foreign token which we should not validate (maybe exception?)
@@ -135,7 +135,8 @@ public class TokenManager {
             } else {
                 // check revoked IPK
                 if (revokedKeysRepository.exists(claims.getIssuer())) {
-                    return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                    // todo check if IPK is in the revoked set
+                    // return new CheckRevocationResponse(ValidationStatus.REVOKED);
                 }
             }
             // check revoked JTI
@@ -144,7 +145,8 @@ public class TokenManager {
             }
             // check revoked SPK
             if (revokedKeysRepository.exists(claims.getSubject())) {
-                return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                // todo check if SPK is is in the revoked set
+                // return new CheckRevocationResponse(ValidationStatus.REVOKED);
             }
         } catch (TokenValidationException e) {
             log.error(e);

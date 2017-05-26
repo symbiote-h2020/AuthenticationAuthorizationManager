@@ -1,7 +1,6 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
-import eu.h2020.symbiote.security.SecurityHandler;
 import eu.h2020.symbiote.security.commons.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
@@ -38,7 +37,6 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         AuthenticationAuthorizationManagerTests {
 
     private static Log log = LogFactory.getLog(CommonAuthenticationAuthorizationManagerTests.class);
-    private SecurityHandler securityHandler;
 
     @Autowired
     private TokenManager tokenManager;
@@ -47,14 +45,10 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        securityHandler = new SecurityHandler(serverAddress);
     }
 
     /**
      * Feature: User Repository
-     *
-     * @throws IOException
-     * @throws TimeoutException
      */
     @Test
     public void applicationInternalRegistrationSuccess() throws AAMException {
@@ -65,7 +59,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         assertNull(registeredUser);
 
             /*
-             XXX federated Id and recovery mail are required for Test & Core AAM but not for Plaftorm AAM
+             XXX federated Id and recovery mail are required for Test & Core AAM but not for Platform AAM
              */
         // register new application to db
         UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new
@@ -234,8 +228,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         Set<String> keySet = new HashSet<>();
         keySet.add(user.getCertificate().getX509().getPublicKey().toString());
 
+        //adding key to revoked repository
         SubjectsRevokedKeys subjectsRevokedKeys = new SubjectsRevokedKeys(issuer, keySet);
-        //add token to repository
         revokedKeysRepository.save(subjectsRevokedKeys);
 
         //check if home token revoked properly
