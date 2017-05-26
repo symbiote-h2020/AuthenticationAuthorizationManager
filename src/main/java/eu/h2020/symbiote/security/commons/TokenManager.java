@@ -1,12 +1,10 @@
 package eu.h2020.symbiote.security.commons;
 
-import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
-import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
@@ -14,6 +12,7 @@ import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
+import io.jsonwebtoken.Claims;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -21,11 +20,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.security.KeyFactory;
-import java.security.NoSuchAlgorithmException;
-import java.security.PublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -114,45 +108,28 @@ public class TokenManager {
         }
     }
 
-    public CheckRevocationResponse checkHomeTokenRevocation(String token, Token dbToken) {
-
-        CheckRevocationResponse outcome = new CheckRevocationResponse(ValidationStatus.VALID);
-
+    public CheckRevocationResponse checkHomeTokenRevocation(String tokenString) {
         try {
-            if (dbToken == null) {
-                throw new TokenValidationException(AAMConstants.ERR_TOKEN_WRONG_ISSUER);
+            // basic validation (spk, exp)
+            ValidationStatus validationStatus = JWTEngine.validateTokenString(tokenString);
+            if (validationStatus != ValidationStatus.VALID) {
+                return new CheckRevocationResponse(validationStatus);
             }
-            JWTClaims claims = JWTEngine.getClaimsFromToken(dbToken.getToken());
-            //Convert IPK claim to publicKey for validation
-            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(Base64.decodeBase64(claims.getIpk()));
-            KeyFactory keyFactory = KeyFactory.getInstance("EC");
-            PublicKey pubKey = keyFactory.generatePublic(keySpec);
 
-            switch (JWTEngine.validateTokenString(token, pubKey)) {
-                case VALID:
-                    outcome.setStatus(ValidationStatus.VALID);
-                    break;
-                case EXPIRED:
-                    outcome.setStatus(ValidationStatus.EXPIRED);
-                    break;
-                case REVOKED:
-                    outcome.setStatus(ValidationStatus.REVOKED);
-                    break;
-                case INVALID:
-                    outcome.setStatus(ValidationStatus.INVALID);
-                    break;
-
+            Claims claims = JWTEngine.getClaims(tokenString);
+            // check if home token or core aam
+            if (deploymentType != IssuingAuthorityType.CORE && !deploymentId.equals(claims.getIssuer())) {
+                // todo think of better status for foreign token which we should not validate (maybe exception?)
+                return new CheckRevocationResponse(ValidationStatus.INVALID);
             }
-            //Check if issuer of the token is this platform
-            if (!claims.getIss().equals(deploymentId)) {
-                outcome.setStatus(ValidationStatus.INVALID);
-            }
-        } catch (MalformedJWTException | TokenValidationException | NoSuchAlgorithmException |
-                InvalidKeySpecException e) {
-            log.error("JWT validation error", e);
-            outcome.setStatus(ValidationStatus.INVALID);
+            // todo check revoked IPK
+            // todo check revoked JTI
+            // todo check revoked SPK
+        } catch (TokenValidationException e) {
+            log.error(e);
+            return new CheckRevocationResponse(ValidationStatus.INVALID);
         }
-        return outcome;
+        return new CheckRevocationResponse(ValidationStatus.VALID);
     }
 
 }

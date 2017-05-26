@@ -2,18 +2,14 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
-import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.aam.MissingArgumentsException;
-import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
 import eu.h2020.symbiote.security.exceptions.aam.WrongCredentialsException;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.token.Token;
-import eu.h2020.symbiote.security.token.jwt.JWTEngine;
-import io.jsonwebtoken.ExpiredJwtException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,20 +52,7 @@ public class TokenService {
     }
 
     public CheckRevocationResponse checkHomeTokenRevocation(String tokenString) {
-        String tokenId;
-        try {
-            tokenId = JWTEngine.getClaims(tokenString).getId();
-        } catch (ExpiredJwtException e) {
-            log.info(e);
-            return new CheckRevocationResponse((ValidationStatus.EXPIRED));
-        } catch (TokenValidationException e) {
-            log.error(e);
-            return new CheckRevocationResponse(ValidationStatus.INVALID);
-        }
-        if (revokedTokensRepository.exists(tokenId)) {
-            return new CheckRevocationResponse(ValidationStatus.REVOKED);
-        }
-        return new CheckRevocationResponse(ValidationStatus.VALID);
+        return tokenManager.checkHomeTokenRevocation(tokenString);
     }
 
     public Token login(Credentials user) throws MissingArgumentsException, WrongCredentialsException,

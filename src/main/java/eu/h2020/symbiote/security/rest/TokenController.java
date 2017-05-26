@@ -43,7 +43,6 @@ public class TokenController {
     private final TokenService tokenService;
     private Log log = LogFactory.getLog(TokenController.class);
     private ICoreServices coreServices;
-    private RegistrationManager registrationManager;
     private String deploymentId = "";
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
 
@@ -55,7 +54,6 @@ public class TokenController {
             registrationManager) {
         this.tokenService = tokenService;
         this.coreServices = coreServices;
-        this.registrationManager = registrationManager;
         this.deploymentId = registrationManager.getAAMInstanceIdentifier();
         this.deploymentType = registrationManager.getDeploymentType();
     }
@@ -123,18 +121,19 @@ public class TokenController {
 
     /**
      * L1 Diagrams - check_token_revocation()
-     * TODO R3
+     * TODO R3 refactor to ValidationStatus validate(Token String);
      */
     @RequestMapping(value = AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, method = RequestMethod.POST)
     public ResponseEntity<CheckRevocationResponse> checkHomeTokenRevocation(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String tokenString) {
         try {
-            // static JWT string validation
-            ValidationStatus validationStatus = JWTEngine.validateTokenString(tokenString);
-            // revocation check
+            // input sanity check
+            JWTEngine.validateTokenString(tokenString);
+            // real validation
             return new ResponseEntity<>(tokenService.checkHomeTokenRevocation(tokenString), HttpStatus.OK);
         } catch (TokenValidationException e) {
-            return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.INVALID), HttpStatus.OK);
+            return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.INVALID), HttpStatus
+                    .INTERNAL_SERVER_ERROR);
         }
     }
 
