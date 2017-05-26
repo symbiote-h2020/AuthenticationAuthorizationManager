@@ -133,7 +133,10 @@ public class TokenManager {
                 //regManager.getAAMCertificate().getPublicKey().getEncoded()
                 // todo R3 possible validation of revoked IPK from CoreAAM - check if IPK was not revoked in the core
             } else {
-                // todo check revoked IPK
+                // check revoked IPK
+                if (revokedKeysRepository.exists(claims.getIssuer())) {
+                    return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                }
             }
             // check revoked JTI
             if (revokedTokensRepository.exists(claims.getId())) {

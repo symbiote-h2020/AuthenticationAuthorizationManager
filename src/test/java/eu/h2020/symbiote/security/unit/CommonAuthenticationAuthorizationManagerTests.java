@@ -11,6 +11,7 @@ import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.token.Token;
+import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
@@ -23,6 +24,8 @@ import java.security.KeyPair;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
@@ -216,4 +219,27 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         assertEquals(ValidationStatus.REVOKED, ValidationStatus.valueOf(response.getStatus()));
     }
 
+    @Test
+    public void checkRevocationRevokedIPK() throws AAMException, CertificateException, SecurityHandlerException {
+        // verify that app really is in repository
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+
+        // verify the user keys are not yet revoked
+        assertFalse(revokedKeysRepository.exists(username));
+
+        // acquiring valid token
+        Token homeToken = tokenManager.createHomeToken(user);
+        String issuer = JWTEngine.getClaims(homeToken.getToken()).getIssuer();
+        Set<String> keySet = new HashSet<>();
+        keySet.add(user.getCertificate().getX509().getPublicKey().toString());
+
+        SubjectsRevokedKeys subjectsRevokedKeys = new SubjectsRevokedKeys(issuer, keySet);
+        //add token to repository
+        revokedKeysRepository.save(subjectsRevokedKeys);
+
+        //check if home token revoked properly
+        CheckRevocationResponse response = tokenManager.checkHomeTokenRevocation(homeToken.getToken());
+        assertEquals(ValidationStatus.REVOKED, ValidationStatus.valueOf(response.getStatus()));
+    }
 }
