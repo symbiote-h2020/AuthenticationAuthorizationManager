@@ -24,6 +24,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -141,7 +142,8 @@ public class UserRegistrationService {
         // add user certificated to revoked repository
         Set<String> keys = new HashSet<>();
         try {
-            keys.add(userRepository.findOne(username).getCertificate().getX509().getPublicKey().toString());
+            keys.add(Base64.getEncoder().encodeToString(
+                    userRepository.findOne(username).getCertificate().getX509().getPublicKey().getEncoded()));
             revokedKeysRepository.save(new SubjectsRevokedKeys(username, keys));
         } catch (CertificateException e) {
             log.error(e);

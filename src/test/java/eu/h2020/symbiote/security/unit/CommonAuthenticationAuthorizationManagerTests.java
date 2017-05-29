@@ -26,6 +26,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -104,7 +105,8 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         assertTrue(revokedKeysRepository.exists(username));
         SubjectsRevokedKeys revokedKeys = revokedKeysRepository.findOne(username);
         assertNotNull(revokedKeys);
-        assertTrue(revokedKeys.getRevokedKeysSet().contains(user.getCertificate().getX509().getPublicKey().toString()));
+        assertTrue(revokedKeys.getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(
+                user.getCertificate().getX509().getPublicKey().getEncoded())));
     }
 
     @Test
@@ -219,7 +221,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         // insert CoreAAM public key into set to be revoked
         Certificate coreCertificate = new Certificate(registrationManager.getAAMCert());
         Set<String> keySet = new HashSet<>();
-        keySet.add(coreCertificate.getX509().getPublicKey().toString());
+        keySet.add(Base64.getEncoder().encodeToString(coreCertificate.getX509().getPublicKey().getEncoded()));
 
         // adding key to revoked repository
         SubjectsRevokedKeys subjectsRevokedKeys = new SubjectsRevokedKeys(issuer, keySet);
