@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
+import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
@@ -14,7 +15,6 @@ import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
-import io.jsonwebtoken.Claims;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -22,6 +22,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.security.KeyFactory;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -122,10 +126,11 @@ public class TokenManager {
                 return new CheckRevocationResponse(validationStatus);
             }
 
-            Claims claims = JWTEngine.getClaims(tokenString);
+            //Claims claims = JWTEngine.getClaims(tokenString);
+            JWTClaims claims = JWTEngine.getClaimsFromToken(tokenString);
             // flow for Platform AAM
             if (deploymentType != IssuingAuthorityType.CORE) {
-                if (!deploymentId.equals(claims.getIssuer())) {
+                if (!deploymentId.equals(claims.getIss())) {
                     // todo think of better status for foreign token which we should not validate (maybe exception?)
                     return new CheckRevocationResponse(ValidationStatus.INVALID);
                 }
@@ -134,21 +139,32 @@ public class TokenManager {
                 // todo R3 possible validation of revoked IPK from CoreAAM - check if IPK was not revoked in the core
             } else {
                 // check revoked IPK
-                if (revokedKeysRepository.exists(claims.getIssuer())) {
-                    // todo check if IPK is in the revoked set
-                    // return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                if (revokedKeysRepository.exists(claims.getIss())) {
+                    X509EncodedKeySpec keySpec = new X509EncodedKeySpec(Base64.decodeBase64(claims.getIpk()));
+                    KeyFactory keyFactory = KeyFactory.getInstance("EC");
+                    String publicKey = keyFactory.generatePublic(keySpec).toString();
+                    // check if IPK is in the revoked set
+                    if (revokedKeysRepository.findOne(claims.getIss()).getRevokedKeysSet().contains(publicKey)) {
+                        return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                    }
                 }
             }
             // check revoked JTI
-            if (revokedTokensRepository.exists(claims.getId())) {
+            if (revokedTokensRepository.exists(claims.getJti())) {
                 return new CheckRevocationResponse(ValidationStatus.REVOKED);
             }
+
             // check revoked SPK
-            if (revokedKeysRepository.exists(claims.getSubject())) {
-                // todo check if SPK is is in the revoked set
-                // return new CheckRevocationResponse(ValidationStatus.REVOKED);
+            if (revokedKeysRepository.exists(claims.getSub())) {
+                // check if SPK is is in the revoked set
+                X509EncodedKeySpec keySpec = new X509EncodedKeySpec(Base64.decodeBase64(claims.getSpk()));
+                KeyFactory keyFactory = KeyFactory.getInstance("EC");
+                String publicKey = keyFactory.generatePublic(keySpec).toString();
+                if (revokedKeysRepository.findOne(claims.getSub()).getRevokedKeysSet().contains(publicKey)) {
+                    return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                }
             }
-        } catch (TokenValidationException e) {
+        } catch (TokenValidationException | MalformedJWTException | NoSuchAlgorithmException | InvalidKeySpecException e) {
             log.error(e);
             return new CheckRevocationResponse(ValidationStatus.INVALID);
         }

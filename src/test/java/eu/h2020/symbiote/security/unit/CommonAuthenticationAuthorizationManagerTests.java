@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
@@ -20,17 +21,21 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
 import java.security.KeyPair;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
 
 /**
  * Test suite for generic AAM functionality irrelevant to actual deployment type (Core or Platform)
+ *
+ * @author Piotr Kicki (PSNC)
  */
 @TestPropertySource("/core.properties")
 public class CommonAuthenticationAuthorizationManagerTests extends
@@ -47,9 +52,6 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         super.setUp();
     }
 
-    /**
-     * Feature: User Repository
-     */
     @Test
     public void applicationInternalRegistrationSuccess() throws AAMException {
         String appUsername = "NewApplication";
@@ -82,13 +84,6 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         // ("2.5.29.19"),));
     }
 
-
-    /**
-     * Feature: User Repository
-     *
-     * @throws IOException
-     * @throws TimeoutException
-     */
     @Test
     public void applicationInternalUnregistrationSuccess() throws AAMException, CertificateException {
         // verify that app really is in repository
@@ -112,14 +107,6 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         assertTrue(revokedKeys.getRevokedKeysSet().contains(user.getCertificate().getX509().getPublicKey().toString()));
     }
 
-    /**
-     * Feature:
-     * Interface: PAAM - 3a
-     * CommunicationType REST
-     *
-     * @throws IOException
-     * @throws TimeoutException
-     */
     @Test
     public void certificateCreationAndVerification() throws Exception {
         // Generate certificate for given application username (ie. "Daniele")
@@ -173,7 +160,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     }
 
     @Test
-    public void checkRevocationAfterUnregistration() throws AAMException, CertificateException, SecurityHandlerException {
+    public void checkRevocationAfterUnregistrationBySPK() throws AAMException, CertificateException, SecurityHandlerException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -205,16 +192,16 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         // acquiring valid token
         Token homeToken = tokenManager.createHomeToken(user);
 
-        //add token to repository
+        // add token to repository
         revokedTokensRepository.save(homeToken);
 
-        //check if home token revoked properly
+        // check if home token revoked properly
         CheckRevocationResponse response = tokenManager.checkHomeTokenRevocation(homeToken.getToken());
         assertEquals(ValidationStatus.REVOKED, ValidationStatus.valueOf(response.getStatus()));
     }
 
     @Test
-    public void checkRevocationRevokedIPK() throws AAMException, CertificateException, SecurityHandlerException {
+    public void checkRevocationRevokedIPK() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -225,14 +212,20 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         // acquiring valid token
         Token homeToken = tokenManager.createHomeToken(user);
         String issuer = JWTEngine.getClaims(homeToken.getToken()).getIssuer();
-        Set<String> keySet = new HashSet<>();
-        keySet.add(user.getCertificate().getX509().getPublicKey().toString());
 
-        //adding key to revoked repository
+        // verify the issuer keys are not yet revoked
+        assertFalse(revokedKeysRepository.exists(issuer));
+
+        // insert CoreAAM public key into set to be revoked
+        Certificate coreCertificate = new Certificate(registrationManager.getAAMCert());
+        Set<String> keySet = new HashSet<>();
+        keySet.add(coreCertificate.getX509().getPublicKey().toString());
+
+        // adding key to revoked repository
         SubjectsRevokedKeys subjectsRevokedKeys = new SubjectsRevokedKeys(issuer, keySet);
         revokedKeysRepository.save(subjectsRevokedKeys);
 
-        //check if home token revoked properly
+        // check if home token revoked properly
         CheckRevocationResponse response = tokenManager.checkHomeTokenRevocation(homeToken.getToken());
         assertEquals(ValidationStatus.REVOKED, ValidationStatus.valueOf(response.getStatus()));
     }
