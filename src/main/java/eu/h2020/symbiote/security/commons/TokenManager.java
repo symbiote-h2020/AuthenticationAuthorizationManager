@@ -15,13 +15,18 @@ import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import io.jsonwebtoken.Claims;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -105,7 +110,7 @@ public class TokenManager {
             // TODO R3 Attribute Mapping Function
             Map<String, String> federatedAttributes = new HashMap<>();
             return new Token(
-                    JWTEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.decodeBase64(claims
+                    JWTEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.getDecoder().decode(claims
                                     .getIpk()), deploymentType, tokenValidity, deploymentId, regManager
                                     .getAAMPublicKey(),
                             regManager.getAAMPrivateKey()));
@@ -133,14 +138,17 @@ public class TokenManager {
                     // todo think of better status for foreign token which we should not validate (maybe exception?)
                     return new CheckRevocationResponse(ValidationStatus.INVALID);
                 }
-                // todo check IPK equals current AAM PK
-                //regManager.getAAMCertificate().getPublicKey().getEncoded()
+                // check IPK is not equal to current AAM PK
+                if (!Base64.getEncoder().encodeToString(
+                        regManager.getAAMCertificate().getPublicKey().getEncoded()).equals(ipk)) {
+                    return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                }
                 // todo R3 possible validation of revoked IPK from CoreAAM - check if IPK was not revoked in the core
             } else {
                 // check if IPK is in the revoked set
                 if (revokedKeysRepository.exists(claims.getIssuer()) &&
                         revokedKeysRepository.findOne(claims.getIssuer()).getRevokedKeysSet().contains(ipk)) {
-                        return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                    return new CheckRevocationResponse(ValidationStatus.REVOKED);
                 }
             }
             // check revoked JTI
@@ -151,9 +159,10 @@ public class TokenManager {
             // check if SPK is is in the revoked set
             if (revokedKeysRepository.exists(claims.getSubject()) &&
                     revokedKeysRepository.findOne(claims.getSubject()).getRevokedKeysSet().contains(spk)) {
-                    return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                return new CheckRevocationResponse(ValidationStatus.REVOKED);
             }
-        } catch (TokenValidationException e) {
+        } catch (TokenValidationException | IOException | CertificateException | NoSuchAlgorithmException |
+                KeyStoreException | NoSuchProviderException e) {
             log.error(e);
             return new CheckRevocationResponse(ValidationStatus.INVALID);
         }
