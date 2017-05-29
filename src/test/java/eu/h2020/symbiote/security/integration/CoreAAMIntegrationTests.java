@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.security.integration;
 
 import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.SecurityHandler;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
@@ -44,10 +44,10 @@ import static org.junit.Assert.*;
  * Test suite for Core AAM deployment scenarios.
  */
 @TestPropertySource("/core.properties")
-public class CoreAuthenticationAuthorizationManagerTests extends
-        AuthenticationAuthorizationManagerTests {
+public class CoreAAMIntegrationTests extends
+        AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(CoreAuthenticationAuthorizationManagerTests.class);
+    private static Log log = LogFactory.getLog(CoreAAMIntegrationTests.class);
     private final String coreAppUsername = "testCoreAppUsername";
     private final String coreAppPassword = "testCoreAppPassword";
     private final String recoveryMail = "null@dev.null";

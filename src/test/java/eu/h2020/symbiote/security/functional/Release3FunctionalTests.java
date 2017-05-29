@@ -1,7 +1,7 @@
-package eu.h2020.symbiote.security.integration;
+package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.exceptions.aam.NotExistingUserException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -21,9 +21,9 @@ import static org.junit.Assert.assertEquals;
  */
 @Ignore("Release 3 tests")
 @TestPropertySource("/core.properties")
-public class Release_3_tests extends AuthenticationAuthorizationManagerTests {
+public class Release3FunctionalTests extends AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(Release_3_tests.class);
+    private static Log log = LogFactory.getLog(Release3FunctionalTests.class);
 
 
     /**

@@ -1,8 +1,7 @@
 package eu.h2020.symbiote.security.functional;
 
-import com.netflix.ribbon.proxy.annotation.Http;
 import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.User;
@@ -50,10 +49,10 @@ import static org.junit.Assert.*;
  * Test suite for Core AAM deployment scenarios.
  */
 @TestPropertySource("/core.properties")
-public class CoreAuthenticationAuthorizationManagerTests extends
-        AuthenticationAuthorizationManagerTests {
+public class CoreAAMFunctionalTests extends
+        AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(CoreAuthenticationAuthorizationManagerTests.class);
+    private static Log log = LogFactory.getLog(CoreAAMFunctionalTests.class);
     private final String coreAppUsername = "testCoreAppUsername";
     private final String coreAppPassword = "testCoreAppPassword";
     private final String recoveryMail = "null@dev.null";
@@ -741,9 +740,9 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         try {
             mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails.class);
             assert false;
-        } catch (Exception e){
+        } catch (Exception e) {
             ErrorResponseContainer error = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer.class);
-            assertEquals(HttpStatus.UNAUTHORIZED.value(),error.getErrorCode());
+            assertEquals(HttpStatus.UNAUTHORIZED.value(), error.getErrorCode());
         }
     }
 
@@ -855,9 +854,5 @@ public class CoreAuthenticationAuthorizationManagerTests extends
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
         // TODO we don't know the cert... until R3 when we will know it
         assertEquals("", platformAAM.getCertificate().getCertificateString());
-
     }
-
-
-
 }

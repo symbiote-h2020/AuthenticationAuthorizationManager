@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.integration;
 
-import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.InternalSecurityHandler;
 import eu.h2020.symbiote.security.SecurityHandler;
 import eu.h2020.symbiote.security.constants.AAMConstants;
@@ -46,10 +46,10 @@ import static org.junit.Assert.*;
  * Test suite for generic AAM functionality irrelevant to actual deployment type (Core or Platform)
  */
 @TestPropertySource("/core.properties")
-public class CommonAuthenticationAuthorizationManagerTests extends
-        AuthenticationAuthorizationManagerTests {
+public class AAMIntegrationTests extends
+        AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(CommonAuthenticationAuthorizationManagerTests.class);
+    private static Log log = LogFactory.getLog(AAMIntegrationTests.class);
 
     @Value("${rabbit.host}")
     protected String rabbitHost;
@@ -169,30 +169,25 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void applicationLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() {
+    public void applicationLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws CertificateException, MalformedJWTException {
 
         Token token = securityHandler.requestCoreToken(username, password);
         assertNotNull(token.getToken());
 
-        try {
-            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
-            // As the AAM is now configured as core we confirm that relevant token type was issued.
-            assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
+        // As the AAM is now configured as core we confirm that relevant token type was issued.
+        assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
-            // verify that this JWT contains attributes relevant for application role
-            Map<String, String> attributes = claimsFromToken.getAtt();
-            assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+        // verify that this JWT contains attributes relevant for application role
+        Map<String, String> attributes = claimsFromToken.getAtt();
+        assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
 
-            // verify that the token contains the application public key
-            byte[] applicationPublicKeyInRepository = userRepository.findOne
-                    (username).getCertificate().getX509().getPublicKey().getEncoded();
-            byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
+        // verify that the token contains the application public key
+        byte[] applicationPublicKeyInRepository = userRepository.findOne
+                (username).getCertificate().getX509().getPublicKey().getEncoded();
+        byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
 
-            assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
-        } catch (MalformedJWTException | CertificateException e) {
-            log.error(e);
-        }
-
+        assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
     }
 
     /**
@@ -258,15 +253,11 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void checkTokenRevocationOverRESTExpired() {
+    public void checkTokenRevocationOverRESTExpired() throws InterruptedException {
         Token token = securityHandler.requestCoreToken(username, password);
         assertNotNull(token.getToken());
         //Introduce latency so that JWT expires
-        try {
-            Thread.sleep(tokenValidityPeriod + 1000);
-        } catch (InterruptedException e) {
-            log.error(e);
-        }
+        Thread.sleep(tokenValidityPeriod + 1000);
         ValidationStatus status = securityHandler.verifyCoreToken(token);
         assertEquals(ValidationStatus.EXPIRED, status);
     }
@@ -278,16 +269,10 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      */
     @Test
     @Ignore("TODO")
-    public void getCACertOverRESTSuccess() {
+    public void getCACertOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
         ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + AAMConstants
                 .AAM_GET_CA_CERTIFICATE, String.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        try {
-            assertEquals(registrationManager.getAAMCert(), response.getBody());
-        } catch (IOException | NoSuchProviderException | KeyStoreException | CertificateException |
-                NoSuchAlgorithmException e) {
-            log.error(e);
-            assertNull(e);
-        }
+        assertEquals(registrationManager.getAAMCert(), response.getBody());
     }
 }

@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.unit;
 
-import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.commons.TokenManager;
@@ -39,10 +39,10 @@ import static org.junit.Assert.*;
  * @author Piotr Kicki (PSNC)
  */
 @TestPropertySource("/core.properties")
-public class CommonAuthenticationAuthorizationManagerTests extends
-        AuthenticationAuthorizationManagerTests {
+public class AAMUnitTests extends
+        AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(CommonAuthenticationAuthorizationManagerTests.class);
+    private static Log log = LogFactory.getLog(AAMUnitTests.class);
 
     @Autowired
     private TokenManager tokenManager;
@@ -138,7 +138,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     }
 
     @Test
-    public void checkRevocationExpiredToken() throws AAMException, CertificateException, SecurityHandlerException {
+    public void checkRevocationExpiredToken() throws AAMException, CertificateException, SecurityHandlerException, InterruptedException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -150,11 +150,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
         Token homeToken = tokenManager.createHomeToken(user);
 
         //Introduce latency so that JWT expires
-        try {
-            Thread.sleep(tokenValidityPeriod + 1000);
-        } catch (InterruptedException e) {
-            log.error(e);
-        }
+        Thread.sleep(tokenValidityPeriod + 1000);
 
         //check if home token revoked properly
         CheckRevocationResponse response = tokenManager.checkHomeTokenRevocation(homeToken.getToken());

@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.functional;
 
-import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import org.apache.commons.logging.Log;
@@ -16,10 +16,10 @@ import org.springframework.test.context.TestPropertySource;
  */
 @TestPropertySource("/core.properties")
 @Ignore("Currently contains only R3 tests")
-public class CrossAuthenticationAuthorizationManagersInteractionTests extends
-        AuthenticationAuthorizationManagerTests {
+public class CrossAAMFunctionalTests extends
+        AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(CrossAuthenticationAuthorizationManagersInteractionTests.class);
+    private static Log log = LogFactory.getLog(CrossAAMFunctionalTests.class);
 
 
     /**

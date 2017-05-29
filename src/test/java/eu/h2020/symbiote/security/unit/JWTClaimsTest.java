@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.unit;
 
-import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -11,7 +11,7 @@ import org.junit.Test;
  * Created by Mikołaj on 02.05.2017.
  */
 @Ignore("Please implement!!!")
-public class JWTClaimsTest extends AuthenticationAuthorizationManagerTests {
+public class JWTClaimsTest extends AbstractAAMTestSuite {
     @Before
     public void setUp() throws Exception {
     }

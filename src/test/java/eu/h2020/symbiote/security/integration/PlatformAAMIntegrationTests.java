@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.integration;
 
-import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.InternalSecurityHandler;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
@@ -26,10 +26,10 @@ import static org.junit.Assert.*;
  * Test suite for Platform side AAM deployment scenarios.
  */
 @TestPropertySource("/platform.properties")
-public class PlatformAuthenticationAuthorizationManagerTests extends
-        AuthenticationAuthorizationManagerTests {
+public class PlatformAAMIntegrationTests extends
+        AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(PlatformAuthenticationAuthorizationManagerTests.class);
+    private static Log log = LogFactory.getLog(PlatformAAMIntegrationTests.class);
 
     @Value("${rabbit.host}")
     protected String rabbitHost;
@@ -50,7 +50,7 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
     @Test
     @Ignore("We need to think how to initiate to local AAMs (a core and a platform one")
     public void applicationLoginOverAMQPSuccessAndIssuesCoreTokenType()
-            throws IOException, TimeoutException, SecurityHandlerException {
+            throws IOException, TimeoutException, SecurityHandlerException, MalformedJWTException, CertificateException {
 
         InternalSecurityHandler securityHandler =
                 new InternalSecurityHandler(serverAddress, rabbitHost, rabbitUsername, rabbitPassword);
@@ -59,17 +59,13 @@ public class PlatformAuthenticationAuthorizationManagerTests extends
 
         log.info("Test Client received this Token: " + token.toString());
 
-        try {
-            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
-            assertEquals(IssuingAuthorityType.PLATFORM, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
+        assertEquals(IssuingAuthorityType.PLATFORM, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
-            // verify that the token contains the application public key
-            byte[] applicationPublicKeyInRepository = userRepository.findOne
-                    (username).getCertificate().getX509().getPublicKey().getEncoded();
-            byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
-            assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
-        } catch (MalformedJWTException | CertificateException e) {
-            log.error(e);
-        }
+        // verify that the token contains the application public key
+        byte[] applicationPublicKeyInRepository = userRepository.findOne
+                (username).getCertificate().getX509().getPublicKey().getEncoded();
+        byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
+        assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
     }
 }

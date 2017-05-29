@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
@@ -45,10 +45,10 @@ import static org.junit.Assert.*;
  * Test suite for generic AAM functionality irrelevant to actual deployment type (Core or Platform)
  */
 @TestPropertySource("/core.properties")
-public class CommonAuthenticationAuthorizationManagerTests extends
-        AuthenticationAuthorizationManagerTests {
+public class AAMFunctionalTests extends
+        AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(CommonAuthenticationAuthorizationManagerTests.class);
+    private static Log log = LogFactory.getLog(AAMFunctionalTests.class);
 
     /**
      * Feature: 3 (Authentication of components/ and applications registered in a platform)
@@ -181,6 +181,7 @@ public class CommonAuthenticationAuthorizationManagerTests extends
             token = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN, new Credentials(wrongusername,
                             password),
                     ErrorResponseContainer.class);
+            assert false;
         } catch (HttpClientErrorException e) {
             assertNull(token);
             assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
@@ -212,30 +213,26 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void applicationLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() {
+    public void applicationLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws CertificateException, MalformedJWTException {
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(username, password), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
-        try {
-            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
-            // As the AAM is now configured as core we confirm that relevant token type was issued.
-            assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        // As the AAM is now configured as core we confirm that relevant token type was issued.
+        assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
-            // verify that this JWT contains attributes relevant for application role
-            Map<String, String> attributes = claimsFromToken.getAtt();
-            assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+        // verify that this JWT contains attributes relevant for application role
+        Map<String, String> attributes = claimsFromToken.getAtt();
+        assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
 
-            // verify that the token contains the application public key
-            byte[] applicationPublicKeyInRepository = userRepository.findOne
-                    (username).getCertificate().getX509().getPublicKey().getEncoded();
-            byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
+        // verify that the token contains the application public key
+        byte[] applicationPublicKeyInRepository = userRepository.findOne
+                (username).getCertificate().getX509().getPublicKey().getEncoded();
+        byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
 
-            assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
-        } catch (MalformedJWTException | CertificateException e) {
-            log.error(e);
-        }
+        assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
     }
 
     /**
@@ -300,18 +297,14 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void checkTokenRevocationOverRESTExpired() {
+    public void checkTokenRevocationOverRESTExpired() throws InterruptedException {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         //Introduce latency so that JWT expires
-        try {
-            Thread.sleep(tokenValidityPeriod + 1000);
-        } catch (InterruptedException e) {
-            log.error(e);
-        }
+        Thread.sleep(tokenValidityPeriod + 1000);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
         headers.add(AAMConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
 
@@ -331,16 +324,10 @@ public class CommonAuthenticationAuthorizationManagerTests extends
      * CommunicationType REST
      */
     @Test
-    public void getCACertOverRESTSuccess() {
+    public void getCACertOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
         ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + AAMConstants
                 .AAM_GET_CA_CERTIFICATE, String.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        try {
-            assertEquals(registrationManager.getAAMCert(), response.getBody());
-        } catch (IOException | NoSuchProviderException | KeyStoreException | CertificateException |
-                NoSuchAlgorithmException e) {
-            log.error(e);
-            assertNull(e);
-        }
+        assertEquals(registrationManager.getAAMCert(), response.getBody());
     }
 }

@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.unit;
 
-import eu.h2020.symbiote.security.AuthenticationAuthorizationManagerTests;
+import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.commons.TokenManager;
@@ -36,10 +36,10 @@ import static org.junit.Assert.*;
  * @author Piotr Kicki (PSNC)
  */
 @TestPropertySource("/platform.properties")
-public class PlatformAuthenticationAuthorizationManagerTests extends
-        AuthenticationAuthorizationManagerTests {
+public class PlatformAAMUnitTests extends
+        AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(PlatformAuthenticationAuthorizationManagerTests.class);
+    private static Log log = LogFactory.getLog(PlatformAAMUnitTests.class);
 
     @Autowired
     private TokenManager tokenManager;

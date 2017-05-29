@@ -21,7 +21,6 @@ import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -39,9 +38,9 @@ import javax.net.ssl.X509TrustManager;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration
 @DirtiesContext
-public abstract class AuthenticationAuthorizationManagerTests {
+public abstract class AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(AuthenticationAuthorizationManagerTests.class);
+    private static Log log = LogFactory.getLog(AbstractAAMTestSuite.class);
     protected final String username = "testApplicationUsername";
     protected final String password = "testApplicationPassword";
     protected final String wrongusername = "veryWrongTestApplicationUsername";
@@ -49,10 +48,6 @@ public abstract class AuthenticationAuthorizationManagerTests {
     protected final String homeTokenValue = "home_token_from_platform_aam-" + username;
     protected final String registrationUri = "register";
     protected final String unregistrationUri = "unregister";
-
-
-    @LocalServerPort
-    protected int port;
     @Autowired
     protected UserRepository userRepository;
     @Autowired
@@ -65,11 +60,6 @@ public abstract class AuthenticationAuthorizationManagerTests {
     protected RegistrationManager registrationManager;
     @Autowired
     protected UserRegistrationService userRegistrationService;
-    @Autowired
-    protected PasswordEncoder passwordEncoder;
-
-
-    // TODO rework tests to use Security Handler
     protected RestTemplate restTemplate = new RestTemplate();
     protected ObjectMapper mapper = new ObjectMapper();
     protected String serverAddress;
@@ -95,7 +85,8 @@ public abstract class AuthenticationAuthorizationManagerTests {
     protected String KEY_STORE_ALIAS;
     @Value("${aam.deployment.token.validityMillis}")
     protected Long tokenValidityPeriod;
-
+    @LocalServerPort
+    private int port;
 
     @Before
     public void setUp() throws Exception {
