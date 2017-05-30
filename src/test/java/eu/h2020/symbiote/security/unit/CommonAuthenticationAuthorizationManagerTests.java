@@ -146,8 +146,6 @@ public class CommonAuthenticationAuthorizationManagerTests extends
     }
 
 
-
-
     @Test
     public void generateCertificateFromCSRSuccess() throws OperatorCreationException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidKeyException, IOException, InvalidAlgorithmParameterException {
         KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
@@ -163,6 +161,60 @@ public class CommonAuthenticationAuthorizationManagerTests extends
 
         X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
         assertNotNull(cert);
-        assertEquals(new X500Name(cert.getSubjectDN().getName()),csr.getSubject());
     }
+
+    @Test
+    public void generateCertificateFromCSRCorrectSubjectTest() throws OperatorCreationException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidKeyException, IOException, InvalidAlgorithmParameterException {
+        KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
+        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
+        g.initialize(ecGenSpec, new SecureRandom());
+        KeyPair keyPair = g.generateKeyPair();
+
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
+                new X500Principal("CN=Requested Test Certificate"), keyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(keyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+
+        X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
+        assertEquals(csr.getSubject(),new X500Name(cert.getSubjectDN().getName()));
+    }
+
+
+    @Test
+    public void generateCertificateFromCSRPublicKeyTest() throws OperatorCreationException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidKeyException, IOException, InvalidAlgorithmParameterException {
+        KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
+        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
+        g.initialize(ecGenSpec, new SecureRandom());
+        KeyPair keyPair = g.generateKeyPair();
+
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
+                new X500Principal("CN=Requested Test Certificate"), keyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(keyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+
+        X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
+        assertEquals(cert.getPublicKey(),keyPair.getPublic());
+    }
+
+    @Test
+    public void generatedCertificateCreationAndVerification() throws Exception {
+        KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
+        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
+        g.initialize(ecGenSpec, new SecureRandom());
+        KeyPair keyPair = g.generateKeyPair();
+
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
+                new X500Principal("CN=Requested Test Certificate"), keyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(keyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+
+        X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
+        cert.verify(registrationManager.getAAMPublicKey());
+
+        cert.checkValidity(new Date());
+    }
+
 }
