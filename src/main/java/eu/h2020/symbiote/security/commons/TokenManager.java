@@ -1,16 +1,19 @@
 package eu.h2020.symbiote.security.commons;
 
+import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import eu.h2020.symbiote.security.interfaces.ICoreServices;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
 import eu.h2020.symbiote.security.services.TokenService;
+import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
@@ -19,7 +22,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.security.KeyStoreException;
@@ -28,6 +35,7 @@ import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -43,18 +51,20 @@ import java.util.Map;
 public class TokenManager {
 
     private static Log log = LogFactory.getLog(TokenManager.class);
+    private RestTemplate restTemplate = new RestTemplate();
+    private ICoreServices coreServices;
     private RegistrationManager regManager;
     private PlatformRepository platformRepository;
     private String deploymentId = "";
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
     private RevokedKeysRepository revokedKeysRepository;
     private RevokedTokensRepository revokedTokensRepository;
-
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
 
     @Autowired
-    public TokenManager(RegistrationManager regManager, PlatformRepository platformRepository, RevokedKeysRepository revokedKeysRepository, RevokedTokensRepository revokedTokensRepository) {
+    public TokenManager(ICoreServices coreServices, RegistrationManager regManager, PlatformRepository platformRepository, RevokedKeysRepository revokedKeysRepository, RevokedTokensRepository revokedTokensRepository) {
+        this.coreServices = coreServices;
         this.regManager = regManager;
         this.deploymentId = regManager.getAAMInstanceIdentifier();
         this.deploymentType = regManager.getDeploymentType();
@@ -131,12 +141,12 @@ public class TokenManager {
             Claims claims = JWTEngine.getClaims(tokenString);
             String spk = claims.get("spk").toString();
             String ipk = claims.get("ipk").toString();
-
             // flow for Platform AAM
             if (deploymentType != IssuingAuthorityType.CORE) {
                 if (!deploymentId.equals(claims.getIssuer())) {
                     // todo think of better status for foreign token which we should not validate (maybe exception?)
-                    return new CheckRevocationResponse(ValidationStatus.INVALID);
+                    // relay validation to issuer
+                    return requestCheckHomeTokenRevocationInOtherAAM(tokenString, claims.getIssuer());
                 }
                 // check IPK is not equal to current AAM PK
                 if (!Base64.getEncoder().encodeToString(
@@ -149,6 +159,11 @@ public class TokenManager {
                 if (revokedKeysRepository.exists(claims.getIssuer()) &&
                         revokedKeysRepository.findOne(claims.getIssuer()).getRevokedKeysSet().contains(ipk)) {
                     return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                }
+
+                if (!deploymentId.equals(claims.getIssuer())) {
+                    // relay validation to issuer
+                    return requestCheckHomeTokenRevocationInOtherAAM(tokenString, claims.getIssuer());
                 }
             }
             // check revoked JTI
@@ -167,6 +182,30 @@ public class TokenManager {
             return new CheckRevocationResponse(ValidationStatus.INVALID);
         }
         return new CheckRevocationResponse(ValidationStatus.VALID);
+    }
+
+    private CheckRevocationResponse requestCheckHomeTokenRevocationInOtherAAM(String tokenString, String issuer) {
+        List<AAM> listAAM = coreServices.getAvailableAAMs().getBody();
+        String aamAdress = null;
+        for (AAM aam : listAAM) {
+            if (aam.getAamInstanceId().equals(issuer)) {
+                aamAdress = aam.getAamAddress();
+            }
+        }
+        if (aamAdress != null) {
+            // rest check revocation
+            // preparing request
+            HttpHeaders httpHeaders = new HttpHeaders();
+            httpHeaders.add(AAMConstants.TOKEN_HEADER_NAME, tokenString);
+            HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
+            // checking issuing of federated token using the dummy platform token
+            ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(aamAdress +
+                    AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, entity, CheckRevocationResponse.class);
+            return status.getBody();
+        } else {
+            // todo change returned status to meet sh3.0 symbIoTelibs requirements
+            return new CheckRevocationResponse(ValidationStatus.INVALID);
+        }
     }
 
 }

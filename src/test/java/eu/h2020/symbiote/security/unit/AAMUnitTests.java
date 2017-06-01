@@ -227,4 +227,16 @@ public class AAMUnitTests extends
         CheckRevocationResponse response = tokenManager.checkHomeTokenRevocation(homeToken.getToken());
         assertEquals(ValidationStatus.REVOKED, ValidationStatus.valueOf(response.getStatus()));
     }
+
+    //todo tests for relays
+    @Test
+    public void checkRevocationIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+
+    }
+
+    //todo tests for relays
+    @Test
+    public void checkRevocationIssuerDiffersDeploymentIdAndInAvailableAAMs() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+
+    }
 }

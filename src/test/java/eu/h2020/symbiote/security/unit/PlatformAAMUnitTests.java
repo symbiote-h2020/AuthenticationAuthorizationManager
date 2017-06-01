@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
+import eu.h2020.symbiote.security.interfaces.ICoreServices;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.token.Token;
@@ -37,7 +38,8 @@ public class PlatformAAMUnitTests extends
         AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(PlatformAAMUnitTests.class);
-
+    @Autowired
+    protected ICoreServices coreServices;
     @Autowired
     private TokenManager tokenManager;
 
@@ -54,7 +56,7 @@ public class PlatformAAMUnitTests extends
     }
 
     @Test
-    public void checkRevocationIssuerDiffersDeploymentId() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+    public void checkRevocationIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
         // issuing dummy platform token
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
                         .AAM_LOGIN,
@@ -65,5 +67,11 @@ public class PlatformAAMUnitTests extends
         // check if home token revoked properly
         CheckRevocationResponse response = tokenManager.checkHomeTokenRevocation(dummyHomeToken.getToken());
         assertEquals(ValidationStatus.INVALID, ValidationStatus.valueOf(response.getStatus()));
+    }
+
+    //todo tests for relays
+    @Test
+    public void checkRevocationIssuerDiffersDeploymentIdAndInAvailableAAMs() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+
     }
 }
