@@ -3,6 +3,7 @@ package eu.h2020.symbiote.security.rest;
 import eu.h2020.symbiote.security.commons.VirtualFile;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.exceptions.AAMException;
+import eu.h2020.symbiote.security.interfaces.IRegistration;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
@@ -13,8 +14,9 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
@@ -36,7 +38,7 @@ import java.util.Map;
  * @see TokenService
  */
 @RestController
-public class ApplicationRegistrationController {
+public class ApplicationRegistrationController implements IRegistration {
 
     private static Log log = LogFactory.getLog(ApplicationRegistrationController.class);
     private final UserRegistrationService registrationService;
@@ -47,9 +49,6 @@ public class ApplicationRegistrationController {
         this.registrationService = registrationService;
         this.zipService = zipService;
     }
-
-    @PreAuthorize("isAuthenticated()")
-    @RequestMapping(value = "/registration", method = RequestMethod.POST)
     public ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response)
             throws AAMException, IOException, ZipException {
         UserRegistrationRequest request = new UserRegistrationRequest();
@@ -73,7 +72,6 @@ public class ApplicationRegistrationController {
         return new ResponseEntity<HttpServletResponse>(response, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/register", method = RequestMethod.POST)
     public ResponseEntity<?> register(@RequestBody UserRegistrationRequest request) {
         try {
             UserRegistrationResponse response = registrationService.authRegister(request);
@@ -85,7 +83,6 @@ public class ApplicationRegistrationController {
         }
     }
 
-    @RequestMapping(value = "/unregister", method = RequestMethod.POST)
     public ResponseEntity<?> unregister(@RequestBody UserRegistrationRequest request) {
         try {
             registrationService.authUnregister(request);
