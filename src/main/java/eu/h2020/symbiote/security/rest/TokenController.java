@@ -10,6 +10,7 @@ import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
 import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
 import eu.h2020.symbiote.security.interfaces.ICoreServices;
+import eu.h2020.symbiote.security.interfaces.IToken;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
@@ -24,7 +25,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -38,7 +41,7 @@ import java.util.List;
  * @see TokenService
  */
 @RestController
-public class TokenController {
+public class TokenController implements IToken {
 
     private final TokenService tokenService;
     private Log log = LogFactory.getLog(TokenController.class);
@@ -58,15 +61,10 @@ public class TokenController {
         this.deploymentType = registrationManager.getDeploymentType();
     }
 
-    /**
-     * L1 Diagrams - request_foreign_token()
-     * TODO R3
-     */
-    @RequestMapping(value = AAMConstants.AAM_REQUEST_FOREIGN_TOKEN, method = RequestMethod.POST)
     public ResponseEntity<?> requestFederatedHomeToken(@RequestHeader(AAMConstants.TOKEN_HEADER_NAME) String
                                                                receivedTokenString) {
         HttpHeaders headers = new HttpHeaders();
-        Token federatedHomeToken = null;
+        Token federatedHomeToken;
         try {
             // validating the string from request
             Token receivedToken = new Token(receivedTokenString);
@@ -119,11 +117,6 @@ public class TokenController {
         return new ResponseEntity<>(headers, HttpStatus.OK);
     }
 
-    /**
-     * L1 Diagrams - check_token_revocation()
-     * TODO R3 refactor to ValidationStatus validate(Token String);
-     */
-    @RequestMapping(value = AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, method = RequestMethod.POST)
     public ResponseEntity<CheckRevocationResponse> checkHomeTokenRevocation(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String tokenString) {
         try {
@@ -138,7 +131,6 @@ public class TokenController {
     }
 
     //L1 Diagrams - login()
-    @RequestMapping(value = AAMConstants.AAM_LOGIN, method = RequestMethod.POST)
     public ResponseEntity<?> login(@RequestBody Credentials user) {
         try {
             Token token = tokenService.login(user);
