@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.UserDetails;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
+import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
@@ -54,6 +55,8 @@ public abstract class AbstractAAMTestSuite {
     protected RevokedTokensRepository revokedTokensRepository;
     @Autowired
     protected RevokedKeysRepository revokedKeysRepository;
+    @Autowired
+    protected PlatformRepository platformRepository;
     @Autowired
     protected RabbitManager rabbitManager;
     @Autowired
@@ -123,6 +126,7 @@ public abstract class AbstractAAMTestSuite {
         userRepository.deleteAll();
         revokedKeysRepository.deleteAll();
         revokedTokensRepository.deleteAll();
+        platformRepository.deleteAll();
 
 
         // Register test application user into DB
