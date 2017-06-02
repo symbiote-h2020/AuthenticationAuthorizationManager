@@ -130,7 +130,7 @@ public class TokenManager {
         }
     }
 
-    public CheckRevocationResponse checkHomeTokenRevocation(String tokenString) {
+    public CheckRevocationResponse validate(String tokenString) {
         try {
             // basic validation (signature and exp)
             ValidationStatus validationStatus = JWTEngine.validateTokenString(tokenString);
@@ -146,7 +146,7 @@ public class TokenManager {
                 if (!deploymentId.equals(claims.getIssuer())) {
                     // todo think of better status for foreign token which we should not validate (maybe exception?)
                     // relay validation to issuer
-                    return requestCheckHomeTokenRevocationInOtherAAM(tokenString, claims.getIssuer());
+                    return relayedValidation(tokenString, claims.getIssuer());
                 }
                 // check IPK is not equal to current AAM PK
                 if (!Base64.getEncoder().encodeToString(
@@ -163,7 +163,7 @@ public class TokenManager {
 
                 if (!deploymentId.equals(claims.getIssuer())) {
                     // relay validation to issuer
-                    return requestCheckHomeTokenRevocationInOtherAAM(tokenString, claims.getIssuer());
+                    return relayedValidation(tokenString, claims.getIssuer());
                 }
             }
             // check revoked JTI
@@ -184,7 +184,7 @@ public class TokenManager {
         return new CheckRevocationResponse(ValidationStatus.VALID);
     }
 
-    private CheckRevocationResponse requestCheckHomeTokenRevocationInOtherAAM(String tokenString, String issuer) {
+    private CheckRevocationResponse relayedValidation(String tokenString, String issuer) {
         List<AAM> listAAM = coreServices.getAvailableAAMs().getBody();
         String aamAdress = null;
         for (AAM aam : listAAM) {
@@ -195,12 +195,14 @@ public class TokenManager {
         if (aamAdress != null) {
             // rest check revocation
             // preparing request
+
             HttpHeaders httpHeaders = new HttpHeaders();
             httpHeaders.add(AAMConstants.TOKEN_HEADER_NAME, tokenString);
             HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
-            // checking issuing of federated token using the dummy platform token
-            ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(aamAdress +
-                    AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, entity, CheckRevocationResponse.class);
+            // checking token revocation with proper AAM
+            ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(
+                    aamAdress + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
+                    entity, CheckRevocationResponse.class);
             return status.getBody();
         } else {
             // todo change returned status to meet sh3.0 symbIoTelibs requirements

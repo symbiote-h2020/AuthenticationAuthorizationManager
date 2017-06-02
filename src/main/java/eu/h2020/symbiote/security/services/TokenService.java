@@ -7,7 +7,6 @@ import eu.h2020.symbiote.security.exceptions.aam.MissingArgumentsException;
 import eu.h2020.symbiote.security.exceptions.aam.WrongCredentialsException;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
-import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.token.Token;
 import org.apache.commons.logging.Log;
@@ -26,14 +25,12 @@ import org.springframework.stereotype.Service;
 public class TokenService {
     private static Log log = LogFactory.getLog(TokenService.class);
     private final TokenManager tokenManager;
-    private RevokedTokensRepository revokedTokensRepository;
     private UserRepository userRepository;
     private PasswordEncoder passwordEncoder;
 
     @Autowired
-    public TokenService(TokenManager tokenManager, RevokedTokensRepository revokedTokensRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public TokenService(TokenManager tokenManager, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.tokenManager = tokenManager;
-        this.revokedTokensRepository = revokedTokensRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
@@ -52,7 +49,7 @@ public class TokenService {
     }
 
     public CheckRevocationResponse checkHomeTokenRevocation(String tokenString) {
-        return tokenManager.checkHomeTokenRevocation(tokenString);
+        return tokenManager.validate(tokenString);
     }
 
     public Token login(Credentials user) throws MissingArgumentsException, WrongCredentialsException,

@@ -6,7 +6,6 @@ import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.AAMException;
 import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
-import eu.h2020.symbiote.security.interfaces.ICoreServices;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.token.Token;
@@ -39,8 +38,6 @@ public class PlatformAAMUnitTests extends
 
     private static Log log = LogFactory.getLog(PlatformAAMUnitTests.class);
     @Autowired
-    protected ICoreServices coreServices;
-    @Autowired
     private TokenManager tokenManager;
 
     @Override
@@ -51,12 +48,12 @@ public class PlatformAAMUnitTests extends
 
     @Ignore // todo find a proper way to test RevokedIPK for platform
     @Test
-    public void checkRevocationRevokedIPK() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException {
+    public void validateRevokedIPK() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException {
 
     }
 
     @Test
-    public void checkRevocationIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
         // issuing dummy platform token
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
                         .AAM_LOGIN,
@@ -65,13 +62,13 @@ public class PlatformAAMUnitTests extends
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if home token revoked properly
-        CheckRevocationResponse response = tokenManager.checkHomeTokenRevocation(dummyHomeToken.getToken());
+        CheckRevocationResponse response = tokenManager.validate(dummyHomeToken.getToken());
         assertEquals(ValidationStatus.INVALID, ValidationStatus.valueOf(response.getStatus()));
     }
 
     //todo tests for relays
     @Test
-    public void checkRevocationIssuerDiffersDeploymentIdAndInAvailableAAMs() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMs() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
 
     }
 }
