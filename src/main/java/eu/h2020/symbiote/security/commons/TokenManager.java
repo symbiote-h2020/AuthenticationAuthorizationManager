@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.util.Base64;
 import java.util.HashMap;
@@ -141,12 +142,12 @@ public class TokenManager {
             Claims claims = JWTEngine.getClaims(tokenString);
             String spk = claims.get("spk").toString();
             String ipk = claims.get("ipk").toString();
+
             // flow for Platform AAM
             if (deploymentType != IssuingAuthorityType.CORE) {
                 if (!deploymentId.equals(claims.getIssuer())) {
-                    // todo think of better status for foreign token which we should not validate (maybe exception?)
                     // relay validation to issuer
-                    return relayedValidation(tokenString, claims.getIssuer());
+                    return validateFederatedToken(tokenString);
                 }
                 // check IPK is not equal to current AAM PK
                 if (!Base64.getEncoder().encodeToString(
@@ -154,6 +155,7 @@ public class TokenManager {
                     return new CheckRevocationResponse(ValidationStatus.REVOKED);
                 }
                 // todo R3 possible validation of revoked IPK from CoreAAM - check if IPK was not revoked in the core
+                // possibly throw runtime exception so that AAM crashes as it is no more valid
             } else {
                 // check if IPK is in the revoked set
                 if (revokedKeysRepository.exists(claims.getIssuer()) &&
@@ -163,7 +165,7 @@ public class TokenManager {
 
                 if (!deploymentId.equals(claims.getIssuer())) {
                     // relay validation to issuer
-                    return relayedValidation(tokenString, claims.getIssuer());
+                    return validateFederatedToken(tokenString);
                 }
             }
             // check revoked JTI
@@ -184,30 +186,37 @@ public class TokenManager {
         return new CheckRevocationResponse(ValidationStatus.VALID);
     }
 
-    private CheckRevocationResponse relayedValidation(String tokenString, String issuer) {
+    private CheckRevocationResponse validateFederatedToken(String tokenString) throws CertificateException,
+            TokenValidationException, NullPointerException {
         List<AAM> listAAM = coreServices.getAvailableAAMs().getBody();
-        String aamAdress = null;
+        String aamAdress = "";
+        PublicKey publicKey = null;
+        Claims claims = JWTEngine.getClaims(tokenString);
+        String issuer = claims.getIssuer();
         for (AAM aam : listAAM) {
             if (aam.getAamInstanceId().equals(issuer)) {
                 aamAdress = aam.getAamAddress();
+                publicKey = aam.getCertificate().getX509().getPublicKey();
             }
         }
-        if (aamAdress != null) {
-            // rest check revocation
-            // preparing request
-
-            HttpHeaders httpHeaders = new HttpHeaders();
-            httpHeaders.add(AAMConstants.TOKEN_HEADER_NAME, tokenString);
-            HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
-            // checking token revocation with proper AAM
-            ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(
-                    aamAdress + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
-                    entity, CheckRevocationResponse.class);
-            return status.getBody();
-        } else {
+        if (aamAdress.isEmpty() || publicKey == null) {
             // todo change returned status to meet sh3.0 symbIoTelibs requirements
             return new CheckRevocationResponse(ValidationStatus.INVALID);
         }
+        // check IPK
+        if (!Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(claims.get("ipk"))) {
+            return new CheckRevocationResponse(ValidationStatus.REVOKED);
+        }
+        // rest check revocation
+        // preparing request
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(AAMConstants.TOKEN_HEADER_NAME, tokenString);
+        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
+        // checking token revocation with proper AAM
+        ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(
+                aamAdress + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
+                entity, CheckRevocationResponse.class);
+        return status.getBody();
     }
 
 }

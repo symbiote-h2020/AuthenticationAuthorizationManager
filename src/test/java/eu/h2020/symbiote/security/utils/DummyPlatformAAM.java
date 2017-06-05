@@ -81,8 +81,7 @@ public class DummyPlatformAAM {
     /**
      * return valid status
      */
-    @RequestMapping(method = RequestMethod.POST, path = "/test/paam" + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
-            produces = "application/json;charset=UTF-8", consumes = "application/json;charset=UTF-8")
+    @RequestMapping(method = RequestMethod.POST, path = "/test/paam" + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION)
     public ResponseEntity<CheckRevocationResponse> checkTokenRevocation(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String token) {
         log.info("Checking token revocation " + token);
