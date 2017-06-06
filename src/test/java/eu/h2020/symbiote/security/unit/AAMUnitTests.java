@@ -19,7 +19,15 @@ import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,12 +36,14 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.spec.ECGenParameterSpec;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashSet;
@@ -52,6 +62,7 @@ public class AAMUnitTests extends
         AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(AAMUnitTests.class);
+    protected final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
     private final String recoveryMail = "null@dev.null";
     private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
@@ -62,6 +73,12 @@ public class AAMUnitTests extends
     private final String platformOwnerPassword = "testPlatormOwnerPassword";
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
+    @Value("${aam.security.SIGNATURE_ALGORITHM}")
+    protected String SIGNATURE_ALGORITHM;
+    @Value("${aam.security.KEY_PAIR_GEN_ALGORITHM}")
+    protected String KEY_PAIR_GEN_ALGORITHM;
+    @Value("${aam.security.CURVE_NAME}")
+    protected String CURVE_NAME;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
@@ -71,7 +88,6 @@ public class AAMUnitTests extends
     private RpcClient platformRegistrationOverAMQPClient;
     private UserDetails platformOwnerUserDetails;
     private PlatformRegistrationRequest platformRegistrationOverAMQPRequest;
-
 
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
@@ -165,6 +181,82 @@ public class AAMUnitTests extends
     }
 
     @Test
+    public void generateCertificateFromCSRSuccess() throws OperatorCreationException, CertificateException,
+            UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException,
+            InvalidKeyException, IOException, InvalidAlgorithmParameterException {
+        KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
+        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
+        g.initialize(ecGenSpec, new SecureRandom());
+        KeyPair keyPair = g.generateKeyPair();
+
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
+                new X500Principal("CN=Requested Test Certificate"), keyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(keyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+
+        X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
+        assertNotNull(cert);
+    }
+
+    @Test
+    public void generateCertificateFromCSRCorrectSubjectTest() throws OperatorCreationException,
+            CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException,
+            NoSuchProviderException, InvalidKeyException, IOException, InvalidAlgorithmParameterException {
+        KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
+        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
+        g.initialize(ecGenSpec, new SecureRandom());
+        KeyPair keyPair = g.generateKeyPair();
+
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
+                new X500Principal("CN=Requested Test Certificate"), keyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(keyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+
+        X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
+        assertEquals(csr.getSubject(), new X500Name(cert.getSubjectDN().getName()));
+    }
+
+    @Test
+    public void generateCertificateFromCSRPublicKeyTest() throws OperatorCreationException, CertificateException,
+            UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException,
+            InvalidKeyException, IOException, InvalidAlgorithmParameterException {
+        KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
+        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
+        g.initialize(ecGenSpec, new SecureRandom());
+        KeyPair keyPair = g.generateKeyPair();
+
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
+                new X500Principal("CN=Requested Test Certificate"), keyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(keyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+
+        X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
+        assertEquals(cert.getPublicKey(), keyPair.getPublic());
+    }
+
+    @Test
+    public void generatedCertificateCreationAndVerification() throws Exception {
+        KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
+        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
+        g.initialize(ecGenSpec, new SecureRandom());
+        KeyPair keyPair = g.generateKeyPair();
+
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
+                new X500Principal("CN=Requested Test Certificate"), keyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(keyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+
+        X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
+        cert.verify(registrationManager.getAAMPublicKey());
+
+        cert.checkValidity(new Date());
+    }
+
+    @Test
     public void validateWrongToken() throws AAMException, CertificateException, SecurityHandlerException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
@@ -179,7 +271,8 @@ public class AAMUnitTests extends
     }
 
     @Test
-    public void validateExpiredToken() throws AAMException, CertificateException, SecurityHandlerException, InterruptedException {
+    public void validateExpiredToken() throws AAMException, CertificateException, SecurityHandlerException,
+            InterruptedException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -240,7 +333,8 @@ public class AAMUnitTests extends
     }
 
     @Test
-    public void validateRevokedIPK() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+    public void validateRevokedIPK() throws AAMException, CertificateException, SecurityHandlerException,
+            NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -270,7 +364,9 @@ public class AAMUnitTests extends
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws AAMException, CertificateException,
+            SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException,
+            IOException {
         // issuing dummy platform token
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
                         .AAM_LOGIN,
@@ -285,7 +381,8 @@ public class AAMUnitTests extends
 
     @Test
     public void validateIssuerDiffersDeploymentIdAndInAvailableAAMs() throws TokenValidationException, IOException,
-            TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+            TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException,
+            NoSuchAlgorithmException {
         // issuing dummy platform token
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
                         .AAM_LOGIN,
