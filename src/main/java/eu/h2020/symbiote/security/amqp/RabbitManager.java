@@ -4,7 +4,7 @@ import com.rabbitmq.client.*;
 import eu.h2020.symbiote.security.amqp.consumers.*;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.exceptions.aam.AAMMisconfigurationException;
+import eu.h2020.symbiote.security.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.PlatformRegistrationService;
@@ -30,7 +30,6 @@ public class RabbitManager {
     private final TokenService tokenService;
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
-    private final RegistrationManager registrationManager;
 
     private IssuingAuthorityType deploymentType;
 
@@ -87,7 +86,6 @@ public class RabbitManager {
         this.tokenService = tokenService;
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
-        this.registrationManager = registrationManager;
 
         // setting the deployment type from the provisioned certificate
         deploymentType = registrationManager.getDeploymentType();
@@ -130,7 +128,7 @@ public class RabbitManager {
     /**
      * Method gathers all of the rabbit consumer starter methods
      */
-    private void startConsumers() throws AAMMisconfigurationException {
+    private void startConsumers() throws SecurityMisconfigurationException {
         try {
             startConsumerOfCheckTokenRevocationRequestMessages();
             switch (deploymentType) {
@@ -144,7 +142,7 @@ public class RabbitManager {
                     startConsumerOfOwnedPlatformDetailsRequestMessages();
                     break;
                 case NULL:
-                    throw new AAMMisconfigurationException("Wrong deployment type");
+                    throw new SecurityMisconfigurationException("Wrong deployment type");
             }
         } catch (InterruptedException | IOException e) {
             log.error(e);
@@ -299,7 +297,7 @@ public class RabbitManager {
      * Method creates channel and declares Rabbit exchanges for AAM features.
      * It triggers start of all consumers used in with AAM communication.
      */
-    public void init() throws AAMMisconfigurationException {
+    public void init() throws SecurityMisconfigurationException {
         Channel channel = null;
 
         try {

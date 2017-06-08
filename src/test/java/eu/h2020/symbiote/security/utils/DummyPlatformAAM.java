@@ -4,8 +4,8 @@ package eu.h2020.symbiote.security.utils;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
-import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.token.Token;
@@ -71,7 +71,7 @@ public class DummyPlatformAAM {
             /* Finally issues and return foreign_token */
             return new ResponseEntity<>(headers, HttpStatus.OK);
         } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException |
-                UnrecoverableKeyException | JWTCreationException | NoSuchProviderException | TokenValidationException
+                UnrecoverableKeyException | JWTCreationException | NoSuchProviderException | ValidationException
                 e) {
             log.error(e);
         }

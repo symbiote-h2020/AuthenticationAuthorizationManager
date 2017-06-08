@@ -6,8 +6,8 @@ import eu.h2020.symbiote.security.commons.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.exceptions.AAMException;
-import eu.h2020.symbiote.security.exceptions.aam.*;
+import eu.h2020.symbiote.security.exceptions.SecurityException;
+import eu.h2020.symbiote.security.exceptions.custom.*;
 import eu.h2020.symbiote.security.payloads.UserDetails;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import eu.h2020.symbiote.security.payloads.UserRegistrationResponse;
@@ -58,7 +58,7 @@ public class UserRegistrationService {
     }
 
     public UserRegistrationResponse register(UserRegistrationRequest userRegistrationRequest)
-            throws AAMException {
+            throws SecurityException {
 
         UserDetails user = userRegistrationRequest.getUserDetails();
 
@@ -119,7 +119,7 @@ public class UserRegistrationService {
     }
 
     public UserRegistrationResponse authRegister(UserRegistrationRequest request) throws
-            AAMException {
+            SecurityException {
 
         // check if we received required credentials
         if (request.getAAMOwnerCredentials() == null || request.getUserDetails().getCredentials() == null)
@@ -131,7 +131,7 @@ public class UserRegistrationService {
         return this.register(request);
     }
 
-    public void unregister(String username) throws AAMException {
+    public void unregister(String username) throws SecurityException {
         // validate request
         if (username.isEmpty())
             throw new MissingArgumentsException();
@@ -153,7 +153,7 @@ public class UserRegistrationService {
         userRepository.delete(username);
     }
 
-    public void authUnregister(UserRegistrationRequest request) throws AAMException {
+    public void authUnregister(UserRegistrationRequest request) throws SecurityException {
 
         // validate request
         if (request.getAAMOwnerCredentials() == null || request.getUserDetails().getCredentials() == null)

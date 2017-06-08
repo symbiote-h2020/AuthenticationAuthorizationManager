@@ -9,8 +9,8 @@ import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.exceptions.AAMException;
-import eu.h2020.symbiote.security.exceptions.aam.*;
+import eu.h2020.symbiote.security.exceptions.SecurityException;
+import eu.h2020.symbiote.security.exceptions.custom.*;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.session.AAM;
@@ -342,7 +342,7 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void federatedLoginToCoreUsingPlatformTokenOverRESTSuccess() throws TokenValidationException, IOException,
+    public void federatedLoginToCoreUsingPlatformTokenOverRESTSuccess() throws ValidationException, IOException,
             TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException {
         // issuing dummy platform token
@@ -666,7 +666,7 @@ public class CoreAAMFunctionalTests extends
      */
     @Test
     public void platformOwnerLoginOverRESTAndReceivesInAdministrationDetailsOfHisOwnedPlatform() throws IOException,
-            TimeoutException, MalformedJWTException, JSONException, CertificateException, TokenValidationException,
+            TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException,
             InterruptedException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
@@ -710,7 +710,7 @@ public class CoreAAMFunctionalTests extends
      */
     @Test
     public void platformOwnerLoginOverRESTAndUsesExpiredTokenToReceivesInAdministrationDetailsOfHisOwnedPlatform() throws IOException,
-            TimeoutException, MalformedJWTException, JSONException, CertificateException, TokenValidationException,
+            TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException,
             InterruptedException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
@@ -753,7 +753,7 @@ public class CoreAAMFunctionalTests extends
      */
     @Test
     public void nonPlatformOwnerLoginOverRESTAndIsDeclinedOwnedPlatformDetailsRequest() throws IOException,
-            TimeoutException, MalformedJWTException, JSONException, CertificateException, TokenValidationException {
+            TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
@@ -822,7 +822,7 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getAvailableAAMsOverRESTWithRegisteredPlatform() throws AAMException, IOException, TimeoutException {
+    public void getAvailableAAMsOverRESTWithRegisteredPlatform() throws SecurityException, IOException, TimeoutException {
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());

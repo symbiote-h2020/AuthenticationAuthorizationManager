@@ -5,10 +5,10 @@ import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.exceptions.AAMException;
-import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
-import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
-import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import eu.h2020.symbiote.security.exceptions.SecurityException;
+import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.exceptions.custom.SecurityHandlerException;
+import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.interfaces.ICoreServices;
 import eu.h2020.symbiote.security.interfaces.IToken;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
@@ -104,7 +104,7 @@ public class TokenController implements IToken {
             }
             federatedHomeToken = new Token(tokenService.createFederatedHomeTokenForForeignToken(receivedTokenString)
                     .getToken());
-        } catch (TokenValidationException e) {
+        } catch (ValidationException e) {
             log.debug(e);
             return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
         } catch (JWTCreationException | SecurityHandlerException e) {
@@ -124,8 +124,9 @@ public class TokenController implements IToken {
             JWTEngine.validateTokenString(tokenString);
             // real validation
             return new ResponseEntity<>(tokenService.checkHomeTokenRevocation(tokenString), HttpStatus.OK);
-        } catch (TokenValidationException e) {
-            return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.INVALID), HttpStatus
+        } catch (ValidationException e) {
+            log.info(e);
+            return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.UNKNOWN), HttpStatus
                     .INTERNAL_SERVER_ERROR);
         }
     }
@@ -137,7 +138,7 @@ public class TokenController implements IToken {
             HttpHeaders headers = new HttpHeaders();
             headers.add(AAMConstants.TOKEN_HEADER_NAME, token.getToken());
             return new ResponseEntity<>(headers, HttpStatus.OK);
-        } catch (AAMException e) {
+        } catch (SecurityException e) {
             log.error(e);
             return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
                     .getStatusCode().ordinal()), e.getStatusCode());

@@ -6,8 +6,8 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.exceptions.AAMException;
-import eu.h2020.symbiote.security.exceptions.aam.UserRegistrationException;
+import eu.h2020.symbiote.security.exceptions.SecurityException;
+import eu.h2020.symbiote.security.exceptions.custom.UserRegistrationException;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.payloads.PlatformRegistrationRequest;
 import eu.h2020.symbiote.security.payloads.PlatformRegistrationResponse;
@@ -79,7 +79,7 @@ public class PlatformRegistrationRequestConsumerService extends DefaultConsumer 
                         (request);
                 response = om.writeValueAsString(registrationResponse);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-            } catch (AAMException e) {
+            } catch (SecurityException e) {
                 log.error(e);
                 response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());

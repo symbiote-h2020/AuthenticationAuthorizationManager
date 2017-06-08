@@ -5,8 +5,8 @@ import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
-import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.interfaces.ICoreServices;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
@@ -152,7 +152,7 @@ public class TokenManager {
                 // check IPK is not equal to current AAM PK
                 if (!Base64.getEncoder().encodeToString(
                         regManager.getAAMCertificate().getPublicKey().getEncoded()).equals(ipk)) {
-                    return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                    return new CheckRevocationResponse(ValidationStatus.REVOKED_IPK);
                 }
                 // todo R3 possible validation of revoked IPK from CoreAAM - check if IPK was not revoked in the core
                 // possibly throw runtime exception so that AAM crashes as it is no more valid
@@ -160,7 +160,7 @@ public class TokenManager {
                 // check if IPK is in the revoked set
                 if (revokedKeysRepository.exists(claims.getIssuer()) &&
                         revokedKeysRepository.findOne(claims.getIssuer()).getRevokedKeysSet().contains(ipk)) {
-                    return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                    return new CheckRevocationResponse(ValidationStatus.REVOKED_IPK);
                 }
 
                 if (!deploymentId.equals(claims.getIssuer())) {
@@ -170,24 +170,24 @@ public class TokenManager {
             }
             // check revoked JTI
             if (revokedTokensRepository.exists(claims.getId())) {
-                return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                return new CheckRevocationResponse(ValidationStatus.REVOKED_TOKEN);
             }
 
             // check if SPK is is in the revoked set
             if (revokedKeysRepository.exists(claims.getSubject()) &&
                     revokedKeysRepository.findOne(claims.getSubject()).getRevokedKeysSet().contains(spk)) {
-                return new CheckRevocationResponse(ValidationStatus.REVOKED);
+                return new CheckRevocationResponse(ValidationStatus.REVOKED_SPK);
             }
-        } catch (TokenValidationException | IOException | CertificateException | NoSuchAlgorithmException |
+        } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
             log.error(e);
-            return new CheckRevocationResponse(ValidationStatus.INVALID);
+            return new CheckRevocationResponse(ValidationStatus.UNKNOWN);
         }
         return new CheckRevocationResponse(ValidationStatus.VALID);
     }
 
     private CheckRevocationResponse validateFederatedToken(String tokenString) throws CertificateException,
-            TokenValidationException, NullPointerException {
+            NullPointerException, ValidationException {
         List<AAM> listAAM = coreServices.getAvailableAAMs().getBody();
         String aamAdress = "";
         PublicKey publicKey = null;
@@ -200,12 +200,11 @@ public class TokenManager {
             }
         }
         if (aamAdress.isEmpty() || publicKey == null) {
-            // todo change returned status to meet sh3.0 symbIoTelibs requirements
-            return new CheckRevocationResponse(ValidationStatus.INVALID);
+            return new CheckRevocationResponse(ValidationStatus.WRONG_AAM);
         }
         // check IPK
         if (!Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(claims.get("ipk"))) {
-            return new CheckRevocationResponse(ValidationStatus.REVOKED);
+            return new CheckRevocationResponse(ValidationStatus.REVOKED_IPK);
         }
         // rest check revocation
         // preparing request

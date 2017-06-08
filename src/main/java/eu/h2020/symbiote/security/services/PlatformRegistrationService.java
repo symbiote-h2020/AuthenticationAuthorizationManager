@@ -4,11 +4,11 @@ import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.exceptions.AAMException;
-import eu.h2020.symbiote.security.exceptions.aam.ExistingPlatformException;
-import eu.h2020.symbiote.security.exceptions.aam.ExistingUserException;
-import eu.h2020.symbiote.security.exceptions.aam.MissingArgumentsException;
-import eu.h2020.symbiote.security.exceptions.aam.UnauthorizedRegistrationException;
+import eu.h2020.symbiote.security.exceptions.SecurityException;
+import eu.h2020.symbiote.security.exceptions.custom.ExistingPlatformException;
+import eu.h2020.symbiote.security.exceptions.custom.ExistingUserException;
+import eu.h2020.symbiote.security.exceptions.custom.MissingArgumentsException;
+import eu.h2020.symbiote.security.exceptions.custom.UnauthorizedRegistrationException;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
@@ -49,7 +49,7 @@ public class PlatformRegistrationService {
     }
 
     public PlatformRegistrationResponse authRegister(PlatformRegistrationRequest request) throws
-            AAMException {
+            SecurityException {
 
         // check if we received required credentials
         if (request.getAAMOwnerCredentials() == null || request.getPlatformOwnerDetails() == null || request
@@ -63,7 +63,7 @@ public class PlatformRegistrationService {
     }
 
     public PlatformRegistrationResponse register(PlatformRegistrationRequest platformRegistrationRequest)
-            throws AAMException {
+            throws SecurityException {
 
         UserDetails platformOwnerDetails = platformRegistrationRequest.getPlatformOwnerDetails();
 

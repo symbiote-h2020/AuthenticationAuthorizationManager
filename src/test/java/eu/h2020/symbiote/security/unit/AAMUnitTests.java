@@ -10,9 +10,8 @@ import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.exceptions.AAMException;
-import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
-import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import eu.h2020.symbiote.security.exceptions.SecurityException;
+import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
@@ -111,7 +110,7 @@ public class AAMUnitTests extends
     }
 
     @Test
-    public void applicationInternalRegistrationSuccess() throws AAMException {
+    public void applicationInternalRegistrationSuccess() throws SecurityException {
         String appUsername = "NewApplication";
 
         // verify that app is not in the repository
@@ -143,7 +142,7 @@ public class AAMUnitTests extends
     }
 
     @Test
-    public void applicationInternalUnregistrationSuccess() throws AAMException, CertificateException {
+    public void applicationInternalUnregistrationSuccess() throws SecurityException, CertificateException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -257,7 +256,7 @@ public class AAMUnitTests extends
     }
 
     @Test
-    public void validateWrongToken() throws AAMException, CertificateException, SecurityHandlerException {
+    public void validateWrongToken() throws SecurityException, CertificateException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -267,12 +266,11 @@ public class AAMUnitTests extends
 
         //check if home token revoked properly
         CheckRevocationResponse response = tokenManager.validate("tokenString");
-        assertEquals(ValidationStatus.INVALID, ValidationStatus.valueOf(response.getStatus()));
+        assertEquals(ValidationStatus.UNKNOWN, ValidationStatus.valueOf(response.getStatus()));
     }
 
     @Test
-    public void validateExpiredToken() throws AAMException, CertificateException, SecurityHandlerException,
-            InterruptedException {
+    public void validateExpiredToken() throws SecurityException, CertificateException, InterruptedException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -288,11 +286,11 @@ public class AAMUnitTests extends
 
         //check if home token revoked properly
         CheckRevocationResponse response = tokenManager.validate(homeToken.getToken());
-        assertEquals(ValidationStatus.EXPIRED, ValidationStatus.valueOf(response.getStatus()));
+        assertEquals(ValidationStatus.EXPIRED_TOKEN, ValidationStatus.valueOf(response.getStatus()));
     }
 
     @Test
-    public void validateAfterUnregistrationBySPK() throws AAMException, CertificateException, SecurityHandlerException {
+    public void validateAfterUnregistrationBySPK() throws SecurityException, CertificateException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -309,11 +307,11 @@ public class AAMUnitTests extends
 
         //check if home token revoked properly
         CheckRevocationResponse response = tokenManager.validate(homeToken.getToken());
-        assertEquals(ValidationStatus.REVOKED, ValidationStatus.valueOf(response.getStatus()));
+        assertEquals(ValidationStatus.REVOKED_SPK, ValidationStatus.valueOf(response.getStatus()));
     }
 
     @Test
-    public void validateRevokedToken() throws AAMException, CertificateException, SecurityHandlerException {
+    public void validateRevokedToken() throws SecurityException, CertificateException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -329,11 +327,11 @@ public class AAMUnitTests extends
 
         // check if home token revoked properly
         CheckRevocationResponse response = tokenManager.validate(homeToken.getToken());
-        assertEquals(ValidationStatus.REVOKED, ValidationStatus.valueOf(response.getStatus()));
+        assertEquals(ValidationStatus.REVOKED_TOKEN, ValidationStatus.valueOf(response.getStatus()));
     }
 
     @Test
-    public void validateRevokedIPK() throws AAMException, CertificateException, SecurityHandlerException,
+    public void validateRevokedIPK() throws SecurityException, CertificateException,
             NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
@@ -360,12 +358,12 @@ public class AAMUnitTests extends
 
         // check if home token revoked properly
         CheckRevocationResponse response = tokenManager.validate(homeToken.getToken());
-        assertEquals(ValidationStatus.REVOKED, ValidationStatus.valueOf(response.getStatus()));
+        assertEquals(ValidationStatus.REVOKED_IPK, ValidationStatus.valueOf(response.getStatus()));
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws AAMException, CertificateException,
-            SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException,
+    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws SecurityException, CertificateException,
+            NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException,
             IOException {
         // issuing dummy platform token
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
@@ -376,13 +374,13 @@ public class AAMUnitTests extends
 
         // check if home token revoked properly
         CheckRevocationResponse response = tokenManager.validate(dummyHomeToken.getToken());
-        assertEquals(ValidationStatus.INVALID, ValidationStatus.valueOf(response.getStatus()));
+        assertEquals(ValidationStatus.WRONG_AAM, ValidationStatus.valueOf(response.getStatus()));
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMs() throws TokenValidationException, IOException,
-            TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException,
-            NoSuchAlgorithmException {
+    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMs() throws IOException, TimeoutException,
+            NoSuchProviderException, KeyStoreException, CertificateException,
+            NoSuchAlgorithmException, ValidationException {
         // issuing dummy platform token
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
                         .AAM_LOGIN,

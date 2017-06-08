@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.interfaces;
 
-import eu.h2020.symbiote.security.exceptions.AAMException;
+import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import net.lingala.zip4j.exception.ZipException;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +23,7 @@ public interface IRegistration {
     @PreAuthorize("isAuthenticated()")
     @RequestMapping(value = "/registration", method = RequestMethod.POST)
     ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response)
-            throws AAMException, IOException, ZipException;
+            throws SecurityException, IOException, ZipException;
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     ResponseEntity<?> register(@RequestBody UserRegistrationRequest request);

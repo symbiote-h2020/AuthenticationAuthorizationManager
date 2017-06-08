@@ -2,9 +2,9 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
-import eu.h2020.symbiote.security.exceptions.aam.JWTCreationException;
-import eu.h2020.symbiote.security.exceptions.aam.MissingArgumentsException;
-import eu.h2020.symbiote.security.exceptions.aam.WrongCredentialsException;
+import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.exceptions.custom.MissingArgumentsException;
+import eu.h2020.symbiote.security.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.repositories.UserRepository;

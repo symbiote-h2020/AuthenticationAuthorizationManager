@@ -8,9 +8,9 @@ import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
-import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
-import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import eu.h2020.symbiote.security.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.exceptions.custom.SecurityHandlerException;
+import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.Token;
@@ -128,7 +128,7 @@ public class AAMIntegrationTests extends
      */
     @Test
     public void checkTokenRevocationOverAMQPRequestReplyValid() throws IOException, TimeoutException,
-            TokenValidationException, SecurityHandlerException {
+            ValidationException, SecurityHandlerException {
 
         Token token = internalSecurityHandler.requestHomeToken(username, password);
 
@@ -259,7 +259,7 @@ public class AAMIntegrationTests extends
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 1000);
         ValidationStatus status = securityHandler.verifyCoreToken(token);
-        assertEquals(ValidationStatus.EXPIRED, status);
+        assertEquals(ValidationStatus.EXPIRED_TOKEN, status);
     }
 
     /**

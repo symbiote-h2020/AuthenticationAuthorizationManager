@@ -2,7 +2,7 @@ package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import eu.h2020.symbiote.security.exceptions.aam.NotExistingUserException;
+import eu.h2020.symbiote.security.exceptions.custom.NotExistingUserException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Ignore;

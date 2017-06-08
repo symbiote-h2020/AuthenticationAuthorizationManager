@@ -9,8 +9,8 @@ import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
-import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
+import eu.h2020.symbiote.security.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.payloads.OwnedPlatformDetails;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
@@ -91,28 +91,28 @@ public class    OwnedPlatformDetailsRequestConsumerService extends DefaultConsum
 
                 //verify that JWT is of type Core as was released by a CoreAAM
                 if (IssuingAuthorityType.CORE != IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()))
-                    throw new TokenValidationException();
+                    throw new ValidationException("");//todo replace empty string with something more informative
 
                 // verify that the token contains the platform owner public key
                 byte[] applicationPublicKeyInRepository = userRepository.findOne
                         (token.getClaims().getSubject()).getCertificate().getX509().getPublicKey().getEncoded();
                 byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
                 if (!Arrays.equals(applicationPublicKeyInRepository, publicKeyFromToken))
-                    throw new TokenValidationException("Subject public key doesn't match with local");
+                    throw new ValidationException("Subject public key doesn't match with local");
 
                 // verify that this JWT contains attributes relevant for platform owner
                 Map<String, String> attributes = claimsFromToken.getAtt();
                 // PO role
                 if (!UserRole.PLATFORM_OWNER.toString().equals(attributes.get(CoreAttributes.ROLE.toString())))
-                    throw new TokenValidationException("Missing Platform Owner Role");
+                    throw new ValidationException("Missing Platform Owner Role");
                 // try to retrieve platform corresponding to this platform owner
                 Platform ownedPlatform = platformRepository.findByPlatformOwner(userRepository.findOne(token
                         .getClaims().getSubject()));
                 if (ownedPlatform == null)
-                    throw new TokenValidationException("Couldn't find platform bound with this Platform Owner");
+                    throw new ValidationException("Couldn't find platform bound with this Platform Owner");
                 if (!ownedPlatform.getPlatformInstanceId().equals(attributes.get(CoreAttributes.OWNED_PLATFORM
                         .toString())))
-                    throw new TokenValidationException("Platform Owner doesn't own the claimed platform");
+                    throw new ValidationException("Platform Owner doesn't own the claimed platform");
 
                 OwnedPlatformDetails ownedPlatformDetails = new OwnedPlatformDetails(ownedPlatform
                         .getPlatformInstanceId(), ownedPlatform.getPlatformInterworkingInterfaceAddress(),
@@ -120,7 +120,7 @@ public class    OwnedPlatformDetailsRequestConsumerService extends DefaultConsum
                 response = om.writeValueAsString(ownedPlatformDetails);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
                 log.debug("Owned Platform Details response: sent back");
-            } catch (ExpiredJwtException | IOException | MalformedJWTException | TokenValidationException | CertificateException e) {
+            } catch (ExpiredJwtException | IOException | MalformedJWTException | ValidationException | CertificateException e) {
                 log.error(e);
                 response = (new ErrorResponseContainer(e.getMessage(), HttpStatus.UNAUTHORIZED.value()).toJson());
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());

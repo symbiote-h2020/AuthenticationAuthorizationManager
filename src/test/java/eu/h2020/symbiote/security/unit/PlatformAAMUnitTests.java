@@ -4,8 +4,7 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.exceptions.AAMException;
-import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
+import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.token.Token;
@@ -48,12 +47,12 @@ public class PlatformAAMUnitTests extends
 
     @Ignore // todo find a proper way to test RevokedIPK for platform
     @Test
-    public void validateRevokedIPK() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException {
+    public void validateRevokedIPK() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException {
 
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
         // issuing dummy platform token
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
                         .AAM_LOGIN,
@@ -63,12 +62,12 @@ public class PlatformAAMUnitTests extends
 
         // check if home token revoked properly
         CheckRevocationResponse response = tokenManager.validate(dummyHomeToken.getToken());
-        assertEquals(ValidationStatus.INVALID, ValidationStatus.valueOf(response.getStatus()));
+        assertEquals(ValidationStatus.WRONG_AAM, ValidationStatus.valueOf(response.getStatus()));
     }
 
-    //todo tests for relays
+    @Ignore//todo tests for relays
     @Test
-    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMs() throws AAMException, CertificateException, SecurityHandlerException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMs() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
 
     }
 }

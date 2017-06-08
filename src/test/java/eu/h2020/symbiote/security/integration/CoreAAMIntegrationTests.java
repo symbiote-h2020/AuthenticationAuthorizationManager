@@ -7,9 +7,9 @@ import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.exceptions.AAMException;
-import eu.h2020.symbiote.security.exceptions.SecurityHandlerException;
-import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
+import eu.h2020.symbiote.security.exceptions.SecurityException;
+import eu.h2020.symbiote.security.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.PlatformRegistrationRequest;
 import eu.h2020.symbiote.security.payloads.UserDetails;
@@ -174,7 +174,7 @@ public class CoreAAMIntegrationTests extends
      */
     @Test
     public void getAvailableAAMsOverRESTWithRegisteredPlatform()
-            throws AAMException, IOException, TimeoutException, SecurityHandlerException {
+            throws SecurityException, IOException, TimeoutException {
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());

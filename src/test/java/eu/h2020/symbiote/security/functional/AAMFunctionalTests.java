@@ -7,10 +7,10 @@ import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.exceptions.aam.MalformedJWTException;
-import eu.h2020.symbiote.security.exceptions.aam.MissingArgumentsException;
-import eu.h2020.symbiote.security.exceptions.aam.TokenValidationException;
-import eu.h2020.symbiote.security.exceptions.aam.WrongCredentialsException;
+import eu.h2020.symbiote.security.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.exceptions.custom.MissingArgumentsException;
+import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
@@ -147,7 +147,7 @@ public class AAMFunctionalTests extends
      */
     @Test
     public void checkTokenRevocationOverAMQPRequestReplyValid() throws IOException, TimeoutException,
-            TokenValidationException {
+            ValidationException {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(username, password), String.class);
@@ -314,7 +314,7 @@ public class AAMFunctionalTests extends
                 AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, request, CheckRevocationResponse.class);
 
         // TODO cover other situations (bad key, on purpose revocation)
-        assertEquals(ValidationStatus.EXPIRED.toString(), status.getBody().getStatus());
+        assertEquals(ValidationStatus.EXPIRED_TOKEN.toString(), status.getBody().getStatus());
     }
 
 

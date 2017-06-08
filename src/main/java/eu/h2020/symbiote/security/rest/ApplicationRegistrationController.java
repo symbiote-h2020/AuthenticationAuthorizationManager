@@ -2,7 +2,7 @@ package eu.h2020.symbiote.security.rest;
 
 import eu.h2020.symbiote.security.commons.VirtualFile;
 import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.exceptions.AAMException;
+import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.interfaces.IRegistration;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.services.TokenService;
@@ -50,7 +50,7 @@ public class ApplicationRegistrationController implements IRegistration {
         this.zipService = zipService;
     }
     public ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response)
-            throws AAMException, IOException, ZipException {
+            throws SecurityException, IOException, ZipException {
         UserRegistrationRequest request = new UserRegistrationRequest();
         // TODO R3 incorporate federated Id (and possibly recovery e-mail)
         request.setUserDetails(new UserDetails(new Credentials(requestMap.get("username"), requestMap.get("password")
@@ -76,7 +76,7 @@ public class ApplicationRegistrationController implements IRegistration {
         try {
             UserRegistrationResponse response = registrationService.authRegister(request);
             return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (AAMException e) {
+        } catch (SecurityException e) {
             log.error(e);
             return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
                     .getStatusCode().ordinal()), e.getStatusCode());
@@ -87,7 +87,7 @@ public class ApplicationRegistrationController implements IRegistration {
         try {
             registrationService.authUnregister(request);
             return new ResponseEntity<>(HttpStatus.OK);
-        } catch (AAMException e) {
+        } catch (SecurityException e) {
             log.error(e);
             return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
                     .getStatusCode().ordinal()), e.getStatusCode());
