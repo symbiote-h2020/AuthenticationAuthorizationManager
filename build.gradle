@@ -73,7 +73,7 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
     //compile project(':SymbIoTeLibraries')
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:b5edb6823') { changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:7802da7964') { changing = true }
     //compile('com.github.symbiote-h2020:SymbIoTeLibraries:0.2.0')
 
     // for Certificates conversion

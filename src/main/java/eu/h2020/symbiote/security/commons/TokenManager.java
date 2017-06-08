@@ -36,7 +36,6 @@ import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.util.Base64;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -188,20 +187,18 @@ public class TokenManager {
 
     private CheckRevocationResponse validateFederatedToken(String tokenString) throws CertificateException,
             NullPointerException, ValidationException {
-        List<AAM> listAAM = coreServices.getAvailableAAMs().getBody();
-        String aamAdress = "";
-        PublicKey publicKey = null;
+        Map<String, AAM> aams = new HashMap<>();
+        for (AAM aam : coreServices.getAvailableAAMs().getBody())
+            aams.put(aam.getAamInstanceId(), aam);
         Claims claims = JWTEngine.getClaims(tokenString);
         String issuer = claims.getIssuer();
-        for (AAM aam : listAAM) {
-            if (aam.getAamInstanceId().equals(issuer)) {
-                aamAdress = aam.getAamAddress();
-                publicKey = aam.getCertificate().getX509().getPublicKey();
-            }
-        }
-        if (aamAdress.isEmpty() || publicKey == null) {
-            return new CheckRevocationResponse(ValidationStatus.WRONG_AAM);
-        }
+        // Core does not know such an issuer and therefore this might be a forfeit
+        if (aams.containsKey(issuer))
+            return new CheckRevocationResponse(ValidationStatus.INVALID_TRUST_CHAIN);
+        AAM issuerAAM = aams.get(issuer);
+        String aamAddress = issuerAAM.getAamAddress();
+        PublicKey publicKey = issuerAAM.getCertificate().getX509().getPublicKey();
+
         // check IPK
         if (!Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(claims.get("ipk"))) {
             return new CheckRevocationResponse(ValidationStatus.REVOKED_IPK);
@@ -213,7 +210,7 @@ public class TokenManager {
         HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
         // checking token revocation with proper AAM
         ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(
-                aamAdress + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
+                aamAddress + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
                 entity, CheckRevocationResponse.class);
         return status.getBody();
     }

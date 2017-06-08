@@ -1,13 +1,11 @@
 package eu.h2020.symbiote.security.rest;
 
-import eu.h2020.symbiote.security.SecurityHandler;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.interfaces.ICoreServices;
 import eu.h2020.symbiote.security.interfaces.IToken;
@@ -22,12 +20,14 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.*;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
@@ -76,14 +76,17 @@ public class TokenController implements IToken {
                 log.debug("Someone tried issuing a federated token using a home token");
                 return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
             } else {
-                SecurityHandler securityHandler = new SecurityHandler(coreAAMAddress);
                 List<AAM> availableAAMs;
                 if (deploymentType == IssuingAuthorityType.CORE) {
                     // if Core AAM then we know the available AAMs
                     availableAAMs = coreServices.getAvailableAAMs().getBody();
                 } else {
                     // a PAAM needs to fetch them from core
-                    availableAAMs = securityHandler.getAvailableAAMs();
+                    RestTemplate restTemplate = new RestTemplate();
+                    ResponseEntity<List<AAM>> response = restTemplate.exchange(coreAAMAddress + AAMConstants
+                            .AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<List<AAM>>() {
+                    });
+                    availableAAMs = response.getBody();
                 }
                 AAM remoteAAM = null;
                 for (AAM availableAAM : availableAAMs) {
@@ -96,7 +99,15 @@ public class TokenController implements IToken {
                     log.debug("Couldn't find AAM related with the given token");
                     return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
                 }
-                ValidationStatus validationStatus = securityHandler.verifyPlatformToken(remoteAAM, receivedToken);
+
+                MultiValueMap<String, String> headersMap = new LinkedMultiValueMap<String, String>();
+                headers.add(AAMConstants.TOKEN_HEADER_NAME, receivedToken.toString());
+                HttpEntity<String> request = new HttpEntity<String>(null, headersMap);
+                RestTemplate restTemplate = new RestTemplate();
+                ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(coreAAMAddress +
+                        AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, request, CheckRevocationResponse.class);
+
+                ValidationStatus validationStatus = ValidationStatus.valueOf(status.getBody().getStatus());
                 if (validationStatus != ValidationStatus.VALID) {
                     log.debug("Couldn't find AAM related with the given token");
                     return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
@@ -105,9 +116,9 @@ public class TokenController implements IToken {
             federatedHomeToken = new Token(tokenService.createFederatedHomeTokenForForeignToken(receivedTokenString)
                     .getToken());
         } catch (ValidationException e) {
-            log.debug(e);
+            log.error(e);
             return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
-        } catch (JWTCreationException | SecurityHandlerException e) {
+        } catch (JWTCreationException e) {
             log.error(e);
             return new ResponseEntity<>(headers, HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -125,7 +136,7 @@ public class TokenController implements IToken {
             // real validation
             return new ResponseEntity<>(tokenService.checkHomeTokenRevocation(tokenString), HttpStatus.OK);
         } catch (ValidationException e) {
-            log.info(e);
+            log.error(e);
             return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.UNKNOWN), HttpStatus
                     .INTERNAL_SERVER_ERROR);
         }
