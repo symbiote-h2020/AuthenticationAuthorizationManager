@@ -16,6 +16,8 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -164,5 +166,45 @@ public class UserRegistrationService {
             throw new UnauthorizedUnregistrationException();
         // do it
         this.unregister(request.getUserDetails().getCredentials().getUsername());
+    }
+
+    public Certificate getCertificate(String username, String password, String clientId, PKCS10CertificationRequest clientCSR)
+            throws SecurityHandlerException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, IOException, WrongCredentialsException, NotExistingUserException {
+
+        User user = userRepository.findOne(username);
+        if(user==null)
+            throw new NotExistingUserException();
+
+        if (!passwordEncoder.matches(password, user.getPasswordEncrypted()))
+            throw new WrongCredentialsException();
+
+        if(revokedKeysRepository.exists(username))
+            throw new InvalidKeyException();
+
+        JcaPKCS10CertificationRequest jcaCertRequest = new JcaPKCS10CertificationRequest(clientCSR.getEncoded()).setProvider("BC");
+        if(user.getCertificate().getX509().getIssuerDN().getName().equals(clientId))
+        {
+            if(user.getCertificate().getX509().getPublicKey().equals(jcaCertRequest.getPublicKey())) {
+                Certificate cert = new Certificate();
+                cert.setCertificateString(registrationManager.convertX509ToPEM(registrationManager.generateCertificateFromCSR(clientCSR)));
+                user.setCertificate(cert);
+                return cert;
+            }
+            else{
+                Set<String> keys = new HashSet<>();
+                keys.add(Base64.getEncoder().encodeToString(
+                        userRepository.findOne(username).getCertificate().getX509().getPublicKey().getEncoded()));
+                revokedKeysRepository.save(new SubjectsRevokedKeys(username, keys));
+                Certificate cert = new Certificate();
+                cert.setCertificateString(registrationManager.convertX509ToPEM(registrationManager.generateCertificateFromCSR(clientCSR)));
+                user.setCertificate(cert);
+                return cert;
+            }
+        }
+        else{
+            Certificate cert = new Certificate();
+            cert.setCertificateString(registrationManager.convertX509ToPEM(registrationManager.generateCertificateFromCSR(clientCSR)));
+            return cert;
+        }
     }
 }
