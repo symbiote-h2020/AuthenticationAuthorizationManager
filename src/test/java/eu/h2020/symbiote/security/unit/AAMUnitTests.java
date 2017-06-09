@@ -426,7 +426,7 @@ public class AAMUnitTests extends
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
-        String platformId = "symbiote_core_aam";
+        String platformId = "SymbIoTe_Core_AAM";
         //inject platform PEM Certificate to the database
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         ks.load(new FileInputStream("./src/test/resources/SymbIoTe_Core_AAM_TEST_other_keys_and_special_expired.p12"), "1234567".toCharArray());
@@ -467,7 +467,7 @@ public class AAMUnitTests extends
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
-        String platformId = "symbiote_core_aam";
+        String platformId = "SymbIoTe_Core_AAM";
         //inject platform PEM Certificate to the database
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         ks.load(new FileInputStream("./src/test/resources/SymbIoTe_Core_AAM_TEST_other_keys_and_special_expired.p12"), "1234567".toCharArray());

@@ -54,7 +54,7 @@ public class DummyCoreAAM {
     public ResponseEntity<?> doLogin(@RequestBody Credentials credential) {
         log.info("User trying to login " + credential.getUsername() + " - " + credential.getPassword());
         try {
-            final String ALIAS = "symbiote_core_aam";
+            final String ALIAS = "SymbIoTe_Core_AAM";
             KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
             ks.load(new FileInputStream("./src/test/resources/SymbIoTe_Core_AAM_TEST_other_keys_and_special_expired.p12"), "1234567".toCharArray());
             Key key = ks.getKey(ALIAS, "1234567".toCharArray());
@@ -64,7 +64,7 @@ public class DummyCoreAAM {
             String tokenString = JWTEngine.generateJWTToken(credential.getUsername(), attributes, ks.getCertificate
                             (ALIAS).getPublicKey().getEncoded(), IssuingAuthorityType.CORE, new Date().getTime()
                             + 60000
-                    , ALIAS, ks.getCertificate(ALIAS).getPublicKey(),
+                    , AAMConstants.AAM_CORE_AAM_INSTANCE_ID, ks.getCertificate(ALIAS).getPublicKey(),
                     (PrivateKey) key);
 
             Token coreToken = new Token(tokenString);
@@ -94,7 +94,7 @@ public class DummyCoreAAM {
             UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException {
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         ks.load(new FileInputStream("./src/test/resources/SymbIoTe_Core_AAM_TEST_other_keys_and_special_expired.p12"), "1234567".toCharArray());
-        X509Certificate certificate = (X509Certificate) ks.getCertificate("symbiote_core_aam");
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("SymbIoTe_Core_AAM");
         StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
         JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
         pemWriter.writeObject(certificate);

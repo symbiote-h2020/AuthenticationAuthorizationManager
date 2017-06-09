@@ -167,10 +167,16 @@ public class TokenManager {
                         revokedKeysRepository.findOne(claims.getIssuer()).getRevokedKeysSet().contains(ipk)) {
                     return ValidationStatus.REVOKED_IPK;
                 }
-
+                // check if core is not an issuer
                 if (!deploymentId.equals(claims.getIssuer())) {
                     // relay validation to issuer
                     return validateFederatedToken(tokenString);
+                }
+
+                // check if it is core but with not valid PK
+                if (!Base64.getEncoder().encodeToString(
+                        regManager.getAAMCertificate().getPublicKey().getEncoded()).equals(ipk)) {
+                    return ValidationStatus.INVALID_TRUST_CHAIN;
                 }
             }
             // check revoked JTI
