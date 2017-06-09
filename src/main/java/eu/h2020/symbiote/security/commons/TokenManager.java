@@ -224,8 +224,11 @@ public class TokenManager {
         ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(
                 aamAddress + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
                 entity, CheckRevocationResponse.class);
-        //todo wrap this return in case of communication problem to return WRONG_AAM
-        return ValidationStatus.valueOf(status.getBody().getStatus());
+        if (status.getStatusCode().is2xxSuccessful()) {
+            return ValidationStatus.valueOf(status.getBody().getStatus());
+        } else {
+            return ValidationStatus.WRONG_AAM;
+        }
     }
 
 }
