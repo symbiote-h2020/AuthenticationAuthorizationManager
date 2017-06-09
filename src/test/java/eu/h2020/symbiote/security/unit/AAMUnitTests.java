@@ -374,7 +374,7 @@ public class AAMUnitTests extends
 
         // check if home token revoked properly
         CheckRevocationResponse response = tokenManager.validate(dummyHomeToken.getToken());
-        assertEquals(ValidationStatus.WRONG_AAM, ValidationStatus.valueOf(response.getStatus()));
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, ValidationStatus.valueOf(response.getStatus()));
     }
 
     @Test

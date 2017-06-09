@@ -193,7 +193,7 @@ public class TokenManager {
         Claims claims = JWTEngine.getClaims(tokenString);
         String issuer = claims.getIssuer();
         // Core does not know such an issuer and therefore this might be a forfeit
-        if (aams.containsKey(issuer))
+        if (!aams.containsKey(issuer))
             return new CheckRevocationResponse(ValidationStatus.INVALID_TRUST_CHAIN);
         AAM issuerAAM = aams.get(issuer);
         String aamAddress = issuerAAM.getAamAddress();
@@ -212,6 +212,7 @@ public class TokenManager {
         ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(
                 aamAddress + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
                 entity, CheckRevocationResponse.class);
+        //todo wrap this return in case of communication problem to return WRONG_AAM
         return status.getBody();
     }
 

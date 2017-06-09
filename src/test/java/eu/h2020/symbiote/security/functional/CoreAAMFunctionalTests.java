@@ -25,6 +25,7 @@ import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -341,6 +342,7 @@ public class CoreAAMFunctionalTests extends
      * Interfaces: PAAM - 5, CAAM - 11;
      * CommunicationType REST
      */
+    @Ignore("WIP")
     @Test
     public void federatedLoginToCoreUsingPlatformTokenOverRESTSuccess() throws ValidationException, IOException,
             TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException,
