@@ -101,10 +101,10 @@ public class TokenController implements IToken {
                 }
 
                 MultiValueMap<String, String> headersMap = new LinkedMultiValueMap<String, String>();
-                headers.add(AAMConstants.TOKEN_HEADER_NAME, receivedToken.toString());
+                headersMap.add(AAMConstants.TOKEN_HEADER_NAME, receivedToken.toString());
                 HttpEntity<String> request = new HttpEntity<String>(null, headersMap);
                 RestTemplate restTemplate = new RestTemplate();
-                ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(coreAAMAddress +
+                ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(remoteAAM.getAamAddress() +
                         AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, request, CheckRevocationResponse.class);
 
                 ValidationStatus validationStatus = ValidationStatus.valueOf(status.getBody().getStatus());
