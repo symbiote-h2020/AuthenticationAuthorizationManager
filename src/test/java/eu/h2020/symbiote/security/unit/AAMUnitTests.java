@@ -414,4 +414,71 @@ public class AAMUnitTests extends
         CheckRevocationResponse response = tokenManager.validate(dummyHomeToken.getToken());
         assertEquals(ValidationStatus.VALID, ValidationStatus.valueOf(response.getStatus()));
     }
+
+    @Test
+    public void validateRevokedDummyCorePK() throws IOException, TimeoutException,
+            NoSuchProviderException, KeyStoreException, CertificateException,
+            NoSuchAlgorithmException, ValidationException {
+        // issuing dummy platform token
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" + AAMConstants
+                        .AAM_LOGIN,
+                new Credentials(username, password), String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+
+        String platformId = "symbiote_core_aam";
+        //inject platform PEM Certificate to the database
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/SymbIoTe_Core_AAM_TEST_other_keys_and_special_expired.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate(platformId);
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
+
+        String issuer = JWTEngine.getClaims(dummyHomeToken.getToken()).getIssuer();
+
+        // verify the issuer keys are not yet revoked
+        assertFalse(revokedKeysRepository.exists(issuer));
+
+        // insert DummyPlatformAAM public key into set to be revoked
+        Set<String> keySet = new HashSet<>();
+        keySet.add(Base64.getEncoder().encodeToString(
+                registrationManager.convertPEMToX509(dummyPlatformAAMPEMCertString).getPublicKey().getEncoded()));
+
+        // adding key to revoked repository
+        SubjectsRevokedKeys subjectsRevokedKeys = new SubjectsRevokedKeys(issuer, keySet);
+        revokedKeysRepository.save(subjectsRevokedKeys);
+
+        // check if platform token is not revoked
+        CheckRevocationResponse response = tokenManager.validate(dummyHomeToken.getToken());
+        assertEquals(ValidationStatus.REVOKED_IPK, ValidationStatus.valueOf(response.getStatus()));
+    }
+
+    @Test
+    public void validateTokenFromDummyCoreByCore() throws IOException, TimeoutException,
+            NoSuchProviderException, KeyStoreException, CertificateException,
+            NoSuchAlgorithmException, ValidationException {
+        // issuing dummy platform token
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" + AAMConstants
+                        .AAM_LOGIN,
+                new Credentials(username, password), String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+
+        String platformId = "symbiote_core_aam";
+        //inject platform PEM Certificate to the database
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/SymbIoTe_Core_AAM_TEST_other_keys_and_special_expired.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate(platformId);
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+
+        // check if platform token is not revoked
+        CheckRevocationResponse response = tokenManager.validate(dummyHomeToken.getToken());
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, ValidationStatus.valueOf(response.getStatus()));
+    }
 }

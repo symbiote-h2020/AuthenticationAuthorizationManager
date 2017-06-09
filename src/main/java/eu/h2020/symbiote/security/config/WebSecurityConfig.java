@@ -27,6 +27,7 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                         "/register",
                         "/unregister",
                         "/test/paam/**", // used for dirty federation tests
+                        "/test/caam/**", // used for tests with DummyCoreAAM
                         AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
                         AAMConstants.AAM_GET_AVAILABLE_AAMS,
                         AAMConstants.AAM_GET_CA_CERTIFICATE,
