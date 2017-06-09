@@ -2,10 +2,10 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
+import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.custom.MissingArgumentsException;
 import eu.h2020.symbiote.security.exceptions.custom.WrongCredentialsException;
-import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.token.Token;
@@ -48,7 +48,7 @@ public class TokenService {
         return tokenManager.createHomeToken(user);
     }
 
-    public CheckRevocationResponse checkHomeTokenRevocation(String tokenString) {
+    public ValidationStatus checkHomeTokenRevocation(String tokenString) {
         return tokenManager.validate(tokenString);
     }
 

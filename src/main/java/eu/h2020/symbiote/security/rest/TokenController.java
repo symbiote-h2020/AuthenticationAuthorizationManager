@@ -134,7 +134,8 @@ public class TokenController implements IToken {
             // input sanity check
             JWTEngine.validateTokenString(tokenString);
             // real validation
-            return new ResponseEntity<>(tokenService.checkHomeTokenRevocation(tokenString), HttpStatus.OK);
+            return new ResponseEntity<>(new CheckRevocationResponse(tokenService.checkHomeTokenRevocation(tokenString)),
+                    HttpStatus.OK);
         } catch (ValidationException e) {
             log.error(e);
             return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.UNKNOWN), HttpStatus

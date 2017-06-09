@@ -5,7 +5,6 @@ import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.SecurityException;
-import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.token.Token;
 import org.apache.commons.logging.Log;
@@ -61,8 +60,8 @@ public class PlatformAAMUnitTests extends
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if home token revoked properly
-        CheckRevocationResponse response = tokenManager.validate(dummyHomeToken.getToken());
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, ValidationStatus.valueOf(response.getStatus()));
+        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
 
     @Ignore//todo tests for relays

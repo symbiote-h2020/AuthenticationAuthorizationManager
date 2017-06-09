@@ -86,7 +86,7 @@ public class DummyCoreAAM {
     public ResponseEntity<CheckRevocationResponse> checkTokenRevocation(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String token) {
         log.info("Checking token revocation " + token);
-        return new ResponseEntity<>(tokenManager.validate(token), HttpStatus.OK);
+        return new ResponseEntity<>(new CheckRevocationResponse(tokenManager.validate(token)), HttpStatus.OK);
     }
 
     @RequestMapping(method = RequestMethod.GET, path = "/test/caam" + AAMConstants.AAM_GET_CA_CERTIFICATE)

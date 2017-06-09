@@ -136,12 +136,12 @@ public class TokenManager {
         }
     }
 
-    public CheckRevocationResponse validate(String tokenString) {
+    public ValidationStatus validate(String tokenString) {
         try {
             // basic validation (signature and exp)
             ValidationStatus validationStatus = JWTEngine.validateTokenString(tokenString);
             if (validationStatus != ValidationStatus.VALID) {
-                return new CheckRevocationResponse(validationStatus);
+                return validationStatus;
             }
 
             Claims claims = JWTEngine.getClaims(tokenString);
@@ -157,7 +157,7 @@ public class TokenManager {
                 // check IPK is not equal to current AAM PK
                 if (!Base64.getEncoder().encodeToString(
                         regManager.getAAMCertificate().getPublicKey().getEncoded()).equals(ipk)) {
-                    return new CheckRevocationResponse(ValidationStatus.REVOKED_IPK);
+                    return ValidationStatus.REVOKED_IPK;
                 }
                 // todo R3 possible validation of revoked IPK from CoreAAM - check if IPK was not revoked in the core
                 // possibly throw runtime exception so that AAM crashes as it is no more valid
@@ -165,7 +165,7 @@ public class TokenManager {
                 // check if IPK is in the revoked set
                 if (revokedKeysRepository.exists(claims.getIssuer()) &&
                         revokedKeysRepository.findOne(claims.getIssuer()).getRevokedKeysSet().contains(ipk)) {
-                    return new CheckRevocationResponse(ValidationStatus.REVOKED_IPK);
+                    return ValidationStatus.REVOKED_IPK;
                 }
 
                 if (!deploymentId.equals(claims.getIssuer())) {
@@ -175,23 +175,23 @@ public class TokenManager {
             }
             // check revoked JTI
             if (revokedTokensRepository.exists(claims.getId())) {
-                return new CheckRevocationResponse(ValidationStatus.REVOKED_TOKEN);
+                return ValidationStatus.REVOKED_TOKEN;
             }
 
             // check if SPK is is in the revoked set
             if (revokedKeysRepository.exists(claims.getSubject()) &&
                     revokedKeysRepository.findOne(claims.getSubject()).getRevokedKeysSet().contains(spk)) {
-                return new CheckRevocationResponse(ValidationStatus.REVOKED_SPK);
+                return ValidationStatus.REVOKED_SPK;
             }
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
             log.error(e);
-            return new CheckRevocationResponse(ValidationStatus.UNKNOWN);
+            return ValidationStatus.UNKNOWN;
         }
-        return new CheckRevocationResponse(ValidationStatus.VALID);
+        return ValidationStatus.VALID;
     }
 
-    private CheckRevocationResponse validateFederatedToken(String tokenString) throws CertificateException,
+    private ValidationStatus validateFederatedToken(String tokenString) throws CertificateException,
             NullPointerException, ValidationException {
         Map<String, AAM> aams = new HashMap<>();
         for (AAM aam : coreServices.getAvailableAAMs().getBody())
@@ -200,14 +200,14 @@ public class TokenManager {
         String issuer = claims.getIssuer();
         // Core does not know such an issuer and therefore this might be a forfeit
         if (!aams.containsKey(issuer))
-            return new CheckRevocationResponse(ValidationStatus.INVALID_TRUST_CHAIN);
+            return ValidationStatus.INVALID_TRUST_CHAIN;
         AAM issuerAAM = aams.get(issuer);
         String aamAddress = issuerAAM.getAamAddress();
         PublicKey publicKey = issuerAAM.getCertificate().getX509().getPublicKey();
 
         // check IPK
         if (!Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(claims.get("ipk"))) {
-            return new CheckRevocationResponse(ValidationStatus.REVOKED_IPK);
+            return ValidationStatus.REVOKED_IPK;
         }
         // rest check revocation
         // preparing request
@@ -219,7 +219,7 @@ public class TokenManager {
                 aamAddress + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
                 entity, CheckRevocationResponse.class);
         //todo wrap this return in case of communication problem to return WRONG_AAM
-        return status.getBody();
+        return ValidationStatus.valueOf(status.getBody().getStatus());
     }
 
 }

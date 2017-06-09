@@ -265,8 +265,8 @@ public class AAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         //check if home token revoked properly
-        CheckRevocationResponse response = tokenManager.validate("tokenString");
-        assertEquals(ValidationStatus.UNKNOWN, ValidationStatus.valueOf(response.getStatus()));
+        ValidationStatus response = tokenManager.validate("tokenString");
+        assertEquals(ValidationStatus.UNKNOWN, response);
     }
 
     @Test
@@ -285,8 +285,8 @@ public class AAMUnitTests extends
         Thread.sleep(tokenValidityPeriod + 1000);
 
         //check if home token revoked properly
-        CheckRevocationResponse response = tokenManager.validate(homeToken.getToken());
-        assertEquals(ValidationStatus.EXPIRED_TOKEN, ValidationStatus.valueOf(response.getStatus()));
+        ValidationStatus response = tokenManager.validate(homeToken.getToken());
+        assertEquals(ValidationStatus.EXPIRED_TOKEN, response);
     }
 
     @Test
@@ -306,8 +306,8 @@ public class AAMUnitTests extends
         //log.debug("User successfully unregistered!");
 
         //check if home token revoked properly
-        CheckRevocationResponse response = tokenManager.validate(homeToken.getToken());
-        assertEquals(ValidationStatus.REVOKED_SPK, ValidationStatus.valueOf(response.getStatus()));
+        ValidationStatus response = tokenManager.validate(homeToken.getToken());
+        assertEquals(ValidationStatus.REVOKED_SPK, response);
     }
 
     @Test
@@ -326,8 +326,8 @@ public class AAMUnitTests extends
         revokedTokensRepository.save(homeToken);
 
         // check if home token revoked properly
-        CheckRevocationResponse response = tokenManager.validate(homeToken.getToken());
-        assertEquals(ValidationStatus.REVOKED_TOKEN, ValidationStatus.valueOf(response.getStatus()));
+        ValidationStatus response = tokenManager.validate(homeToken.getToken());
+        assertEquals(ValidationStatus.REVOKED_TOKEN, response);
     }
 
     @Test
@@ -357,8 +357,8 @@ public class AAMUnitTests extends
         revokedKeysRepository.save(subjectsRevokedKeys);
 
         // check if home token revoked properly
-        CheckRevocationResponse response = tokenManager.validate(homeToken.getToken());
-        assertEquals(ValidationStatus.REVOKED_IPK, ValidationStatus.valueOf(response.getStatus()));
+        ValidationStatus response = tokenManager.validate(homeToken.getToken());
+        assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
 
     @Test
@@ -373,8 +373,8 @@ public class AAMUnitTests extends
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if home token revoked properly
-        CheckRevocationResponse response = tokenManager.validate(dummyHomeToken.getToken());
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, ValidationStatus.valueOf(response.getStatus()));
+        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
 
     @Test
@@ -411,8 +411,8 @@ public class AAMUnitTests extends
         platformRepository.save(dummyPlatform);
 
         // check if platform token is not revoked
-        CheckRevocationResponse response = tokenManager.validate(dummyHomeToken.getToken());
-        assertEquals(ValidationStatus.VALID, ValidationStatus.valueOf(response.getStatus()));
+        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
+        assertEquals(ValidationStatus.VALID, response);
     }
 
     @Test
@@ -452,8 +452,8 @@ public class AAMUnitTests extends
         revokedKeysRepository.save(subjectsRevokedKeys);
 
         // check if platform token is not revoked
-        CheckRevocationResponse response = tokenManager.validate(dummyHomeToken.getToken());
-        assertEquals(ValidationStatus.REVOKED_IPK, ValidationStatus.valueOf(response.getStatus()));
+        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
+        assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
 
     @Test
@@ -478,7 +478,7 @@ public class AAMUnitTests extends
         pemWriter.close();
 
         // check if platform token is not revoked
-        CheckRevocationResponse response = tokenManager.validate(dummyHomeToken.getToken());
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, ValidationStatus.valueOf(response.getStatus()));
+        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
 }
