@@ -63,8 +63,8 @@ public class RegistrationManager {
     private String SIGNATURE_ALGORITHM;
     @Value("${aam.security.KEY_STORE_FILE_NAME}")
     private String KEY_STORE_FILE_NAME;
-    @Value("${aam.security.KEY_STORE_ALIAS}")
-    private String KEY_STORE_ALIAS;
+    @Value("${aam.security.CERTIFICATE_ALIAS}")
+    private String CERTIFICATE_ALIAS;
 
     @Value("${aam.security.KEY_STORE_PASSWORD}")
     private String KEY_STORE_PASSWORD;
@@ -222,7 +222,7 @@ public class RegistrationManager {
             NoSuchAlgorithmException, CertificateException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        return (X509Certificate) pkcs12Store.getCertificate(KEY_STORE_ALIAS);
+        return (X509Certificate) pkcs12Store.getCertificate(CERTIFICATE_ALIAS);
     }
 
 
@@ -238,7 +238,7 @@ public class RegistrationManager {
             CertificateException, NoSuchAlgorithmException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        PublicKey pubKey = pkcs12Store.getCertificate(KEY_STORE_ALIAS).getPublicKey();
+        PublicKey pubKey = pkcs12Store.getCertificate(CERTIFICATE_ALIAS).getPublicKey();
         return pubKey;
     }
 
@@ -255,7 +255,7 @@ public class RegistrationManager {
             CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        PrivateKey privKey = (PrivateKey) pkcs12Store.getKey(KEY_STORE_ALIAS, PV_KEY_PASSWORD.toCharArray());
+        PrivateKey privKey = (PrivateKey) pkcs12Store.getKey(CERTIFICATE_ALIAS, PV_KEY_PASSWORD.toCharArray());
         return privKey;
     }
 
@@ -263,7 +263,7 @@ public class RegistrationManager {
 
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        X509Certificate caCert = (X509Certificate) pkcs12Store.getCertificate(KEY_STORE_ALIAS);
+        X509Certificate caCert = (X509Certificate) pkcs12Store.getCertificate(CERTIFICATE_ALIAS);
         X500Name issuer = new X500Name( caCert.getSubjectX500Principal().getName() );
         PrivateKey privKey = this.getAAMPrivateKey();
         JcaPKCS10CertificationRequest jcaRequest = new JcaPKCS10CertificationRequest(request);

@@ -84,8 +84,8 @@ public abstract class AbstractAAMTestSuite {
     protected String PV_KEY_PASSWORD;
     @Value("${aam.security.KEY_STORE_FILE_NAME}")
     protected String KEY_STORE_FILE_NAME;
-    @Value("${aam.security.KEY_STORE_ALIAS}")
-    protected String KEY_STORE_ALIAS;
+    @Value("${aam.security.CERTIFICATE_ALIAS}")
+    protected String CERTIFICATE_ALIAS;
     @Value("${aam.deployment.token.validityMillis}")
     protected Long tokenValidityPeriod;
     @LocalServerPort
