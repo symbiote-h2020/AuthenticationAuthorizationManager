@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.interfaces.ICoreServices;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
@@ -51,6 +52,7 @@ import java.util.Map;
 public class TokenManager {
 
     private static Log log = LogFactory.getLog(TokenManager.class);
+    public Map<String, String> federatedMappingRules = new HashMap<>();
     private RestTemplate restTemplate = new RestTemplate();
     private ICoreServices coreServices;
     private RegistrationManager regManager;
@@ -119,6 +121,10 @@ public class TokenManager {
             JWTClaims claims = JWTEngine.getClaimsFromToken(foreignToken);
             // TODO R3 Attribute Mapping Function
             Map<String, String> federatedAttributes = new HashMap<>();
+
+            // disabling federated token issuing when the mapping rule is empty
+            if (federatedMappingRules.isEmpty())
+                throw new SecurityMisconfigurationException("AAM has no federation rules defined");
             return new Token(
                     JWTEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.getDecoder().decode(claims
                                     .getIpk()), deploymentType, tokenValidity, deploymentId, regManager

@@ -4,6 +4,7 @@ import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.Platform;
+import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
@@ -32,6 +33,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -77,6 +79,9 @@ public class CoreAAMFunctionalTests extends
     private PlatformRegistrationRequest platformRegistrationOverAMQPRequest;
     @Autowired
     private PlatformRepository platformRepository;
+
+    @Autowired
+    private TokenManager tokenManager;
 
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
@@ -378,6 +383,9 @@ public class CoreAAMFunctionalTests extends
 
         HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
 
+        // adding a dummy federation rule
+        tokenManager.federatedMappingRules.put("DummyRule", "dummyRule");
+
         // checking issuing of federated token using the dummy platform token
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants
                 .AAM_REQUEST_FOREIGN_TOKEN, entity, String.class);
@@ -385,6 +393,63 @@ public class CoreAAMFunctionalTests extends
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(rspHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+    }
+
+
+    /**
+     * Features: PAAM - 4, CAAM - 5 (tokens issueing)
+     * Interfaces: PAAM - 5, CAAM - 11;
+     * CommunicationType REST
+     */
+    @Test
+    public void federatedLoginToCoreUsingPlatformTokenOverRESTFailsForUndefinedFederationMapping() throws
+            ValidationException, IOException,
+            TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException,
+            NoSuchAlgorithmException {
+        // issuing dummy platform token
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
+                        .AAM_LOGIN,
+                new Credentials(username, password), String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+
+        String platformId = "testaam-1";
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        //inject platform PEM Certificate to the database
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/TestAAM-1.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate(platformId);
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
+        Platform dummyPlatform = platformRepository.findOne(platformId);
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
+        platformRepository.save(dummyPlatform);
+
+        // preparing request
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(AAMConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
+
+        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
+
+        // making sure the federatedMappingRules are empty
+        tokenManager.federatedMappingRules.clear();
+
+        // checking issuing of federated token using the dummy platform token
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants
+                    .AAM_REQUEST_FOREIGN_TOKEN, entity, String.class);
+            assert false;
+        } catch (HttpServerErrorException e) {
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getRawStatusCode());
+        }
     }
 
     /**
@@ -709,7 +774,8 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void platformOwnerLoginOverRESTAndUsesExpiredTokenToReceivesInAdministrationDetailsOfHisOwnedPlatform() throws IOException,
+    public void platformOwnerLoginOverRESTAndUsesExpiredTokenToReceivesInAdministrationDetailsOfHisOwnedPlatform()
+            throws IOException,
             TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException,
             InterruptedException {
         // verify that our platform and platformOwner are not in repositories
@@ -822,7 +888,8 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getAvailableAAMsOverRESTWithRegisteredPlatform() throws SecurityException, IOException, TimeoutException {
+    public void getAvailableAAMsOverRESTWithRegisteredPlatform() throws SecurityException, IOException,
+            TimeoutException {
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
