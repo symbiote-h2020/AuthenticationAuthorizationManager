@@ -197,7 +197,7 @@ public class TokenManager {
         return ValidationStatus.VALID;
     }
 
-    private ValidationStatus validateFederatedToken(String tokenString) throws CertificateException,
+    public ValidationStatus validateFederatedToken(String tokenString) throws CertificateException,
             NullPointerException, ValidationException {
         Map<String, AAM> aams = new HashMap<>();
         for (AAM aam : coreServices.getAvailableAAMs().getBody())
@@ -215,20 +215,23 @@ public class TokenManager {
         if (!Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(claims.get("ipk"))) {
             return ValidationStatus.REVOKED_IPK;
         }
+
         // rest check revocation
         // preparing request
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add(AAMConstants.TOKEN_HEADER_NAME, tokenString);
         HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
         // checking token revocation with proper AAM
-        ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(
-                aamAddress + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
-                entity, CheckRevocationResponse.class);
-        if (status.getStatusCode().is2xxSuccessful()) {
-            return ValidationStatus.valueOf(status.getBody().getStatus());
-        } else {
-            return ValidationStatus.WRONG_AAM;
+        try {
+            ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(
+                    aamAddress + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
+                    entity, CheckRevocationResponse.class);
+            if (status.getStatusCode().is2xxSuccessful())
+                return ValidationStatus.valueOf(status.getBody().getStatus());
+        } catch (Exception e) {
+            log.error(e);
         }
+        return ValidationStatus.WRONG_AAM;
     }
 
 }

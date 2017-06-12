@@ -16,6 +16,7 @@ import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
+import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -91,6 +92,11 @@ public class AAMUnitTests extends
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
         return new DummyPlatformAAM();
+    }
+
+    @Bean
+    DummyPlatformAAMConnectionProblem getDummyPlatformAAMConnectionProblem() {
+        return new DummyPlatformAAMConnectionProblem();
     }
 
     @Override
@@ -464,5 +470,60 @@ public class AAMUnitTests extends
         // check if platform token is not revoked
         ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
+    }
+
+    // test for relay
+    @Test
+    public void validateFederatedTokenIssuerNotInAvailableAAMs() throws SecurityException, CertificateException,
+            NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException,
+            IOException {
+        // issuing dummy platform token
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
+                        .AAM_LOGIN,
+                new Credentials(username, password), String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+
+        // check if home token revoked properly
+        ValidationStatus response = tokenManager.validateFederatedToken(dummyHomeToken.getToken());
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
+    }
+
+    @Test
+    public void validateFederatedTokenRequestFails() throws IOException, TimeoutException,
+            NoSuchProviderException, KeyStoreException, CertificateException,
+            NoSuchAlgorithmException, ValidationException {
+        // issuing dummy platform token
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/conn_err/paam" + AAMConstants
+                        .AAM_LOGIN,
+                new Credentials(username, password), String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+
+        String platformId = "testaam-connerr";
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test/conn_err");
+
+        // issue platform registration over AMQP
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        //inject platform PEM Certificate to the database
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/TestAAM-1.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("testaam-1");
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
+        Platform dummyPlatform = platformRepository.findOne(platformId);
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
+        platformRepository.save(dummyPlatform);
+
+        // check if validation will fail due to for example connection problems
+        ValidationStatus response = tokenManager.validateFederatedToken(dummyHomeToken.getToken());
+        assertEquals(ValidationStatus.WRONG_AAM, response);
     }
 }
