@@ -1,9 +1,9 @@
 package eu.h2020.symbiote.security.utils;
 
 
-import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
@@ -13,7 +13,6 @@ import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,15 +38,12 @@ import java.util.HashMap;
 public class DummyCoreAAM {
     private static final Log log = LogFactory.getLog(DummyCoreAAM.class);
 
-    @Autowired
-    private TokenManager tokenManager;
-
     public DummyCoreAAM() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
     }
 
     /**
-     * acts temporarily as a platform AAM
+     * acts temporarily as a core AAM
      */
     @RequestMapping(method = RequestMethod.POST, path = "/test/caam" + AAMConstants.AAM_LOGIN, produces =
             "application/json", consumes = "application/json")
@@ -86,7 +82,7 @@ public class DummyCoreAAM {
     public ResponseEntity<CheckRevocationResponse> checkTokenRevocation(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String token) {
         log.info("Checking token revocation " + token);
-        return new ResponseEntity<>(new CheckRevocationResponse(tokenManager.validate(token)), HttpStatus.OK);
+        return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.VALID), HttpStatus.OK);
     }
 
     @RequestMapping(method = RequestMethod.GET, path = "/test/caam" + AAMConstants.AAM_GET_CA_CERTIFICATE)

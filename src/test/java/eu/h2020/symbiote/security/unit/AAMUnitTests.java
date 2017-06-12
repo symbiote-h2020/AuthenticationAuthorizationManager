@@ -362,23 +362,7 @@ public class AAMUnitTests extends
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws SecurityException, CertificateException,
-            NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException,
-            IOException {
-        // issuing dummy platform token
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
-                        .AAM_LOGIN,
-                new Credentials(username, password), String.class);
-        Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
-
-        // check if home token revoked properly
-        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
-    }
-
-    @Test
-    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMs() throws IOException, TimeoutException,
+    public void validateIssuerDiffersDeploymentIdAndRelayValidation() throws IOException, TimeoutException,
             NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException, ValidationException {
         // issuing dummy platform token
@@ -410,7 +394,7 @@ public class AAMUnitTests extends
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
         platformRepository.save(dummyPlatform);
 
-        // check if platform token is not revoked
+        // check if validation will be relayed to appropriate issuer
         ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
         assertEquals(ValidationStatus.VALID, response);
     }
