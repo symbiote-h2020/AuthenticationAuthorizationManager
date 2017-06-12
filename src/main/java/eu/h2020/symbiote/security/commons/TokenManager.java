@@ -35,7 +35,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -171,6 +173,14 @@ public class TokenManager {
                 if (!deploymentId.equals(claims.getIssuer())) {
                     // relay validation to issuer
                     return validateFederatedToken(tokenString);
+                }
+
+                // check if issuer certificate is not expired
+                try {
+                    regManager.getAAMCertificate().checkValidity(new Date());
+                } catch (CertificateExpiredException e) {
+                    log.info(e);
+                    return ValidationStatus.EXPIRED_ISSUER_CERTIFICATE;
                 }
 
                 // check if it is core but with not valid PK

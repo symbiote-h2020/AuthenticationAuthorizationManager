@@ -92,7 +92,7 @@ public class RegistrationManager {
      */
     public String getAAMInstanceIdentifier() {
         try {
-            return getAAMCertificate().getSubjectX500Principal().getName().split(",")[0].split("=")[1];
+            return getAAMCertificate().getSubjectX500Principal().getName().split("CN=")[1].split(",")[0];
         } catch (KeyStoreException | NoSuchProviderException | NoSuchAlgorithmException | IOException |
                 CertificateException e) {
             log.error(e);
