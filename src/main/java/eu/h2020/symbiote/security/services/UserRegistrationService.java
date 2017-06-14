@@ -13,22 +13,43 @@ import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import eu.h2020.symbiote.security.payloads.UserRegistrationResponse;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
+import eu.h2020.symbiote.security.rest.CoreServicesController;
+import eu.h2020.symbiote.security.session.AAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.cert.X509v3CertificateBuilder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+
+import static org.bouncycastle.jce.provider.BouncyCastleProvider.PROVIDER_NAME;
 
 /**
  * Spring service used to register users in the AAM repository.
@@ -44,19 +65,23 @@ public class UserRegistrationService {
     private final RevokedKeysRepository revokedKeysRepository;
     private final RegistrationManager registrationManager;
     private final PasswordEncoder passwordEncoder;
+    private final CoreServicesController coreServicesController;
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
     private IssuingAuthorityType deploymentType;
+    public static final String AT = "@";
 
     @Autowired
-    public UserRegistrationService(UserRepository userRepository, RevokedKeysRepository revokedKeysRepository, RegistrationManager registrationManager, PasswordEncoder passwordEncoder) {
+    public UserRegistrationService(UserRepository userRepository, RevokedKeysRepository revokedKeysRepository, RegistrationManager registrationManager,
+                                   PasswordEncoder passwordEncoder, CoreServicesController coreServicesController) {
         this.userRepository = userRepository;
         this.revokedKeysRepository = revokedKeysRepository;
         this.registrationManager = registrationManager;
         this.passwordEncoder = passwordEncoder;
         this.deploymentType = registrationManager.getDeploymentType();
+        this.coreServicesController = coreServicesController;
     }
 
     public UserRegistrationResponse register(UserRegistrationRequest userRegistrationRequest)
@@ -181,8 +206,11 @@ public class UserRegistrationService {
         if(revokedKeysRepository.exists(username))
             throw new InvalidKeyException();
 
+        X500Principal principal = user.getCertificate().getX509().getSubjectX500Principal();
+        X500Name x500name = new X500Name(principal.getName());
+
         JcaPKCS10CertificationRequest jcaCertRequest = new JcaPKCS10CertificationRequest(clientCSR.getEncoded()).setProvider("BC");
-        if(user.getCertificate().getX509().getIssuerDN().getName().equals(clientId))
+        if(x500name.equals(clientId))
         {
             if(user.getCertificate().getX509().getPublicKey().equals(jcaCertRequest.getPublicKey())) {
                 Certificate cert = new Certificate();
@@ -206,5 +234,39 @@ public class UserRegistrationService {
             cert.setCertificateString(registrationManager.convertX509ToPEM(registrationManager.generateCertificateFromCSR(clientCSR)));
             return cert;
         }
+    }
+
+    @RequestMapping(value = "/getCertificate", method = RequestMethod.POST)
+    ResponseEntity<String> IGetCertififcateInterface (@RequestBody AAM homeAAM, String username, String password, String clientId, String clientCSR) throws WrongCredentialsException, IOException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, UnrecoverableKeyException, OperatorCreationException {
+        if(username.contains(AT)||clientId.contains(AT)||homeAAM.getAamInstanceId().contains(AT))
+            throw new IllegalArgumentException("Credentials contain illegal sign");
+        //User user = new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(username, password), clientId, "", UserRole.APPLICATION))
+        ResponseEntity<String> response = coreServicesController.getCACert();
+        X509Certificate caCert = registrationManager.convertPEMToX509(response.getBody());
+        X500Name issuer = new X500Name( caCert.getSubjectX500Principal().getName() );
+        PrivateKey privKey = registrationManager.getAAMPrivateKey();
+        X509Certificate clientCert = registrationManager.convertPEMToX509(clientCSR);
+
+        ContentSigner sigGen = new JcaContentSignerBuilder(caCert.getSigAlgName()).setProvider(PROVIDER_NAME).build
+                (privKey);
+        X500Name commonName = new X500Name(username + AT + clientCert.getSubjectDN().getName()+ AT + clientId);
+
+        X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
+                issuer,
+                BigInteger.valueOf(1),
+                new Date(System.currentTimeMillis()),
+                new Date(System.currentTimeMillis() + 1L * 365L * 24L * 60L * 60L * 1000L),
+                commonName,
+                clientCert.getPublicKey())
+                .addExtension(
+                        new ASN1ObjectIdentifier("2.5.29.19"),
+                        false,
+                        new BasicConstraints(false));
+
+        X509Certificate cert = new JcaX509CertificateConverter().setProvider(PROVIDER_NAME).getCertificate(certGen
+                .build(sigGen));
+
+        String pem = registrationManager.convertX509ToPEM(cert);
+        return new ResponseEntity<String>(pem, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
