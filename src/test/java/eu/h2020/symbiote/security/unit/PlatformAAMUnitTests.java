@@ -14,7 +14,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -123,9 +122,17 @@ public class PlatformAAMUnitTests extends
         assertEquals(ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE, response);
     }
 
-    @Ignore//todo tests for relays
     @Test
-    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMs() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMsButRevoked() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+        // issuing dummy platform token
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" + AAMConstants
+                        .AAM_LOGIN,
+                new Credentials(username, password), String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
+        // check if home token revoked properly
+        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
+        assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
 }
