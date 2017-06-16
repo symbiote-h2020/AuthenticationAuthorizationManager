@@ -15,7 +15,6 @@ import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.Token;
-import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,9 +99,9 @@ public class TokenController implements IToken {
                     return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
                 }
 
-                MultiValueMap<String, String> headersMap = new LinkedMultiValueMap<String, String>();
+                MultiValueMap<String, String> headersMap = new LinkedMultiValueMap<>();
                 headersMap.add(AAMConstants.TOKEN_HEADER_NAME, receivedToken.toString());
-                HttpEntity<String> request = new HttpEntity<String>(null, headersMap);
+                HttpEntity<String> request = new HttpEntity<>(null, headersMap);
                 RestTemplate restTemplate = new RestTemplate();
                 ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(remoteAAM.getAamAddress() +
                         AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, request, CheckRevocationResponse.class);
@@ -128,21 +127,6 @@ public class TokenController implements IToken {
         return new ResponseEntity<>(headers, HttpStatus.OK);
     }
 
-    public ResponseEntity<CheckRevocationResponse> checkHomeTokenRevocation(@RequestHeader(AAMConstants
-            .TOKEN_HEADER_NAME) String tokenString) {
-        try {
-            // input sanity check
-            JWTEngine.validateTokenString(tokenString);
-            // real validation
-            return new ResponseEntity<>(new CheckRevocationResponse(tokenService.checkHomeTokenRevocation(tokenString)),
-                    HttpStatus.OK);
-        } catch (ValidationException e) {
-            log.error(e);
-            return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.UNKNOWN), HttpStatus
-                    .INTERNAL_SERVER_ERROR);
-        }
-    }
-
     //L1 Diagrams - login()
     public ResponseEntity<?> login(@RequestBody Credentials user) {
         try {
@@ -152,7 +136,7 @@ public class TokenController implements IToken {
             return new ResponseEntity<>(headers, HttpStatus.OK);
         } catch (SecurityException e) {
             log.error(e);
-            return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
+            return new ResponseEntity<>(new ErrorResponseContainer(e.getErrorMessage(), e
                     .getStatusCode().ordinal()), e.getStatusCode());
         }
     }

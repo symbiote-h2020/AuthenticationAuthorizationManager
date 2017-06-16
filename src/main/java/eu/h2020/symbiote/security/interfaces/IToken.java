@@ -1,7 +1,6 @@
 package eu.h2020.symbiote.security.interfaces;
 
 import eu.h2020.symbiote.security.constants.AAMConstants;
-import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,14 +21,6 @@ public interface IToken {
     @RequestMapping(value = AAMConstants.AAM_REQUEST_FOREIGN_TOKEN, method = RequestMethod.POST)
     ResponseEntity<?> requestFederatedHomeToken(@RequestHeader(AAMConstants.TOKEN_HEADER_NAME) String
                                                         receivedTokenString);
-
-    /**
-     * L1 Diagrams - check_token_revocation()
-     * TODO R3 refactor to ValidationStatus validate(Token String);
-     */
-    @RequestMapping(value = AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, method = RequestMethod.POST)
-    ResponseEntity<CheckRevocationResponse> checkHomeTokenRevocation(@RequestHeader(AAMConstants
-            .TOKEN_HEADER_NAME) String tokenString);
 
     //L1 Diagrams - login()
     @RequestMapping(value = AAMConstants.AAM_LOGIN, method = RequestMethod.POST)
