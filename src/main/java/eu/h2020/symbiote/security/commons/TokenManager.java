@@ -156,11 +156,17 @@ public class TokenManager {
                     // relay validation to issuer
                     return validateFederatedToken(tokenString);
                 }
+
                 // check IPK is not equal to current AAM PK
                 if (!Base64.getEncoder().encodeToString(
                         regManager.getAAMCertificate().getPublicKey().getEncoded()).equals(ipk)) {
                     return ValidationStatus.REVOKED_IPK;
                 }
+
+                // check if issuer certificate is not expired
+                if (issuerCertificateExpired())
+                    return ValidationStatus.EXPIRED_ISSUER_CERTIFICATE;
+
                 // todo R3 possible validation of revoked IPK from CoreAAM - check if IPK was not revoked in the core
                 // possibly throw runtime exception so that AAM crashes as it is no more valid
             } else {
@@ -176,12 +182,8 @@ public class TokenManager {
                 }
 
                 // check if issuer certificate is not expired
-                try {
-                    regManager.getAAMCertificate().checkValidity(new Date());
-                } catch (CertificateExpiredException e) {
-                    log.info(e);
+                if (issuerCertificateExpired())
                     return ValidationStatus.EXPIRED_ISSUER_CERTIFICATE;
-                }
 
                 // check if it is core but with not valid PK
                 if (!Base64.getEncoder().encodeToString(
@@ -242,6 +244,16 @@ public class TokenManager {
             log.error(e);
         }
         return ValidationStatus.WRONG_AAM;
+    }
+
+    private boolean issuerCertificateExpired() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+        try {
+            regManager.getAAMCertificate().checkValidity(new Date());
+        } catch (CertificateExpiredException e) {
+            log.info(e);
+            return true;
+        }
+        return false;
     }
 
 }

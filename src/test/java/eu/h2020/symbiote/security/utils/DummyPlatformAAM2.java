@@ -35,14 +35,14 @@ import java.util.HashMap;
  * @author Mikołaj Dobski (PSNC)
  */
 @RestController
-public class DummyPlatformAAM {
-    private static final Log log = LogFactory.getLog(DummyPlatformAAM.class);
-    private static final String CERTIFICATE_ALIAS = "platform-1-1-c1";
-    private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_1.p12";
+public class DummyPlatformAAM2 {
+    private static final Log log = LogFactory.getLog(DummyPlatformAAM2.class);
+    private static final String CERTIFICATE_ALIAS = "platform-2-1-c1";
+    private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_2.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
-    private static final String PATH = "/test/paam";
+    private static final String PATH = "/test/second/paam";
 
-    public DummyPlatformAAM() {
+    public DummyPlatformAAM2() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
     }
 
@@ -63,7 +63,7 @@ public class DummyPlatformAAM {
             String tokenString = JWTEngine.generateJWTToken(credential.getUsername(), attributes, ks.getCertificate
                             (CERTIFICATE_ALIAS).getPublicKey().getEncoded(), IssuingAuthorityType.PLATFORM, new Date().getTime()
                             + 60000
-                    , "platform-1", ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
+                    , "platform-2", ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
                     (PrivateKey) key);
 
             Token coreToken = new Token(tokenString);
