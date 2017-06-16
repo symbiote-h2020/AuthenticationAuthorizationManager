@@ -7,12 +7,14 @@ import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.token.Token;
+import eu.h2020.symbiote.security.utils.DummyPlatformAAMRevokedIPK;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
@@ -38,16 +40,29 @@ public class PlatformAAMUnitTests extends
     @Autowired
     private TokenManager tokenManager;
 
+    @Bean
+    DummyPlatformAAMRevokedIPK getDummyPlatformAAMRevokedIPK() {
+        return new DummyPlatformAAMRevokedIPK();
+    }
+
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
     }
 
-    @Ignore // todo find a proper way to test RevokedIPK for platform
     @Test
     public void validateRevokedIPK() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException {
+        // issuing dummy platform token
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/rev_ipk/paam" + AAMConstants
+                        .AAM_LOGIN,
+                new Credentials(username, password), String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
+        // check if home token revoked properly
+        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
+        assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
 
     @Test

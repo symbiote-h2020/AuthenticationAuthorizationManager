@@ -37,8 +37,8 @@ import java.util.HashMap;
 @RestController
 public class DummyPlatformAAMRevokedIPK {
     private static final Log log = LogFactory.getLog(DummyPlatformAAMRevokedIPK.class);
-    private static final String CERTIFICATE_ALIAS = "";
-    private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_2.p12";
+    private static final String CERTIFICATE_ALIAS = "platform-1-2-c1";
+    private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String PATH = "/test/rev_ipk/paam";
 
@@ -49,22 +49,21 @@ public class DummyPlatformAAMRevokedIPK {
     /**
      * acts temporarily as a platform AAM
      */
-    @RequestMapping(method = RequestMethod.POST, path = "/test/rev_ipk/paam" + AAMConstants.AAM_LOGIN, produces =
+    @RequestMapping(method = RequestMethod.POST, path = PATH + AAMConstants.AAM_LOGIN, produces =
             "application/json", consumes = "application/json")
     public ResponseEntity<?> doLogin(@RequestBody Credentials credential) {
         log.info("User trying to login " + credential.getUsername() + " - " + credential.getPassword());
         try {
-            final String ALIAS = CERTIFICATE_ALIAS;
             KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-            ks.load(new FileInputStream(CERTIFICATE_LOCATION), "1234567".toCharArray());
-            Key key = ks.getKey(ALIAS, "1234567".toCharArray());
+            ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
+            Key key = ks.getKey(CERTIFICATE_ALIAS, "1234567".toCharArray());
 
             HashMap<String, String> attributes = new HashMap<>();
             attributes.put("name", "test2");
             String tokenString = JWTEngine.generateJWTToken(credential.getUsername(), attributes, ks.getCertificate
-                            (ALIAS).getPublicKey().getEncoded(), IssuingAuthorityType.PLATFORM, new Date().getTime()
+                            (CERTIFICATE_ALIAS).getPublicKey().getEncoded(), IssuingAuthorityType.PLATFORM, new Date().getTime()
                             + 60000
-                    , ALIAS, ks.getCertificate(ALIAS).getPublicKey(),
+                    , "platform-1", ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
                     (PrivateKey) key);
 
             Token coreToken = new Token(tokenString);
@@ -85,7 +84,7 @@ public class DummyPlatformAAMRevokedIPK {
     /**
      * return valid status
      */
-    @RequestMapping(method = RequestMethod.POST, path = "/test/rev_ipk/paam" + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION)
+    @RequestMapping(method = RequestMethod.POST, path = PATH + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION)
     public ResponseEntity<CheckRevocationResponse> checkTokenRevocation(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String token) {
         log.info("Checking token revocation " + token);
@@ -93,11 +92,11 @@ public class DummyPlatformAAMRevokedIPK {
                 (ValidationStatus.VALID), HttpStatus.OK);
     }
 
-    @RequestMapping(method = RequestMethod.GET, path = "/test/rev_ipk/paam" + AAMConstants.AAM_GET_CA_CERTIFICATE)
+    @RequestMapping(method = RequestMethod.GET, path = PATH + AAMConstants.AAM_GET_CA_CERTIFICATE)
     public String getRootCertificate() throws NoSuchProviderException, KeyStoreException, IOException,
             UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException {
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream(CERTIFICATE_LOCATION), "1234567".toCharArray());
+        ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
         X509Certificate certificate = (X509Certificate) ks.getCertificate(CERTIFICATE_ALIAS);
         StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
         JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
