@@ -13,6 +13,7 @@ import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
+import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.Token;
@@ -36,6 +37,7 @@ import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
@@ -63,11 +65,14 @@ public class TokenManager {
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
     private RevokedKeysRepository revokedKeysRepository;
     private RevokedTokensRepository revokedTokensRepository;
+    private UserRepository userRepository;
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
 
     @Autowired
-    public TokenManager(ICoreServices coreServices, RegistrationManager regManager, PlatformRepository platformRepository, RevokedKeysRepository revokedKeysRepository, RevokedTokensRepository revokedTokensRepository) {
+    public TokenManager(ICoreServices coreServices, RegistrationManager regManager,
+                        PlatformRepository platformRepository, RevokedKeysRepository revokedKeysRepository,
+                        RevokedTokensRepository revokedTokensRepository, UserRepository userRepository) {
         this.coreServices = coreServices;
         this.regManager = regManager;
         this.deploymentId = regManager.getAAMInstanceIdentifier();
@@ -75,6 +80,7 @@ public class TokenManager {
         this.platformRepository = platformRepository;
         this.revokedKeysRepository = revokedKeysRepository;
         this.revokedTokensRepository = revokedTokensRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -164,8 +170,9 @@ public class TokenManager {
                 }
 
                 // check if issuer certificate is not expired
-                if (issuerCertificateExpired())
+                if (certificateExpired(regManager.getAAMCertificate())) {
                     return ValidationStatus.EXPIRED_ISSUER_CERTIFICATE;
+                }
 
                 // todo R3 possible validation of revoked IPK from CoreAAM - check if IPK was not revoked in the core
                 // possibly throw runtime exception so that AAM crashes as it is no more valid
@@ -182,7 +189,7 @@ public class TokenManager {
                 }
 
                 // check if issuer certificate is not expired
-                if (issuerCertificateExpired())
+                if (certificateExpired(regManager.getAAMCertificate()))
                     return ValidationStatus.EXPIRED_ISSUER_CERTIFICATE;
 
                 // check if it is core but with not valid PK
@@ -201,6 +208,11 @@ public class TokenManager {
                     revokedKeysRepository.findOne(claims.getSubject()).getRevokedKeysSet().contains(spk)) {
                 return ValidationStatus.REVOKED_SPK;
             }
+
+            if (certificateExpired(userRepository.findOne(claims.getSubject()).getCertificate().getX509())) {
+                return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
+            }
+
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
             log.error(e);
@@ -246,9 +258,9 @@ public class TokenManager {
         return ValidationStatus.WRONG_AAM;
     }
 
-    private boolean issuerCertificateExpired() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+    private boolean certificateExpired(X509Certificate certificate) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
         try {
-            regManager.getAAMCertificate().checkValidity(new Date());
+            certificate.checkValidity(new Date());
         } catch (CertificateExpiredException e) {
             log.info(e);
             return true;

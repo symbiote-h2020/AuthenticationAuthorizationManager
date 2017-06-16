@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
+import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.constants.AAMConstants;
@@ -11,6 +12,7 @@ import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMRevokedIPK;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -19,11 +21,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import java.security.*;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
@@ -95,6 +97,30 @@ public class PlatformAAMUnitTests extends
         // check if home token revoked properly
         ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
+    }
+
+    @Test
+    public void validateExpiredSubjectCertificate() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException, InvalidAlgorithmParameterException, UnrecoverableKeyException, OperatorCreationException {
+        // verify that app really is in repository
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+
+        // verify the user keys are not yet revoked
+        assertFalse(revokedKeysRepository.exists(username));
+
+        // acquiring valid token
+        Token homeToken = tokenManager.createHomeToken(user);
+
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
+        X509Certificate cert = (X509Certificate) ks.getCertificate("platform-1-1-exp-c1");
+        Certificate certificate = new Certificate(registrationManager.convertX509ToPEM(cert));
+        user.setCertificate(certificate);
+        userRepository.save(user);
+
+        // check if home token revoked properly
+        ValidationStatus response = tokenManager.validate(homeToken.getToken());
+        assertEquals(ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE, response);
     }
 
     @Ignore//todo tests for relays
