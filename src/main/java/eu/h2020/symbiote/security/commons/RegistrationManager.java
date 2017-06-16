@@ -80,9 +80,10 @@ public class RegistrationManager {
      * @return resolves the deployment type using the AAM certificate
      */
     public IssuingAuthorityType getDeploymentType() {
-        if (getAAMInstanceIdentifier().isEmpty())
+        String aamInstanceIdentifier = getAAMInstanceIdentifier();
+        if (aamInstanceIdentifier.isEmpty())
             return IssuingAuthorityType.NULL;
-        if (getAAMInstanceIdentifier().equals(AAMConstants.AAM_CORE_AAM_INSTANCE_ID))
+        if (aamInstanceIdentifier.equals(AAMConstants.AAM_CORE_AAM_INSTANCE_ID))
             return IssuingAuthorityType.CORE;
         return IssuingAuthorityType.PLATFORM;
     }
