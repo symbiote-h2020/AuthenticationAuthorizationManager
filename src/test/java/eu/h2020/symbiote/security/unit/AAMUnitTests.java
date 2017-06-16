@@ -378,7 +378,7 @@ public class AAMUnitTests extends
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
-        String platformId = "testaam-1";
+        String platformId = "platform-1-1-c1";
         // registering the platform to the Core AAM so it will be available for token revocation
         platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
         platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
@@ -389,7 +389,7 @@ public class AAMUnitTests extends
 
         //inject platform PEM Certificate to the database
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/TestAAM-1.p12"), "1234567".toCharArray());
+        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
         X509Certificate certificate = (X509Certificate) ks.getCertificate(platformId);
         StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
         JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
@@ -416,10 +416,10 @@ public class AAMUnitTests extends
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
-        String platformId = "SymbIoTe_Core_AAM";
+        String platformId = "core-2";
         //inject platform PEM Certificate to the database
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/SymbIoTe_Core_AAM_TEST_other_keys_and_special_expired.p12"), "1234567".toCharArray());
+        ks.load(new FileInputStream("./src/test/resources/core.p12"), "1234567".toCharArray());
         X509Certificate certificate = (X509Certificate) ks.getCertificate(platformId);
         StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
         JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
@@ -457,10 +457,10 @@ public class AAMUnitTests extends
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
-        String platformId = "SymbIoTe_Core_AAM";
+        String platformId = "core-2";
         //inject platform PEM Certificate to the database
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/SymbIoTe_Core_AAM_TEST_other_keys_and_special_expired.p12"), "1234567".toCharArray());
+        ks.load(new FileInputStream("./src/test/resources/core.p12"), "1234567".toCharArray());
         X509Certificate certificate = (X509Certificate) ks.getCertificate(platformId);
         StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
         JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
@@ -511,8 +511,8 @@ public class AAMUnitTests extends
 
         //inject platform PEM Certificate to the database
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/TestAAM-1.p12"), "1234567".toCharArray());
-        X509Certificate certificate = (X509Certificate) ks.getCertificate("testaam-1");
+        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
         StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
         JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
         pemWriter.writeObject(certificate);
