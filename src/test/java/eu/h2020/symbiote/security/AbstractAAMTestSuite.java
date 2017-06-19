@@ -49,6 +49,8 @@ public abstract class AbstractAAMTestSuite {
     protected final String homeTokenValue = "home_token_from_platform_aam-" + username;
     protected final String registrationUri = "register";
     protected final String unregistrationUri = "unregister";
+    protected final String usernameWithAt = "test@";
+    protected final String clientId = "clientId";
     @Autowired
     protected UserRepository userRepository;
     @Autowired
