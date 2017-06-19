@@ -21,7 +21,7 @@ import java.security.cert.CertificateException;
  */
 public interface IGetCertificate {
     @RequestMapping(value = "/getCertificate", method = RequestMethod.POST)
-    ResponseEntity<String> IGetCertififcateInterface (@RequestBody AAM homeAAM, String username, String password, String clientId, String clientCSR)
+    ResponseEntity<String> getCertififcate (@RequestBody AAM homeAAM, String username, String password, String clientId, String clientCSR)
             throws WrongCredentialsException, IOException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException,
             UnrecoverableKeyException, OperatorCreationException;
 }
