@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security;
+package eu.h2020.symbiote.security.swagger;
 
 
 import com.google.common.base.Predicates;
@@ -14,11 +14,9 @@ import springfox.documentation.spi.DocumentationType;
 import springfox.documentation.spring.web.plugins.Docket;
 import springfox.documentation.swagger2.annotations.EnableSwagger2;
 
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import static java.util.Arrays.asList;
 import static springfox.documentation.builders.PathSelectors.ant;
 
 @EnableSwagger2
