@@ -1,0 +1,66 @@
+\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1TokenManager}{}\section{eu.\+h2020.\+symbiote.\+security.\+commons.\+Token\+Manager Class Reference}
+\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1TokenManager}\index{eu.\+h2020.\+symbiote.\+security.\+commons.\+Token\+Manager@{eu.\+h2020.\+symbiote.\+security.\+commons.\+Token\+Manager}}
+
+
+Collaboration diagram for eu.\+h2020.\+symbiote.\+security.\+commons.\+Token\+Manager\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=265pt]{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1TokenManager__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries Token\+Manager} (\hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager}{Registration\+Manager} reg\+Manager, \hyperlink{interfaceeu_1_1h2020_1_1symbiote_1_1security_1_1repositories_1_1PlatformRepository}{Platform\+Repository} platform\+Repository)\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1TokenManager_a421a9ca8702d476849b8a425dadd9127}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1TokenManager_a421a9ca8702d476849b8a425dadd9127}
+
+\item 
+Token \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1TokenManager_a5f369542764f2b777081e8b071a9a9da}{create\+Home\+Token} (\hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1User}{User} user)  throws J\+W\+T\+Creation\+Exception 
+\item 
+Token {\bfseries create\+Foreign\+Token} (String foreign\+Token)  throws J\+W\+T\+Creation\+Exception \hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1TokenManager_a40d053bdb0b162a86c5813be3802d722}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1TokenManager_a40d053bdb0b162a86c5813be3802d722}
+
+\item 
+Check\+Revocation\+Response {\bfseries check\+Home\+Token\+Revocation} (String token, Token db\+Token)\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1TokenManager_a169e51ef9a2110174d21baefce1b3309}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1TokenManager_a169e51ef9a2110174d21baefce1b3309}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Class for managing operations (creation, verification checking, etc.) on tokens in token related service (\hyperlink{}{Token\+Service}).
+
+\begin{DoxyAuthor}{Author}
+Daniele Caldarola (C\+N\+IT) 
+
+Nemanja Ignjatov (U\+N\+I\+V\+IE) 
+
+Mikołaj Dobski (P\+S\+NC) 
+\end{DoxyAuthor}
+
+
+\subsection{Member Function Documentation}
+\index{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Token\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Token\+Manager}!create\+Home\+Token@{create\+Home\+Token}}
+\index{create\+Home\+Token@{create\+Home\+Token}!eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Token\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Token\+Manager}}
+\subsubsection[{\texorpdfstring{create\+Home\+Token(\+User user)}{createHomeToken(User user)}}]{\setlength{\rightskip}{0pt plus 5cm}Token eu.\+h2020.\+symbiote.\+security.\+commons.\+Token\+Manager.\+create\+Home\+Token (
+\begin{DoxyParamCaption}
+\item[{{\bf User}}]{user}
+\end{DoxyParamCaption}
+) throws J\+W\+T\+Creation\+Exception}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1TokenManager_a5f369542764f2b777081e8b071a9a9da}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1TokenManager_a5f369542764f2b777081e8b071a9a9da}
+
+\begin{DoxyParams}{Parameters}
+{\em user} & for which to issue to token \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+core or platform token issued for given user 
+\end{DoxyReturn}
+
+\begin{DoxyExceptions}{Exceptions}
+{\em J\+W\+T\+Creation\+Exception} & on error \\
+\hline
+\end{DoxyExceptions}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/main/java/eu/h2020/symbiote/security/commons/Token\+Manager.\+java\end{DoxyCompactItemize}

@@ -1,0 +1,56 @@
+\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1RabbitManager}{}\section{eu.\+h2020.\+symbiote.\+security.\+amqp.\+Rabbit\+Manager Class Reference}
+\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1RabbitManager}\index{eu.\+h2020.\+symbiote.\+security.\+amqp.\+Rabbit\+Manager@{eu.\+h2020.\+symbiote.\+security.\+amqp.\+Rabbit\+Manager}}
+
+
+Collaboration diagram for eu.\+h2020.\+symbiote.\+security.\+amqp.\+Rabbit\+Manager\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=247pt]{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1RabbitManager__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries Rabbit\+Manager} (\hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1UserRegistrationService}{User\+Registration\+Service} user\+Registration\+Service, \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1PlatformRegistrationService}{Platform\+Registration\+Service} platform\+Registration\+Service, \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1LoginService}{Login\+Service} login\+Service, \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService}{Token\+Service} token\+Service, \hyperlink{interfaceeu_1_1h2020_1_1symbiote_1_1security_1_1repositories_1_1UserRepository}{User\+Repository} user\+Repository, \hyperlink{interfaceeu_1_1h2020_1_1symbiote_1_1security_1_1repositories_1_1PlatformRepository}{Platform\+Repository} platform\+Repository, \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager}{Registration\+Manager} registration\+Manager)\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1RabbitManager_a20251a4a97883cabfcfbdde90bd293f3}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1RabbitManager_a20251a4a97883cabfcfbdde90bd293f3}
+
+\item 
+Connection \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1RabbitManager_a135b27190102885449f08bb49f514a90}{get\+Connection} ()  throws I\+O\+Exception, Timeout\+Exception 
+\item 
+void \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1RabbitManager_a85df036a5614d190f3002b15af43e437}{init} ()  throws A\+A\+M\+Misconfiguration\+Exception 
+\item 
+void {\bfseries cleanup} ()\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1RabbitManager_ab248e0618bcf289a988c130459032b1e}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1RabbitManager_ab248e0618bcf289a988c130459032b1e}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Member Function Documentation}
+\index{eu\+::h2020\+::symbiote\+::security\+::amqp\+::\+Rabbit\+Manager@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::\+Rabbit\+Manager}!get\+Connection@{get\+Connection}}
+\index{get\+Connection@{get\+Connection}!eu\+::h2020\+::symbiote\+::security\+::amqp\+::\+Rabbit\+Manager@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::\+Rabbit\+Manager}}
+\subsubsection[{\texorpdfstring{get\+Connection()}{getConnection()}}]{\setlength{\rightskip}{0pt plus 5cm}Connection eu.\+h2020.\+symbiote.\+security.\+amqp.\+Rabbit\+Manager.\+get\+Connection (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) throws I\+O\+Exception, Timeout\+Exception}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1RabbitManager_a135b27190102885449f08bb49f514a90}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1RabbitManager_a135b27190102885449f08bb49f514a90}
+Initiates connection with Rabbit server using parameters from Bootstrap Properties
+
+
+\begin{DoxyExceptions}{Exceptions}
+{\em I\+O\+Exception} & \\
+\hline
+{\em Timeout\+Exception} & \\
+\hline
+\end{DoxyExceptions}
+\index{eu\+::h2020\+::symbiote\+::security\+::amqp\+::\+Rabbit\+Manager@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::\+Rabbit\+Manager}!init@{init}}
+\index{init@{init}!eu\+::h2020\+::symbiote\+::security\+::amqp\+::\+Rabbit\+Manager@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::\+Rabbit\+Manager}}
+\subsubsection[{\texorpdfstring{init()}{init()}}]{\setlength{\rightskip}{0pt plus 5cm}void eu.\+h2020.\+symbiote.\+security.\+amqp.\+Rabbit\+Manager.\+init (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) throws A\+A\+M\+Misconfiguration\+Exception}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1RabbitManager_a85df036a5614d190f3002b15af43e437}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1RabbitManager_a85df036a5614d190f3002b15af43e437}
+Method creates channel and declares Rabbit exchanges for A\+AM features. It triggers start of all consumers used in with A\+AM communication. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/main/java/eu/h2020/symbiote/security/amqp/Rabbit\+Manager.\+java\end{DoxyCompactItemize}

@@ -1,0 +1,89 @@
+\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1LoginRequestConsumerService}{}\section{eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Login\+Request\+Consumer\+Service Class Reference}
+\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1LoginRequestConsumerService}\index{eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Login\+Request\+Consumer\+Service@{eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Login\+Request\+Consumer\+Service}}
+
+
+Inheritance diagram for eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Login\+Request\+Consumer\+Service\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=298pt]{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1LoginRequestConsumerService__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Login\+Request\+Consumer\+Service\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=298pt]{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1LoginRequestConsumerService__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1LoginRequestConsumerService_a69c09badb0af0855ec3c07caa8306458}{Login\+Request\+Consumer\+Service} (Channel channel, \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1LoginService}{Login\+Service} login\+Service)
+\item 
+void \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1LoginRequestConsumerService_af09972ec03b30e58f3e4f6cd85011e6e}{handle\+Delivery} (String consumer\+Tag, Envelope envelope, A\+M\+Q\+P.\+Basic\+Properties properties, byte\mbox{[}$\,$\mbox{]} body)  throws I\+O\+Exception 
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Rabbit\+MQ Consumer implementation used for Login actions 
+
+\subsection{Constructor \& Destructor Documentation}
+\index{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Login\+Request\+Consumer\+Service@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Login\+Request\+Consumer\+Service}!Login\+Request\+Consumer\+Service@{Login\+Request\+Consumer\+Service}}
+\index{Login\+Request\+Consumer\+Service@{Login\+Request\+Consumer\+Service}!eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Login\+Request\+Consumer\+Service@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Login\+Request\+Consumer\+Service}}
+\subsubsection[{\texorpdfstring{Login\+Request\+Consumer\+Service(\+Channel channel, Login\+Service login\+Service)}{LoginRequestConsumerService(Channel channel, LoginService loginService)}}]{\setlength{\rightskip}{0pt plus 5cm}eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Login\+Request\+Consumer\+Service.\+Login\+Request\+Consumer\+Service (
+\begin{DoxyParamCaption}
+\item[{Channel}]{channel, }
+\item[{{\bf Login\+Service}}]{login\+Service}
+\end{DoxyParamCaption}
+)}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1LoginRequestConsumerService_a69c09badb0af0855ec3c07caa8306458}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1LoginRequestConsumerService_a69c09badb0af0855ec3c07caa8306458}
+Constructs a new instance and records its association to the passed-\/in channel. Managers beans passed as parameters because of lack of possibility to inject it to consumer.
+
+
+\begin{DoxyParams}{Parameters}
+{\em channel} & the channel to which this consumer is attached \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Member Function Documentation}
+\index{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Login\+Request\+Consumer\+Service@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Login\+Request\+Consumer\+Service}!handle\+Delivery@{handle\+Delivery}}
+\index{handle\+Delivery@{handle\+Delivery}!eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Login\+Request\+Consumer\+Service@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Login\+Request\+Consumer\+Service}}
+\subsubsection[{\texorpdfstring{handle\+Delivery(\+String consumer\+Tag, Envelope envelope, A\+M\+Q\+P.\+Basic\+Properties properties, byte[] body)}{handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)}}]{\setlength{\rightskip}{0pt plus 5cm}void eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Login\+Request\+Consumer\+Service.\+handle\+Delivery (
+\begin{DoxyParamCaption}
+\item[{String}]{consumer\+Tag, }
+\item[{Envelope}]{envelope, }
+\item[{A\+M\+Q\+P.\+Basic\+Properties}]{properties, }
+\item[{byte\mbox{[}$\,$\mbox{]}}]{body}
+\end{DoxyParamCaption}
+) throws I\+O\+Exception}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1LoginRequestConsumerService_af09972ec03b30e58f3e4f6cd85011e6e}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1LoginRequestConsumerService_af09972ec03b30e58f3e4f6cd85011e6e}
+Called when a {\ttfamily {\bfseries basic.\+deliver}} is received for this consumer.
+
+
+\begin{DoxyParams}{Parameters}
+{\em consumer\+Tag} & the {\itshape consumer tag} associated with the consumer \\
+\hline
+{\em envelope} & packaging data for the message \\
+\hline
+{\em properties} & content header data for the message \\
+\hline
+{\em body} & the message body (opaque, client-\/specific byte array) \\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyExceptions}{Exceptions}
+{\em I\+O\+Exception} & if the consumer encounters an I/O error while processing the message \\
+\hline
+\end{DoxyExceptions}
+\begin{DoxySeeAlso}{See also}
+Envelope 
+\end{DoxySeeAlso}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/main/java/eu/h2020/symbiote/security/amqp/consumers/Login\+Request\+Consumer\+Service.\+java\end{DoxyCompactItemize}

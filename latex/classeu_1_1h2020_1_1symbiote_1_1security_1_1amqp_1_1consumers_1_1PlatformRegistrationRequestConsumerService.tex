@@ -1,0 +1,94 @@
+\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1PlatformRegistrationRequestConsumerService}{}\section{eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Platform\+Registration\+Request\+Consumer\+Service Class Reference}
+\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1PlatformRegistrationRequestConsumerService}\index{eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Platform\+Registration\+Request\+Consumer\+Service@{eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Platform\+Registration\+Request\+Consumer\+Service}}
+
+
+Inheritance diagram for eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Platform\+Registration\+Request\+Consumer\+Service\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=301pt]{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1PlatformRegistrationRequestConsumerService__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Platform\+Registration\+Request\+Consumer\+Service\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=301pt]{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1PlatformRegistrationRequestConsumerService__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1PlatformRegistrationRequestConsumerService_ade7d1c51240268d9f63a02d5cb4faf5c}{Platform\+Registration\+Request\+Consumer\+Service} (Channel channel, \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1PlatformRegistrationService}{Platform\+Registration\+Service} platform\+Registration\+Service)
+\item 
+void \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1PlatformRegistrationRequestConsumerService_a69334c874254fa8b50a3f7db6665aed8}{handle\+Delivery} (String consumer\+Tag, Envelope envelope, A\+M\+Q\+P.\+Basic\+Properties properties, byte\mbox{[}$\,$\mbox{]} body)  throws I\+O\+Exception 
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Rabbit\+MQ Consumer implementation used for Platforms\textquotesingle{} Registration actions
+
+\begin{DoxyAuthor}{Author}
+Mikołaj Dobski (P\+S\+NC) 
+\end{DoxyAuthor}
+
+
+\subsection{Constructor \& Destructor Documentation}
+\index{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Platform\+Registration\+Request\+Consumer\+Service@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Platform\+Registration\+Request\+Consumer\+Service}!Platform\+Registration\+Request\+Consumer\+Service@{Platform\+Registration\+Request\+Consumer\+Service}}
+\index{Platform\+Registration\+Request\+Consumer\+Service@{Platform\+Registration\+Request\+Consumer\+Service}!eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Platform\+Registration\+Request\+Consumer\+Service@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Platform\+Registration\+Request\+Consumer\+Service}}
+\subsubsection[{\texorpdfstring{Platform\+Registration\+Request\+Consumer\+Service(\+Channel channel, Platform\+Registration\+Service platform\+Registration\+Service)}{PlatformRegistrationRequestConsumerService(Channel channel, PlatformRegistrationService platformRegistrationService)}}]{\setlength{\rightskip}{0pt plus 5cm}eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Platform\+Registration\+Request\+Consumer\+Service.\+Platform\+Registration\+Request\+Consumer\+Service (
+\begin{DoxyParamCaption}
+\item[{Channel}]{channel, }
+\item[{{\bf Platform\+Registration\+Service}}]{platform\+Registration\+Service}
+\end{DoxyParamCaption}
+)}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1PlatformRegistrationRequestConsumerService_ade7d1c51240268d9f63a02d5cb4faf5c}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1PlatformRegistrationRequestConsumerService_ade7d1c51240268d9f63a02d5cb4faf5c}
+Constructs a new instance and records its association to the passed-\/in channel. Managers beans passed as parameters because of lack of possibility to inject it to consumer.
+
+
+\begin{DoxyParams}{Parameters}
+{\em channel} & the channel to which this consumer is attached \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Member Function Documentation}
+\index{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Platform\+Registration\+Request\+Consumer\+Service@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Platform\+Registration\+Request\+Consumer\+Service}!handle\+Delivery@{handle\+Delivery}}
+\index{handle\+Delivery@{handle\+Delivery}!eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Platform\+Registration\+Request\+Consumer\+Service@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Platform\+Registration\+Request\+Consumer\+Service}}
+\subsubsection[{\texorpdfstring{handle\+Delivery(\+String consumer\+Tag, Envelope envelope, A\+M\+Q\+P.\+Basic\+Properties properties, byte[] body)}{handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)}}]{\setlength{\rightskip}{0pt plus 5cm}void eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Platform\+Registration\+Request\+Consumer\+Service.\+handle\+Delivery (
+\begin{DoxyParamCaption}
+\item[{String}]{consumer\+Tag, }
+\item[{Envelope}]{envelope, }
+\item[{A\+M\+Q\+P.\+Basic\+Properties}]{properties, }
+\item[{byte\mbox{[}$\,$\mbox{]}}]{body}
+\end{DoxyParamCaption}
+) throws I\+O\+Exception}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1PlatformRegistrationRequestConsumerService_a69334c874254fa8b50a3f7db6665aed8}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1PlatformRegistrationRequestConsumerService_a69334c874254fa8b50a3f7db6665aed8}
+Called when a {\ttfamily {\bfseries basic.\+deliver}} is received for this consumer.
+
+
+\begin{DoxyParams}{Parameters}
+{\em consumer\+Tag} & the {\itshape consumer tag} associated with the consumer \\
+\hline
+{\em envelope} & packaging data for the message \\
+\hline
+{\em properties} & content header data for the message \\
+\hline
+{\em body} & the message body (opaque, client-\/specific byte array) \\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyExceptions}{Exceptions}
+{\em I\+O\+Exception} & if the consumer encounters an I/O error while processing the message \\
+\hline
+\end{DoxyExceptions}
+\begin{DoxySeeAlso}{See also}
+Envelope 
+\end{DoxySeeAlso}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/main/java/eu/h2020/symbiote/security/amqp/consumers/Platform\+Registration\+Request\+Consumer\+Service.\+java\end{DoxyCompactItemize}

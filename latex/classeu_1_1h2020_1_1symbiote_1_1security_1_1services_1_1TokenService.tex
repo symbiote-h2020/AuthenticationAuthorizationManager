@@ -1,0 +1,76 @@
+\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService}{}\section{eu.\+h2020.\+symbiote.\+security.\+services.\+Token\+Service Class Reference}
+\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService}\index{eu.\+h2020.\+symbiote.\+security.\+services.\+Token\+Service@{eu.\+h2020.\+symbiote.\+security.\+services.\+Token\+Service}}
+
+
+Collaboration diagram for eu.\+h2020.\+symbiote.\+security.\+services.\+Token\+Service\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=259pt]{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries Token\+Service} (\hyperlink{interfaceeu_1_1h2020_1_1symbiote_1_1security_1_1repositories_1_1TokenRepository}{Token\+Repository} token\+Repository, \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1TokenManager}{Token\+Manager} token\+Manager)\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_ac63dd08a68ce3fb1625b534496856949}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_ac63dd08a68ce3fb1625b534496856949}
+
+\item 
+Token {\bfseries create\+Federated\+Home\+Token\+For\+Foreign\+Token} (String foreign\+Token)  throws J\+W\+T\+Creation\+Exception \hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_af9f0ff25f06558e38d0d6c301f69c7ab}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_af9f0ff25f06558e38d0d6c301f69c7ab}
+
+\item 
+Token \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_a2381d5a63769cff11c281c4d180904cd}{get\+Home\+Token} (\hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1User}{User} user)  throws J\+W\+T\+Creation\+Exception 
+\item 
+Check\+Revocation\+Response {\bfseries check\+Home\+Token\+Revocation} (String token\+String)\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_a86627004cbd20b1eebd16657bba52324}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_a86627004cbd20b1eebd16657bba52324}
+
+\item 
+void {\bfseries remove\+All\+Tokens} ()\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_a11455b98f0dd409cead6ce2a9121c741}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_a11455b98f0dd409cead6ce2a9121c741}
+
+\item 
+void {\bfseries save\+Token} (Token token)\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_ab7fd9f64e419041cc100dc8900c47188}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_ab7fd9f64e419041cc100dc8900c47188}
+
+\item 
+Token {\bfseries get\+Token} (String jwt)  throws Token\+Validation\+Exception \hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_aa25ee0afe4d1496a49a94fc4032af544}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_aa25ee0afe4d1496a49a94fc4032af544}
+
+\item 
+List$<$ Token $>$ {\bfseries get\+All\+Tokens} ()\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_a3d535c0067c859f568551a88ae8d090e}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_a3d535c0067c859f568551a88ae8d090e}
+
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Spring service used to provide token related functionality of the A\+AM.
+
+\begin{DoxyAuthor}{Author}
+Daniele Caldarola (C\+N\+IT) 
+
+Nemanja Ignjatov (U\+N\+I\+V\+IE) 
+\end{DoxyAuthor}
+
+
+\subsection{Member Function Documentation}
+\index{eu\+::h2020\+::symbiote\+::security\+::services\+::\+Token\+Service@{eu\+::h2020\+::symbiote\+::security\+::services\+::\+Token\+Service}!get\+Home\+Token@{get\+Home\+Token}}
+\index{get\+Home\+Token@{get\+Home\+Token}!eu\+::h2020\+::symbiote\+::security\+::services\+::\+Token\+Service@{eu\+::h2020\+::symbiote\+::security\+::services\+::\+Token\+Service}}
+\subsubsection[{\texorpdfstring{get\+Home\+Token(\+User user)}{getHomeToken(User user)}}]{\setlength{\rightskip}{0pt plus 5cm}Token eu.\+h2020.\+symbiote.\+security.\+services.\+Token\+Service.\+get\+Home\+Token (
+\begin{DoxyParamCaption}
+\item[{{\bf User}}]{user}
+\end{DoxyParamCaption}
+) throws J\+W\+T\+Creation\+Exception}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_a2381d5a63769cff11c281c4d180904cd}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService_a2381d5a63769cff11c281c4d180904cd}
+
+\begin{DoxyParams}{Parameters}
+{\em user} & which the token belongs to \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Generates home token for given user 
+\end{DoxyReturn}
+
+\begin{DoxyExceptions}{Exceptions}
+{\em J\+W\+T\+Creation\+Exception} & \\
+\hline
+\end{DoxyExceptions}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/main/java/eu/h2020/symbiote/security/services/Token\+Service.\+java\end{DoxyCompactItemize}

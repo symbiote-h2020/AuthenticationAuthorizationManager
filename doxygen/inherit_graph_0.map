@@ -1,0 +1,7 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node2" href="$classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1ApplicationRegistrationRequestConsumerService.html" title="eu.h2020.symbiote.security.amqp.consumers.\lApplicationRegistrationRequestConsumerService" alt="" coords="180,5,489,47"/>
+<area shape="rect" id="node3" href="$classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1CheckTokenRevocationRequestConsumerService.html" title="eu.h2020.symbiote.security.amqp.consumers.\lCheckTokenRevocationRequestConsumerService" alt="" coords="177,71,492,112"/>
+<area shape="rect" id="node4" href="$classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1LoginRequestConsumerService.html" title="eu.h2020.symbiote.security.amqp.consumers.\lLoginRequestConsumerService" alt="" coords="189,136,480,177"/>
+<area shape="rect" id="node5" href="$classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1OwnedPlatformDetailsRequestConsumerService.html" title="eu.h2020.symbiote.security.amqp.consumers.\lOwnedPlatformDetailsRequestConsumerService" alt="" coords="181,201,488,243"/>
+<area shape="rect" id="node6" href="$classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1PlatformRegistrationRequestConsumerService.html" title="eu.h2020.symbiote.security.amqp.consumers.\lPlatformRegistrationRequestConsumerService" alt="" coords="187,267,482,308"/>
+</map>

@@ -1,0 +1,57 @@
+\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1rest_1_1TokenController}{}\section{eu.\+h2020.\+symbiote.\+security.\+rest.\+Token\+Controller Class Reference}
+\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1rest_1_1TokenController}\index{eu.\+h2020.\+symbiote.\+security.\+rest.\+Token\+Controller@{eu.\+h2020.\+symbiote.\+security.\+rest.\+Token\+Controller}}
+
+
+Collaboration diagram for eu.\+h2020.\+symbiote.\+security.\+rest.\+Token\+Controller\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=241pt]{classeu_1_1h2020_1_1symbiote_1_1security_1_1rest_1_1TokenController__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+{\bfseries Token\+Controller} (\hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1services_1_1TokenService}{Token\+Service} token\+Service, \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1rest_1_1OtherController}{Other\+Controller} other\+Controller, \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager}{Registration\+Manager} registration\+Manager)\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1rest_1_1TokenController_a874c25b7344d2e3c4a1f31e60cb5470e}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1rest_1_1TokenController_a874c25b7344d2e3c4a1f31e60cb5470e}
+
+\item 
+Response\+Entity$<$?$>$ \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1rest_1_1TokenController_a9147c8773dcc5641313470146020ddbd}{request\+Federated\+Home\+Token} (@Request\+Header(A\+A\+M\+Constants.\+T\+O\+K\+E\+N\+\_\+\+H\+E\+A\+D\+E\+R\+\_\+\+N\+A\+ME) String received\+Token\+String)
+\item 
+Response\+Entity$<$ Check\+Revocation\+Response $>$ \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1rest_1_1TokenController_a1393bd5ddb530a43c3021a4cd422bb7a}{check\+Home\+Token\+Revocation} (@Request\+Header(A\+A\+M\+Constants.\+T\+O\+K\+E\+N\+\_\+\+H\+E\+A\+D\+E\+R\+\_\+\+N\+A\+ME) String token\+String)
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Spring controller to handle H\+T\+T\+PS requests related to the R\+E\+S\+Tful web services associated to token objects in Cloud A\+AM component.
+
+\begin{DoxyAuthor}{Author}
+Daniele Caldarola (C\+N\+IT) 
+
+Nemanja Ignjatov (U\+N\+I\+V\+IE) 
+\end{DoxyAuthor}
+\begin{DoxySeeAlso}{See also}
+Token\+Service 
+\end{DoxySeeAlso}
+
+
+\subsection{Member Function Documentation}
+\index{eu\+::h2020\+::symbiote\+::security\+::rest\+::\+Token\+Controller@{eu\+::h2020\+::symbiote\+::security\+::rest\+::\+Token\+Controller}!check\+Home\+Token\+Revocation@{check\+Home\+Token\+Revocation}}
+\index{check\+Home\+Token\+Revocation@{check\+Home\+Token\+Revocation}!eu\+::h2020\+::symbiote\+::security\+::rest\+::\+Token\+Controller@{eu\+::h2020\+::symbiote\+::security\+::rest\+::\+Token\+Controller}}
+\subsubsection[{\texorpdfstring{check\+Home\+Token\+Revocation("@Request\+Header(\+A\+A\+M\+Constants.\+T\+O\+K\+E\+N\+\_\+\+H\+E\+A\+D\+E\+R\+\_\+\+N\+A\+M\+E) String token\+String)}{checkHomeTokenRevocation(@RequestHeader(AAMConstants.TOKEN_HEADER_NAME) String tokenString)}}]{\setlength{\rightskip}{0pt plus 5cm}Response\+Entity$<$Check\+Revocation\+Response$>$ eu.\+h2020.\+symbiote.\+security.\+rest.\+Token\+Controller.\+check\+Home\+Token\+Revocation (
+\begin{DoxyParamCaption}
+\item[{@Request\+Header(A\+A\+M\+Constants.\+T\+O\+K\+E\+N\+\_\+\+H\+E\+A\+D\+E\+R\+\_\+\+N\+A\+ME) String}]{token\+String}
+\end{DoxyParamCaption}
+)}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1rest_1_1TokenController_a1393bd5ddb530a43c3021a4cd422bb7a}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1rest_1_1TokenController_a1393bd5ddb530a43c3021a4cd422bb7a}
+L1 Diagrams -\/ check\+\_\+token\+\_\+revocation() T\+O\+DO R3 \index{eu\+::h2020\+::symbiote\+::security\+::rest\+::\+Token\+Controller@{eu\+::h2020\+::symbiote\+::security\+::rest\+::\+Token\+Controller}!request\+Federated\+Home\+Token@{request\+Federated\+Home\+Token}}
+\index{request\+Federated\+Home\+Token@{request\+Federated\+Home\+Token}!eu\+::h2020\+::symbiote\+::security\+::rest\+::\+Token\+Controller@{eu\+::h2020\+::symbiote\+::security\+::rest\+::\+Token\+Controller}}
+\subsubsection[{\texorpdfstring{request\+Federated\+Home\+Token("@Request\+Header(\+A\+A\+M\+Constants.\+T\+O\+K\+E\+N\+\_\+\+H\+E\+A\+D\+E\+R\+\_\+\+N\+A\+M\+E) String received\+Token\+String)}{requestFederatedHomeToken(@RequestHeader(AAMConstants.TOKEN_HEADER_NAME) String receivedTokenString)}}]{\setlength{\rightskip}{0pt plus 5cm}Response\+Entity$<$?$>$ eu.\+h2020.\+symbiote.\+security.\+rest.\+Token\+Controller.\+request\+Federated\+Home\+Token (
+\begin{DoxyParamCaption}
+\item[{@Request\+Header(A\+A\+M\+Constants.\+T\+O\+K\+E\+N\+\_\+\+H\+E\+A\+D\+E\+R\+\_\+\+N\+A\+ME) String}]{received\+Token\+String}
+\end{DoxyParamCaption}
+)}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1rest_1_1TokenController_a9147c8773dcc5641313470146020ddbd}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1rest_1_1TokenController_a9147c8773dcc5641313470146020ddbd}
+L1 Diagrams -\/ request\+\_\+foreign\+\_\+token() T\+O\+DO R3 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/main/java/eu/h2020/symbiote/security/rest/Token\+Controller.\+java\end{DoxyCompactItemize}

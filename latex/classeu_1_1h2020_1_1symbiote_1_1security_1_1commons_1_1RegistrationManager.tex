@@ -1,0 +1,179 @@
+\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager}{}\section{eu.\+h2020.\+symbiote.\+security.\+commons.\+Registration\+Manager Class Reference}
+\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager}\index{eu.\+h2020.\+symbiote.\+security.\+commons.\+Registration\+Manager@{eu.\+h2020.\+symbiote.\+security.\+commons.\+Registration\+Manager}}
+
+
+Collaboration diagram for eu.\+h2020.\+symbiote.\+security.\+commons.\+Registration\+Manager\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=265pt]{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+Issuing\+Authority\+Type \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a91aae367f791d2443bc515b2a1e85e6c}{get\+Deployment\+Type} ()
+\item 
+String \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a913089ea97d7dc5e4ad18456732cf518}{get\+A\+A\+M\+Instance\+Identifier} ()
+\item 
+Key\+Pair {\bfseries create\+Key\+Pair} ()  throws No\+Such\+Provider\+Exception, No\+Such\+Algorithm\+Exception,             Invalid\+Algorithm\+Parameter\+Exception \hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_ab6d69999be9f251c5e8d8d99539a1d09}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_ab6d69999be9f251c5e8d8d99539a1d09}
+
+\item 
+String {\bfseries convert\+X509\+To\+P\+EM} (X509\+Certificate signed\+Certificate)  throws I\+O\+Exception \hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a9cc618e3776ae6003c97e4f78359c1f6}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a9cc618e3776ae6003c97e4f78359c1f6}
+
+\item 
+String {\bfseries convert\+Private\+Key\+To\+P\+EM} (Private\+Key private\+Key)  throws I\+O\+Exception \hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_aa4d9b397346819f854e658f753bb6327}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_aa4d9b397346819f854e658f753bb6327}
+
+\item 
+X509\+Certificate {\bfseries convert\+P\+E\+M\+To\+X509} (String pem\+Certificate)  throws I\+O\+Exception, Certificate\+Exception \hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a4cd2fc240d24c8d3516960115565d34f}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a4cd2fc240d24c8d3516960115565d34f}
+
+\item 
+Private\+Key {\bfseries convert\+P\+E\+M\+To\+Private\+Key} (String pem\+Privatekey)  throws I\+O\+Exception, Certificate\+Exception \hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a5dfadf87c49497e97b516f9364d6cb1e}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a5dfadf87c49497e97b516f9364d6cb1e}
+
+\item 
+X509\+Certificate {\bfseries create\+E\+C\+Cert} (String application\+Username, Public\+Key pub\+Key)  throws No\+Such\+Provider\+Exception,             Key\+Store\+Exception,             I\+O\+Exception,             Certificate\+Exception,             No\+Such\+Algorithm\+Exception,             Unrecoverable\+Key\+Exception,             Operator\+Creation\+Exception \hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a0314ce25d908c19e4ee74aa7a16e774f}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a0314ce25d908c19e4ee74aa7a16e774f}
+
+\item 
+String \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_ad0d8b5b76a7a4e6af7cc05da24ceb372}{get\+A\+A\+M\+Cert} ()  throws No\+Such\+Provider\+Exception, Key\+Store\+Exception, I\+O\+Exception,             Certificate\+Exception, No\+Such\+Algorithm\+Exception 
+\item 
+X509\+Certificate \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a6da67f355303984fd200d15e4f0f65e9}{get\+A\+A\+M\+Certificate} ()  throws Key\+Store\+Exception, No\+Such\+Provider\+Exception, I\+O\+Exception,             No\+Such\+Algorithm\+Exception, Certificate\+Exception 
+\item 
+Public\+Key \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a0a21033808e632706ce98665013df616}{get\+A\+A\+M\+Public\+Key} ()  throws No\+Such\+Provider\+Exception, Key\+Store\+Exception, I\+O\+Exception,             Certificate\+Exception, No\+Such\+Algorithm\+Exception 
+\item 
+Private\+Key \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a66fb3d06fce378aa7c1a1eb37528fcea}{get\+A\+A\+M\+Private\+Key} ()  throws No\+Such\+Provider\+Exception, Key\+Store\+Exception, I\+O\+Exception,             Certificate\+Exception, No\+Such\+Algorithm\+Exception, Unrecoverable\+Key\+Exception 
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Certificate related set of functions.
+
+\begin{DoxyAuthor}{Author}
+Daniele Caldarola (C\+N\+IT) 
+
+Nemanja Ignjatov (U\+N\+I\+V\+IE) 
+
+Mikołaj Dobski (P\+S\+NC) 
+\end{DoxyAuthor}
+
+
+\subsection{Member Function Documentation}
+\index{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager}!get\+A\+A\+M\+Cert@{get\+A\+A\+M\+Cert}}
+\index{get\+A\+A\+M\+Cert@{get\+A\+A\+M\+Cert}!eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager}}
+\subsubsection[{\texorpdfstring{get\+A\+A\+M\+Cert()}{getAAMCert()}}]{\setlength{\rightskip}{0pt plus 5cm}String eu.\+h2020.\+symbiote.\+security.\+commons.\+Registration\+Manager.\+get\+A\+A\+M\+Cert (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) throws No\+Such\+Provider\+Exception, Key\+Store\+Exception, I\+O\+Exception,             Certificate\+Exception, No\+Such\+Algorithm\+Exception}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_ad0d8b5b76a7a4e6af7cc05da24ceb372}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_ad0d8b5b76a7a4e6af7cc05da24ceb372}
+\begin{DoxyReturn}{Returns}
+Retrieves A\+AM\textquotesingle{}s certificate in P\+EM format 
+\end{DoxyReturn}
+
+\begin{DoxyExceptions}{Exceptions}
+{\em No\+Such\+Provider\+Exception} & \\
+\hline
+{\em Key\+Store\+Exception} & \\
+\hline
+{\em I\+O\+Exception} & \\
+\hline
+{\em Certificate\+Exception} & \\
+\hline
+{\em No\+Such\+Algorithm\+Exception} & \\
+\hline
+\end{DoxyExceptions}
+\index{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager}!get\+A\+A\+M\+Certificate@{get\+A\+A\+M\+Certificate}}
+\index{get\+A\+A\+M\+Certificate@{get\+A\+A\+M\+Certificate}!eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager}}
+\subsubsection[{\texorpdfstring{get\+A\+A\+M\+Certificate()}{getAAMCertificate()}}]{\setlength{\rightskip}{0pt plus 5cm}X509\+Certificate eu.\+h2020.\+symbiote.\+security.\+commons.\+Registration\+Manager.\+get\+A\+A\+M\+Certificate (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) throws Key\+Store\+Exception, No\+Such\+Provider\+Exception, I\+O\+Exception,             No\+Such\+Algorithm\+Exception, Certificate\+Exception}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a6da67f355303984fd200d15e4f0f65e9}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a6da67f355303984fd200d15e4f0f65e9}
+\begin{DoxyReturn}{Returns}
+A\+AM certificate in X509 format 
+\end{DoxyReturn}
+
+\begin{DoxyExceptions}{Exceptions}
+{\em Key\+Store\+Exception} & \\
+\hline
+{\em No\+Such\+Provider\+Exception} & \\
+\hline
+{\em I\+O\+Exception} & \\
+\hline
+{\em No\+Such\+Algorithm\+Exception} & \\
+\hline
+{\em Certificate\+Exception} & \\
+\hline
+\end{DoxyExceptions}
+\index{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager}!get\+A\+A\+M\+Instance\+Identifier@{get\+A\+A\+M\+Instance\+Identifier}}
+\index{get\+A\+A\+M\+Instance\+Identifier@{get\+A\+A\+M\+Instance\+Identifier}!eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager}}
+\subsubsection[{\texorpdfstring{get\+A\+A\+M\+Instance\+Identifier()}{getAAMInstanceIdentifier()}}]{\setlength{\rightskip}{0pt plus 5cm}String eu.\+h2020.\+symbiote.\+security.\+commons.\+Registration\+Manager.\+get\+A\+A\+M\+Instance\+Identifier (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a913089ea97d7dc5e4ad18456732cf518}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a913089ea97d7dc5e4ad18456732cf518}
+\begin{DoxyReturn}{Returns}
+resolves the aam instance identifier using the A\+AM certificate 
+\end{DoxyReturn}
+\index{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager}!get\+A\+A\+M\+Private\+Key@{get\+A\+A\+M\+Private\+Key}}
+\index{get\+A\+A\+M\+Private\+Key@{get\+A\+A\+M\+Private\+Key}!eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager}}
+\subsubsection[{\texorpdfstring{get\+A\+A\+M\+Private\+Key()}{getAAMPrivateKey()}}]{\setlength{\rightskip}{0pt plus 5cm}Private\+Key eu.\+h2020.\+symbiote.\+security.\+commons.\+Registration\+Manager.\+get\+A\+A\+M\+Private\+Key (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) throws No\+Such\+Provider\+Exception, Key\+Store\+Exception, I\+O\+Exception,             Certificate\+Exception, No\+Such\+Algorithm\+Exception, Unrecoverable\+Key\+Exception}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a66fb3d06fce378aa7c1a1eb37528fcea}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a66fb3d06fce378aa7c1a1eb37528fcea}
+\begin{DoxyReturn}{Returns}
+retrieves A\+AM\textquotesingle{}s private key from provisioned Java\+Key\+Store 
+\end{DoxyReturn}
+
+\begin{DoxyExceptions}{Exceptions}
+{\em No\+Such\+Provider\+Exception} & \\
+\hline
+{\em Key\+Store\+Exception} & \\
+\hline
+{\em I\+O\+Exception} & \\
+\hline
+{\em Certificate\+Exception} & \\
+\hline
+{\em No\+Such\+Algorithm\+Exception} & \\
+\hline
+{\em Unrecoverable\+Key\+Exception} & \\
+\hline
+\end{DoxyExceptions}
+\index{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager}!get\+A\+A\+M\+Public\+Key@{get\+A\+A\+M\+Public\+Key}}
+\index{get\+A\+A\+M\+Public\+Key@{get\+A\+A\+M\+Public\+Key}!eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager}}
+\subsubsection[{\texorpdfstring{get\+A\+A\+M\+Public\+Key()}{getAAMPublicKey()}}]{\setlength{\rightskip}{0pt plus 5cm}Public\+Key eu.\+h2020.\+symbiote.\+security.\+commons.\+Registration\+Manager.\+get\+A\+A\+M\+Public\+Key (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+) throws No\+Such\+Provider\+Exception, Key\+Store\+Exception, I\+O\+Exception,             Certificate\+Exception, No\+Such\+Algorithm\+Exception}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a0a21033808e632706ce98665013df616}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a0a21033808e632706ce98665013df616}
+\begin{DoxyReturn}{Returns}
+Retrieves A\+AM\textquotesingle{}s public key from provisioned Java\+Key\+Store 
+\end{DoxyReturn}
+
+\begin{DoxyExceptions}{Exceptions}
+{\em No\+Such\+Provider\+Exception} & \\
+\hline
+{\em Key\+Store\+Exception} & \\
+\hline
+{\em I\+O\+Exception} & \\
+\hline
+{\em Certificate\+Exception} & \\
+\hline
+{\em No\+Such\+Algorithm\+Exception} & \\
+\hline
+\end{DoxyExceptions}
+\index{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager}!get\+Deployment\+Type@{get\+Deployment\+Type}}
+\index{get\+Deployment\+Type@{get\+Deployment\+Type}!eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager@{eu\+::h2020\+::symbiote\+::security\+::commons\+::\+Registration\+Manager}}
+\subsubsection[{\texorpdfstring{get\+Deployment\+Type()}{getDeploymentType()}}]{\setlength{\rightskip}{0pt plus 5cm}Issuing\+Authority\+Type eu.\+h2020.\+symbiote.\+security.\+commons.\+Registration\+Manager.\+get\+Deployment\+Type (
+\begin{DoxyParamCaption}
+{}
+\end{DoxyParamCaption}
+)}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a91aae367f791d2443bc515b2a1e85e6c}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1commons_1_1RegistrationManager_a91aae367f791d2443bc515b2a1e85e6c}
+\begin{DoxyReturn}{Returns}
+resolves the deployment type using the A\+AM certificate 
+\end{DoxyReturn}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/main/java/eu/h2020/symbiote/security/commons/Registration\+Manager.\+java\end{DoxyCompactItemize}

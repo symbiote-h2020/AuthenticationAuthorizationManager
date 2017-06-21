@@ -1,0 +1,94 @@
+\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1OwnedPlatformDetailsRequestConsumerService}{}\section{eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Owned\+Platform\+Details\+Request\+Consumer\+Service Class Reference}
+\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1OwnedPlatformDetailsRequestConsumerService}\index{eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Owned\+Platform\+Details\+Request\+Consumer\+Service@{eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Owned\+Platform\+Details\+Request\+Consumer\+Service}}
+
+
+Inheritance diagram for eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Owned\+Platform\+Details\+Request\+Consumer\+Service\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=310pt]{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1OwnedPlatformDetailsRequestConsumerService__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Owned\+Platform\+Details\+Request\+Consumer\+Service\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=310pt]{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1OwnedPlatformDetailsRequestConsumerService__coll__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1OwnedPlatformDetailsRequestConsumerService_a79b32cc135bcb5cdef4783308bdbeffa}{Owned\+Platform\+Details\+Request\+Consumer\+Service} (Channel channel, \hyperlink{interfaceeu_1_1h2020_1_1symbiote_1_1security_1_1repositories_1_1UserRepository}{User\+Repository} user\+Repository, \hyperlink{interfaceeu_1_1h2020_1_1symbiote_1_1security_1_1repositories_1_1PlatformRepository}{Platform\+Repository} platform\+Repository)
+\item 
+void \hyperlink{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1OwnedPlatformDetailsRequestConsumerService_a910d4de7fd8d139915bd0769ef19262e}{handle\+Delivery} (String consumer\+Tag, Envelope envelope, A\+M\+Q\+P.\+Basic\+Properties properties, byte\mbox{[}$\,$\mbox{]} body)  throws I\+O\+Exception 
+\end{DoxyCompactItemize}
+
+
+\subsection{Detailed Description}
+Rabbit\+MQ Consumer implementation used for providing owned platform instances details for the platform owners through Administration module 
+
+\subsection{Constructor \& Destructor Documentation}
+\index{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Owned\+Platform\+Details\+Request\+Consumer\+Service@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Owned\+Platform\+Details\+Request\+Consumer\+Service}!Owned\+Platform\+Details\+Request\+Consumer\+Service@{Owned\+Platform\+Details\+Request\+Consumer\+Service}}
+\index{Owned\+Platform\+Details\+Request\+Consumer\+Service@{Owned\+Platform\+Details\+Request\+Consumer\+Service}!eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Owned\+Platform\+Details\+Request\+Consumer\+Service@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Owned\+Platform\+Details\+Request\+Consumer\+Service}}
+\subsubsection[{\texorpdfstring{Owned\+Platform\+Details\+Request\+Consumer\+Service(\+Channel channel, User\+Repository user\+Repository, Platform\+Repository platform\+Repository)}{OwnedPlatformDetailsRequestConsumerService(Channel channel, UserRepository userRepository, PlatformRepository platformRepository)}}]{\setlength{\rightskip}{0pt plus 5cm}eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Owned\+Platform\+Details\+Request\+Consumer\+Service.\+Owned\+Platform\+Details\+Request\+Consumer\+Service (
+\begin{DoxyParamCaption}
+\item[{Channel}]{channel, }
+\item[{{\bf User\+Repository}}]{user\+Repository, }
+\item[{{\bf Platform\+Repository}}]{platform\+Repository}
+\end{DoxyParamCaption}
+)}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1OwnedPlatformDetailsRequestConsumerService_a79b32cc135bcb5cdef4783308bdbeffa}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1OwnedPlatformDetailsRequestConsumerService_a79b32cc135bcb5cdef4783308bdbeffa}
+Constructs a new instance and records its association to the passed-\/in channel. Managers beans passed as parameters because of lack of possibility to inject it to consumer.
+
+
+\begin{DoxyParams}{Parameters}
+{\em channel} & the channel to which this consumer is attached \\
+\hline
+{\em user\+Repository} & \\
+\hline
+{\em platform\+Repository} & \\
+\hline
+\end{DoxyParams}
+
+
+\subsection{Member Function Documentation}
+\index{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Owned\+Platform\+Details\+Request\+Consumer\+Service@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Owned\+Platform\+Details\+Request\+Consumer\+Service}!handle\+Delivery@{handle\+Delivery}}
+\index{handle\+Delivery@{handle\+Delivery}!eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Owned\+Platform\+Details\+Request\+Consumer\+Service@{eu\+::h2020\+::symbiote\+::security\+::amqp\+::consumers\+::\+Owned\+Platform\+Details\+Request\+Consumer\+Service}}
+\subsubsection[{\texorpdfstring{handle\+Delivery(\+String consumer\+Tag, Envelope envelope, A\+M\+Q\+P.\+Basic\+Properties properties, byte[] body)}{handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body)}}]{\setlength{\rightskip}{0pt plus 5cm}void eu.\+h2020.\+symbiote.\+security.\+amqp.\+consumers.\+Owned\+Platform\+Details\+Request\+Consumer\+Service.\+handle\+Delivery (
+\begin{DoxyParamCaption}
+\item[{String}]{consumer\+Tag, }
+\item[{Envelope}]{envelope, }
+\item[{A\+M\+Q\+P.\+Basic\+Properties}]{properties, }
+\item[{byte\mbox{[}$\,$\mbox{]}}]{body}
+\end{DoxyParamCaption}
+) throws I\+O\+Exception}\hypertarget{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1OwnedPlatformDetailsRequestConsumerService_a910d4de7fd8d139915bd0769ef19262e}{}\label{classeu_1_1h2020_1_1symbiote_1_1security_1_1amqp_1_1consumers_1_1OwnedPlatformDetailsRequestConsumerService_a910d4de7fd8d139915bd0769ef19262e}
+Called when a {\ttfamily {\bfseries basic.\+deliver}} is received for this consumer.
+
+
+\begin{DoxyParams}{Parameters}
+{\em consumer\+Tag} & the {\itshape consumer tag} associated with the consumer \\
+\hline
+{\em envelope} & packaging data for the message \\
+\hline
+{\em properties} & content header data for the message \\
+\hline
+{\em body} & the message body (opaque, client-\/specific byte array) \\
+\hline
+\end{DoxyParams}
+
+\begin{DoxyExceptions}{Exceptions}
+{\em I\+O\+Exception} & if the consumer encounters an I/O error while processing the message \\
+\hline
+\end{DoxyExceptions}
+\begin{DoxySeeAlso}{See also}
+Envelope 
+\end{DoxySeeAlso}
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+src/main/java/eu/h2020/symbiote/security/amqp/consumers/Owned\+Platform\+Details\+Request\+Consumer\+Service.\+java\end{DoxyCompactItemize}

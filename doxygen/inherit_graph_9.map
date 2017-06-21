@@ -1,0 +1,6 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node2" href="$interfaceeu_1_1h2020_1_1symbiote_1_1security_1_1repositories_1_1PlatformRepository.html" title="eu.h2020.symbiote.security.repositories.\lPlatformRepository" alt="" coords="177,5,435,47"/>
+<area shape="rect" id="node3" href="$interfaceeu_1_1h2020_1_1symbiote_1_1security_1_1repositories_1_1RevokedCertificatesRepository.html" title="eu.h2020.symbiote.security.repositories.\lRevokedCertificatesRepository" alt="" coords="177,71,435,112"/>
+<area shape="rect" id="node4" href="$interfaceeu_1_1h2020_1_1symbiote_1_1security_1_1repositories_1_1TokenRepository.html" title="eu.h2020.symbiote.security.repositories.\lTokenRepository" alt="" coords="177,136,435,177"/>
+<area shape="rect" id="node5" href="$interfaceeu_1_1h2020_1_1symbiote_1_1security_1_1repositories_1_1UserRepository.html" title="eu.h2020.symbiote.security.repositories.\lUserRepository" alt="" coords="177,201,435,243"/>
+</map>
