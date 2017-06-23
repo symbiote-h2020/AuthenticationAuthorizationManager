@@ -34,6 +34,7 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -533,6 +534,7 @@ public class AAMUnitTests extends
         assertEquals(ValidationStatus.WRONG_AAM, response);
     }
 
+    @Ignore("TODO")
     @Test
     public void getCertificateWrongCredentialsFailure() throws OperatorCreationException, IOException {
         UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(username, password), clientId, "", UserRole.APPLICATION));
@@ -554,12 +556,12 @@ public class AAMUnitTests extends
             ResponseEntity<CertificateRequest> response2 = restTemplate.postForEntity(serverAddress + "/getCertificate",
                     new CertificateRequest(new AAM(symbioteCoreInterfaceAddress, "A test platform aam", "SomePlatformAAM", new Certificate()),
                             username,wrongpassword,clientId,csrString), CertificateRequest.class);
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             assertEquals(e.getClass(),WrongCredentialsException.class);
         }
     }
 
+    @Ignore("TODO")
     @Test
     public void getCertificateRevokedKeyFailure() throws OperatorCreationException, IOException, InterruptedException {
         UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(username, password), clientId, "", UserRole.APPLICATION));
@@ -579,7 +581,7 @@ public class AAMUnitTests extends
         String csrString = Base64.getEncoder().encodeToString(csr.getEncoded());
         ResponseEntity<CertificateRequest> response2 = restTemplate.postForEntity(serverAddress + "/getCertificate",
                 new CertificateRequest(new AAM(symbioteCoreInterfaceAddress, "A test platform aam", "SomePlatformAAM", new Certificate()),
-                       username,password,clientId,csrString), CertificateRequest.class);
+                        username, password, clientId, csrString), CertificateRequest.class);
 
         Thread.sleep(tokenValidityPeriod+1000);
 
@@ -587,10 +589,46 @@ public class AAMUnitTests extends
             ResponseEntity<CertificateRequest> response3 = restTemplate.postForEntity(serverAddress + "/getCertificate",
                     new CertificateRequest(new AAM(symbioteCoreInterfaceAddress, "A test platform aam", "SomePlatformAAM", new Certificate()),
                             username,password,clientId,csrString), CertificateRequest.class);
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             assertEquals(e.getClass(),InvalidKeyException.class);
         }
+    }
+
+    @Test
+    public void revokeUserPublicKey() throws SecurityException, CertificateException,
+            NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+        // verify that app really is in repository
+        User user = userRepository.findOne(username);
+
+        assertNotNull(user);
+
+        // verify the user keys are not yet revoked
+        assertFalse(revokedKeysRepository.exists(username));
+
+        // revocation
+        tokenManager.revoke(new Credentials(username, password), user.getCertificate());
+
+        // verify the user keys are revoked
+        assertTrue(revokedKeysRepository.exists(username));
+    }
+
+    @Test
+    public void revokeUserToken() throws SecurityException, CertificateException, InvalidKeyException {
+        // verify that app really is in repository
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+
+        // acquiring valid token
+        Token homeToken = tokenManager.createHomeToken(user);
+
+        // verify the user token is not yet revoked
+        assertFalse(revokedTokensRepository.exists(homeToken.getClaims().getId()));
+
+        // revocation
+        tokenManager.revoke(new Credentials(username, password), homeToken);
+
+        // verify the user token is revoked
+        assertTrue(revokedTokensRepository.exists(homeToken.getClaims().getId()));
     }
 
 }

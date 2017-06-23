@@ -1,15 +1,15 @@
 package eu.h2020.symbiote.security.commons;
 
+import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.exceptions.custom.SecurityMisconfigurationException;
-import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.exceptions.custom.*;
 import eu.h2020.symbiote.security.interfaces.ICoreServices;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
+import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
@@ -27,21 +27,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PublicKey;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.X509Certificate;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Class for managing operations (creation, verification checking, etc.) on
@@ -66,13 +61,14 @@ public class TokenManager {
     private RevokedKeysRepository revokedKeysRepository;
     private RevokedTokensRepository revokedTokensRepository;
     private UserRepository userRepository;
+    private PasswordEncoder passwordEncoder;
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
 
     @Autowired
     public TokenManager(ICoreServices coreServices, RegistrationManager regManager,
                         PlatformRepository platformRepository, RevokedKeysRepository revokedKeysRepository,
-                        RevokedTokensRepository revokedTokensRepository, UserRepository userRepository) {
+                        RevokedTokensRepository revokedTokensRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.coreServices = coreServices;
         this.regManager = regManager;
         this.deploymentId = regManager.getAAMInstanceIdentifier();
@@ -81,6 +77,7 @@ public class TokenManager {
         this.revokedKeysRepository = revokedKeysRepository;
         this.revokedTokensRepository = revokedTokensRepository;
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -266,6 +263,46 @@ public class TokenManager {
             return true;
         }
         return false;
+    }
+
+    public void revoke(Credentials credentials, Certificate certificate)
+            throws CertificateException, WrongCredentialsException, NotExistingUserException {
+        // user public key revocation
+        User user = userRepository.findOne(credentials.getUsername());
+        if (user == null) {
+            throw new NotExistingUserException();
+        }
+        if (passwordEncoder.matches(credentials.getPassword(), user.getPasswordEncrypted())) {
+            if (user.getCertificate().getCertificateString().equals(certificate.getCertificateString())) {
+                SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(user.getUsername());
+                Set<String> keySet = (subjectsRevokedKeys == null) ? new HashSet<>() : subjectsRevokedKeys.getRevokedKeysSet();
+                keySet.add(Base64.getEncoder().encodeToString(
+                        certificate.getX509().getPublicKey().getEncoded()));
+                // adding key to revoked repository
+                revokedKeysRepository.save(new SubjectsRevokedKeys(user.getUsername(), keySet));
+            } else {
+                throw new CertificateException();
+            }
+        } else {
+            throw new WrongCredentialsException();
+        }
+    }
+
+    public void revoke(Credentials credentials, Token token) throws CertificateException, WrongCredentialsException, NotExistingUserException, InvalidKeyException {
+        // user token revocation
+        User user = userRepository.findOne(credentials.getUsername());
+        if (user == null) {
+            throw new NotExistingUserException();
+        }
+        if (passwordEncoder.matches(credentials.getPassword(), user.getPasswordEncrypted())) {
+            if (Base64.getEncoder().encodeToString(user.getCertificate().getX509().getPublicKey().getEncoded()).equals(token.getClaims().get("spk"))) {
+                revokedTokensRepository.save(token);
+            } else {
+                throw new InvalidKeyException();
+            }
+        } else {
+            throw new WrongCredentialsException();
+        }
     }
 
 }
