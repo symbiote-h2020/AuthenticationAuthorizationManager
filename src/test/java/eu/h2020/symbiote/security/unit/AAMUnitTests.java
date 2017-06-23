@@ -13,6 +13,7 @@ import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.SecurityException;
+import eu.h2020.symbiote.security.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.payloads.*;
@@ -613,7 +614,7 @@ public class AAMUnitTests extends
     }
 
     @Test
-    public void revokeUserToken() throws SecurityException, CertificateException, InvalidKeyException {
+    public void revokeUserToken() throws SecurityException, CertificateException, InvalidKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -629,6 +630,45 @@ public class AAMUnitTests extends
 
         // verify the user token is revoked
         assertTrue(revokedTokensRepository.exists(homeToken.getClaims().getId()));
+    }
+
+    @Test
+    public void revokeUserTokenByPlatform() throws ValidationException, IOException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException {
+        // issuing dummy platform token
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
+                        .AAM_LOGIN,
+                new Credentials(username, password), String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+
+        String platformId = "platform-1";
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+
+        // issue platform registration over AMQP
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        //inject platform PEM Certificate to the database
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
+        Platform dummyPlatform = platformRepository.findOne(platformId);
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
+        platformRepository.save(dummyPlatform);
+
+        assertFalse(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
+
+        tokenManager.revoke(new Credentials(platformOwnerUsername, platformOwnerPassword), dummyHomeToken);
+
+        assertTrue(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
+
     }
 
 }
