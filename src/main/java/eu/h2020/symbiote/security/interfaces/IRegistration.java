@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.interfaces;
 
+import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import net.lingala.zip4j.exception.ZipException;
@@ -20,13 +21,13 @@ import java.util.Map;
  */
 public interface IRegistration {
     @PreAuthorize("isAuthenticated()")
-    @PostMapping(value = "/registration")
+    @PostMapping(value = AAMConstants.AAM_ADMIN_PATH + "/registration")
     ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response)
             throws SecurityException, IOException, ZipException;
 
-    @PostMapping(value = "/register")
+    @PostMapping(value = AAMConstants.AAM_PUBLIC_PATH + "/register")
     ResponseEntity<?> register(@RequestBody UserRegistrationRequest request);
 
-    @PostMapping(value = "/unregister")
+    @PostMapping(value = AAMConstants.AAM_PUBLIC_PATH + "/unregister")
     ResponseEntity<?> unregister(@RequestBody UserRegistrationRequest request);
 }

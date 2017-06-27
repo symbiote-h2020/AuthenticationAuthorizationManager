@@ -32,7 +32,7 @@ import java.util.HashMap;
  * Dummy REST service mimicking exposed AAM features required by SymbIoTe users and reachable via CoreInterface in
  * the Core and Interworking Interfaces on Platforms' side.
  *
- * @author Mikołaj Dobski (PSNC)
+ * @author Piotr Kicki (PSNC)
  */
 @RestController
 public class DummyPlatformAAM2 {
@@ -40,7 +40,7 @@ public class DummyPlatformAAM2 {
     private static final String CERTIFICATE_ALIAS = "platform-2-1-c1";
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_2.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
-    private static final String PATH = "/test/second/paam";
+    private static final String PATH = AAMConstants.AAM_PUBLIC_PATH + "/test/second/paam";
 
     public DummyPlatformAAM2() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());

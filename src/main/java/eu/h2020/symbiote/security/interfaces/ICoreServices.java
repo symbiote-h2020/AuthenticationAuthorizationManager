@@ -13,9 +13,9 @@ import java.util.List;
  * @author Mikołaj Dobski (PSNC)
  */
 public interface ICoreServices {
-    @GetMapping(value = AAMConstants.AAM_GET_CA_CERTIFICATE)
+    @GetMapping(value = AAMConstants.AAM_PUBLIC_PATH + AAMConstants.AAM_GET_CA_CERTIFICATE)
     ResponseEntity<String> getCACert();
 
-    @GetMapping(value = AAMConstants.AAM_GET_AVAILABLE_AAMS, produces = "application/json")
+    @GetMapping(value = AAMConstants.AAM_PUBLIC_PATH + AAMConstants.AAM_GET_AVAILABLE_AAMS, produces = "application/json")
     ResponseEntity<List<AAM>> getAvailableAAMs();
 }

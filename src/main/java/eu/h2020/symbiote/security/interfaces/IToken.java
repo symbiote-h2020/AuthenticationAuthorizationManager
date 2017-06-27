@@ -17,11 +17,11 @@ public interface IToken {
      * L1 Diagrams - request_foreign_token()
      * TODO R3
      */
-    @PostMapping(value = AAMConstants.AAM_REQUEST_FOREIGN_TOKEN)
-    ResponseEntity<?> requestFederatedHomeToken(@RequestHeader(AAMConstants.TOKEN_HEADER_NAME) String
-                                                        receivedTokenString);
+    @PostMapping(value = AAMConstants.AAM_PUBLIC_PATH + AAMConstants.AAM_REQUEST_FOREIGN_TOKEN)
+    ResponseEntity<?> requestFederatedHomeToken(@RequestHeader(AAMConstants.TOKEN_HEADER_NAME)
+                                                        String receivedTokenString);
 
     //L1 Diagrams - login()
-    @PostMapping(value = AAMConstants.AAM_LOGIN)
+    @PostMapping(value = AAMConstants.AAM_PUBLIC_PATH + AAMConstants.AAM_LOGIN)
     ResponseEntity<?> login(@RequestBody Credentials user);
 }

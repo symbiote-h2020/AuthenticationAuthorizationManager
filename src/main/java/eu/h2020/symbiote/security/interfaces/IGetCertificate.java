@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.interfaces;
 
+import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.session.AAM;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -19,7 +20,7 @@ import java.security.cert.CertificateException;
  * @author Maks Marcinowski (PSNC)
  */
 public interface IGetCertificate {
-    @PostMapping(value = "/getCertificate")
+    @PostMapping(value = AAMConstants.AAM_PUBLIC_PATH + "/getCertificate")
     ResponseEntity<String> getCertififcate (@RequestBody AAM homeAAM, String username, String password, String clientId, String clientCSR)
             throws WrongCredentialsException, IOException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException,
             UnrecoverableKeyException, OperatorCreationException;

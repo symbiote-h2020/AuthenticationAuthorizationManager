@@ -40,7 +40,7 @@ public class DummyPlatformAAM {
     private static final String CERTIFICATE_ALIAS = "platform-1-1-c1";
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
-    private static final String PATH = "/test/paam";
+    private static final String PATH = AAMConstants.AAM_PUBLIC_PATH + "/test/paam";
 
     public DummyPlatformAAM() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
