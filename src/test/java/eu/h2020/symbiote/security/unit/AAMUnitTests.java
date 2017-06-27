@@ -270,6 +270,23 @@ public class AAMUnitTests extends
     }
 
     @Test
+    public void validateValidToken() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException {
+        // verify that app really is in repository
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+
+        // verify the user keys are not yet revoked
+        assertFalse(revokedKeysRepository.exists(username));
+
+        // acquiring valid token
+        Token homeToken = tokenManager.createHomeToken(user);
+
+        // check if home token revoked properly
+        ValidationStatus response = tokenManager.validate(homeToken.getToken());
+        assertEquals(ValidationStatus.VALID, response);
+    }
+
+    @Test
     public void validateWrongToken() throws SecurityException, CertificateException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
