@@ -1,6 +1,10 @@
 package eu.h2020.symbiote.security.rest;
 
 import eu.h2020.symbiote.security.session.AAM;
+import org.apache.commons.codec.binary.Base64;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+
+import java.io.IOException;
 
 /**
  * Created by Maks on 2017-06-18.
@@ -13,21 +17,14 @@ public class CertificateRequest {
     private String clientId;
     private String clientCSR;
 
-    public CertificateRequest(AAM homeAAM, String username, String password, String clientId, String clientCSR){
-        this.homeAAM=homeAAM;
+    public CertificateRequest(){
+        // required by json
+    }
+    public CertificateRequest(String username, String password, String clientId, PKCS10CertificationRequest clientCSR) throws IOException {
         this.username=username;
         this.password=password;
         this.clientId=clientId;
-        this.clientCSR=clientCSR;
-    }
-
-
-    public AAM getHomeAAM() {
-        return homeAAM;
-    }
-
-    public void setHomeAAM(AAM homeAAM) {
-        this.homeAAM = homeAAM;
+        this.clientCSR= Base64.encodeBase64String(clientCSR.getEncoded());
     }
 
     public String getUsername() {

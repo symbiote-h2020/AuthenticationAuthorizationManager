@@ -2,9 +2,6 @@ package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import eu.h2020.symbiote.security.IOldSecurityHandler;
-import eu.h2020.symbiote.security.SecurityHandler;
-import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
@@ -15,7 +12,6 @@ import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.rest.CertificateRequest;
-import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
@@ -28,7 +24,6 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -343,26 +338,22 @@ public class AAMFunctionalTests extends
         assertEquals(registrationManager.getAAMCert(), response.getBody());
     }
 
-    @Ignore("TODO")
+    //@Ignore("TODO")
     @Test
     public void getCertificateOverRESTInvalidArguments() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException {
-        IOldSecurityHandler securityHandler;
-        String symbioteCoreInterfaceAddress = "http://localhost:58419";
-        securityHandler = new SecurityHandler(symbioteCoreInterfaceAddress);
-
         KeyPair pair = generateKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
                 new X500Principal("CN=Requested Test Certificate"), pair.getPublic());
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
-        String csrString = Base64.encodeBase64String(csr.getEncoded());
         try {
             ResponseEntity<CertificateRequest> response = restTemplate.postForEntity(serverAddress + "/getCertificate",
-                    new CertificateRequest(new AAM(symbioteCoreInterfaceAddress, "A test platform aam", "SomePlatformAAM", new Certificate()),
-                            usernameWithAt,password,clientId,csrString), CertificateRequest.class);
-        } catch (Exception e) {
-            assertEquals(e.getClass(),IllegalArgumentException.class);
+                    new CertificateRequest(usernameWithAt,password,clientId,csr), CertificateRequest.class);
+            //assert false;
+        } catch (HttpClientErrorException e) {
+            log.error(e);
+            assertEquals(HttpStatus.UNAUTHORIZED,e.getStatusCode());
         }
     }
 

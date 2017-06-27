@@ -2,8 +2,6 @@ package eu.h2020.symbiote.security.unit;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import eu.h2020.symbiote.security.IOldSecurityHandler;
-import eu.h2020.symbiote.security.SecurityHandler;
 import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.SubjectsRevokedKeys;
@@ -18,7 +16,6 @@ import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.rest.CertificateRequest;
-import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
@@ -35,13 +32,14 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.web.client.HttpClientErrorException;
 
 import javax.security.auth.x500.X500Principal;
 import java.io.FileInputStream;
@@ -535,16 +533,14 @@ public class AAMUnitTests extends
         assertEquals(ValidationStatus.WRONG_AAM, response);
     }
 
-    @Ignore("TODO")
+    //@Ignore("TODO")
     @Test
     public void getCertificateWrongCredentialsFailure() throws OperatorCreationException, IOException {
-        UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(username, password), clientId, "", UserRole.APPLICATION));
+        String appUsername = "NewApplication";
+
+        UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.APPLICATION));
         ResponseEntity<UserRegistrationResponse> response = restTemplate.postForEntity(serverAddress +
                 registrationUri, request, UserRegistrationResponse.class);
-
-        IOldSecurityHandler securityHandler;
-        String symbioteCoreInterfaceAddress = "http://localhost:58419";
-        securityHandler = new SecurityHandler(symbioteCoreInterfaceAddress);
 
         KeyPair pair = generateKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
@@ -552,26 +548,22 @@ public class AAMUnitTests extends
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
-        String csrString = Base64.getEncoder().encodeToString(csr.getEncoded());
         try {
             ResponseEntity<CertificateRequest> response2 = restTemplate.postForEntity(serverAddress + "/getCertificate",
-                    new CertificateRequest(new AAM(symbioteCoreInterfaceAddress, "A test platform aam", "SomePlatformAAM", new Certificate()),
-                            username,wrongpassword,clientId,csrString), CertificateRequest.class);
-        } catch (Exception e) {
-            assertEquals(WrongCredentialsException.class, e.getClass());
+                    new CertificateRequest(username,wrongpassword,clientId,csr), CertificateRequest.class);
+        } catch (HttpClientErrorException e) {
+            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         }
     }
 
-    @Ignore("TODO")
+    //@Ignore("TODO")
     @Test
     public void getCertificateRevokedKeyFailure() throws OperatorCreationException, IOException, InterruptedException {
-        UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(username, password), clientId, "", UserRole.APPLICATION));
+        String appUsername = "NewApplication";
+
+        UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.APPLICATION));
         ResponseEntity<UserRegistrationResponse> response = restTemplate.postForEntity(serverAddress +
                 registrationUri, request, UserRegistrationResponse.class);
-
-        IOldSecurityHandler securityHandler;
-        String symbioteCoreInterfaceAddress = "http://localhost:58419";
-        securityHandler = new SecurityHandler(symbioteCoreInterfaceAddress);
 
         KeyPair pair = generateKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
@@ -579,19 +571,19 @@ public class AAMUnitTests extends
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
-        String csrString = Base64.getEncoder().encodeToString(csr.getEncoded());
-        ResponseEntity<CertificateRequest> response2 = restTemplate.postForEntity(serverAddress + "/getCertificate",
-                new CertificateRequest(new AAM(symbioteCoreInterfaceAddress, "A test platform aam", "SomePlatformAAM", new Certificate()),
-                        username, password, clientId, csrString), CertificateRequest.class);
-
+        try {
+            ResponseEntity<CertificateRequest> response2 = restTemplate.postForEntity(serverAddress + "/getCertificate",
+                    new CertificateRequest(username, password, clientId, csr), CertificateRequest.class);
+        }catch(HttpClientErrorException e){
+            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+        }
         Thread.sleep(tokenValidityPeriod+1000);
-
+        //assertTrue(revokedKeysRepository.exists(appUsername));
         try{
             ResponseEntity<CertificateRequest> response3 = restTemplate.postForEntity(serverAddress + "/getCertificate",
-                    new CertificateRequest(new AAM(symbioteCoreInterfaceAddress, "A test platform aam", "SomePlatformAAM", new Certificate()),
-                            username,password,clientId,csrString), CertificateRequest.class);
-        } catch (Exception e) {
-            assertEquals(InvalidKeyException.class, e.getClass());
+                    new CertificateRequest(username,password,clientId,csr), CertificateRequest.class);
+        } catch (HttpClientErrorException e) {
+            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         }
     }
 

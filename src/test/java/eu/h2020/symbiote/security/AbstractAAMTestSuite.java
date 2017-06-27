@@ -68,6 +68,8 @@ public abstract class AbstractAAMTestSuite {
     protected RestTemplate restTemplate = new RestTemplate();
     protected ObjectMapper mapper = new ObjectMapper();
     protected String serverAddress;
+    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
+    protected String coreInterfaceAddress;
     @Value("${rabbit.queue.login.request}")
     protected String loginRequestQueue;
     @Value("${rabbit.queue.register.app.request}")
