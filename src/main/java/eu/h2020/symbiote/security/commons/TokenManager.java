@@ -1,18 +1,19 @@
 package eu.h2020.symbiote.security.commons;
 
+import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.exceptions.custom.SecurityMisconfigurationException;
-import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.exceptions.custom.*;
 import eu.h2020.symbiote.security.interfaces.ICoreServices;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
+import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
+import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.Token;
@@ -26,20 +27,16 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PublicKey;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateExpiredException;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.security.cert.X509Certificate;
+import java.util.*;
 
 /**
  * Class for managing operations (creation, verification checking, etc.) on
@@ -63,11 +60,15 @@ public class TokenManager {
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
     private RevokedKeysRepository revokedKeysRepository;
     private RevokedTokensRepository revokedTokensRepository;
+    private UserRepository userRepository;
+    private PasswordEncoder passwordEncoder;
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
 
     @Autowired
-    public TokenManager(ICoreServices coreServices, RegistrationManager regManager, PlatformRepository platformRepository, RevokedKeysRepository revokedKeysRepository, RevokedTokensRepository revokedTokensRepository) {
+    public TokenManager(ICoreServices coreServices, RegistrationManager regManager,
+                        PlatformRepository platformRepository, RevokedKeysRepository revokedKeysRepository,
+                        RevokedTokensRepository revokedTokensRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.coreServices = coreServices;
         this.regManager = regManager;
         this.deploymentId = regManager.getAAMInstanceIdentifier();
@@ -75,6 +76,8 @@ public class TokenManager {
         this.platformRepository = platformRepository;
         this.revokedKeysRepository = revokedKeysRepository;
         this.revokedTokensRepository = revokedTokensRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -156,11 +159,18 @@ public class TokenManager {
                     // relay validation to issuer
                     return validateFederatedToken(tokenString);
                 }
+
                 // check IPK is not equal to current AAM PK
                 if (!Base64.getEncoder().encodeToString(
                         regManager.getAAMCertificate().getPublicKey().getEncoded()).equals(ipk)) {
                     return ValidationStatus.REVOKED_IPK;
                 }
+
+                // check if issuer certificate is not expired
+                if (certificateExpired(regManager.getAAMCertificate())) {
+                    return ValidationStatus.EXPIRED_ISSUER_CERTIFICATE;
+                }
+
                 // todo R3 possible validation of revoked IPK from CoreAAM - check if IPK was not revoked in the core
                 // possibly throw runtime exception so that AAM crashes as it is no more valid
             } else {
@@ -176,12 +186,8 @@ public class TokenManager {
                 }
 
                 // check if issuer certificate is not expired
-                try {
-                    regManager.getAAMCertificate().checkValidity(new Date());
-                } catch (CertificateExpiredException e) {
-                    log.info(e);
+                if (certificateExpired(regManager.getAAMCertificate()))
                     return ValidationStatus.EXPIRED_ISSUER_CERTIFICATE;
-                }
 
                 // check if it is core but with not valid PK
                 if (!Base64.getEncoder().encodeToString(
@@ -199,6 +205,11 @@ public class TokenManager {
                     revokedKeysRepository.findOne(claims.getSubject()).getRevokedKeysSet().contains(spk)) {
                 return ValidationStatus.REVOKED_SPK;
             }
+
+            if (certificateExpired(userRepository.findOne(claims.getSubject()).getCertificate().getX509())) {
+                return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
+            }
+
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
             log.error(e);
@@ -242,6 +253,70 @@ public class TokenManager {
             log.error(e);
         }
         return ValidationStatus.WRONG_AAM;
+    }
+
+    private boolean certificateExpired(X509Certificate certificate) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+        try {
+            certificate.checkValidity(new Date());
+        } catch (CertificateExpiredException e) {
+            log.info(e);
+            return true;
+        }
+        return false;
+    }
+
+    public void revoke(Credentials credentials, Certificate certificate)
+            throws CertificateException, WrongCredentialsException, NotExistingUserException {
+        // user public key revocation
+        User user = userRepository.findOne(credentials.getUsername());
+        if (user == null) {
+            throw new NotExistingUserException();
+        }
+        if (passwordEncoder.matches(credentials.getPassword(), user.getPasswordEncrypted())) {
+            if (user.getCertificate().getCertificateString().equals(certificate.getCertificateString())) {
+                SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(user.getUsername());
+                Set<String> keySet = (subjectsRevokedKeys == null) ? new HashSet<>() : subjectsRevokedKeys.getRevokedKeysSet();
+                keySet.add(Base64.getEncoder().encodeToString(
+                        certificate.getX509().getPublicKey().getEncoded()));
+                // adding key to revoked repository
+                revokedKeysRepository.save(new SubjectsRevokedKeys(user.getUsername(), keySet));
+            } else {
+                throw new CertificateException();
+            }
+        } else {
+            throw new WrongCredentialsException();
+        }
+    }
+
+    public void revoke(Credentials credentials, Token token) throws CertificateException, WrongCredentialsException,
+            NotExistingUserException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException,
+            KeyStoreException, IOException, ValidationException {
+        // user token revocation
+        User user = userRepository.findOne(credentials.getUsername());
+        if (user != null) {
+            if (passwordEncoder.matches(credentials.getPassword(), user.getPasswordEncrypted())) {
+                if (Base64.getEncoder().encodeToString(user.getCertificate().getX509().getPublicKey().getEncoded()).equals(token.getClaims().get("spk"))) {
+                    revokedTokensRepository.save(token);
+                    return;
+                }
+                Map<String, AAM> aams = new HashMap<>();
+                for (AAM aam : coreServices.getAvailableAAMs().getBody())
+                    aams.put(aam.getAamInstanceId(), aam);
+                if (!aams.containsKey(token.getClaims().getIssuer()))
+                    throw new NoSuchProviderException();
+                PublicKey publicKey = aams.get(token.getClaims().getIssuer()).getCertificate().getX509().getPublicKey();
+                // check IPK
+                if (Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(token.getClaims().get("ipk").toString())) {
+                    revokedTokensRepository.save(token);
+                    return;
+                }
+                throw new ValidationException("You have no rights to this token");
+            } else {
+                throw new WrongCredentialsException();
+            }
+        } else {
+            throw new NotExistingUserException();
+        }
     }
 
 }

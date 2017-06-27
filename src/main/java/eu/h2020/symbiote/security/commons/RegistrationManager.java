@@ -80,9 +80,10 @@ public class RegistrationManager {
      * @return resolves the deployment type using the AAM certificate
      */
     public IssuingAuthorityType getDeploymentType() {
-        if (getAAMInstanceIdentifier().isEmpty())
+        String aamInstanceIdentifier = getAAMInstanceIdentifier();
+        if (aamInstanceIdentifier.isEmpty())
             return IssuingAuthorityType.NULL;
-        if (getAAMInstanceIdentifier().equals(AAMConstants.AAM_CORE_AAM_INSTANCE_ID))
+        if (aamInstanceIdentifier.equals(AAMConstants.AAM_CORE_AAM_INSTANCE_ID))
             return IssuingAuthorityType.CORE;
         return IssuingAuthorityType.PLATFORM;
     }
@@ -105,8 +106,7 @@ public class RegistrationManager {
         ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
         KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
         g.initialize(ecGenSpec, new SecureRandom());
-        KeyPair keyPair = g.generateKeyPair();
-        return keyPair;
+        return g.generateKeyPair();
     }
 
     public String convertX509ToPEM(X509Certificate signedCertificate) throws IOException {
@@ -238,8 +238,7 @@ public class RegistrationManager {
             CertificateException, NoSuchAlgorithmException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        PublicKey pubKey = pkcs12Store.getCertificate(CERTIFICATE_ALIAS).getPublicKey();
-        return pubKey;
+        return pkcs12Store.getCertificate(CERTIFICATE_ALIAS).getPublicKey();
     }
 
     /**
@@ -255,8 +254,7 @@ public class RegistrationManager {
             CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        PrivateKey privKey = (PrivateKey) pkcs12Store.getKey(CERTIFICATE_ALIAS, PV_KEY_PASSWORD.toCharArray());
-        return privKey;
+        return (PrivateKey) pkcs12Store.getKey(CERTIFICATE_ALIAS, PV_KEY_PASSWORD.toCharArray());
     }
 
     public X509Certificate generateCertificateFromCSR(PKCS10CertificationRequest request) throws NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, KeyStoreException, IOException, CertificateException, UnrecoverableKeyException, OperatorCreationException {

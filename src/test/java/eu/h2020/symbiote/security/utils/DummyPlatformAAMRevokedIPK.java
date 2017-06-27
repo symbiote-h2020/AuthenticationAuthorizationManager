@@ -35,14 +35,14 @@ import java.util.HashMap;
  * @author Mikołaj Dobski (PSNC)
  */
 @RestController
-public class DummyPlatformAAM {
-    private static final Log log = LogFactory.getLog(DummyPlatformAAM.class);
-    private static final String CERTIFICATE_ALIAS = "platform-1-1-c1";
+public class DummyPlatformAAMRevokedIPK {
+    private static final Log log = LogFactory.getLog(DummyPlatformAAMRevokedIPK.class);
+    private static final String CERTIFICATE_ALIAS = "platform-1-2-c1";
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
-    private static final String PATH = "/test/paam";
+    private static final String PATH = "/test/rev_ipk/paam";
 
-    public DummyPlatformAAM() {
+    public DummyPlatformAAMRevokedIPK() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
     }
 
@@ -56,7 +56,7 @@ public class DummyPlatformAAM {
         try {
             KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
             ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
-            Key key = ks.getKey(CERTIFICATE_ALIAS, CERTIFICATE_PASSWORD.toCharArray());
+            Key key = ks.getKey(CERTIFICATE_ALIAS, "1234567".toCharArray());
 
             HashMap<String, String> attributes = new HashMap<>();
             attributes.put("name", "test2");

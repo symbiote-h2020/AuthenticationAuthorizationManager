@@ -37,6 +37,10 @@ import java.util.HashMap;
 @RestController
 public class DummyCoreAAM {
     private static final Log log = LogFactory.getLog(DummyCoreAAM.class);
+    private static final String CERTIFICATE_ALIAS = "core-2";
+    private static final String CERTIFICATE_LOCATION = "./src/test/resources/core.p12";
+    private static final String CERTIFICATE_PASSWORD = "1234567";
+    private static final String PATH = "/test/caam";
 
     public DummyCoreAAM() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -45,22 +49,21 @@ public class DummyCoreAAM {
     /**
      * acts temporarily as a core AAM
      */
-    @RequestMapping(method = RequestMethod.POST, path = "/test/caam" + AAMConstants.AAM_LOGIN, produces =
+    @RequestMapping(method = RequestMethod.POST, path = PATH + AAMConstants.AAM_LOGIN, produces =
             "application/json", consumes = "application/json")
     public ResponseEntity<?> doLogin(@RequestBody Credentials credential) {
         log.info("User trying to login " + credential.getUsername() + " - " + credential.getPassword());
         try {
-            final String ALIAS = "SymbIoTe_Core_AAM";
             KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-            ks.load(new FileInputStream("./src/test/resources/SymbIoTe_Core_AAM_TEST_other_keys_and_special_expired.p12"), "1234567".toCharArray());
-            Key key = ks.getKey(ALIAS, "1234567".toCharArray());
+            ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
+            Key key = ks.getKey(CERTIFICATE_ALIAS, CERTIFICATE_PASSWORD.toCharArray());
 
             HashMap<String, String> attributes = new HashMap<>();
             attributes.put("name", "test2");
             String tokenString = JWTEngine.generateJWTToken(credential.getUsername(), attributes, ks.getCertificate
-                            (ALIAS).getPublicKey().getEncoded(), IssuingAuthorityType.CORE, new Date().getTime()
+                            (CERTIFICATE_ALIAS).getPublicKey().getEncoded(), IssuingAuthorityType.CORE, new Date().getTime()
                             + 60000
-                    , AAMConstants.AAM_CORE_AAM_INSTANCE_ID, ks.getCertificate(ALIAS).getPublicKey(),
+                    , AAMConstants.AAM_CORE_AAM_INSTANCE_ID, ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
                     (PrivateKey) key);
 
             Token coreToken = new Token(tokenString);
@@ -78,19 +81,19 @@ public class DummyCoreAAM {
         return null;
     }
 
-    @RequestMapping(method = RequestMethod.POST, path = "/test/caam" + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION)
+    @RequestMapping(method = RequestMethod.POST, path = PATH + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION)
     public ResponseEntity<CheckRevocationResponse> checkTokenRevocation(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String token) {
         log.info("Checking token revocation " + token);
         return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.VALID), HttpStatus.OK);
     }
 
-    @RequestMapping(method = RequestMethod.GET, path = "/test/caam" + AAMConstants.AAM_GET_CA_CERTIFICATE)
+    @RequestMapping(method = RequestMethod.GET, path = PATH + AAMConstants.AAM_GET_CA_CERTIFICATE)
     public String getRootCertificate() throws NoSuchProviderException, KeyStoreException, IOException,
             UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException {
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/SymbIoTe_Core_AAM_TEST_other_keys_and_special_expired.p12"), "1234567".toCharArray());
-        X509Certificate certificate = (X509Certificate) ks.getCertificate("SymbIoTe_Core_AAM");
+        ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate(CERTIFICATE_ALIAS);
         StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
         JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
         pemWriter.writeObject(certificate);
