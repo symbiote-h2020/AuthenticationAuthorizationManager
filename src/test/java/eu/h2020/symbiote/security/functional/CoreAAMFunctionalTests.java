@@ -535,8 +535,7 @@ public class CoreAAMFunctionalTests extends
         assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
 
         // verify that platform oriented fields are properly stored
-        assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress
-                ());
+        assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress());
     }
 
     /**
