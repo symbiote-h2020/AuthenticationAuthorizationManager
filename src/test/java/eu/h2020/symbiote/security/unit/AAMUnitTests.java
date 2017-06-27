@@ -228,7 +228,7 @@ public class AAMUnitTests extends
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
         X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
-        assertEquals(csr.getSubject(), new X500Name(cert.getSubjectDN().getName()));
+        assertEquals(new X500Name(cert.getSubjectDN().getName()), csr.getSubject());
     }
 
     @Test
@@ -247,7 +247,7 @@ public class AAMUnitTests extends
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
         X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
-        assertEquals(cert.getPublicKey(), keyPair.getPublic());
+        assertEquals(keyPair.getPublic(), cert.getPublicKey());
     }
 
     @Test
@@ -558,7 +558,7 @@ public class AAMUnitTests extends
                     new CertificateRequest(new AAM(symbioteCoreInterfaceAddress, "A test platform aam", "SomePlatformAAM", new Certificate()),
                             username,wrongpassword,clientId,csrString), CertificateRequest.class);
         } catch (Exception e) {
-            assertEquals(e.getClass(),WrongCredentialsException.class);
+            assertEquals(WrongCredentialsException.class, e.getClass());
         }
     }
 
@@ -591,7 +591,7 @@ public class AAMUnitTests extends
                     new CertificateRequest(new AAM(symbioteCoreInterfaceAddress, "A test platform aam", "SomePlatformAAM", new Certificate()),
                             username,password,clientId,csrString), CertificateRequest.class);
         } catch (Exception e) {
-            assertEquals(e.getClass(),InvalidKeyException.class);
+            assertEquals(InvalidKeyException.class, e.getClass());
         }
     }
 

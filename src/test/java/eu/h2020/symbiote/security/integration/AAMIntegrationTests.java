@@ -81,20 +81,20 @@ public class AAMIntegrationTests extends
         try {
             token = internalSecurityHandler.requestFederatedCoreToken(wrongusername, password);
         } catch (SecurityHandlerException e) {
-            assertEquals(e.getMessage(), AAMConstants.ERR_WRONG_CREDENTIALS);
+            assertEquals(AAMConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
         }
         assertNull(token);
         try {
             token = internalSecurityHandler.requestFederatedCoreToken(username, wrongpassword);
         } catch (SecurityHandlerException e) {
-            assertEquals(e.getMessage(), AAMConstants.ERR_WRONG_CREDENTIALS);
+            assertEquals(AAMConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
         }
         assertNull(token);
 
         try {
             token = internalSecurityHandler.requestFederatedCoreToken(wrongusername, wrongpassword);
         } catch (SecurityHandlerException e) {
-            assertEquals(e.getMessage(), AAMConstants.ERR_WRONG_CREDENTIALS);
+            assertEquals(AAMConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
         }
         assertNull(token);
     }
@@ -110,7 +110,7 @@ public class AAMIntegrationTests extends
         try {
             token = internalSecurityHandler.requestFederatedCoreToken("", "");
         } catch (SecurityHandlerException e) {
-            assertEquals(e.getMessage(), AAMConstants.ERR_MISSING_ARGUMENTS);
+            assertEquals(AAMConstants.ERR_MISSING_ARGUMENTS, e.getMessage());
         }
         assertNull(token);
     }
