@@ -84,7 +84,7 @@ public class DummyPlatformAAM2 {
     /**
      * return valid status
      */
-    @RequestMapping(method = RequestMethod.POST, path = PATH + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION)
+    @PostMapping(path = PATH + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION)
     public ResponseEntity<CheckRevocationResponse> checkTokenRevocation(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String token) {
         log.info("Checking token revocation " + token);
@@ -92,7 +92,7 @@ public class DummyPlatformAAM2 {
                 (ValidationStatus.VALID), HttpStatus.OK);
     }
 
-    @RequestMapping(method = RequestMethod.GET, path = PATH + AAMConstants.AAM_GET_CA_CERTIFICATE)
+    @GetMapping(path = PATH + AAMConstants.AAM_GET_CA_CERTIFICATE)
     public String getRootCertificate() throws NoSuchProviderException, KeyStoreException, IOException,
             UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException {
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");

@@ -49,8 +49,7 @@ public class DummyCoreAAM {
     /**
      * acts temporarily as a core AAM
      */
-    @RequestMapping(method = RequestMethod.POST, path = PATH + AAMConstants.AAM_LOGIN, produces =
-            "application/json", consumes = "application/json")
+    @PostMapping(path = PATH + AAMConstants.AAM_LOGIN, produces = "application/json", consumes = "application/json")
     public ResponseEntity<?> doLogin(@RequestBody Credentials credential) {
         log.info("User trying to login " + credential.getUsername() + " - " + credential.getPassword());
         try {
@@ -81,14 +80,14 @@ public class DummyCoreAAM {
         return null;
     }
 
-    @RequestMapping(method = RequestMethod.POST, path = PATH + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION)
+    @PostMapping(path = PATH + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION)
     public ResponseEntity<CheckRevocationResponse> checkTokenRevocation(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String token) {
         log.info("Checking token revocation " + token);
         return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.VALID), HttpStatus.OK);
     }
 
-    @RequestMapping(method = RequestMethod.GET, path = PATH + AAMConstants.AAM_GET_CA_CERTIFICATE)
+    @GetMapping(path = PATH + AAMConstants.AAM_GET_CA_CERTIFICATE)
     public String getRootCertificate() throws NoSuchProviderException, KeyStoreException, IOException,
             UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException {
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");

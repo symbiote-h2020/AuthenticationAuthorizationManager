@@ -5,9 +5,8 @@ import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import net.lingala.zip4j.exception.ZipException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletResponse;
@@ -21,13 +20,13 @@ import java.util.Map;
  */
 public interface IRegistration {
     @PreAuthorize("isAuthenticated()")
-    @RequestMapping(value = "/registration", method = RequestMethod.POST)
+    @PostMapping(value = "/registration")
     ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response)
             throws SecurityException, IOException, ZipException;
 
-    @RequestMapping(value = "/register", method = RequestMethod.POST)
+    @PostMapping(value = "/register")
     ResponseEntity<?> register(@RequestBody UserRegistrationRequest request);
 
-    @RequestMapping(value = "/unregister", method = RequestMethod.POST)
+    @PostMapping(value = "/unregister")
     ResponseEntity<?> unregister(@RequestBody UserRegistrationRequest request);
 }

@@ -3,8 +3,7 @@ package eu.h2020.symbiote.security.interfaces;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.session.AAM;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.List;
 
@@ -14,10 +13,9 @@ import java.util.List;
  * @author Mikołaj Dobski (PSNC)
  */
 public interface ICoreServices {
-    @RequestMapping(value = AAMConstants.AAM_GET_CA_CERTIFICATE, method = RequestMethod.GET)
+    @GetMapping(value = AAMConstants.AAM_GET_CA_CERTIFICATE)
     ResponseEntity<String> getCACert();
 
-    @RequestMapping(value = AAMConstants.AAM_GET_AVAILABLE_AAMS, method = RequestMethod.GET, produces =
-            "application/json")
+    @GetMapping(value = AAMConstants.AAM_GET_AVAILABLE_AAMS, produces = "application/json")
     ResponseEntity<List<AAM>> getAvailableAAMs();
 }
