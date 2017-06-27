@@ -291,22 +291,22 @@ public class TokenManager {
     public void revoke(Credentials credentials, Token token) throws CertificateException, WrongCredentialsException,
             NotExistingUserException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException,
             KeyStoreException, IOException, ValidationException {
+        if (validate(token.getToken()) != ValidationStatus.VALID)
+            throw new ValidationException("Invalid token");
         // user token revocation
         User user = userRepository.findOne(credentials.getUsername());
         if (user != null) {
             if (passwordEncoder.matches(credentials.getPassword(), user.getPasswordEncrypted())) {
+                // user
                 if (Base64.getEncoder().encodeToString(user.getCertificate().getX509().getPublicKey().getEncoded()).equals(token.getClaims().get("spk"))) {
                     revokedTokensRepository.save(token);
                     return;
                 }
-                Map<String, AAM> aams = new HashMap<>();
-                for (AAM aam : coreServices.getAvailableAAMs().getBody())
-                    aams.put(aam.getAamInstanceId(), aam);
-                if (!aams.containsKey(token.getClaims().getIssuer()))
-                    throw new NoSuchProviderException();
-                PublicKey publicKey = aams.get(token.getClaims().getIssuer()).getCertificate().getX509().getPublicKey();
-                // check IPK
-                if (Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(token.getClaims().get("ipk").toString())) {
+                // platform owner
+                Platform platform = platformRepository.findByPlatformOwner(user);
+                if (platform != null && Base64.getEncoder().encodeToString(
+                        platform.getPlatformAAMCertificate().getX509().getPublicKey().getEncoded())
+                        .equals(token.getClaims().get("ipk").toString())) {
                     revokedTokensRepository.save(token);
                     return;
                 }
