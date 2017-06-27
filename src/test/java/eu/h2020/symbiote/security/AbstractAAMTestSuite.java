@@ -3,6 +3,7 @@ package eu.h2020.symbiote.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.amqp.RabbitManager;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
+import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.UserDetails;
@@ -47,8 +48,8 @@ public abstract class AbstractAAMTestSuite {
     protected final String wrongusername = "veryWrongTestApplicationUsername";
     protected final String wrongpassword = "veryWrongTestApplicationPassword";
     protected final String homeTokenValue = "home_token_from_platform_aam-" + username;
-    protected final String registrationUri = "register";
-    protected final String unregistrationUri = "unregister";
+    protected final String registrationUri = "/register";
+    protected final String unregistrationUri = "/unregister";
     protected final String usernameWithAt = "test@";
     protected final String clientId = "clientId";
     @Autowired
@@ -98,7 +99,7 @@ public abstract class AbstractAAMTestSuite {
     @Before
     public void setUp() throws Exception {
         // Catch the random port
-        serverAddress = "https://localhost:" + port;
+        serverAddress = "https://localhost:" + port + AAMConstants.AAM_PUBLIC_PATH;
 
 
         // Create a trust manager that does not validate certificate chains

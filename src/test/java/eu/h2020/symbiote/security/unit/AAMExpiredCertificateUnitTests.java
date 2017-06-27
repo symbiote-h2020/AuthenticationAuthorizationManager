@@ -70,7 +70,7 @@ public class AAMExpiredCertificateUnitTests extends
     @Override
     @Before
     public void setUp() throws Exception {
-        serverAddress = "https://localhost:" + port;
+        serverAddress = "https://localhost:" + port + AAMConstants.AAM_PUBLIC_PATH;
 
         // Create a trust manager that does not validate certificate chains
         TrustManager[] trustAllCerts = new TrustManager[]{

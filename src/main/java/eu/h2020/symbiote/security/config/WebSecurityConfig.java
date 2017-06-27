@@ -23,16 +23,8 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     public void configure(WebSecurity web) throws Exception {
         web.ignoring()
                 // Spring Security should completely ignore URLs starting with:
-                .antMatchers("/webjars/**",
-                        "/getCertificate",
-                        "/register",
-                        "/unregister",
-                        "/test/**", // used for dirty federation tests
-                        AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
-                        AAMConstants.AAM_GET_AVAILABLE_AAMS,
-                        AAMConstants.AAM_GET_CA_CERTIFICATE,
-                        AAMConstants.AAM_LOGIN,
-                        AAMConstants.AAM_REQUEST_FOREIGN_TOKEN
+                .antMatchers(
+                        AAMConstants.AAM_PUBLIC_PATH + "/**"
                 );
     }
 

@@ -40,7 +40,7 @@ public class DummyCoreAAM {
     private static final String CERTIFICATE_ALIAS = "core-2";
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/core.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
-    private static final String PATH = "/test/caam";
+    private static final String PATH = AAMConstants.AAM_PUBLIC_PATH + "/test/caam";
 
     public DummyCoreAAM() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
