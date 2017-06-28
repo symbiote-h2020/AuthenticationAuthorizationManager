@@ -104,7 +104,7 @@ public class TokenController implements IToken {
                 HttpEntity<String> request = new HttpEntity<>(null, headersMap);
                 RestTemplate restTemplate = new RestTemplate();
                 ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(remoteAAM.getAamAddress() +
-                        AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, request, CheckRevocationResponse.class);
+                        AAMConstants.AAM_VALIDATE, request, CheckRevocationResponse.class);
 
                 ValidationStatus validationStatus = ValidationStatus.valueOf(status.getBody().getStatus());
                 if (validationStatus != ValidationStatus.VALID) {

@@ -14,9 +14,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 
 public interface IValidation {
     /**
-     * L1 Diagrams - check_token_revocation()
      * TODO R3 refactor to ValidationStatus validate(Token String);
      */
-    @PostMapping(value = AAMConstants.AAM_PUBLIC_PATH + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION)
+    @PostMapping(value = AAMConstants.AAM_PUBLIC_PATH + AAMConstants.AAM_VALIDATE)
     ResponseEntity<CheckRevocationResponse> validate(@RequestHeader(AAMConstants.TOKEN_HEADER_NAME) String tokenString);
 }

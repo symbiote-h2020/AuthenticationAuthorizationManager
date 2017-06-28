@@ -84,7 +84,7 @@ public class DummyPlatformAAM2 {
     /**
      * return valid status
      */
-    @PostMapping(path = PATH + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION)
+    @PostMapping(path = PATH + AAMConstants.AAM_VALIDATE)
     public ResponseEntity<CheckRevocationResponse> validate(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String token) {
         log.info("Validating token " + token);

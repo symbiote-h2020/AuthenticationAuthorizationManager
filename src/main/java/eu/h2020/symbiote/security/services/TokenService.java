@@ -48,7 +48,7 @@ public class TokenService {
         return tokenManager.createHomeToken(user);
     }
 
-    public ValidationStatus checkHomeTokenRevocation(String tokenString) {
+    public ValidationStatus validate(String tokenString) {
         return tokenManager.validate(tokenString);
     }
 

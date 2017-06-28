@@ -245,7 +245,7 @@ public class TokenManager {
         // checking token revocation with proper AAM
         try {
             ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(
-                    aamAddress + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION,
+                    aamAddress + AAMConstants.AAM_VALIDATE,
                     entity, CheckRevocationResponse.class);
             if (status.getStatusCode().is2xxSuccessful())
                 return ValidationStatus.valueOf(status.getBody().getStatus());

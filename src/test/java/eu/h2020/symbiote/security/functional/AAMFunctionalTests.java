@@ -291,7 +291,7 @@ public class AAMFunctionalTests extends
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
         ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(serverAddress +
-                AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, request, CheckRevocationResponse.class);
+                AAMConstants.AAM_VALIDATE, request, CheckRevocationResponse.class);
 
         assertEquals(ValidationStatus.VALID.toString(), status.getBody().getStatus());
     }
@@ -318,7 +318,7 @@ public class AAMFunctionalTests extends
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
         ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(serverAddress +
-                AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION, request, CheckRevocationResponse.class);
+                AAMConstants.AAM_VALIDATE, request, CheckRevocationResponse.class);
 
         // TODO cover other situations (bad key, on purpose revocation)
         assertEquals(ValidationStatus.EXPIRED_TOKEN.toString(), status.getBody().getStatus());

@@ -66,7 +66,7 @@ public class ValidationRequestConsumerService extends DefaultConsumer {
             try {
                 token = om.readValue(message, Token.class);
 
-                ValidationStatus validationResponse = tokenService.checkHomeTokenRevocation
+                ValidationStatus validationResponse = tokenService.validate
                         (token.getToken());
                 response = om.writeValueAsString(new CheckRevocationResponse(validationResponse));
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
