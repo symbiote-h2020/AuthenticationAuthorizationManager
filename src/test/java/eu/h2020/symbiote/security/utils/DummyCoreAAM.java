@@ -81,9 +81,9 @@ public class DummyCoreAAM {
     }
 
     @PostMapping(path = PATH + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION)
-    public ResponseEntity<CheckRevocationResponse> checkTokenRevocation(@RequestHeader(AAMConstants
+    public ResponseEntity<CheckRevocationResponse> validate(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String token) {
-        log.info("Checking token revocation " + token);
+        log.info("Validating token " + token);
         return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.VALID), HttpStatus.OK);
     }
 

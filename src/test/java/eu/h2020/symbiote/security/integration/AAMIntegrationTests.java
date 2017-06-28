@@ -127,13 +127,13 @@ public class AAMIntegrationTests extends
      * @throws TimeoutException
      */
     @Test
-    public void checkTokenRevocationOverAMQPRequestReplyValid() throws IOException, TimeoutException,
+    public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException,
             ValidationException, SecurityHandlerException {
 
         Token token = internalSecurityHandler.requestHomeToken(username, password);
 
         ValidationStatus status = internalSecurityHandler.verifyHomeToken(token);
-        log.info("Test Client received this TokenValidationStatus: " + status.toString());
+        log.info("Test Client received this ValidationStatus: " + status.toString());
 
         assertEquals(ValidationStatus.VALID, status);
     }
@@ -238,7 +238,7 @@ public class AAMIntegrationTests extends
      * CommunicationType REST
      */
     @Test
-    public void checkTokenRevocationOverRESTValid() {
+    public void validationOverRESTValid() {
         Token token = securityHandler.requestCoreToken(username, password);
         assertNotNull(token.getToken());
         ValidationStatus status = securityHandler.verifyCoreToken(token);
@@ -253,7 +253,7 @@ public class AAMIntegrationTests extends
      * CommunicationType REST
      */
     @Test
-    public void checkTokenRevocationOverRESTExpired() throws InterruptedException {
+    public void validationOverRESTExpired() throws InterruptedException {
         Token token = securityHandler.requestCoreToken(username, password);
         assertNotNull(token.getToken());
         //Introduce latency so that JWT expires

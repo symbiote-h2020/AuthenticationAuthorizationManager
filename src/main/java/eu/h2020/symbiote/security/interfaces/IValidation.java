@@ -18,7 +18,5 @@ public interface IValidation {
      * TODO R3 refactor to ValidationStatus validate(Token String);
      */
     @PostMapping(value = AAMConstants.AAM_PUBLIC_PATH + AAMConstants.AAM_CHECK_HOME_TOKEN_REVOCATION)
-    ResponseEntity<CheckRevocationResponse> checkHomeTokenRevocation(@RequestHeader(AAMConstants
-            .TOKEN_HEADER_NAME) String tokenString);
-
+    ResponseEntity<CheckRevocationResponse> validate(@RequestHeader(AAMConstants.TOKEN_HEADER_NAME) String tokenString);
 }

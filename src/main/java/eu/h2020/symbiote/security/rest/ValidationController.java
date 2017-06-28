@@ -40,18 +40,17 @@ public class ValidationController implements IValidation {
 
 
     @Override
-    public ResponseEntity<CheckRevocationResponse> checkHomeTokenRevocation(@RequestHeader(AAMConstants
+    public ResponseEntity<CheckRevocationResponse> validate(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String tokenString) {
         try {
             // input sanity check
             JWTEngine.validateTokenString(tokenString);
             // real validation
-            return new ResponseEntity<>(new CheckRevocationResponse(validationService.checkHomeTokenRevocation(tokenString)),
+            return new ResponseEntity<>(new CheckRevocationResponse(validationService.validate(tokenString)),
                     HttpStatus.OK);
         } catch (ValidationException e) {
             log.error(e);
-            return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.UNKNOWN), HttpStatus
-                    .INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(new CheckRevocationResponse(ValidationStatus.UNKNOWN), HttpStatus.OK);
         }
     }
 }

@@ -19,7 +19,7 @@ public class ValidationService {
         this.tokenManager = tokenManager;
     }
 
-    public ValidationStatus checkHomeTokenRevocation(String tokenString) {
+    public ValidationStatus validate(String tokenString) {
         return tokenManager.validate(tokenString);
     }
 

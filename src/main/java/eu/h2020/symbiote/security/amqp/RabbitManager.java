@@ -50,10 +50,10 @@ public class RabbitManager {
     @Value("${rabbit.exchange.aam.internal}")
     private boolean AAMExchangeInternal;
 
-    @Value("${rabbit.queue.check_token_revocation.request}")
-    private String checkTokenRevocationRequestQueue;
-    @Value("${rabbit.routingKey.check_token_revocation.request}")
-    private String checkTokenRevocationRequestRoutingKey;
+    @Value("${rabbit.queue.validate.request}")
+    private String validateRequestQueue;
+    @Value("${rabbit.routingKey.validate.request}")
+    private String validateRequestRoutingKey;
 
     @Value("${rabbit.queue.login.request}")
     private String loginRequestQueue;
@@ -130,7 +130,7 @@ public class RabbitManager {
      */
     private void startConsumers() throws SecurityMisconfigurationException {
         try {
-            startConsumerOfCheckTokenRevocationRequestMessages();
+            startConsumerOfValidateRequestMessages();
             switch (deploymentType) {
                 case PLATFORM:
                     startConsumerOfLoginRequestMessages();
@@ -185,20 +185,20 @@ public class RabbitManager {
      * @throws InterruptedException
      * @throws IOException
      */
-    private void startConsumerOfCheckTokenRevocationRequestMessages() throws InterruptedException, IOException {
+    private void startConsumerOfValidateRequestMessages() throws InterruptedException, IOException {
 
-        String queueName = this.checkTokenRevocationRequestQueue;
+        String queueName = this.validateRequestQueue;
 
         Channel channel;
 
         try {
             channel = this.connection.createChannel();
             channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.checkTokenRevocationRequestRoutingKey);
+            channel.queueBind(queueName, this.AAMExchangeName, this.validateRequestRoutingKey);
 
             log.info("Authentication and Authorization Manager waiting for check token revocation request messages");
 
-            Consumer consumer = new CheckTokenRevocationRequestConsumerService(channel, tokenService);
+            Consumer consumer = new ValidationRequestConsumerService(channel, tokenService);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
             log.error(e);
@@ -338,9 +338,9 @@ public class RabbitManager {
             if (this.connection != null && this.connection.isOpen()) {
                 channel = connection.createChannel();
                 // check revocation
-                channel.queueUnbind(this.checkTokenRevocationRequestQueue, this.AAMExchangeName,
-                        this.checkTokenRevocationRequestRoutingKey);
-                channel.queueDelete(this.checkTokenRevocationRequestQueue);
+                channel.queueUnbind(this.validateRequestQueue, this.AAMExchangeName,
+                        this.validateRequestRoutingKey);
+                channel.queueDelete(this.validateRequestQueue);
                 // deployment dependent interfaces
                 switch (deploymentType) {
                     case PLATFORM:

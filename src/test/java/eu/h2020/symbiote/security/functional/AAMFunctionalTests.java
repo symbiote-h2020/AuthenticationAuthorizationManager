@@ -153,7 +153,7 @@ public class AAMFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void checkTokenRevocationOverAMQPRequestReplyValid() throws IOException, TimeoutException,
+    public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException,
             ValidationException {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
@@ -164,13 +164,13 @@ public class AAMFunctionalTests extends
         String token = headers.getFirst(AAMConstants.TOKEN_HEADER_NAME);
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                checkTokenRevocationRequestQueue,
+                validateRequestQueue,
                 10000);
         byte[] amqpResponse = client.primitiveCall(mapper.writeValueAsString(new Token(token)).getBytes());
         CheckRevocationResponse checkRevocationResponse = mapper.readValue(amqpResponse,
                 CheckRevocationResponse.class);
 
-        log.info("Test Client received this TokenValidationStatus: " + checkRevocationResponse.toJson());
+        log.info("Test Client received this ValidationStatus: " + checkRevocationResponse.toJson());
 
         assertEquals(ValidationStatus.VALID.toString(), checkRevocationResponse.getStatus());
     }
@@ -279,7 +279,7 @@ public class AAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void checkTokenRevocationOverRESTValid() {
+    public void validationOverRESTValid() {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(username, password), String.class);
@@ -304,7 +304,7 @@ public class AAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void checkTokenRevocationOverRESTExpired() throws InterruptedException {
+    public void validationOverRESTExpired() throws InterruptedException {
 
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(username, password), String.class);
