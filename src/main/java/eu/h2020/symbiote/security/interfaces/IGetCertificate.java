@@ -1,18 +1,16 @@
 package eu.h2020.symbiote.security.interfaces;
 
 import eu.h2020.symbiote.security.constants.AAMConstants;
+import eu.h2020.symbiote.security.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.exceptions.custom.WrongCredentialsException;
-import eu.h2020.symbiote.security.session.AAM;
+import eu.h2020.symbiote.security.rest.CertificateRequest;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.UnrecoverableKeyException;
+import java.security.*;
 import java.security.cert.CertificateException;
 
 /**
@@ -21,7 +19,7 @@ import java.security.cert.CertificateException;
  */
 public interface IGetCertificate {
     @PostMapping(value = AAMConstants.AAM_PUBLIC_PATH + "/getCertificate")
-    ResponseEntity<String> getCertififcate (@RequestBody AAM homeAAM, String username, String password, String clientId, String clientCSR)
+    ResponseEntity<String> getCertififcate(@RequestBody CertificateRequest certificateRequest)
             throws WrongCredentialsException, IOException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException,
-            UnrecoverableKeyException, OperatorCreationException;
+            UnrecoverableKeyException, OperatorCreationException, NotExistingUserException, InvalidKeyException;
 }
