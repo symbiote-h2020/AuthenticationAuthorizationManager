@@ -66,7 +66,7 @@ public class PlatformAAMUnitTests extends
         Token homeToken = tokenManager.createHomeToken(user);
 
         // check if home token revoked properly
-        ValidationStatus response = tokenManager.validate(homeToken.getToken());
+        ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.VALID, response);
     }
 
@@ -80,7 +80,7 @@ public class PlatformAAMUnitTests extends
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if home token revoked properly
-        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
+        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
 
@@ -94,7 +94,7 @@ public class PlatformAAMUnitTests extends
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if home token revoked properly
-        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
+        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
 
@@ -118,7 +118,7 @@ public class PlatformAAMUnitTests extends
         userRepository.save(user);
 
         // check if home token revoked properly
-        ValidationStatus response = tokenManager.validate(homeToken.getToken());
+        ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE, response);
     }
 
@@ -132,7 +132,7 @@ public class PlatformAAMUnitTests extends
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if home token revoked properly
-        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
+        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
 }

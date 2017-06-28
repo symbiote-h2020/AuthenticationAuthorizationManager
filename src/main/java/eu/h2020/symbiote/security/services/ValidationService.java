@@ -19,8 +19,8 @@ public class ValidationService {
         this.tokenManager = tokenManager;
     }
 
-    public ValidationStatus validate(String tokenString) {
-        return tokenManager.validate(tokenString);
+    public ValidationStatus validate(String tokenString, String certificateString) {
+        return tokenManager.validate(tokenString, certificateString);
     }
 
 }

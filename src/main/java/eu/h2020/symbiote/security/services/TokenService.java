@@ -48,8 +48,8 @@ public class TokenService {
         return tokenManager.createHomeToken(user);
     }
 
-    public ValidationStatus validate(String tokenString) {
-        return tokenManager.validate(tokenString);
+    public ValidationStatus validate(String tokenString, String certificateString) {
+        return tokenManager.validate(tokenString, certificateString);
     }
 
     public Token login(Credentials user) throws MissingArgumentsException, WrongCredentialsException,

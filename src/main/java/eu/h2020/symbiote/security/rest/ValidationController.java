@@ -11,9 +11,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 
@@ -40,13 +40,14 @@ public class ValidationController implements IValidation {
 
 
     @Override
-    public ResponseEntity<CheckRevocationResponse> validate(@RequestHeader(AAMConstants
-            .TOKEN_HEADER_NAME) String tokenString) {
+    public ResponseEntity<CheckRevocationResponse> validate(HttpEntity<byte[]> requestEntity) {
+        String tokenString = requestEntity.getHeaders().getFirst(AAMConstants.TOKEN_HEADER_NAME);
+        String certificateString = requestEntity.getHeaders().getFirst("X-Auth-Cert");
         try {
             // input sanity check
             JWTEngine.validateTokenString(tokenString);
             // real validation
-            return new ResponseEntity<>(new CheckRevocationResponse(validationService.validate(tokenString)),
+            return new ResponseEntity<>(new CheckRevocationResponse(validationService.validate(tokenString, certificateString)),
                     HttpStatus.OK);
         } catch (ValidationException e) {
             log.error(e);

@@ -62,7 +62,7 @@ public class PlatformExpiredCertificateUnitTests extends
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
-        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken());
+        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken(), "");
         // check if platform token is not revoked
         assertEquals(ValidationStatus.EXPIRED_ISSUER_CERTIFICATE, response);
     }

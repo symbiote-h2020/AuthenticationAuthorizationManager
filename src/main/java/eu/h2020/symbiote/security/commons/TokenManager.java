@@ -141,7 +141,7 @@ public class TokenManager {
         }
     }
 
-    public ValidationStatus validate(String tokenString) {
+    public ValidationStatus validate(String tokenString, String certificateString) {
         try {
             // basic validation (signature and exp)
             ValidationStatus validationStatus = JWTEngine.validateTokenString(tokenString);
@@ -291,7 +291,7 @@ public class TokenManager {
     public void revoke(Credentials credentials, Token token) throws CertificateException, WrongCredentialsException,
             NotExistingUserException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException,
             KeyStoreException, IOException, ValidationException {
-        if (validate(token.getToken()) != ValidationStatus.VALID)
+        if (validate(token.getToken(), "QuickFix") != ValidationStatus.VALID)
             throw new ValidationException("Invalid token");
         // user token revocation
         User user = userRepository.findOne(credentials.getUsername());

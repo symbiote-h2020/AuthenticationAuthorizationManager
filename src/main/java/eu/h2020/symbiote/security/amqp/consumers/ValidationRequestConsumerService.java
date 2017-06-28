@@ -67,7 +67,7 @@ public class ValidationRequestConsumerService extends DefaultConsumer {
                 token = om.readValue(message, Token.class);
 
                 ValidationStatus validationResponse = tokenService.validate
-                        (token.getToken());
+                        (token.getToken(), "QuickFix");
                 response = om.writeValueAsString(new CheckRevocationResponse(validationResponse));
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
 
