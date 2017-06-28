@@ -24,6 +24,7 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         web.ignoring()
                 // Spring Security should completely ignore URLs starting with:
                 .antMatchers(
+                        "/webjars/**",
                         AAMConstants.AAM_PUBLIC_PATH + "/**"
                 );
     }
@@ -35,7 +36,7 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .anyRequest().authenticated()
                 .and()
                 .formLogin()
-                .loginPage("/aam_owner_login")
+                .loginPage(AAMConstants.AAM_ADMIN_PATH + "/login")
                 .permitAll()
                 .and()
                 .logout()

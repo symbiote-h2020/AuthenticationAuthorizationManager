@@ -1,22 +1,16 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/xhtml">
     <head>
-        <title>App Registration</title>
+        <title>Login</title>
         <link rel='stylesheet' href='/webjars/bootstrap/3.3.7-1/css/bootstrap.min.css'/>
     </head>
 
     <body>
-
-
-        <div class = "page-header">
-            <h1 th:inline="text" th:class="text-center">Hello [[${#httpServletRequest.remoteUser}]]!</h1>
-            <div class="container center_div">
-                <div class="text-center">
-                    <form th:action="@{/logout}" method="post">
-                        <input id="logoutbutton" type="submit" name="logoutbutton" value="Log Out" class="btn btn-primary" />
-                    </form>
-                </div>
-            </div>
+        <div th:class="text-center" th:if="${param.error}">
+            Invalid username and password.
+        </div>
+        <div th:class="text-center" th:if="${param.logout}">
+            You have been logged out.
         </div>
 
 
@@ -24,35 +18,37 @@
             <div id="loginbox" style="margin-top:50px;" class="mainbox col-md-6 col-md-offset-3 col-sm-8 col-sm-offset-2">
                 <div class="panel panel-info" >
                     <div class="panel-heading">
-                        <div class="panel-title">App Registration</div>
+                        <div class="panel-title">AAM Admin Login</div>
                     </div>
 
                     <div style="padding-top:30px" class="panel-body" >
 
                         <div style="display:none" id="login-alert" class="alert alert-danger col-sm-12"></div>
 
-                        <form id="loginform" class="form-horizontal" role="form" th:action="@{/registration}" method="post">
+                        <form id="loginform" class="form-horizontal" role="form" th:action="@{/admin/login}"
+                              method="post">
 
                             <div style="margin-bottom: 25px" class="input-group">
                                 <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
-                                <input id="login-username" type="text" class="form-control" name="username" value="" placeholder="App Username"/>
+                                <input id="login-username" type="text" class="form-control" name="username" value=""
+                                       placeholder="AAM Admin Account"/>
                             </div>
 
                             <div style="margin-bottom: 25px" class="input-group">
                                 <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
-                                <input id="login-password" type="password" class="form-control" name="password" value="" placeholder="App Password"/>
+                                <input id="login-password" type="password" class="form-control" name="password" value=""
+                                       placeholder="AAM Admin Password"/>
                             </div>
 
                             <div style="margin-top:10px" class="form-group">
                                 <!-- Button -->
 
                                 <div class="col-sm-12 controls">
-                                    <button id="registerbutton" type="submit" name="registerbutton" class="btn btn-success">Register Application</button>
+                                    <button id="singlebutton" type="submit" name="singlebutton" class="btn btn-success">Login</button>
                                 </div>
                             </div>
 
                         </form>
-
                     </div>
 
                 </div>
@@ -60,5 +56,4 @@
         </div>
 
     </body>
-
 </html>

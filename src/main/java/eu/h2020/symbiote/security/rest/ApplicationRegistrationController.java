@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.rest;
 
 import eu.h2020.symbiote.security.commons.VirtualFile;
+import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.interfaces.IRegistration;
@@ -14,6 +15,8 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -49,7 +52,10 @@ public class ApplicationRegistrationController implements IRegistration {
         this.registrationService = registrationService;
         this.zipService = zipService;
     }
-    public ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response)
+
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping(value = AAMConstants.AAM_ADMIN_PATH + "/web_register")
+    ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response)
             throws SecurityException, IOException, ZipException {
         UserRegistrationRequest request = new UserRegistrationRequest();
         // TODO R3 incorporate federated Id (and possibly recovery e-mail)

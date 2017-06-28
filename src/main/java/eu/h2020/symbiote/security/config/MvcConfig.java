@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.config;
 
+import eu.h2020.symbiote.security.constants.AAMConstants;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
@@ -14,8 +15,8 @@ class MvcConfig extends WebMvcConfigurerAdapter {
 
     @Override
     public void addViewControllers(ViewControllerRegistry registry) {
-        registry.addViewController("/app_registration").setViewName("app_registration");
-        registry.addViewController("/aam_owner_login").setViewName("aam_owner_login");
+        registry.addViewController(AAMConstants.AAM_ADMIN_PATH + "/registration").setViewName("registration");
+        registry.addViewController(AAMConstants.AAM_ADMIN_PATH + "/login").setViewName("login");
         registry.addViewController("/error").setViewName("error");
     }
 
