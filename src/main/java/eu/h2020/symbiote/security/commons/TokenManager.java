@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.commons;
 
 import eu.h2020.symbiote.security.certificate.Certificate;
+import eu.h2020.symbiote.security.certificate.TrustChainValidator;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
@@ -217,13 +218,10 @@ public class TokenManager {
     }
 
     public ValidationStatus validateFederatedToken(String tokenString, String certificateString) throws CertificateException,
-            NullPointerException, ValidationException {
+            NullPointerException, ValidationException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
         // if can access certificate, do not have to make a relay
-        if (!certificateString.isEmpty()) {
-            // TODO certificate validation and appropriate status return
-            // if certificate is not valid return
+        if (!certificateString.isEmpty() && !TrustChainValidator.isTrusted(regManager.getAAMCertificate(), certificateString))
             return ValidationStatus.INVALID_TRUST_CHAIN;
-        }
         Map<String, AAM> aams = new HashMap<>();
         for (AAM aam : coreServices.getAvailableAAMs().getBody())
             aams.put(aam.getAamInstanceId(), aam);

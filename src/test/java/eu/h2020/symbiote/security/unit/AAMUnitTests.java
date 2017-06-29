@@ -551,7 +551,7 @@ public class AAMUnitTests extends
 
 
     @Test
-    public void validateFederatedTokenRequestFailsButThereIsCertificate() throws IOException, TimeoutException,
+    public void validateFederatedTokenRequestWithCertificate() throws IOException, TimeoutException,
             NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException, ValidationException {
         // issuing dummy platform token
@@ -585,7 +585,7 @@ public class AAMUnitTests extends
 
         // check if validation will use certificate before relay
         ValidationStatus response = tokenManager.validateFederatedToken(dummyHomeToken.getToken(), "certificate");
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
+        assertEquals(ValidationStatus.VALID, response);
     }
 
     @Test
