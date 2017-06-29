@@ -65,35 +65,35 @@ public class PlatformAAMUnitTests extends
         // acquiring valid token
         Token homeToken = tokenManager.createHomeToken(user);
 
-        // check if home token revoked properly
+        // check if home token is valid
         ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.VALID, response);
     }
 
     @Test
     public void validateRevokedIPK() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException {
-        // issuing dummy platform token
+        // issuing dummy platform token from platform with revoked certificate
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/rev_ipk/paam" + AAMConstants
                         .AAM_LOGIN,
                 new Credentials(username, password), String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
-        // check if home token revoked properly
+        // check if home token is valid
         ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
 
     @Test
     public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
-        // issuing dummy platform token
+        // issuing dummy platform token from unregistered platform
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/second/paam" + AAMConstants
                         .AAM_LOGIN,
                 new Credentials(username, password), String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
-        // check if home token revoked properly
+        // check if home token is valid
         ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
@@ -110,6 +110,7 @@ public class PlatformAAMUnitTests extends
         // acquiring valid token
         Token homeToken = tokenManager.createHomeToken(user);
 
+        // injection of expired certificate
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
         X509Certificate cert = (X509Certificate) ks.getCertificate("platform-1-1-exp-c1");
@@ -117,7 +118,7 @@ public class PlatformAAMUnitTests extends
         user.setCertificate(certificate);
         userRepository.save(user);
 
-        // check if home token revoked properly
+        // check if home token is valid
         ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE, response);
     }
@@ -131,7 +132,7 @@ public class PlatformAAMUnitTests extends
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
-        // check if home token revoked properly
+        // check if home token is valid
         ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.REVOKED_IPK, response);
     }

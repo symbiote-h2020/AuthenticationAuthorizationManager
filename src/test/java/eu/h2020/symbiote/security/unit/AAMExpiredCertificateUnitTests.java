@@ -108,7 +108,7 @@ public class AAMExpiredCertificateUnitTests extends
     public void validateIssuerCertificateExpired() throws IOException, TimeoutException,
             NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException, ValidationException, JWTCreationException {
-        // issuing dummy core token
+        // issuing dummy core token from CoreAAM with expired certificate
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" + AAMConstants
                         .AAM_LOGIN,
                 new Credentials(username, password), String.class);

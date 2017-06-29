@@ -268,7 +268,6 @@ public class AAMIntegrationTests extends
      * CommunicationType REST
      */
     @Test
-    @Ignore("TODO")
     public void getCACertOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
         ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + AAMConstants
                 .AAM_GET_CA_CERTIFICATE, String.class);

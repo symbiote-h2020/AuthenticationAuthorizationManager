@@ -169,8 +169,6 @@ public class TokenManager {
                 if (certificateExpired(regManager.getAAMCertificate())) {
                     return ValidationStatus.EXPIRED_ISSUER_CERTIFICATE;
                 }
-
-                // todo R3 possible validation of revoked IPK from CoreAAM - check if IPK was not revoked in the core
                 // possibly throw runtime exception so that AAM crashes as it is no more valid
             } else {
                 // check if IPK is in the revoked set
@@ -205,6 +203,7 @@ public class TokenManager {
                 return ValidationStatus.REVOKED_SPK;
             }
 
+            // check if subject certificate is valid
             if (certificateExpired(userRepository.findOne(claims.getSubject()).getCertificate().getX509())) {
                 return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
             }
@@ -256,6 +255,7 @@ public class TokenManager {
         } catch (Exception e) {
             log.error(e);
         }
+        // when there is problem with request
         return ValidationStatus.WRONG_AAM;
     }
 
@@ -269,6 +269,7 @@ public class TokenManager {
         return false;
     }
 
+    // certificate revoke function - not finished
     public void revoke(Credentials credentials, Certificate certificate)
             throws CertificateException, WrongCredentialsException, NotExistingUserException {
         // user public key revocation
@@ -292,6 +293,7 @@ public class TokenManager {
         }
     }
 
+    // token revoke function - not finished
     public void revoke(Credentials credentials, Token token) throws CertificateException, WrongCredentialsException,
             NotExistingUserException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException,
             KeyStoreException, IOException, ValidationException {

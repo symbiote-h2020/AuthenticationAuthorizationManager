@@ -391,6 +391,7 @@ public class CoreAAMFunctionalTests extends
                 .AAM_REQUEST_FOREIGN_TOKEN, entity, String.class);
         HttpHeaders rspHeaders = response.getHeaders();
 
+        // check if returned status is ok and if there is token in header
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(rspHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
     }
@@ -491,8 +492,7 @@ public class CoreAAMFunctionalTests extends
         assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
 
         // verify that platform oriented fields are properly stored
-        assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress
-                ());
+        assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress());
     }
 
     /**
@@ -753,8 +753,7 @@ public class CoreAAMFunctionalTests extends
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
                 (headers.getFirst(AAMConstants.TOKEN_HEADER_NAME)).getBytes());
-        OwnedPlatformDetails ownedPlatformDetails = mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails
-                .class);
+        OwnedPlatformDetails ownedPlatformDetails = mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails.class);
 
         Platform ownedPlatformInDB = platformRepository.findOne(preferredPlatformId);
 
@@ -849,8 +848,7 @@ public class CoreAAMFunctionalTests extends
                 (headers.getFirst(AAMConstants.TOKEN_HEADER_NAME)).getBytes());
 
         // verify error response
-        ErrorResponseContainer errorResponse = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer
-                .class);
+        ErrorResponseContainer errorResponse = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer.class);
         assertEquals(HttpStatus.UNAUTHORIZED.value(), errorResponse.getErrorCode());
     }
 

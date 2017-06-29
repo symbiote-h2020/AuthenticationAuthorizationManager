@@ -279,7 +279,7 @@ public class AAMUnitTests extends
         // acquiring valid token
         Token homeToken = tokenManager.createHomeToken(user);
 
-        // check if home token revoked properly
+        // check if home token is valid
         ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.VALID, response);
     }
@@ -293,7 +293,7 @@ public class AAMUnitTests extends
         // verify the user keys are not yet revoked
         assertFalse(revokedKeysRepository.exists(username));
 
-        //check if home token revoked properly
+        //check if home token is valid
         ValidationStatus response = tokenManager.validate("tokenString", "");
         assertEquals(ValidationStatus.UNKNOWN, response);
     }
@@ -313,7 +313,7 @@ public class AAMUnitTests extends
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 1000);
 
-        //check if home token revoked properly
+        //check if home token is valid
         ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.EXPIRED_TOKEN, response);
     }
@@ -332,9 +332,8 @@ public class AAMUnitTests extends
 
         // unregister the user
         userRegistrationService.unregister(username);
-        //log.debug("User successfully unregistered!");
 
-        //check if home token revoked properly
+        //check if home token is valid
         ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.REVOKED_SPK, response);
     }
@@ -351,10 +350,10 @@ public class AAMUnitTests extends
         // acquiring valid token
         Token homeToken = tokenManager.createHomeToken(user);
 
-        // add token to repository
+        // add token to revoked tokens repository
         revokedTokensRepository.save(homeToken);
 
-        // check if home token revoked properly
+        // check if home token is valid
         ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.REVOKED_TOKEN, response);
     }
@@ -385,7 +384,7 @@ public class AAMUnitTests extends
         SubjectsRevokedKeys subjectsRevokedKeys = new SubjectsRevokedKeys(issuer, keySet);
         revokedKeysRepository.save(subjectsRevokedKeys);
 
-        // check if home token revoked properly
+        // check if home token is valid
         ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
@@ -464,7 +463,7 @@ public class AAMUnitTests extends
         SubjectsRevokedKeys subjectsRevokedKeys = new SubjectsRevokedKeys(issuer, keySet);
         revokedKeysRepository.save(subjectsRevokedKeys);
 
-        // check if platform token is not revoked
+        // check if platform token is is valid
         ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
@@ -490,7 +489,7 @@ public class AAMUnitTests extends
         pemWriter.writeObject(certificate);
         pemWriter.close();
 
-        // check if platform token is not revoked
+        // check if platform token is valid
         ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
@@ -507,7 +506,7 @@ public class AAMUnitTests extends
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
-        // check if home token revoked properly
+        // check if home token is valid
         ValidationStatus response = tokenManager.validateFederatedToken(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
@@ -584,7 +583,7 @@ public class AAMUnitTests extends
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
         platformRepository.save(dummyPlatform);
 
-        // check if validation will fail due to for example connection problems
+        // check if validation will use certificate before relay
         ValidationStatus response = tokenManager.validateFederatedToken(dummyHomeToken.getToken(), "certificate");
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
@@ -641,6 +640,7 @@ public class AAMUnitTests extends
         }
     }
 
+    // test for revoke function
     @Test
     public void revokeUserPublicKey() throws SecurityException, CertificateException,
             NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
@@ -659,6 +659,7 @@ public class AAMUnitTests extends
         assertTrue(revokedKeysRepository.exists(username));
     }
 
+    // test for revoke function
     @Test
     public void revokeUserToken() throws SecurityException, CertificateException, InvalidKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException {
         // verify that app really is in repository
@@ -678,6 +679,7 @@ public class AAMUnitTests extends
         assertTrue(revokedTokensRepository.exists(homeToken.getClaims().getId()));
     }
 
+    // test for revoke function
     @Test
     public void revokeUserTokenByPlatform() throws ValidationException, IOException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException {
         // issuing dummy platform token
@@ -709,10 +711,11 @@ public class AAMUnitTests extends
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
         platformRepository.save(dummyPlatform);
 
+        // ensure that token is not in revoked token repository
         assertFalse(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
-
+        // revocation
         tokenManager.revoke(new Credentials(platformOwnerUsername, platformOwnerPassword), dummyHomeToken);
-
+        // check if token is in revoked tokens repository
         assertTrue(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
 
     }

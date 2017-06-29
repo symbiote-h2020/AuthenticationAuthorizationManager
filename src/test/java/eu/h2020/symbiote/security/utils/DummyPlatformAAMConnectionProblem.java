@@ -30,6 +30,7 @@ import java.util.HashMap;
 /**
  * Dummy REST service mimicking exposed AAM features required by SymbIoTe users and reachable via CoreInterface in
  * the Core and Interworking Interfaces on Platforms' side.
+ * Main purpose of this AAM is to simulate problems with connection during validation.
  *
  * @author Piotr Kicki (PSNC)
  */

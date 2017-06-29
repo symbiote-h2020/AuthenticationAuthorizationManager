@@ -76,7 +76,9 @@ public class AAMFunctionalTests extends
 
         log.info("Test Client received this Token: " + token.toString());
 
+        // check if token received
         assertNotNull(token);
+        // check if issuing authority is core
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
         assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
     }
@@ -93,6 +95,7 @@ public class AAMFunctionalTests extends
     @Test
     public void applicationLoginOverAMQPWrongCredentialsFailure() throws IOException, TimeoutException {
 
+        // test combinations of wrong credentials
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
 
         byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(wrongusername, password))
@@ -349,7 +352,7 @@ public class AAMFunctionalTests extends
         try {
             ResponseEntity<CertificateRequest> response = restTemplate.postForEntity(serverAddress + "/getCertificate",
                     new CertificateRequest(usernameWithAt,password,clientId,csr), CertificateRequest.class);
-            //assert false;
+            assert false;
         } catch (HttpClientErrorException e) {
             log.error(e);
             assertEquals(HttpStatus.UNAUTHORIZED,e.getStatusCode());
