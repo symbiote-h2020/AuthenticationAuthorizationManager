@@ -508,7 +508,7 @@ public class AAMUnitTests extends
                 .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if home token revoked properly
-        ValidationStatus response = tokenManager.validateFederatedToken(dummyHomeToken.getToken());
+        ValidationStatus response = tokenManager.validateFederatedToken(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
 
@@ -546,11 +546,49 @@ public class AAMUnitTests extends
         platformRepository.save(dummyPlatform);
 
         // check if validation will fail due to for example connection problems
-        ValidationStatus response = tokenManager.validateFederatedToken(dummyHomeToken.getToken());
+        ValidationStatus response = tokenManager.validateFederatedToken(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.WRONG_AAM, response);
     }
 
-    //@Ignore("TODO")
+
+    @Test
+    public void validateFederatedTokenRequestFailsButThereIsCertificate() throws IOException, TimeoutException,
+            NoSuchProviderException, KeyStoreException, CertificateException,
+            NoSuchAlgorithmException, ValidationException {
+        // issuing dummy platform token
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/conn_err/paam" + AAMConstants
+                        .AAM_LOGIN,
+                new Credentials(username, password), String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+
+        String platformId = "testaam-connerr";
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test/conn_err");
+
+        // issue platform registration over AMQP
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        //inject platform PEM Certificate to the database
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
+        Platform dummyPlatform = platformRepository.findOne(platformId);
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
+        platformRepository.save(dummyPlatform);
+
+        // check if validation will fail due to for example connection problems
+        ValidationStatus response = tokenManager.validateFederatedToken(dummyHomeToken.getToken(), "certificate");
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
+    }
+
     @Test
     public void getCertificateWrongCredentialsFailure() throws OperatorCreationException, IOException {
         String appUsername = "NewApplication";
@@ -573,7 +611,6 @@ public class AAMUnitTests extends
         }
     }
 
-    //@Ignore("TODO")
     @Test
     public void getCertificateRevokedKeyFailure() throws OperatorCreationException, IOException, InterruptedException {
         String appUsername = "NewApplication";

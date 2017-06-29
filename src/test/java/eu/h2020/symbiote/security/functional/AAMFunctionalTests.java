@@ -338,7 +338,6 @@ public class AAMFunctionalTests extends
         assertEquals(registrationManager.getAAMCert(), response.getBody());
     }
 
-    //@Ignore("TODO")
     @Test
     public void getCertificateOverRESTInvalidArguments() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException {
         KeyPair pair = generateKeyPair();

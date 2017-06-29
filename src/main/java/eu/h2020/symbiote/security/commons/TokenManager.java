@@ -157,7 +157,7 @@ public class TokenManager {
             if (deploymentType != IssuingAuthorityType.CORE) {
                 if (!deploymentId.equals(claims.getIssuer())) {
                     // relay validation to issuer
-                    return validateFederatedToken(tokenString);
+                    return validateFederatedToken(tokenString, certificateString);
                 }
 
                 // check IPK is not equal to current AAM PK
@@ -182,7 +182,7 @@ public class TokenManager {
                 // check if core is not an issuer
                 if (!deploymentId.equals(claims.getIssuer())) {
                     // relay validation to issuer
-                    return validateFederatedToken(tokenString);
+                    return validateFederatedToken(tokenString, certificateString);
                 }
 
                 // check if issuer certificate is not expired
@@ -218,8 +218,14 @@ public class TokenManager {
         return ValidationStatus.VALID;
     }
 
-    public ValidationStatus validateFederatedToken(String tokenString) throws CertificateException,
+    public ValidationStatus validateFederatedToken(String tokenString, String certificateString) throws CertificateException,
             NullPointerException, ValidationException {
+        // if can access certificate, do not have to make a relay
+        if (!certificateString.isEmpty()) {
+            // TODO certificate validation and appropriate status return
+            // if certificate is not valid return
+            return ValidationStatus.INVALID_TRUST_CHAIN;
+        }
         Map<String, AAM> aams = new HashMap<>();
         for (AAM aam : coreServices.getAvailableAAMs().getBody())
             aams.put(aam.getAamInstanceId(), aam);
@@ -291,7 +297,7 @@ public class TokenManager {
     public void revoke(Credentials credentials, Token token) throws CertificateException, WrongCredentialsException,
             NotExistingUserException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException,
             KeyStoreException, IOException, ValidationException {
-        if (validate(token.getToken(), "QuickFix") != ValidationStatus.VALID)
+        if (validate(token.getToken(), "") != ValidationStatus.VALID)
             throw new ValidationException("Invalid token");
         // user token revocation
         User user = userRepository.findOne(credentials.getUsername());
