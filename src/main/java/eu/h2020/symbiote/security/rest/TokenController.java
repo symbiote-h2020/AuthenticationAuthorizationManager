@@ -9,7 +9,6 @@ import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.interfaces.ICoreServices;
 import eu.h2020.symbiote.security.interfaces.IToken;
-import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.services.TokenService;
@@ -103,10 +102,10 @@ public class TokenController implements IToken {
                 headersMap.add(AAMConstants.TOKEN_HEADER_NAME, receivedToken.toString());
                 HttpEntity<String> request = new HttpEntity<>(null, headersMap);
                 RestTemplate restTemplate = new RestTemplate();
-                ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(remoteAAM.getAamAddress() +
-                        AAMConstants.AAM_VALIDATE, request, CheckRevocationResponse.class);
+                ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(remoteAAM.getAamAddress() +
+                        AAMConstants.AAM_VALIDATE, request, ValidationStatus.class);
 
-                ValidationStatus validationStatus = ValidationStatus.valueOf(status.getBody().getStatus());
+                ValidationStatus validationStatus = status.getBody();
                 if (validationStatus != ValidationStatus.VALID) {
                     log.debug("Couldn't find AAM related with the given token");
                     return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);

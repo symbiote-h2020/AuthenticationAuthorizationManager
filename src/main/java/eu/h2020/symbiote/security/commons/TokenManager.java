@@ -8,7 +8,6 @@ import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.custom.*;
 import eu.h2020.symbiote.security.interfaces.ICoreServices;
-import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
@@ -250,11 +249,10 @@ public class TokenManager {
         HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
         // checking token revocation with proper AAM
         try {
-            ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(
+            ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(
                     aamAddress + AAMConstants.AAM_VALIDATE,
-                    entity, CheckRevocationResponse.class);
-            if (status.getStatusCode().is2xxSuccessful())
-                return ValidationStatus.valueOf(status.getBody().getStatus());
+                    entity, ValidationStatus.class);
+            return status.getBody();
         } catch (Exception e) {
             log.error(e);
         }

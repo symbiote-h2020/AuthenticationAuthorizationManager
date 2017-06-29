@@ -6,7 +6,6 @@ import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
@@ -84,11 +83,10 @@ public class DummyPlatformAAMRevokedIPK {
      * return valid status
      */
     @PostMapping(path = PATH + AAMConstants.AAM_VALIDATE)
-    public ResponseEntity<CheckRevocationResponse> validate(@RequestHeader(AAMConstants
+    public ValidationStatus validate(@RequestHeader(AAMConstants
             .TOKEN_HEADER_NAME) String token) {
         log.info("Validating token " + token);
-        return new ResponseEntity<>(new CheckRevocationResponse
-                (ValidationStatus.VALID), HttpStatus.OK);
+        return ValidationStatus.VALID;
     }
 
     @GetMapping(path = PATH + AAMConstants.AAM_GET_CA_CERTIFICATE)

@@ -8,7 +8,6 @@ import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.custom.*;
-import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.payloads.ValidationRequest;
@@ -291,10 +290,10 @@ public class AAMFunctionalTests extends
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
-        ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(serverAddress +
-                AAMConstants.AAM_VALIDATE, request, CheckRevocationResponse.class);
+        ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(serverAddress +
+                AAMConstants.AAM_VALIDATE, request, ValidationStatus.class);
 
-        assertEquals(ValidationStatus.VALID.toString(), status.getBody().getStatus());
+        assertEquals(ValidationStatus.VALID, status.getBody());
     }
 
     /**
@@ -318,11 +317,11 @@ public class AAMFunctionalTests extends
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
-        ResponseEntity<CheckRevocationResponse> status = restTemplate.postForEntity(serverAddress +
-                AAMConstants.AAM_VALIDATE, request, CheckRevocationResponse.class);
+        ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(serverAddress +
+                AAMConstants.AAM_VALIDATE, request, ValidationStatus.class);
 
         // TODO cover other situations (bad key, on purpose revocation)
-        assertEquals(ValidationStatus.EXPIRED_TOKEN.toString(), status.getBody().getStatus());
+        assertEquals(ValidationStatus.EXPIRED_TOKEN, status.getBody());
     }
 
 
