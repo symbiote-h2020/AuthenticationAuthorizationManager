@@ -11,6 +11,7 @@ import eu.h2020.symbiote.security.exceptions.custom.*;
 import eu.h2020.symbiote.security.payloads.CheckRevocationResponse;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.rest.CertificateRequest;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
@@ -166,13 +167,13 @@ public class AAMFunctionalTests extends
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 validateRequestQueue,
                 10000);
-        byte[] amqpResponse = client.primitiveCall(mapper.writeValueAsString(new Token(token)).getBytes());
-        CheckRevocationResponse checkRevocationResponse = mapper.readValue(amqpResponse,
-                CheckRevocationResponse.class);
+        byte[] amqpResponse = client.primitiveCall(mapper.writeValueAsString(new ValidationRequest(token, "")).getBytes());
+        ValidationStatus validationStatus = mapper.readValue(amqpResponse,
+                ValidationStatus.class);
 
-        log.info("Test Client received this ValidationStatus: " + checkRevocationResponse.toJson());
+        log.info("Test Client received this ValidationStatus: " + validationStatus);
 
-        assertEquals(ValidationStatus.VALID.toString(), checkRevocationResponse.getStatus());
+        assertEquals(ValidationStatus.VALID, validationStatus);
     }
 
 
