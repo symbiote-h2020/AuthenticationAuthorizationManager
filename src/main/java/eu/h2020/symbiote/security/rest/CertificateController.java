@@ -32,14 +32,14 @@ public class CertificateController implements IGetCertificate {
     }
 
     @Override
-    public ResponseEntity<String> getCertififcate(@RequestBody CertificateRequest certificateRequest) throws WrongCredentialsException, IOException, CertificateException,
-            NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, UnrecoverableKeyException, OperatorCreationException, NotExistingUserException, InvalidKeyException {
+    public ResponseEntity<String> getCertificate(@RequestBody CertificateRequest certificateRequest){
         try{
             String certificate = certificateService.getCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
-        }catch(Exception e){
-            log.debug(e);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }catch(WrongCredentialsException | IOException | CertificateException | NoSuchAlgorithmException |
+                NoSuchProviderException | KeyStoreException | UnrecoverableKeyException | OperatorCreationException |
+                NotExistingUserException | InvalidKeyException | IllegalArgumentException e){
+            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
         }
     }
 }

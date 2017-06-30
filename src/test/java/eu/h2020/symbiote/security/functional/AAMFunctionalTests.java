@@ -345,18 +345,14 @@ public class AAMFunctionalTests extends
     public void getCertificateOverRESTInvalidArguments() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException {
         KeyPair pair = generateKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal("CN=Requested Test Certificate"), pair.getPublic());
+                new X500Principal(registrationManager.getAAMCertificate().getSubjectX500Principal().getName()), pair.getPublic());
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
-        try {
-            ResponseEntity<CertificateRequest> response = restTemplate.postForEntity(serverAddress + "/getCertificate",
-                    new CertificateRequest(usernameWithAt,password,clientId,csr), CertificateRequest.class);
-            assert false;
-        } catch (HttpClientErrorException e) {
-            log.error(e);
-            assertEquals(HttpStatus.UNAUTHORIZED,e.getStatusCode());
-        }
+        CertificateRequest certRequest = new CertificateRequest(usernameWithAt,password,clientId,csr);
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + getCertificateUri,
+                certRequest, String.class);
+        assertEquals("Credentials contain illegal sign",response.getBody());
     }
 
 }

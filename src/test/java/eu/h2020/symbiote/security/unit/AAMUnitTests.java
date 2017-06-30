@@ -36,10 +36,8 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.web.client.HttpClientErrorException;
 
 import javax.security.auth.x500.X500Principal;
 import java.io.FileInputStream;
@@ -589,55 +587,73 @@ public class AAMUnitTests extends
     }
 
     @Test
-    public void getCertificateWrongCredentialsFailure() throws OperatorCreationException, IOException {
+    public void getCertificateWrongCredentialsFailure() throws OperatorCreationException, IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException {
         String appUsername = "NewApplication";
 
-        UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.APPLICATION));
-        ResponseEntity<UserRegistrationResponse> response = restTemplate.postForEntity(serverAddress +
-                registrationUri, request, UserRegistrationResponse.class);
+        UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new UserDetails(new Credentials(appUsername, password), federatedOAuthId, recoveryMail, UserRole.APPLICATION));
+        restTemplate.postForEntity(serverAddress + registrationUri, request, UserRegistrationResponse.class);
 
         KeyPair pair = generateKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal("CN=Requested Test Certificate"), pair.getPublic());
+                new X500Principal(registrationManager.getAAMCertificate().getSubjectX500Principal().getName()), pair.getPublic());
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
-        try {
-            ResponseEntity<CertificateRequest> response2 = restTemplate.postForEntity(serverAddress + "/getCertificate",
-                    new CertificateRequest(username,wrongpassword,clientId,csr), CertificateRequest.class);
-        } catch (HttpClientErrorException e) {
-            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
-        }
+
+        CertificateRequest certRequest = new CertificateRequest(appUsername,wrongpassword,clientId,csr);
+        ResponseEntity<String> response2 = restTemplate.postForEntity(serverAddress + getCertificateUri,
+                certRequest, String.class);
+        assertEquals("Wrong credentials",response2.getBody());
     }
 
     @Test
-    public void getCertificateRevokedKeyFailure() throws OperatorCreationException, IOException, InterruptedException {
+    public void getCertificateRevokedKeyFailure() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException {
         String appUsername = "NewApplication";
 
-        UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.APPLICATION));
+        UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new UserDetails(new Credentials(appUsername, password), federatedOAuthId, recoveryMail, UserRole.APPLICATION));
         ResponseEntity<UserRegistrationResponse> response = restTemplate.postForEntity(serverAddress +
                 registrationUri, request, UserRegistrationResponse.class);
 
         KeyPair pair = generateKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal("CN=Requested Test Certificate"), pair.getPublic());
+                new X500Principal(registrationManager.getAAMCertificate().getSubjectX500Principal().getName()), pair.getPublic());
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
-        try {
-            ResponseEntity<CertificateRequest> response2 = restTemplate.postForEntity(serverAddress + "/getCertificate",
-                    new CertificateRequest(username, password, clientId, csr), CertificateRequest.class);
-        }catch(HttpClientErrorException e){
-            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
-        }
+
+        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csr);
+        ResponseEntity<String> response2 = restTemplate.postForEntity(serverAddress + getCertificateUri,
+                certRequest, String.class);
+        assertNull(response2.getBody());
+
         Thread.sleep(tokenValidityPeriod+1000);
-        //assertTrue(revokedKeysRepository.exists(appUsername));
-        try{
-            ResponseEntity<CertificateRequest> response3 = restTemplate.postForEntity(serverAddress + "/getCertificate",
-                    new CertificateRequest(username,password,clientId,csr), CertificateRequest.class);
-        } catch (HttpClientErrorException e) {
-            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
-        }
+
+        CertificateRequest certRequest2 = new CertificateRequest(appUsername, password, clientId, csr);
+        ResponseEntity<String> response3 = restTemplate.postForEntity(serverAddress + getCertificateUri, certRequest2, String.class);
+        assertEquals("Key revoked",response3.getBody());
+    }
+
+    @Test
+    public void getCertificateCheckCSR() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException {
+        String appUsername = "NewApplication";
+
+        UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new UserDetails(new Credentials(appUsername, password), federatedOAuthId, recoveryMail, UserRole.APPLICATION));
+        restTemplate.postForEntity(serverAddress + registrationUri, request, UserRegistrationResponse.class);
+
+        KeyPair pair = generateKeyPair();
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
+                new X500Principal("CN=WrongName"), pair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
+        ContentSigner signer = csBuilder.build(pair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+
+        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csr);
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + getCertificateUri,
+                certRequest, String.class);
+        assertEquals("Subject name doesn't exists",response.getBody());
     }
 
     // test for revoke function

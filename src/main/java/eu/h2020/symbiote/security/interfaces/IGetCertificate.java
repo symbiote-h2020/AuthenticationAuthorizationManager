@@ -18,8 +18,8 @@ import java.security.cert.CertificateException;
  * @author Maks Marcinowski (PSNC)
  */
 public interface IGetCertificate {
-    @PostMapping(value = AAMConstants.AAM_PUBLIC_PATH + "/getCertificate")
-    ResponseEntity<String> getCertififcate(@RequestBody CertificateRequest certificateRequest)
+    @PostMapping(value = AAMConstants.AAM_PUBLIC_PATH + "/certificate")
+    ResponseEntity<String> getCertificate(@RequestBody CertificateRequest certificateRequest)
             throws WrongCredentialsException, IOException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException,
             UnrecoverableKeyException, OperatorCreationException, NotExistingUserException, InvalidKeyException;
 }
