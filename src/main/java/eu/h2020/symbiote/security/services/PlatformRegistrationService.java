@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.certificate.Certificate;
 import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.exceptions.custom.ExistingPlatformException;
 import eu.h2020.symbiote.security.exceptions.custom.ExistingUserException;
@@ -101,8 +102,7 @@ public class PlatformRegistrationService {
         }
 
         // register platform owner in user repository
-        UserRegistrationResponse userRegistrationResponse = userRegistrationService.authRegister(
-                new UserRegistrationRequest(platformRegistrationRequest.getAAMOwnerCredentials(),
+        userRegistrationService.authRegister(new UserRegistrationRequest(platformRegistrationRequest.getAAMOwnerCredentials(),
                         platformOwnerDetails));
 
         // register platform in repository
@@ -113,8 +113,7 @@ public class PlatformRegistrationService {
                 .findOne(platformOwnerDetails.getCredentials().getUsername()), new Certificate());
         platformRepository.save(platform);
 
-        return new PlatformRegistrationResponse(userRegistrationResponse.getUserCertificate(),
-                userRegistrationResponse.getUserPrivateKey(), platform.getPlatformInstanceId());
+        return new PlatformRegistrationResponse(platform.getPlatformInstanceId(), RegistrationStatus.OK);
     }
 
 /*

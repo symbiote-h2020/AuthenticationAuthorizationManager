@@ -9,6 +9,7 @@ import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.exceptions.custom.*;
@@ -324,10 +325,8 @@ public class CoreAAMFunctionalTests extends
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.APPLICATION))).getBytes());
 
-        UserRegistrationResponse appRegistrationResponse = mapper.readValue(response,
-                UserRegistrationResponse.class);
-
-        log.info("Test Client received this key and certificate " + appRegistrationResponse.toJson());
+        RegistrationStatus appRegistrationResponse = mapper.readValue(response,
+                RegistrationStatus.class);
 
         // verify that app really is in repository
         User registeredUser = userRepository.findOne(coreAppUsername);
@@ -335,8 +334,7 @@ public class CoreAAMFunctionalTests extends
         assertEquals(UserRole.APPLICATION, registeredUser.getRole());
 
         // verify that the server returns certificate & privateKey
-        assertNotNull(appRegistrationResponse.getUserCertificate());
-        assertNotNull(appRegistrationResponse.getUserPrivateKey());
+        assertEquals(appRegistrationResponse,RegistrationStatus.OK);
 
         // TODO verify that released certificate has no CA property
     }
@@ -470,10 +468,6 @@ public class CoreAAMFunctionalTests extends
         PlatformRegistrationResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
                 PlatformRegistrationResponse.class);
 
-        // verify that the server returns certificate & privateKey
-        assertNotNull(platformRegistrationOverAMQPResponse.getPlatformOwnerCertificate());
-        assertNotNull(platformRegistrationOverAMQPResponse.getPlatformOwnerPrivateKey());
-
         // TODO verify that released PO certificate has no CA property
 
         // TODO R3 verify that released platform certificate has CA property
@@ -511,10 +505,6 @@ public class CoreAAMFunctionalTests extends
                 (platformRegistrationOverAMQPRequest).getBytes());
         PlatformRegistrationResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
                 PlatformRegistrationResponse.class);
-
-        // verify that the server returns certificate & privateKey
-        assertNotNull(platformRegistrationOverAMQPResponse.getPlatformOwnerCertificate());
-        assertNotNull(platformRegistrationOverAMQPResponse.getPlatformOwnerPrivateKey());
 
         // TODO verify that released PO certificate has no CA property
 

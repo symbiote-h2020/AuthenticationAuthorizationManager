@@ -5,12 +5,12 @@ import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.commons.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.exceptions.custom.*;
 import eu.h2020.symbiote.security.payloads.UserDetails;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
-import eu.h2020.symbiote.security.payloads.UserRegistrationResponse;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.rest.CoreServicesController;
@@ -59,7 +59,7 @@ public class UserRegistrationService {
         this.deploymentType = registrationManager.getDeploymentType();
     }
 
-    public UserRegistrationResponse register(UserRegistrationRequest userRegistrationRequest)
+    public RegistrationStatus register(UserRegistrationRequest userRegistrationRequest)
             throws SecurityException {
 
         UserDetails user = userRegistrationRequest.getUserDetails();
@@ -78,7 +78,7 @@ public class UserRegistrationService {
 
         // check if user already in repository
         if (userRepository.exists(user.getCredentials().getUsername())) {
-            throw new ExistingUserException();
+            return RegistrationStatus.USERNAME_EXISTS;
         }
 
         // verify proper user role
@@ -117,10 +117,10 @@ public class UserRegistrationService {
         application.setCertificate(certificate);
         userRepository.save(application);
 
-        return new UserRegistrationResponse(certificate, applicationPEMPrivateKey);
+        return RegistrationStatus.OK;
     }
 
-    public UserRegistrationResponse authRegister(UserRegistrationRequest request) throws
+    public RegistrationStatus authRegister(UserRegistrationRequest request) throws
             SecurityException {
 
         // check if we received required credentials

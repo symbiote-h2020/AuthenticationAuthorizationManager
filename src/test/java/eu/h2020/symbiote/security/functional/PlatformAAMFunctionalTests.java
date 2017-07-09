@@ -3,11 +3,11 @@ package eu.h2020.symbiote.security.functional;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.User;
+import eu.h2020.symbiote.security.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.UserDetails;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
-import eu.h2020.symbiote.security.payloads.UserRegistrationResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
@@ -50,8 +50,8 @@ public class PlatformAAMFunctionalTests extends
         User registeredUser = userRepository.findOne(testAppUsername);
         assertNull(registeredUser);
 
-        ResponseEntity<UserRegistrationResponse> response = restTemplate.postForEntity(serverAddress +
-                registrationUri, request, UserRegistrationResponse.class);
+        ResponseEntity<RegistrationStatus> response = restTemplate.postForEntity(serverAddress +
+                registrationUri, request, RegistrationStatus.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         // verify that app really is in repository
         registeredUser = userRepository.findOne(testAppUsername);
@@ -59,8 +59,6 @@ public class PlatformAAMFunctionalTests extends
         assertEquals(UserRole.APPLICATION, registeredUser.getRole());
 
         // verify that the server returns certificate & privateKey
-        assertNotNull(response.getBody().getUserCertificate());
-        assertNotNull(response.getBody().getUserPrivateKey());
     }
 
     /**

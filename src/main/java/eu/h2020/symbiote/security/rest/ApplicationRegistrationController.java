@@ -1,6 +1,5 @@
 package eu.h2020.symbiote.security.rest;
 
-import eu.h2020.symbiote.security.commons.VirtualFile;
 import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.exceptions.SecurityException;
@@ -21,14 +20,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 
@@ -61,27 +54,14 @@ public class ApplicationRegistrationController implements IRegistration {
         // TODO R3 incorporate federated Id (and possibly recovery e-mail)
         request.setUserDetails(new UserDetails(new Credentials(requestMap.get("username"), requestMap.get("password")
         ), "R3-feature", "not-applicable", UserRole.APPLICATION));
-        UserRegistrationResponse regResponse = registrationService.register(request);
-        String certificate = regResponse.getUserCertificate().toString();
-        String privateKey = regResponse.getUserPrivateKey();
-        InputStream certInputStream = new ByteArrayInputStream(certificate.getBytes(StandardCharsets.UTF_8));
-        InputStream pvKeyInputStream = new ByteArrayInputStream(privateKey.getBytes(StandardCharsets.UTF_8));
-        VirtualFile vCert = new VirtualFile(certInputStream, "certificate.pem");
-        VirtualFile vPvKey = new VirtualFile(pvKeyInputStream, "private_key.pem");
-        response.setContentType("Content-type: text/zip");
-        response.setHeader("Content-Disposition", "attachment; filename=app.zip");
-        ServletOutputStream out = response.getOutputStream();
-        List virtualFiles = new ArrayList();
-        virtualFiles.add(vCert);
-        virtualFiles.add(vPvKey);
-        zipService.zip(virtualFiles, out);
-        return new ResponseEntity<HttpServletResponse>(response, HttpStatus.OK);
+        registrationService.register(request);
+
+        return new ResponseEntity<HttpServletResponse>(HttpStatus.OK);
     }
 
     public ResponseEntity<?> register(@RequestBody UserRegistrationRequest request) {
         try {
-            UserRegistrationResponse response = registrationService.authRegister(request);
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            return new ResponseEntity<>(registrationService.authRegister(request), HttpStatus.OK);
         } catch (SecurityException e) {
             log.error(e);
             return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e

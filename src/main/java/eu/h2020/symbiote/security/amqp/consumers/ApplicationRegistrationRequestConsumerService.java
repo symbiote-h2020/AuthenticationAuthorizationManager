@@ -10,7 +10,6 @@ import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.exceptions.custom.UserRegistrationException;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
-import eu.h2020.symbiote.security.payloads.UserRegistrationResponse;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -76,9 +75,8 @@ public class ApplicationRegistrationRequestConsumerService extends DefaultConsum
                 if (request.getUserDetails().getRole() != UserRole.APPLICATION)
                     throw new UserRegistrationException();
 
-                UserRegistrationResponse registrationResponse = userRegistrationService.authRegister
-                        (request);
-                response = om.writeValueAsString(registrationResponse);
+                response = om.writeValueAsString(userRegistrationService.authRegister
+                        (request));
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
             } catch (SecurityException e) {
                 log.error(e);

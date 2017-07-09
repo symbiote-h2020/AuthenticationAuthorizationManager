@@ -14,7 +14,7 @@ import java.security.*;
 import java.security.cert.CertificateException;
 
 /**
- *
+ * Access to service offered by CertificateService
  * @author Maks Marcinowski (PSNC)
  */
 public interface IGetCertificate {
