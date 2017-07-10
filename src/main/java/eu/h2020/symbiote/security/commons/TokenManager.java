@@ -252,9 +252,9 @@ public class TokenManager {
             return status.getBody();
         } catch (Exception e) {
             log.error(e);
+            // when there is problem with request
+            return ValidationStatus.WRONG_AAM;
         }
-        // when there is problem with request
-        return ValidationStatus.WRONG_AAM;
     }
 
     private boolean certificateExpired(X509Certificate certificate) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {

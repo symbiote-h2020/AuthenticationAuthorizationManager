@@ -15,7 +15,10 @@ import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.exceptions.custom.WrongCredentialsException;
-import eu.h2020.symbiote.security.payloads.*;
+import eu.h2020.symbiote.security.payloads.Credentials;
+import eu.h2020.symbiote.security.payloads.PlatformRegistrationRequest;
+import eu.h2020.symbiote.security.payloads.UserDetails;
+import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import eu.h2020.symbiote.security.rest.CertificateRequest;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
@@ -549,7 +552,8 @@ public class AAMUnitTests extends
 
 
     @Test
-    public void validateFederatedTokenRequestWithCertificate() throws IOException, TimeoutException,
+    @Ignore("TODO missing trust chain validation")
+    public void validateFederatedTokenRequestInIntranetUsingProvidedCertificate() throws IOException, TimeoutException,
             NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException, ValidationException {
         // issuing dummy platform token

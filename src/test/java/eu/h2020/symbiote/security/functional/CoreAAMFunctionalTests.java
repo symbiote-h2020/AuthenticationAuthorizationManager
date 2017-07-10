@@ -222,8 +222,8 @@ public class CoreAAMFunctionalTests extends
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.APPLICATION))).getBytes());
 
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(ExistingUserException.errorMessage, errorResponse.getErrorMessage());
+        RegistrationStatus errorResponse = mapper.readValue(response, RegistrationStatus.class);
+        assertEquals(RegistrationStatus.USERNAME_EXISTS, errorResponse);
     }
 
     /**
