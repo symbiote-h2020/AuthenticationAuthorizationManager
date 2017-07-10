@@ -1,30 +1,15 @@
 package eu.h2020.symbiote.security.commons;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.io.InputStream;
 
+@Getter @Setter @AllArgsConstructor
 public class VirtualFile {
 
     private InputStream inputStream;
     private String filename;
 
-    public VirtualFile(InputStream inputStream, String filename) {
-        this.inputStream = inputStream;
-        this.filename = filename;
-    }
-
-    public InputStream getInputStream() {
-        return inputStream;
-    }
-
-    public void setInputStream(InputStream inputStream) {
-        this.inputStream = inputStream;
-    }
-
-    public String getFilename() {
-        return filename;
-    }
-
-    public void setFilename(String filename) {
-        this.filename = filename;
-    }
 }

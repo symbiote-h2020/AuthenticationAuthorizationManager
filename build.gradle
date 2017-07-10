@@ -13,7 +13,10 @@ buildscript {
         classpath 'org.owasp:dependency-check-gradle:1.4.5.1'
     }
 }
-
+plugins {
+    id 'io.franzbecker.gradle-lombok' version '1.8'
+    id 'java'
+}
 // code
 apply plugin: "io.spring.dependency-management"
 apply plugin: 'java'
@@ -75,10 +78,14 @@ dependencies {
     //compile project(':SymbIoTeLibraries')
     //compile('com.github.symbiote-h2020:SymbIoTeLibraries:7802da7964') { changing = true }
     //compile('com.github.symbiote-h2020:SymbIoTeLibraries:0.2.0')
+
     compile('com.github.symbiote-h2020:SymbIoTeLibraries:sh3.0-SNAPSHOT')
     // for Certificates conversion
     compile('org.bouncycastle:bcpkix-jdk15on:1.56')
 
+    // Lombork adnotations
+    //compileOnly 'org.projectlombok:lombok:1.16.18'
+    compile group: 'org.projectlombok', name: 'lombok-maven', version: '1.16.18.0', ext: 'pom'
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
     compile('org.springframework.cloud:spring-cloud-starter-config')
@@ -98,6 +105,7 @@ dependencies {
     // tests only
     testCompile('junit:junit:4.+')
     testCompile('org.springframework.boot:spring-boot-starter-test')
+    testCompile group: 'org.mockito', name: 'mockito-all', version: '2.0.2-beta'
     // todo rework tests to use embedded mongoDB instead of actual server
     //testCompile('de.flapdoodle.embed:de.flapdoodle.embed.mongo')
 }
