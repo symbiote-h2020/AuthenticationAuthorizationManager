@@ -15,16 +15,15 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Value("${aam.deployment.owner.username}")
-    private String AAMOwnerUsername;
+    private String adminUsername;
     @Value("${aam.deployment.owner.password}")
-    private String AAMOwnerPassword;
+    private String adminPassword;
 
     @Override
     public void configure(WebSecurity web) throws Exception {
         web.ignoring()
                 // Spring Security should completely ignore URLs starting with:
                 .antMatchers(
-                        "/webjars/**",
                         AAMConstants.AAM_PUBLIC_PATH + "/**"
                 );
     }
@@ -48,8 +47,8 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
         auth
                 .inMemoryAuthentication()
-                .withUser(AAMOwnerUsername)
-                .password(AAMOwnerPassword)
+                .withUser(adminUsername)
+                .password(adminPassword)
                 .roles("ADMIN");
     }
 }

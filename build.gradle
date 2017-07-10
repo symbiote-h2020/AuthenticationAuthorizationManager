@@ -1,37 +1,19 @@
-// initial extensions to gradle
-buildscript {
-    ext {
-        springBootVersion = '1.5.3.RELEASE'
-    }
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "io.spring.gradle:dependency-management-plugin:1.0.0.RELEASE"
-        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-        classpath group: 'com.cinnober.gradle', name: 'semver-git', version: '2.2.1'
-        classpath 'org.owasp:dependency-check-gradle:1.4.5.1'
-    }
+// new plugins syntax
+plugins {
+    // code
+    id "java"
+    // spring
+    id "io.spring.dependency-management" version "1.0.3.RELEASE"
+    id 'org.springframework.boot' version '1.5.4.RELEASE'
+    // code quality
+    id "jacoco"
+    id "org.owasp.dependencycheck" version "2.0.1"
+    // IDEs
+    id "eclipse"
+    id "idea"
+    // publishing
+    id "com.cinnober.gradle.semver-git" version "2.2.2"
 }
-
-// code
-apply plugin: "io.spring.dependency-management"
-apply plugin: 'java'
-apply plugin: 'org.springframework.boot'
-
-// code quality
-apply plugin: 'jacoco'
-apply plugin: 'org.owasp.dependencycheck'
-
-// IDEs
-apply plugin: 'eclipse'
-apply plugin: 'idea'
-
-// publishing
-apply plugin: 'com.cinnober.gradle.semver-git'
-
-// XXX please change with your commits according to http://semver.org/
-project.version = '0.2.0'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -41,11 +23,13 @@ repositories {
     mavenCentral()
     maven { url "https://jitpack.io" }
 }
-
 // Spring related configs
+ext {
+    springCloudVersion = 'Dalston.SR1'
+}
 dependencyManagement {
     imports {
-        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Dalston.SR1"
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
     }
 }
 
@@ -53,7 +37,7 @@ dependencyManagement {
 Forces dependencies' cache invalidation for each build for dependencies marked with
     { changing = true }
     e.g.
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:develop-SNAPSHOT'){ changing = true }
  */
 configurations.all {
     // check for updates every build
@@ -61,23 +45,20 @@ configurations.all {
 }
 
 dependencies {
-    /* SymbIoTeLibraries manual:
+    /* SymbIoTeSecurity manual:
         One can use the library from jitpack by default with the notation:
-            compile('com.github.symbiote-h2020:SymbIoTeLibraries:develop-SNAPSHOT') {changing = true }
+            compile('com.github.symbiote-h2020:SymbIoTeSecurity:develop-SNAPSHOT') {changing = true }
         or having cloned locally the SymbIoTeLibraries repo use it directly with project dependency by:
-            compile project(':SymbIoTeLibraries')
+            compile project(':SymbIoTeSecurity')
         Important --- In order to use the latter you need to:
             1) switch comments on the artifact and project dependencies
             2) always have only one uncommented
             3) project dependency requires changes in settings.gradle file in this project
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
-    //compile project(':SymbIoTeLibraries')
-    //compile('com.github.symbiote-h2020:SymbIoTeLibraries:7802da7964') { changing = true }
-    //compile('com.github.symbiote-h2020:SymbIoTeLibraries:0.2.0')
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:sh3.0-SNAPSHOT')
-    // for Certificates conversion
-    compile('org.bouncycastle:bcpkix-jdk15on:1.56')
+    //compile project(':SymbIoTeSecurity')
+    //compile('com.github.symbiote-h2020:SymbIoTeSecurity:0.2.0'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:develop-SNAPSHOT'){ changing = true }
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
@@ -85,7 +66,6 @@ dependencies {
     compile('org.springframework.cloud:spring-cloud-starter-eureka')
     compile('org.springframework.cloud:spring-cloud-starter-zipkin')
     compile('org.springframework.boot:spring-boot-starter-amqp')
-    compile('org.springframework.boot:spring-boot-starter-data-rest')
     compile('org.springframework.boot:spring-boot-starter-web')
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
 
@@ -126,4 +106,4 @@ dependencyCheck {
 }
 
 // including code quality extensions into the build
-check.dependsOn(jacocoTestReport, 'dependencyCheck')
+check.dependsOn(jacocoTestReport, 'dependencyCheckAnalyze')
