@@ -39,6 +39,7 @@ targetCompatibility = 1.8
 // dependencies section
 repositories {
     mavenCentral()
+    jcenter()
     maven { url "https://jitpack.io" }
 }
 
@@ -98,9 +99,13 @@ dependencies {
     // tests only
     testCompile('junit:junit:4.+')
     testCompile('org.springframework.boot:spring-boot-starter-test')
+    // https://mvnrepository.com/artifact/org.mockito/mockito-all
+    testCompile group: 'org.mockito', name: 'mockito-all', version: '2.0.2-beta'
+    compileOnly 'org.projectlombok:lombok:1.16.18'
     // todo rework tests to use embedded mongoDB instead of actual server
     //testCompile('de.flapdoodle.embed:de.flapdoodle.embed.mongo')
 }
+
 
 // code quality below
 task generateJavaDocs(type: Javadoc) {

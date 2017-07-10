@@ -35,8 +35,12 @@ import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import static org.mockito.Mockito.*;
+
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
@@ -94,7 +98,7 @@ public class AAMUnitTests extends
     private RpcClient platformRegistrationOverAMQPClient;
     private UserDetails platformOwnerUserDetails;
     private PlatformRegistrationRequest platformRegistrationOverAMQPRequest;
-
+/*
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
         return new DummyPlatformAAM();
@@ -104,6 +108,9 @@ public class AAMUnitTests extends
     DummyPlatformAAMConnectionProblem getDummyPlatformAAMConnectionProblem() {
         return new DummyPlatformAAMConnectionProblem();
     }
+*/
+    @MockBean DummyPlatformAAM dpAAM;                       //DummyplatformAAM
+    @MockBean DummyPlatformAAMConnectionProblem dpcpAAM;    //DummyPlatformAAMConnectionProblem
 
     @Override
     @Before
@@ -119,6 +126,16 @@ public class AAMUnitTests extends
                 AAMOwnerPassword), platformOwnerUserDetails, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
                 preferredPlatformId);
+
+        //Defining Mocked Beans' Behaviour
+        ResponseEntity d_Response = dpAAM.SubstituteDoLogin(new Credentials(username,password));
+        when(dpAAM.doLogin(any(Credentials.class))).thenReturn(d_Response);
+        when(dpAAM.validate(any(String.class))).thenReturn(ValidationStatus.VALID);
+
+        ResponseEntity d_ConnProblemResponse = dpcpAAM.substituteDoLogin(new Credentials(username,password));
+        when(dpcpAAM.doLogin(any(Credentials.class))).thenReturn(d_ConnProblemResponse);
+        when(dpcpAAM.validate(any(String.class))).thenReturn(null);
+
     }
 
     @Test
