@@ -7,10 +7,7 @@ import eu.h2020.symbiote.security.commons.Platform;
 import eu.h2020.symbiote.security.commons.TokenManager;
 import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.constants.AAMConstants;
-import eu.h2020.symbiote.security.enums.CoreAttributes;
-import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.enums.RegistrationStatus;
-import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.enums.*;
 import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.exceptions.custom.*;
 import eu.h2020.symbiote.security.payloads.*;
@@ -30,6 +27,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import static org.mockito.Mockito.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
@@ -83,11 +82,13 @@ public class CoreAAMFunctionalTests extends
 
     @Autowired
     private TokenManager tokenManager;
-
+/*
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
         return new DummyPlatformAAM();
     }
+*/
+    @MockBean DummyPlatformAAM dpAAM;   //Mocked DummyPlatformAAAM instance
 
     @Override
     @Before
@@ -115,6 +116,13 @@ public class CoreAAMFunctionalTests extends
                 AAMOwnerPassword), platformOwnerUserDetails, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
                 preferredPlatformId);
+
+
+        ResponseEntity d_Response = dpAAM.SubstituteDoLogin(new Credentials(username,password));
+
+        when(dpAAM.doLogin(any(Credentials.class))).thenReturn(d_Response);
+        when(dpAAM.validate(anyString())).thenReturn(ValidationStatus.VALID);
+        when(dpAAM.getRootCertificate()).thenCallRealMethod();
 
     }
 

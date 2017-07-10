@@ -15,7 +15,10 @@ import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import static org.mockito.Mockito.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
@@ -42,15 +45,25 @@ public class PlatformAAMUnitTests extends
     @Autowired
     private TokenManager tokenManager;
 
+/*
     @Bean
     DummyPlatformAAMRevokedIPK getDummyPlatformAAMRevokedIPK() {
         return new DummyPlatformAAMRevokedIPK();
     }
+*/
+    @MockBean
+    DummyPlatformAAMRevokedIPK dummyRevoked;
 
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
+
+        //  Defining Mocked Class Behaviour
+        ResponseEntity d_Response = dummyRevoked.substituteDoLogin(new Credentials(username,password));
+        when(dummyRevoked.doLogin(any(Credentials.class))).thenReturn(d_Response);
+        when(dummyRevoked.validate(anyString())).thenReturn(ValidationStatus.VALID);
+        when(dummyRevoked.getRootCertificate()).thenCallRealMethod();
     }
 
     @Test

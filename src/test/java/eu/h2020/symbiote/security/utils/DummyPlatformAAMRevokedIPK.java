@@ -79,7 +79,34 @@ public class DummyPlatformAAMRevokedIPK {
         }
         return null;
     }
+    public static ResponseEntity<?> substituteDoLogin(@RequestBody Credentials credential){
+        try {
+            KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+            ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
+            Key key = ks.getKey(CERTIFICATE_ALIAS, "1234567".toCharArray());
 
+            HashMap<String, String> attributes = new HashMap<>();
+            attributes.put("name", "test2");
+            String tokenString = JWTEngine.generateJWTToken(credential.getUsername(), attributes, ks.getCertificate
+                            (CERTIFICATE_ALIAS).getPublicKey().getEncoded(), IssuingAuthorityType.PLATFORM, new Date().getTime()
+                            + 60000
+                    , "platform-1", ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
+                    (PrivateKey) key);
+
+            Token coreToken = new Token(tokenString);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(AAMConstants.TOKEN_HEADER_NAME, coreToken.getToken());
+
+            /* Finally issues and return foreign_token */
+            return new ResponseEntity<>(headers, HttpStatus.OK);
+        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException |
+                UnrecoverableKeyException | JWTCreationException | NoSuchProviderException | ValidationException
+                e) {
+            log.error(e);
+        }
+        return null;
+    }
     /**
      * return valid status
      */

@@ -13,11 +13,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
-
+import static org.mockito.Mockito.*;
 import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -39,16 +41,24 @@ public class PlatformExpiredCertificateUnitTests extends
     private static Log log = LogFactory.getLog(PlatformExpiredCertificateUnitTests.class);
     @Autowired
     private TokenManager tokenManager;
-
+/*
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
         return new DummyPlatformAAM();
     }
+*/
+
+    @MockBean DummyPlatformAAM dpAAM;
 
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        ResponseEntity d_Response = dpAAM.SubstituteDoLogin(new Credentials(username,password));
+        when(dpAAM.doLogin(any(Credentials.class))).thenReturn(d_Response);
+        when(dpAAM.validate(anyString())).thenReturn(ValidationStatus.VALID);
+        when(dpAAM.getRootCertificate()).thenCallRealMethod();
+
     }
 
     @Test
