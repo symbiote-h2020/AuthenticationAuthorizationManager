@@ -19,4 +19,19 @@ class CertificateRequest {
     private String clientId;
     private String clientCSR;
 
+    /**
+     *
+     * @param username
+     * @param password
+     * @param clientId
+     * @param clientCSR
+     * @throws IOException
+     */
+    public CertificateRequest(String username, String password, String clientId, PKCS10CertificationRequest clientCSR) throws IOException {
+        this.username=username;
+        this.password=password;
+        this.clientId=clientId;
+        this.clientCSR= Base64.encodeBase64String(clientCSR.getEncoded());
+    }
+
 }
