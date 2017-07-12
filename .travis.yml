@@ -8,7 +8,6 @@ jdk:
 before_install:
 - gradle -b wrapper.gradle wrapper
 services:
-- mongodb
 - rabbitmq
 branches:
   only:
