@@ -28,7 +28,7 @@ public class User {
     // TODO Release 3 - add OAuth federated ID support
 
     /**
-     * Might be used to assign in registration phase application-unique attributes
+     * Might be used to assign in registration phase user-unique attributes
      */
     //@DBRef -- might come in useful
     private List<String> attributes = new ArrayList<>();
@@ -45,7 +45,7 @@ public class User {
      * @param recoveryMail      for password reset/recovery purposes
      * @param certificate       user's public certificate
      * @param role              user's role in symbIoTe ecosystem, see @{@link UserRole}
-     * @param attributes        used to assign in registration phase application-unique attributes
+     * @param attributes        used to assign in registration phase user-unique attributes
      */
     public User(String username, String passwordEncrypted, String recoveryMail, Certificate certificate,
                 UserRole role,

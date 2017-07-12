@@ -17,13 +17,13 @@ import org.apache.commons.logging.LogFactory;
 import java.io.IOException;
 
 /**
- * RabbitMQ Consumer implementation used for Applications' Registration actions
+ * RabbitMQ Consumer implementation used for Users' Registration actions
  *
  * @author Mikołaj Dobski (PSNC)
  */
-public class ApplicationRegistrationRequestConsumerService extends DefaultConsumer {
+public class UserRegistrationRequestConsumerService extends DefaultConsumer {
 
-    private static Log log = LogFactory.getLog(ApplicationRegistrationRequestConsumerService.class);
+    private static Log log = LogFactory.getLog(UserRegistrationRequestConsumerService.class);
     private UserRegistrationService userRegistrationService;
 
 
@@ -33,8 +33,8 @@ public class ApplicationRegistrationRequestConsumerService extends DefaultConsum
      *
      * @param channel the channel to which this consumer is attached
      */
-    public ApplicationRegistrationRequestConsumerService(Channel channel,
-                                                         UserRegistrationService
+    public UserRegistrationRequestConsumerService(Channel channel,
+                                                  UserRegistrationService
                                                                  userRegistrationService) {
         super(channel);
         this.userRegistrationService = userRegistrationService;
@@ -68,11 +68,11 @@ public class ApplicationRegistrationRequestConsumerService extends DefaultConsum
                     .build();
             try {
                 request = om.readValue(message, UserRegistrationRequest.class);
-                log.debug("[x] Received Application Registration Request for: " + request.getUserDetails()
-                        .getCredentials().getUsername() + " on behalf of " + request.getAAMOwnerCredentials()
+                log.debug("[x] Received User Registration Request for: " + request.getUserDetails()
+                        .getCredentials().getUsername() + " on behalf of " + request.getAdministratorCredentials()
                         .getUsername());
-                // this endpoint should only allow registering applications
-                if (request.getUserDetails().getRole() != UserRole.APPLICATION)
+                // this endpoint should only allow registering Users
+                if (request.getUserDetails().getRole() != UserRole.USER)
                     throw new UserRegistrationException();
 
                 response = om.writeValueAsString(userRegistrationService.authRegister
@@ -83,7 +83,7 @@ public class ApplicationRegistrationRequestConsumerService extends DefaultConsum
                 response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
             }
-            log.debug("Application Registration Response: sent back");
+            log.debug("User Registration Response: sent back");
         } else {
             log.error("Received RPC message without ReplyTo or CorrelationId properties.");
         }

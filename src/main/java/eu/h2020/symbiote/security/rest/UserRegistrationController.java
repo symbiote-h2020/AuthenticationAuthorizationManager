@@ -4,10 +4,12 @@ import eu.h2020.symbiote.security.constants.AAMConstants;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.interfaces.IRegistration;
-import eu.h2020.symbiote.security.payloads.*;
+import eu.h2020.symbiote.security.payloads.Credentials;
+import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.payloads.UserDetails;
+import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import eu.h2020.symbiote.security.services.TokenService;
 import eu.h2020.symbiote.security.services.UserRegistrationService;
-import eu.h2020.symbiote.security.services.ZipService;
 import net.lingala.zip4j.exception.ZipException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -34,16 +36,14 @@ import java.util.Map;
  * @see TokenService
  */
 @RestController
-public class ApplicationRegistrationController implements IRegistration {
+public class UserRegistrationController implements IRegistration {
 
-    private static Log log = LogFactory.getLog(ApplicationRegistrationController.class);
+    private static Log log = LogFactory.getLog(UserRegistrationController.class);
     private final UserRegistrationService registrationService;
-    private final ZipService zipService;
 
     @Autowired
-    public ApplicationRegistrationController(UserRegistrationService registrationService, ZipService zipService) {
+    public UserRegistrationController(UserRegistrationService registrationService) {
         this.registrationService = registrationService;
-        this.zipService = zipService;
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -53,7 +53,7 @@ public class ApplicationRegistrationController implements IRegistration {
         UserRegistrationRequest request = new UserRegistrationRequest();
         // TODO R3 incorporate federated Id (and possibly recovery e-mail)
         request.setUserDetails(new UserDetails(new Credentials(requestMap.get("username"), requestMap.get("password")
-        ), "R3-feature", "not-applicable", UserRole.APPLICATION));
+        ), "R3-feature", "not-applicable", UserRole.USER));
         registrationService.register(request);
 
         return new ResponseEntity<HttpServletResponse>(HttpStatus.OK);

@@ -58,7 +58,7 @@ public class AAMFunctionalTests extends
     private static Log log = LogFactory.getLog(AAMFunctionalTests.class);
 
     /**
-     * Feature: 3 (Authentication of components/ and applications registered in a platform)
+     * Feature: 3 (Authentication of components/ and users registered in a platform)
      * Interface: PAAM - 1 and CAAM (for Administration)
      * CommunicationType AMQP
      *
@@ -66,7 +66,7 @@ public class AAMFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void applicationLoginOverAMQPSuccessAndIssuesCoreTokenType() throws IOException, TimeoutException,
+    public void userLoginOverAMQPSuccessAndIssuesCoreTokenType() throws IOException, TimeoutException,
             MalformedJWTException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
@@ -85,7 +85,7 @@ public class AAMFunctionalTests extends
 
 
     /**
-     * Feature: 3 (Authentication of components/ and applications registered in a platform)
+     * Feature: 3 (Authentication of components/ and users registered in a platform)
      * Interface: PAAM - 1, CAAM (for Administration)
      * CommunicationType AMQP
      *
@@ -93,7 +93,7 @@ public class AAMFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void applicationLoginOverAMQPWrongCredentialsFailure() throws IOException, TimeoutException {
+    public void userLoginOverAMQPWrongCredentialsFailure() throws IOException, TimeoutException {
 
         // test combinations of wrong credentials
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
@@ -124,7 +124,7 @@ public class AAMFunctionalTests extends
     }
 
     /**
-     * Feature: 3 (Authentication of components/ and applications registered in a platform)
+     * Feature: 3 (Authentication of components/ and users registered in a platform)
      * Interface: PAAM - 1, CAAM (for Administration)
      * CommunicationType AMQP
      *
@@ -132,7 +132,7 @@ public class AAMFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void applicationLoginOverAMQPMissingArgumentsFailure() throws IOException, TimeoutException {
+    public void userLoginOverAMQPMissingArgumentsFailure() throws IOException, TimeoutException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
         byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(/* no username and/or
@@ -223,7 +223,8 @@ public class AAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void applicationLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws CertificateException, MalformedJWTException {
+    public void userLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws CertificateException,
+            MalformedJWTException {
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
                 new Credentials(username, password), String.class);
         HttpHeaders headers = response.getHeaders();
@@ -233,16 +234,16 @@ public class AAMFunctionalTests extends
         // As the AAM is now configured as core we confirm that relevant token type was issued.
         assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
-        // verify that this JWT contains attributes relevant for application role
+        // verify that this JWT contains attributes relevant for user role
         Map<String, String> attributes = claimsFromToken.getAtt();
-        assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+        assertEquals(UserRole.USER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
 
-        // verify that the token contains the application public key
-        byte[] applicationPublicKeyInRepository = userRepository.findOne
+        // verify that the token contains the user public key
+        byte[] userPublicKeyInRepository = userRepository.findOne
                 (username).getCertificate().getX509().getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
 
-        assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
+        assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
     }
 
     /**

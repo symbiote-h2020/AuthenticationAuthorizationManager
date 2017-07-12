@@ -39,7 +39,7 @@ public class Release3FunctionalTests extends AbstractAAMTestSuite {
         1. log in to AAM as an AAM owner
         2. send the attributes list
         3. receive a success status
-        4. log in as an application and check if the token does contain sent attributes
+        4. log in as an user and check if the token does contain sent attributes
         */
     }
 

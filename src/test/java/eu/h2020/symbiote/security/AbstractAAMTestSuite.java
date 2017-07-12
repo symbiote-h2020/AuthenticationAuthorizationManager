@@ -74,8 +74,8 @@ public abstract class AbstractAAMTestSuite {
     protected String coreInterfaceAddress;
     @Value("${rabbit.queue.login.request}")
     protected String loginRequestQueue;
-    @Value("${rabbit.queue.register.app.request}")
-    protected String appRegistrationRequestQueue;
+    @Value("${rabbit.queue.register.user.request}")
+    protected String userRegistrationRequestQueue;
     @Value("${rabbit.queue.register.platform.request}")
     protected String platformRegistrationRequestQueue;
     @Value("${rabbit.queue.validate.request}")
@@ -135,10 +135,10 @@ public abstract class AbstractAAMTestSuite {
         platformRepository.deleteAll();
 
 
-        // Register test application user into DB
+        // Register test user user into DB
         UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
-                (username, password), "federatedId", "nullMail", UserRole.APPLICATION));
+                (username, password), "federatedId", "nullMail", UserRole.USER));
         userRegistrationService.register(userRegistrationRequest);
     }
 

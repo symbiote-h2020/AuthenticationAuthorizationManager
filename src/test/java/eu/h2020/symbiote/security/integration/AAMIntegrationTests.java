@@ -70,12 +70,12 @@ public class AAMIntegrationTests extends
     }
 
     /**
-     * Feature: 3 (Authentication of components/ and applications registered in a platform)
+     * Feature: 3 (Authentication of components/ and users registered in a platform)
      * Interface: PAAM - 1, CAAM (for Administration)
      * CommunicationType AMQP
      */
     @Test
-    public void applicationLoginOverAMQPWrongCredentialsFailure()
+    public void userLoginOverAMQPWrongCredentialsFailure()
             throws IOException, TimeoutException, SecurityHandlerException {
         Token token = null;
         try {
@@ -100,12 +100,12 @@ public class AAMIntegrationTests extends
     }
 
     /**
-     * Feature: 3 (Authentication of components/ and applications registered in a platform)
+     * Feature: 3 (Authentication of components/ and users registered in a platform)
      * Interface: PAAM - 1, CAAM (for Administration)
      * CommunicationType AMQP
      */
     @Test
-    public void applicationLoginOverAMQPMissingArgumentsFailure() {
+    public void userLoginOverAMQPMissingArgumentsFailure() {
         Token token = null;
         try {
             token = internalSecurityHandler.requestFederatedCoreToken("", "");
@@ -169,7 +169,8 @@ public class AAMIntegrationTests extends
      * CommunicationType REST
      */
     @Test
-    public void applicationLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws CertificateException, MalformedJWTException {
+    public void userLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws CertificateException,
+            MalformedJWTException {
 
         Token token = securityHandler.requestCoreToken(username, password);
         assertNotNull(token.getToken());
@@ -178,16 +179,16 @@ public class AAMIntegrationTests extends
         // As the AAM is now configured as core we confirm that relevant token type was issued.
         assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
-        // verify that this JWT contains attributes relevant for application role
+        // verify that this JWT contains attributes relevant for user role
         Map<String, String> attributes = claimsFromToken.getAtt();
-        assertEquals(UserRole.APPLICATION.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+        assertEquals(UserRole.USER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
 
-        // verify that the token contains the application public key
-        byte[] applicationPublicKeyInRepository = userRepository.findOne
+        // verify that the token contains the user public key
+        byte[] userPublicKeyInRepository = userRepository.findOne
                 (username).getCertificate().getX509().getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
 
-        assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
+        assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
     }
 
     /**

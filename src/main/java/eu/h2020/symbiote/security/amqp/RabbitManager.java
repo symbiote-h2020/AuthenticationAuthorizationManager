@@ -1,6 +1,9 @@
 package eu.h2020.symbiote.security.amqp;
 
-import com.rabbitmq.client.*;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.Consumer;
 import eu.h2020.symbiote.security.amqp.consumers.*;
 import eu.h2020.symbiote.security.commons.RegistrationManager;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
@@ -55,15 +58,16 @@ public class RabbitManager {
     @Value("${rabbit.routingKey.validate.request}")
     private String validateRequestRoutingKey;
 
+    // TODO R3 rework login
     @Value("${rabbit.queue.login.request}")
     private String loginRequestQueue;
     @Value("${rabbit.routingKey.login.request}")
     private String loginRequestRoutingKey;
 
-    @Value("${rabbit.routingKey.register.app.request}")
-    private String applicationRegistrationRequestRoutingKey;
-    @Value("${rabbit.queue.register.app.request}")
-    private String applicationRegistrationRequestQueue;
+    @Value("${rabbit.routingKey.register.user.request}")
+    private String userRegistrationRequestRoutingKey;
+    @Value("${rabbit.queue.register.user.request}")
+    private String userRegistrationRequestQueue;
 
     @Value("${rabbit.routingKey.register.platform.request}")
     private String platformRegistrationRequestRoutingKey;
@@ -215,18 +219,18 @@ public class RabbitManager {
      */
     private void startConsumerOfApplicationRegistrationRequestMessages() throws InterruptedException, IOException {
 
-        String queueName = this.applicationRegistrationRequestQueue;
+        String queueName = this.userRegistrationRequestQueue;
 
         Channel channel;
 
         try {
             channel = this.connection.createChannel();
             channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.applicationRegistrationRequestRoutingKey);
+            channel.queueBind(queueName, this.AAMExchangeName, this.userRegistrationRequestRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for application registration request messages");
+            log.info("Authentication and Authorization Manager waiting for user registration request messages");
 
-            Consumer consumer = new ApplicationRegistrationRequestConsumerService(channel,
+            Consumer consumer = new UserRegistrationRequestConsumerService(channel,
                     userRegistrationService);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
@@ -350,10 +354,10 @@ public class RabbitManager {
                         channel.queueDelete(this.loginRequestQueue);
                         break;
                     case CORE:
-                        // application registration
-                        channel.queueUnbind(this.applicationRegistrationRequestQueue, this.AAMExchangeName, this
-                                .applicationRegistrationRequestRoutingKey);
-                        channel.queueDelete(this.applicationRegistrationRequestQueue);
+                        // user registration
+                        channel.queueUnbind(this.userRegistrationRequestQueue, this.AAMExchangeName, this
+                                .userRegistrationRequestRoutingKey);
+                        channel.queueDelete(this.userRegistrationRequestQueue);
                         // platform registration
                         channel.queueUnbind(this.platformRegistrationRequestQueue, this.AAMExchangeName, this
                                 .platformRegistrationRequestRoutingKey);
@@ -376,33 +380,6 @@ public class RabbitManager {
             }
         } catch (IOException e) {
             log.error(e);
-        }
-    }
-
-
-    /**
-     * Method publishes given message to the given exchange and routing key.
-     * Props are set for correct message handle on the receiver side.
-     *
-     * @param exchange   name of the proper Rabbit exchange, adequate to topic of the communication
-     * @param routingKey name of the proper Rabbit routing key, adequate to topic of the communication
-     * @param message    message content in JSON String format
-     */
-    private void sendMessage(String exchange, String routingKey, String message) {
-        AMQP.BasicProperties props;
-        Channel channel = null;
-        try {
-            channel = this.connection.createChannel();
-            props = new AMQP.BasicProperties()
-                    .builder()
-                    .contentType("application/json")
-                    .build();
-
-            channel.basicPublish(exchange, routingKey, props, message.getBytes());
-        } catch (IOException e) {
-            log.error(e);
-        } finally {
-            closeChannel(channel);
         }
     }
 }

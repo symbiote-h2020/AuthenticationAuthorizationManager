@@ -156,7 +156,7 @@ public class RegistrationManager {
         return builder;
     }
 
-    public X509Certificate createECCert(String applicationUsername, PublicKey pubKey) throws NoSuchProviderException,
+    public X509Certificate createECCert(String username, PublicKey pubKey) throws NoSuchProviderException,
             KeyStoreException,
             IOException,
             CertificateException,
@@ -169,7 +169,7 @@ public class RegistrationManager {
 
         // distinguished name table.
         X500NameBuilder issuerBuilder = createStdBuilder(getAAMInstanceIdentifier());
-        X500NameBuilder subjectBuilder = createStdBuilder(applicationUsername);
+        X500NameBuilder subjectBuilder = createStdBuilder(username);
 
         // create the certificate - version 3
         ContentSigner sigGen = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM).setProvider(PROVIDER_NAME).build

@@ -94,10 +94,10 @@ public class    OwnedPlatformDetailsRequestConsumerService extends DefaultConsum
                     throw new ValidationException("");//todo replace empty string with something more informative
 
                 // verify that the token contains the platform owner public key
-                byte[] applicationPublicKeyInRepository = userRepository.findOne
+                byte[] platformOwnersPublicKeyInRepository = userRepository.findOne
                         (token.getClaims().getSubject()).getCertificate().getX509().getPublicKey().getEncoded();
                 byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
-                if (!Arrays.equals(applicationPublicKeyInRepository, publicKeyFromToken))
+                if (!Arrays.equals(platformOwnersPublicKeyInRepository, publicKeyFromToken))
                     throw new ValidationException("Subject public key doesn't match with local");
 
                 // verify that this JWT contains attributes relevant for platform owner

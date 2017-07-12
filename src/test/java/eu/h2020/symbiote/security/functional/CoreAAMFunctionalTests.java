@@ -97,11 +97,11 @@ public class CoreAAMFunctionalTests extends
         // db cleanup
         platformRepository.deleteAll();
 
-        // application registration useful
+        // user registration useful
         appRegistrationClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                appRegistrationRequestQueue, 5000);
+                userRegistrationRequestQueue, 5000);
         appUserDetails = new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.APPLICATION);
+                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER);
         appUserRegistrationRequest = new
                 UserRegistrationRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), appUserDetails);
@@ -124,7 +124,7 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationOverAMQPFailureUnauthorized() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureUnauthorized() throws IOException, TimeoutException {
 
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
@@ -133,7 +133,7 @@ public class CoreAAMFunctionalTests extends
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserRegistrationRequest(new
                 Credentials(AAMOwnerUsername + "wrongString", AAMOwnerPassword), new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.APPLICATION))).getBytes());
+                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
 
         // verify that our app was not registered in the repository
         assertNull(userRepository.findOne(coreAppUsername));
@@ -146,7 +146,7 @@ public class CoreAAMFunctionalTests extends
         response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserRegistrationRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword + "wrongString"), new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.APPLICATION))).getBytes());
+                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
 
         // verify that our app was not registered in the repository
         assertNull(userRepository.findOne(coreAppUsername));
@@ -162,7 +162,7 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationOverAMQPFailureWrongUserRole() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureWrongUserRole() throws IOException, TimeoutException {
 
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
@@ -202,7 +202,7 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationOverAMQPFailureUsernameExists() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureUsernameExists() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
 
@@ -210,7 +210,7 @@ public class CoreAAMFunctionalTests extends
         appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserRegistrationRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.APPLICATION))).getBytes());
+                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
 
 
         // verify that app really is in repository
@@ -220,7 +220,7 @@ public class CoreAAMFunctionalTests extends
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserRegistrationRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.APPLICATION))).getBytes());
+                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
 
         RegistrationStatus errorResponse = mapper.readValue(response, RegistrationStatus.class);
         assertEquals(RegistrationStatus.USERNAME_EXISTS, errorResponse);
@@ -232,7 +232,7 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationOverAMQPFailureMissingAppUsername() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureMissingAppUsername() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
 
@@ -252,7 +252,7 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationOverAMQPFailureMissingAppPassword() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureMissingAppPassword() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
 
@@ -271,7 +271,7 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationOverAMQPFailureMissingAppFederatedId() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureMissingAppFederatedId() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
 
@@ -291,7 +291,7 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationOverAMQPFailureMissingRecoveryMail() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureMissingRecoveryMail() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(coreAppUsername));
 
@@ -311,7 +311,7 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void applicationRegistrationOverAMQPSuccess() throws IOException, TimeoutException, CertificateException,
+    public void userRegistrationOverAMQPSuccess() throws IOException, TimeoutException, CertificateException,
             NoSuchAlgorithmException, UnrecoverableKeyException, MissingArgumentsException, KeyStoreException,
             InvalidAlgorithmParameterException, NoSuchProviderException, OperatorCreationException,
             WrongCredentialsException, ExistingUserException {
@@ -323,7 +323,7 @@ public class CoreAAMFunctionalTests extends
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserRegistrationRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.APPLICATION))).getBytes());
+                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
 
         RegistrationStatus appRegistrationResponse = mapper.readValue(response,
                 RegistrationStatus.class);
@@ -331,7 +331,7 @@ public class CoreAAMFunctionalTests extends
         // verify that app really is in repository
         User registeredUser = userRepository.findOne(coreAppUsername);
         assertNotNull(registeredUser);
-        assertEquals(UserRole.APPLICATION, registeredUser.getRole());
+        assertEquals(UserRole.USER, registeredUser.getRole());
 
         // verify that the server returns certificate & privateKey
         assertEquals(appRegistrationResponse,RegistrationStatus.OK);
@@ -557,10 +557,10 @@ public class CoreAAMFunctionalTests extends
         assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
         // verify that the token contains the platform owner public key
-        byte[] applicationPublicKeyInRepository = userRepository.findOne
+        byte[] userPublicKeyInRepository = userRepository.findOne
                 (platformOwnerUsername).getCertificate().getX509().getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
-        assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
+        assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
 
         // verify that this JWT contains attributes relevant for platform owner
         Map<String, String> attributes = claimsFromToken.getAtt();
@@ -820,7 +820,7 @@ public class CoreAAMFunctionalTests extends
         appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserRegistrationRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.APPLICATION))).getBytes());
+                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
 
 
         // login an ordinary user to get token

@@ -40,7 +40,7 @@ public class PlatformAAMIntegrationTests extends
 
 
     /**
-     * Feature: 3 (Authentication of components/ and applications registered in a platform)
+     * Feature: 3 (Authentication of components/ and users registered in a platform)
      * Interface: PAAM - 1 and CAAM (for Administration)
      * CommunicationType AMQP
      *
@@ -49,7 +49,7 @@ public class PlatformAAMIntegrationTests extends
      */
     @Test
     @Ignore("We need to think how to initiate to local AAMs (a core and a platform one")
-    public void applicationLoginOverAMQPSuccessAndIssuesCoreTokenType()
+    public void userLoginOverAMQPSuccessAndIssuesCoreTokenType()
             throws IOException, TimeoutException, SecurityHandlerException, MalformedJWTException, CertificateException {
 
         InternalSecurityHandler securityHandler =
@@ -62,10 +62,10 @@ public class PlatformAAMIntegrationTests extends
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
         assertEquals(IssuingAuthorityType.PLATFORM, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
-        // verify that the token contains the application public key
-        byte[] applicationPublicKeyInRepository = userRepository.findOne
+        // verify that the token contains the user public key
+        byte[] userPublicKeyInRepository = userRepository.findOne
                 (username).getCertificate().getX509().getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
-        assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
+        assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
     }
 }

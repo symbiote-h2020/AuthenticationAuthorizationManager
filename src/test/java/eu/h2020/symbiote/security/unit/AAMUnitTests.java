@@ -125,7 +125,7 @@ public class AAMUnitTests extends
     }
 
     @Test
-    public void applicationInternalRegistrationSuccess() throws SecurityException {
+    public void userInternalRegistrationSuccess() throws SecurityException {
         String appUsername = "NewApplication";
 
         // verify that app is not in the repository
@@ -135,17 +135,17 @@ public class AAMUnitTests extends
             /*
              XXX federated Id and recovery mail are required for Test & Core AAM but not for Platform AAM
              */
-        // register new application to db
+        // register new user to db
         UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
-                (appUsername, "NewPassword"), "nullId", "nullMail", UserRole.APPLICATION));
+                (appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER));
         RegistrationStatus userRegistrationResponse = userRegistrationService.register
                 (userRegistrationRequest);
 
         // verify that app really is in repository
         registeredUser = userRepository.findOne(appUsername);
         assertNotNull(registeredUser);
-        assertEquals(UserRole.APPLICATION, registeredUser.getRole());
+        assertEquals(UserRole.USER, registeredUser.getRole());
 
         assertEquals(userRegistrationResponse, RegistrationStatus.OK);
 
@@ -155,7 +155,7 @@ public class AAMUnitTests extends
     }
 
     @Test
-    public void applicationInternalUnregistrationSuccess() throws SecurityException, CertificateException {
+    public void userInternalUnregistrationSuccess() throws SecurityException, CertificateException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -180,7 +180,7 @@ public class AAMUnitTests extends
 
     @Test
     public void certificateCreationAndVerification() throws Exception {
-        // Generate certificate for given application username (ie. "Daniele")
+        // Generate certificate for given user username (ie. "Daniele")
         KeyPair keyPair = registrationManager.createKeyPair();
         X509Certificate cert = registrationManager.createECCert("Daniele", keyPair.getPublic());
 
@@ -596,7 +596,8 @@ public class AAMUnitTests extends
         String appUsername = "NewApplication";
 
         UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole.APPLICATION));
+                new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole
+                        .USER));
         restTemplate.postForEntity(serverAddress + registrationUri, request, RegistrationStatus.class);
 
         KeyPair pair = generateKeyPair();
@@ -618,8 +619,10 @@ public class AAMUnitTests extends
             NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException {
         String appUsername = "NewApplication";
 
-        UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole.APPLICATION));
+        UserRegistrationRequest request = new UserRegistrationRequest(new Credentials(AAMOwnerUsername,
+                AAMOwnerPassword),
+                new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole
+                        .USER));
         ResponseEntity<RegistrationStatus> response = restTemplate.postForEntity(serverAddress +
                 registrationUri, request, RegistrationStatus.class);
 
@@ -648,8 +651,10 @@ public class AAMUnitTests extends
     public void getCertificateCheckCSR() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException {
         String appUsername = "NewApplication";
 
-        UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole.APPLICATION));
+        UserRegistrationRequest request = new UserRegistrationRequest(new Credentials(AAMOwnerUsername,
+                AAMOwnerPassword),
+                new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole
+                        .USER));
         restTemplate.postForEntity(serverAddress + registrationUri, request, RegistrationStatus.class);
 
         KeyPair pair = generateKeyPair();

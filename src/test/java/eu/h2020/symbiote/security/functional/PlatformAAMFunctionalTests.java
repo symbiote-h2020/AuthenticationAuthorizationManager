@@ -41,11 +41,11 @@ public class PlatformAAMFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void applicationRegistrationOverRESTSuccess() throws JsonProcessingException {
+    public void userRegistrationOverRESTSuccess() throws JsonProcessingException {
         String testAppUsername = "NewApplication";
         UserRegistrationRequest request = new UserRegistrationRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new UserDetails(new Credentials(testAppUsername, "NewPassword"), "", "", UserRole.APPLICATION));
+                new UserDetails(new Credentials(testAppUsername, "NewPassword"), "", "", UserRole.USER));
         // verify that app is not in the repository
         User registeredUser = userRepository.findOne(testAppUsername);
         assertNull(registeredUser);
@@ -56,7 +56,7 @@ public class PlatformAAMFunctionalTests extends
         // verify that app really is in repository
         registeredUser = userRepository.findOne(testAppUsername);
         assertNotNull(registeredUser);
-        assertEquals(UserRole.APPLICATION, registeredUser.getRole());
+        assertEquals(UserRole.USER, registeredUser.getRole());
 
         // verify that the server returns certificate & privateKey
     }
@@ -70,11 +70,11 @@ public class PlatformAAMFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void applicationUnregistrationOverRESTSuccess() throws JsonProcessingException {
+    public void userUnregistrationOverRESTSuccess() throws JsonProcessingException {
         UserRegistrationRequest request = new UserRegistrationRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 new UserDetails(new Credentials(username, password),
-                        "", "", UserRole.APPLICATION));
+                        "", "", UserRole.USER));
         ResponseEntity<Void> response = restTemplate.postForEntity(serverAddress + unregistrationUri, request,
                 Void.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());

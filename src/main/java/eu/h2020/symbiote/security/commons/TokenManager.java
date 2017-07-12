@@ -93,8 +93,8 @@ public class TokenManager {
             switch (deploymentType) {
                 case CORE:
                     switch (user.getRole()) {
-                        case APPLICATION:
-                            attributes.put(CoreAttributes.ROLE.toString(), UserRole.APPLICATION.toString());
+                        case USER:
+                            attributes.put(CoreAttributes.ROLE.toString(), UserRole.USER.toString());
                             break;
                         case PLATFORM_OWNER:
                             attributes.put(CoreAttributes.ROLE.toString(), UserRole.PLATFORM_OWNER.toString());

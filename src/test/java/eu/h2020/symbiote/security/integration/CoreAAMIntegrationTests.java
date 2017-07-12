@@ -83,11 +83,11 @@ public class CoreAAMIntegrationTests extends
         // db cleanup
         platformRepository.deleteAll();
 
-        // application registration useful
+        // user registration useful
         appRegistrationClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                appRegistrationRequestQueue, 5000);
+                userRegistrationRequestQueue, 5000);
         appUserDetails = new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.APPLICATION);
+                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER);
         appUserRegistrationRequest = new
                 UserRegistrationRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), appUserDetails);
@@ -131,10 +131,10 @@ public class CoreAAMIntegrationTests extends
         assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
         // verify that the token contains the platform owner public key
-        byte[] applicationPublicKeyInRepository = userRepository.findOne
+        byte[] userPublicKeyInRepository = userRepository.findOne
                 (platformOwnerUsername).getCertificate().getX509().getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
-        assertArrayEquals(applicationPublicKeyInRepository, publicKeyFromToken);
+        assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
 
         // verify that this JWT contains attributes relevant for platform owner
         Map<String, String> attributes = claimsFromToken.getAtt();

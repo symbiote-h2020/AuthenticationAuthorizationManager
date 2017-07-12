@@ -10,7 +10,10 @@ import eu.h2020.symbiote.security.exceptions.custom.ExistingPlatformException;
 import eu.h2020.symbiote.security.exceptions.custom.ExistingUserException;
 import eu.h2020.symbiote.security.exceptions.custom.MissingArgumentsException;
 import eu.h2020.symbiote.security.exceptions.custom.UnauthorizedRegistrationException;
-import eu.h2020.symbiote.security.payloads.*;
+import eu.h2020.symbiote.security.payloads.PlatformRegistrationRequest;
+import eu.h2020.symbiote.security.payloads.PlatformRegistrationResponse;
+import eu.h2020.symbiote.security.payloads.UserDetails;
+import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +34,6 @@ public class PlatformRegistrationService {
     private final UserRepository userRepository;
     private final UserRegistrationService userRegistrationService;
     private final PlatformRepository platformRepository;
-    private final RegistrationManager registrationManager;
 
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
@@ -45,7 +47,6 @@ public class PlatformRegistrationService {
         this.userRepository = userRepository;
         this.userRegistrationService = userRegistrationService;
         this.platformRepository = platformRepository;
-        this.registrationManager = registrationManager;
         this.deploymentType = registrationManager.getDeploymentType();
     }
 
@@ -133,11 +134,11 @@ public class PlatformRegistrationService {
             NotExistingUserException, UnauthorizedUnregistrationException {
 
         // validate request
-        if (request.getAAMOwnerCredentials() == null || request.getApplicationCredentials() == null)
+        if (request.getAdministratorCredentials() == null || request.getApplicationCredentials() == null)
             throw new MissingArgumentsException();
         // authorize
-        if (!request.getAAMOwnerCredentials().getUsername().equals(AAMOwnerUsername)
-                || !request.getAAMOwnerCredentials().getPassword().equals(AAMOwnerPassword))
+        if (!request.getAdministratorCredentials().getUsername().equals(AAMOwnerUsername)
+                || !request.getAdministratorCredentials().getPassword().equals(AAMOwnerPassword))
             throw new UnauthorizedUnregistrationException();
         // do it
         this.unregister(request.getApplicationCredentials().getUsername());
