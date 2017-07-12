@@ -8,21 +8,21 @@ import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
 /**
- * Created by Dariusz Krajewski on 12/07/17.
+ * Configuration which allows running tests on embedded MongoDB
+ *
+ * @author Dariusz Krajewski (Intern at PSNC)
  */
-
 @Configuration
 @EnableMongoRepositories("eu.h2020.symbiote.security.repositories")
 public class EmbeddedFongoDB extends AbstractMongoConfiguration {
     @Override
     public String getDatabaseName() {
-        return "Placeholder";
+        return "EmbeddedDataBase";
     }
 
     @Bean
     @Override
     public Mongo mongo() {
-        return new Fongo("placeholder").getMongo();
+        return new Fongo("MongoDatabase").getMongo();
     }
-
 }
