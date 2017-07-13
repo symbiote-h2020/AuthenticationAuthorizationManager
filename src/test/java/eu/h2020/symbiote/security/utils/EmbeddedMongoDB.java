@@ -14,7 +14,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
  */
 @Configuration
 @EnableMongoRepositories("eu.h2020.symbiote.security.repositories")
-public class EmbeddedFongoDB extends AbstractMongoConfiguration {
+public class EmbeddedMongoDB extends AbstractMongoConfiguration {
     @Override
     public String getDatabaseName() {
         return "EmbeddedDataBase";

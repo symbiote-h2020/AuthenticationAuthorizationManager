@@ -79,6 +79,7 @@ dependencies {
     testCompile('junit:junit:4.+')
     testCompile('org.springframework.boot:spring-boot-starter-test')
     testCompile ('com.github.fakemongo:fongo:2.1.0')
+    testCompile('io.arivera.oss:embedded-rabbitmq:1.1.2')
 }
 
 // code quality below
