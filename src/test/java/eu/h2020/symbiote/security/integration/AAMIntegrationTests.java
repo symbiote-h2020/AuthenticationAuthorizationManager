@@ -3,7 +3,7 @@ package eu.h2020.symbiote.security.integration;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.InternalSecurityHandler;
 import eu.h2020.symbiote.security.SecurityHandler;
-import eu.h2020.symbiote.security.constants.AAMConstants;
+import eu.h2020.symbiote.security.constants.SecurityConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
@@ -36,7 +36,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -81,20 +80,20 @@ public class AAMIntegrationTests extends
         try {
             token = internalSecurityHandler.requestFederatedCoreToken(wrongusername, password);
         } catch (SecurityHandlerException e) {
-            assertEquals(AAMConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
+            assertEquals(SecurityConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
         }
         assertNull(token);
         try {
             token = internalSecurityHandler.requestFederatedCoreToken(username, wrongpassword);
         } catch (SecurityHandlerException e) {
-            assertEquals(AAMConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
+            assertEquals(SecurityConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
         }
         assertNull(token);
 
         try {
             token = internalSecurityHandler.requestFederatedCoreToken(wrongusername, wrongpassword);
         } catch (SecurityHandlerException e) {
-            assertEquals(AAMConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
+            assertEquals(SecurityConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
         }
         assertNull(token);
     }
@@ -110,7 +109,7 @@ public class AAMIntegrationTests extends
         try {
             token = internalSecurityHandler.requestFederatedCoreToken("", "");
         } catch (SecurityHandlerException e) {
-            assertEquals(AAMConstants.ERR_MISSING_ARGUMENTS, e.getMessage());
+            assertEquals(SecurityConstants.ERR_MISSING_ARGUMENTS, e.getMessage());
         }
         assertNull(token);
     }
@@ -145,20 +144,20 @@ public class AAMIntegrationTests extends
         try {
             token = securityHandler.requestCoreToken(wrongusername, password);
         } catch (SecurityException e) {
-            assertEquals(AAMConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
+            assertEquals(SecurityConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
         }
         assertNull(token);
         try {
             token = securityHandler.requestCoreToken(username, wrongpassword);
         } catch (SecurityException e) {
-            assertEquals(AAMConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
+            assertEquals(SecurityConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
         }
         assertNull(token);
 
         try {
             token = securityHandler.requestCoreToken(wrongusername, wrongpassword);
         } catch (SecurityException e) {
-            assertEquals(AAMConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
+            assertEquals(SecurityConstants.ERR_WRONG_CREDENTIALS, e.getMessage());
         }
         assertNull(token);
     }
@@ -198,11 +197,11 @@ public class AAMIntegrationTests extends
      */
     @Test
     public void foreignTokenRequestOverRESTSuccessWithoutCoreToken() throws SecurityHandlerException {
-        List<AAM> aams = securityHandler.getAvailableAAMs();
+        Map<String, AAM> aams = securityHandler.getAvailableAAMs();
         securityHandler.requestCoreToken(username, password);
         Map<String, Token> foreignTokens = securityHandler.requestForeignTokens(aams);
         assertNotNull(foreignTokens);
-        assertFalse(foreignTokens.containsKey(AAMConstants.AAM_CORE_AAM_INSTANCE_ID));
+        assertFalse(foreignTokens.containsKey(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID));
     }
 
     /**
@@ -213,22 +212,23 @@ public class AAMIntegrationTests extends
     @Test
     @Ignore("We need to think how to initiate to local AAMs (a core and a platform one")
     public void foreignTokenRequestOverRESTSuccess() {
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants
+                        .AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(AAMConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        headers.add(SecurityConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
-        ResponseEntity<String> responseToken = restTemplate.postForEntity(serverAddress + AAMConstants
-                        .AAM_REQUEST_FOREIGN_TOKEN, request,
+        ResponseEntity<String> responseToken = restTemplate.postForEntity(serverAddress + SecurityConstants
+                        .AAM_GET_FOREIGN_TOKEN, request,
                 String.class);
         HttpHeaders rspHeaders = responseToken.getHeaders();
 
         assertEquals(HttpStatus.OK, responseToken.getStatusCode());
-        assertNotNull(rspHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        assertNotNull(rspHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
     }
 
     /**
@@ -270,9 +270,9 @@ public class AAMIntegrationTests extends
      */
     @Test
     public void getCACertOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + AAMConstants
-                .AAM_GET_CA_CERTIFICATE, String.class);
+        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + SecurityConstants
+                .AAM_GET_COMPONENT_CERTIFICATE, String.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(registrationManager.getAAMCert(), response.getBody());
+        assertEquals(certificationAuthorityHelper.getAAMCert(), response.getBody());
     }
 }

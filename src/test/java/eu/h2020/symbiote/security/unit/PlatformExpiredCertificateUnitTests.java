@@ -1,12 +1,12 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import eu.h2020.symbiote.security.commons.TokenManager;
-import eu.h2020.symbiote.security.constants.AAMConstants;
+import eu.h2020.symbiote.security.constants.SecurityConstants;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.payloads.Credentials;
+import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
@@ -38,7 +38,7 @@ public class PlatformExpiredCertificateUnitTests extends
 
     private static Log log = LogFactory.getLog(PlatformExpiredCertificateUnitTests.class);
     @Autowired
-    private TokenManager tokenManager;
+    private ValidationHelper validationHelper;
 
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
@@ -56,14 +56,15 @@ public class PlatformExpiredCertificateUnitTests extends
             NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException, ValidationException, JWTCreationException {
         // issuing dummy core token
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
-                        .AAM_LOGIN,
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
+                        SecurityConstants
+                                .AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if platform token is valid
-        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.EXPIRED_ISSUER_CERTIFICATE, response);
     }
 }

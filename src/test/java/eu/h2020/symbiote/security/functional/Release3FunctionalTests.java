@@ -74,11 +74,11 @@ public class Release3FunctionalTests extends AbstractAAMTestSuite {
                     platformRegistrationRequestQueue, 5000);
             byte[] response;
             /*
-            response = client.primitiveCall(mapper.writeValueAsString(new PlatformRegistrationRequest(new
+            response = client.primitiveCall(mapper.writeValueAsString(new PlatformManagementRequest(new
             Credentials("username","password"), "federatedID"
                 "recoveryMail","platformIPAurl")).getBytes());
-            PlatformRegistrationResponse platformRegistrationResponse = mapper.readValue(response,
-            PlatformRegistrationResponse.class);
+            PlatformManagementResponse platformRegistrationResponse = mapper.readValue(response,
+            PlatformManagementResponse.class);
             */
         } catch (Exception e) {
             /*

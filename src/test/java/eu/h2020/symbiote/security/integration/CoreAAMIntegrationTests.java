@@ -3,7 +3,7 @@ package eu.h2020.symbiote.security.integration;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.SecurityHandler;
-import eu.h2020.symbiote.security.constants.AAMConstants;
+import eu.h2020.symbiote.security.constants.SecurityConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
@@ -11,9 +11,9 @@ import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.payloads.Credentials;
-import eu.h2020.symbiote.security.payloads.PlatformRegistrationRequest;
+import eu.h2020.symbiote.security.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.payloads.UserDetails;
-import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
+import eu.h2020.symbiote.security.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.Token;
@@ -34,7 +34,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -64,12 +63,12 @@ public class CoreAAMIntegrationTests extends
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
-    private UserRegistrationRequest appUserRegistrationRequest;
+    private UserManagementRequest appUserManagementRequest;
     private RpcClient appRegistrationClient;
     private UserDetails appUserDetails;
     private RpcClient platformRegistrationOverAMQPClient;
     private UserDetails platformOwnerUserDetails;
-    private PlatformRegistrationRequest platformRegistrationOverAMQPRequest;
+    private PlatformManagementRequest platformRegistrationOverAMQPRequest;
     @Autowired
     private PlatformRepository platformRepository;
 
@@ -88,8 +87,8 @@ public class CoreAAMIntegrationTests extends
                 userRegistrationRequestQueue, 5000);
         appUserDetails = new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER);
-        appUserRegistrationRequest = new
-                UserRegistrationRequest(new
+        appUserManagementRequest = new
+                UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), appUserDetails);
 
         // platform registration useful
@@ -97,7 +96,7 @@ public class CoreAAMIntegrationTests extends
                 platformRegistrationRequestQueue, 5000);
         platformOwnerUserDetails = new UserDetails(new Credentials(
                 platformOwnerUsername, platformOwnerPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER);
-        platformRegistrationOverAMQPRequest = new PlatformRegistrationRequest(new Credentials(AAMOwnerUsername,
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword), platformOwnerUserDetails, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
                 preferredPlatformId);
@@ -153,19 +152,19 @@ public class CoreAAMIntegrationTests extends
     public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
             CertificateException, NoSuchProviderException, KeyStoreException, IOException, SecurityHandlerException {
 
-        List<AAM> aams = securityHandler.getAvailableAAMs();
+        Map<String, AAM> aams = securityHandler.getAvailableAAMs();
 
         // there should be only core AAM in the list
         assertEquals(1, aams.size());
 
         // verifying the contents
-        AAM aam = aams.get(0);
+        AAM aam = aams.get(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID);
         // this expected PlatformAAM is due to the value stored in the issued certificate in the test keystore
-        assertEquals(AAMConstants.AAM_CORE_AAM_INSTANCE_ID, aam.getAamInstanceId());
+        assertEquals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, aam.getAamInstanceId());
         assertEquals(coreInterfaceAddress, aam.getAamAddress());
         // maybe we could externalize it to spring config
-        assertEquals(AAMConstants.AAM_CORE_AAM_FRIENDLY_NAME, aam.getAamInstanceFriendlyName());
-        assertEquals(registrationManager.getAAMCert(), aam.getCertificate().getCertificateString());
+        assertEquals(SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME, aam.getAamInstanceFriendlyName());
+        assertEquals(certificationAuthorityHelper.getAAMCert(), aam.getCertificate().getCertificateString());
     }
 
     /**
@@ -180,21 +179,21 @@ public class CoreAAMIntegrationTests extends
                 (platformRegistrationOverAMQPRequest).getBytes());
 
         // get the list
-        List<AAM> aams = securityHandler.getAvailableAAMs();
+        Map<String, AAM> aams = securityHandler.getAvailableAAMs();
 
         // there should be only core AAM in the list
         assertEquals(2, aams.size());
 
         // verifying the contents
         // first should be served the core AAM
-        AAM coreAAM = aams.get(0);
+        AAM coreAAM = (AAM) aams.values().toArray()[0];
         // this expected PlatformAAM is due to the value stored in the issued certificate in the test keystore
-        assertEquals(AAMConstants.AAM_CORE_AAM_INSTANCE_ID, coreAAM.getAamInstanceId());
+        assertEquals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, coreAAM.getAamInstanceId());
         assertEquals(coreInterfaceAddress, coreAAM.getAamAddress());
-        assertEquals(AAMConstants.AAM_CORE_AAM_FRIENDLY_NAME, coreAAM.getAamInstanceFriendlyName());
+        assertEquals(SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME, coreAAM.getAamInstanceFriendlyName());
 
         // then comes the registered platform
-        AAM platformAAM = aams.get(1);
+        AAM platformAAM = (AAM) aams.values().toArray()[1];
         assertEquals(preferredPlatformId, platformAAM.getAamInstanceId());
         assertEquals(platformInterworkingInterfaceAddress + platformAAMSuffixAtInterWorkingInterface, platformAAM
                 .getAamAddress());

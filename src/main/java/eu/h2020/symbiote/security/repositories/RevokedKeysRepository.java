@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.repositories;
 
-import eu.h2020.symbiote.security.commons.SubjectsRevokedKeys;
+import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**

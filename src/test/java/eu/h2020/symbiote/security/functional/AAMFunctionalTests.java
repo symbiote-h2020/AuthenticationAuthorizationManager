@@ -2,16 +2,16 @@ package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import eu.h2020.symbiote.security.constants.AAMConstants;
+import eu.h2020.symbiote.security.constants.SecurityConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.custom.*;
+import eu.h2020.symbiote.security.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.payloads.ValidationRequest;
-import eu.h2020.symbiote.security.rest.CertificateRequest;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
@@ -159,12 +159,13 @@ public class AAMFunctionalTests extends
     public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException,
             ValidationException {
 
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants
+                        .AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
-        String token = headers.getFirst(AAMConstants.TOKEN_HEADER_NAME);
+        assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        String token = headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME);
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 validateRequestQueue,
@@ -188,7 +189,8 @@ public class AAMFunctionalTests extends
     public void userLoginOverRESTWrongUsernameFailure() {
         ResponseEntity<ErrorResponseContainer> token = null;
         try {
-            token = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN, new Credentials(wrongusername,
+            token = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, new Credentials
+                            (wrongusername,
                             password),
                     ErrorResponseContainer.class);
             assert false;
@@ -208,7 +210,8 @@ public class AAMFunctionalTests extends
     public void userLoginOverRESTWrongPasswordFailure() {
         ResponseEntity<ErrorResponseContainer> token = null;
         try {
-            token = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN, new Credentials(username,
+            token = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, new Credentials
+                            (username,
                             wrongpassword),
                     ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
@@ -225,12 +228,12 @@ public class AAMFunctionalTests extends
     @Test
     public void userLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws CertificateException,
             MalformedJWTException {
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         // As the AAM is now configured as core we confirm that relevant token type was issued.
         assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
 
@@ -253,18 +256,18 @@ public class AAMFunctionalTests extends
      */
     @Test
     public void federatedTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() {
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(AAMConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        headers.add(SecurityConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
         try {
-            restTemplate.postForEntity(serverAddress + AAMConstants
-                            .AAM_REQUEST_FOREIGN_TOKEN, request,
+            restTemplate.postForEntity(serverAddress + SecurityConstants
+                            .AAM_GET_FOREIGN_TOKEN, request,
                     String.class);
             assert false;
         } catch (RestClientException e) {
@@ -285,17 +288,17 @@ public class AAMFunctionalTests extends
     @Test
     public void validationOverRESTValid() {
 
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(AAMConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        headers.add(SecurityConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
         ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(serverAddress +
-                AAMConstants.AAM_VALIDATE, request, ValidationStatus.class);
+                SecurityConstants.AAM_VALIDATE, request, ValidationStatus.class);
 
         assertEquals(ValidationStatus.VALID, status.getBody());
     }
@@ -310,19 +313,19 @@ public class AAMFunctionalTests extends
     @Test
     public void validationOverRESTExpired() throws InterruptedException {
 
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 1000);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(AAMConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        headers.add(SecurityConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
         ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(serverAddress +
-                AAMConstants.AAM_VALIDATE, request, ValidationStatus.class);
+                SecurityConstants.AAM_VALIDATE, request, ValidationStatus.class);
 
         // TODO cover other situations (bad key, on purpose revocation)
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status.getBody());
@@ -335,23 +338,25 @@ public class AAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getCACertOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + AAMConstants
-                .AAM_GET_CA_CERTIFICATE, String.class);
+    public void getComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
+            NoSuchProviderException, KeyStoreException, IOException {
+        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + SecurityConstants
+                .AAM_GET_COMPONENT_CERTIFICATE, String.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(registrationManager.getAAMCert(), response.getBody());
+        assertEquals(certificationAuthorityHelper.getAAMCert(), response.getBody());
     }
 
     @Test
-    public void getCertificateOverRESTInvalidArguments() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException {
+    public void getClientCertificateOverRESTInvalidArguments() throws NoSuchAlgorithmException, CertificateException,
+            NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException {
         KeyPair pair = generateKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal(registrationManager.getAAMCertificate().getSubjectX500Principal().getName()), pair.getPublic());
+                new X500Principal(certificationAuthorityHelper.getAAMCertificate().getSubjectX500Principal().getName()), pair.getPublic());
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(usernameWithAt,password,clientId,csr);
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + getCertificateUri,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
                 certRequest, String.class);
         assertEquals("Credentials contain illegal sign",response.getBody());
     }

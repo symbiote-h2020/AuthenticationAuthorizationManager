@@ -3,11 +3,8 @@ package eu.h2020.symbiote.security.unit;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.certificate.Certificate;
-import eu.h2020.symbiote.security.commons.Platform;
-import eu.h2020.symbiote.security.commons.SubjectsRevokedKeys;
-import eu.h2020.symbiote.security.commons.TokenManager;
-import eu.h2020.symbiote.security.commons.User;
-import eu.h2020.symbiote.security.constants.AAMConstants;
+import eu.h2020.symbiote.security.certificate.CertificateHelper;
+import eu.h2020.symbiote.security.constants.SecurityConstants;
 import eu.h2020.symbiote.security.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
@@ -15,11 +12,13 @@ import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.exceptions.custom.WrongCredentialsException;
-import eu.h2020.symbiote.security.payloads.Credentials;
-import eu.h2020.symbiote.security.payloads.PlatformRegistrationRequest;
-import eu.h2020.symbiote.security.payloads.UserDetails;
-import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
-import eu.h2020.symbiote.security.rest.CertificateRequest;
+import eu.h2020.symbiote.security.payloads.*;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
+import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
+import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
+import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTEngine;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
@@ -82,21 +81,19 @@ public class AAMUnitTests extends
     private final String platformOwnerPassword = "testPlatormOwnerPassword";
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
-    @Value("${aam.security.SIGNATURE_ALGORITHM}")
-    protected String SIGNATURE_ALGORITHM;
-    @Value("${aam.security.KEY_PAIR_GEN_ALGORITHM}")
-    protected String KEY_PAIR_GEN_ALGORITHM;
-    @Value("${aam.security.CURVE_NAME}")
-    protected String CURVE_NAME;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
     @Autowired
-    private TokenManager tokenManager;
+    private ValidationHelper validationHelper;
+    @Autowired
+    private TokenIssuer tokenIssuer;
+    @Autowired
+    private RevocationHelper revocationHelper;
     private RpcClient platformRegistrationOverAMQPClient;
     private UserDetails platformOwnerUserDetails;
-    private PlatformRegistrationRequest platformRegistrationOverAMQPRequest;
+    private PlatformManagementRequest platformRegistrationOverAMQPRequest;
 
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
@@ -118,7 +115,7 @@ public class AAMUnitTests extends
                 platformRegistrationRequestQueue, 5000);
         platformOwnerUserDetails = new UserDetails(new Credentials(
                 platformOwnerUsername, platformOwnerPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER);
-        platformRegistrationOverAMQPRequest = new PlatformRegistrationRequest(new Credentials(AAMOwnerUsername,
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword), platformOwnerUserDetails, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
                 preferredPlatformId);
@@ -136,11 +133,11 @@ public class AAMUnitTests extends
              XXX federated Id and recovery mail are required for Test & Core AAM but not for Platform AAM
              */
         // register new user to db
-        UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
                 (appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER));
-        RegistrationStatus userRegistrationResponse = userRegistrationService.register
-                (userRegistrationRequest);
+        RegistrationStatus userRegistrationResponse = usersManagementService.register
+                (userManagementRequest);
 
         // verify that app really is in repository
         registeredUser = userRepository.findOne(appUsername);
@@ -150,7 +147,7 @@ public class AAMUnitTests extends
         assertEquals(userRegistrationResponse, RegistrationStatus.OK);
 
         // TODO verify that released certificate has no CA property
-        //assertFalse(registeredUser.getCertificate().getX509().getExtensionValue(new ASN1ObjectIdentifier
+        //assertFalse(registeredUser.getClientCertificate().getX509().getExtensionValue(new ASN1ObjectIdentifier
         // ("2.5.29.19"),));
     }
 
@@ -164,7 +161,7 @@ public class AAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // unregister the user
-        userRegistrationService.unregister(username);
+        usersManagementService.unregister(username);
         log.debug("User successfully unregistered!");
 
         // verify that app is not anymore in the repository
@@ -181,12 +178,12 @@ public class AAMUnitTests extends
     @Test
     public void certificateCreationAndVerification() throws Exception {
         // Generate certificate for given user username (ie. "Daniele")
-        KeyPair keyPair = registrationManager.createKeyPair();
-        X509Certificate cert = registrationManager.createECCert("Daniele", keyPair.getPublic());
+        KeyPair keyPair = CertificateHelper.createKeyPair();
+        X509Certificate cert = certificationAuthorityHelper.createECCert("Daniele", keyPair.getPublic());
 
         // retrieves Platform AAM ("Daniele"'s certificate issuer) public key from keystore in order to verify
         // "Daniele"'s certificate
-        cert.verify(registrationManager.getAAMPublicKey());
+        cert.verify(certificationAuthorityHelper.getAAMPublicKey());
 
         // also check time validity
         cert.checkValidity(new Date());
@@ -196,18 +193,18 @@ public class AAMUnitTests extends
     public void generateCertificateFromCSRSuccess() throws OperatorCreationException, CertificateException,
             UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException,
             InvalidKeyException, IOException, InvalidAlgorithmParameterException {
-        KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
-        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
+        KeyPairGenerator g = KeyPairGenerator.getInstance(SecurityConstants.KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
+        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(SecurityConstants.CURVE_NAME);
         g.initialize(ecGenSpec, new SecureRandom());
         KeyPair keyPair = g.generateKeyPair();
 
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
                 new X500Principal("CN=Requested Test Certificate"), keyPair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(keyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
-        X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
+        X509Certificate cert = certificationAuthorityHelper.generateCertificateFromCSR(csr);
         assertNotNull(cert);
     }
 
@@ -215,18 +212,18 @@ public class AAMUnitTests extends
     public void generateCertificateFromCSRCorrectSubjectTest() throws OperatorCreationException,
             CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException,
             NoSuchProviderException, InvalidKeyException, IOException, InvalidAlgorithmParameterException {
-        KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
-        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
+        KeyPairGenerator g = KeyPairGenerator.getInstance(SecurityConstants.KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
+        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(SecurityConstants.CURVE_NAME);
         g.initialize(ecGenSpec, new SecureRandom());
         KeyPair keyPair = g.generateKeyPair();
 
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
                 new X500Principal("CN=Requested Test Certificate"), keyPair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(keyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
-        X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
+        X509Certificate cert = certificationAuthorityHelper.generateCertificateFromCSR(csr);
         assertEquals(new X500Name(cert.getSubjectDN().getName()), csr.getSubject());
     }
 
@@ -234,36 +231,36 @@ public class AAMUnitTests extends
     public void generateCertificateFromCSRPublicKeyTest() throws OperatorCreationException, CertificateException,
             UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException,
             InvalidKeyException, IOException, InvalidAlgorithmParameterException {
-        KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
-        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
+        KeyPairGenerator g = KeyPairGenerator.getInstance(SecurityConstants.KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
+        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(SecurityConstants.CURVE_NAME);
         g.initialize(ecGenSpec, new SecureRandom());
         KeyPair keyPair = g.generateKeyPair();
 
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
                 new X500Principal("CN=Requested Test Certificate"), keyPair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(keyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
-        X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
+        X509Certificate cert = certificationAuthorityHelper.generateCertificateFromCSR(csr);
         assertEquals(keyPair.getPublic(), cert.getPublicKey());
     }
 
     @Test
     public void generatedCertificateCreationAndVerification() throws Exception {
-        KeyPairGenerator g = KeyPairGenerator.getInstance(KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
-        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE_NAME);
+        KeyPairGenerator g = KeyPairGenerator.getInstance(SecurityConstants.KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
+        ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(SecurityConstants.CURVE_NAME);
         g.initialize(ecGenSpec, new SecureRandom());
         KeyPair keyPair = g.generateKeyPair();
 
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
                 new X500Principal("CN=Requested Test Certificate"), keyPair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(keyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
-        X509Certificate cert = registrationManager.generateCertificateFromCSR(csr);
-        cert.verify(registrationManager.getAAMPublicKey());
+        X509Certificate cert = certificationAuthorityHelper.generateCertificateFromCSR(csr);
+        cert.verify(certificationAuthorityHelper.getAAMPublicKey());
 
         cert.checkValidity(new Date());
     }
@@ -278,10 +275,10 @@ public class AAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // acquiring valid token
-        Token homeToken = tokenManager.createHomeToken(user);
+        Token homeToken = tokenIssuer.getHomeToken(user);
 
         // check if home token is valid
-        ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.VALID, response);
     }
 
@@ -295,7 +292,7 @@ public class AAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         //check if home token is valid
-        ValidationStatus response = tokenManager.validate("tokenString", "");
+        ValidationStatus response = validationHelper.validate("tokenString", "");
         assertEquals(ValidationStatus.UNKNOWN, response);
     }
 
@@ -309,13 +306,13 @@ public class AAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // acquiring valid token
-        Token homeToken = tokenManager.createHomeToken(user);
+        Token homeToken = tokenIssuer.getHomeToken(user);
 
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 1000);
 
         //check if home token is valid
-        ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.EXPIRED_TOKEN, response);
     }
 
@@ -329,13 +326,13 @@ public class AAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // acquiring valid token
-        Token homeToken = tokenManager.createHomeToken(user);
+        Token homeToken = tokenIssuer.getHomeToken(user);
 
         // unregister the user
-        userRegistrationService.unregister(username);
+        usersManagementService.unregister(username);
 
         //check if home token is valid
-        ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.REVOKED_SPK, response);
     }
 
@@ -349,13 +346,13 @@ public class AAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // acquiring valid token
-        Token homeToken = tokenManager.createHomeToken(user);
+        Token homeToken = tokenIssuer.getHomeToken(user);
 
         // add token to revoked tokens repository
         revokedTokensRepository.save(homeToken);
 
         // check if home token is valid
-        ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.REVOKED_TOKEN, response);
     }
 
@@ -370,14 +367,14 @@ public class AAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // acquiring valid token
-        Token homeToken = tokenManager.createHomeToken(user);
+        Token homeToken = tokenIssuer.getHomeToken(user);
         String issuer = JWTEngine.getClaims(homeToken.getToken()).getIssuer();
 
         // verify the issuer keys are not yet revoked
         assertFalse(revokedKeysRepository.exists(issuer));
 
         // insert CoreAAM public key into set to be revoked
-        Certificate coreCertificate = new Certificate(registrationManager.getAAMCert());
+        Certificate coreCertificate = new Certificate(certificationAuthorityHelper.getAAMCert());
         Set<String> keySet = new HashSet<>();
         keySet.add(Base64.getEncoder().encodeToString(coreCertificate.getX509().getPublicKey().getEncoded()));
 
@@ -386,7 +383,7 @@ public class AAMUnitTests extends
         revokedKeysRepository.save(subjectsRevokedKeys);
 
         // check if home token is valid
-        ValidationStatus response = tokenManager.validate(homeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
         assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
 
@@ -395,11 +392,12 @@ public class AAMUnitTests extends
             NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException, ValidationException {
         // issuing dummy platform token
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
-                        .AAM_LOGIN,
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
+                        SecurityConstants
+                                .AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         String platformId = "platform-1";
         // registering the platform to the Core AAM so it will be available for token revocation
@@ -424,7 +422,7 @@ public class AAMUnitTests extends
         platformRepository.save(dummyPlatform);
 
         // check if validation will be relayed to appropriate issuer
-        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.VALID, response);
     }
 
@@ -433,11 +431,12 @@ public class AAMUnitTests extends
             NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException, ValidationException {
         // issuing dummy platform token
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" + AAMConstants
-                        .AAM_LOGIN,
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" +
+                        SecurityConstants
+                                .AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         String platformId = "core-2";
         //inject platform PEM Certificate to the database
@@ -458,14 +457,14 @@ public class AAMUnitTests extends
         // insert DummyPlatformAAM public key into set to be revoked
         Set<String> keySet = new HashSet<>();
         keySet.add(Base64.getEncoder().encodeToString(
-                registrationManager.convertPEMToX509(dummyPlatformAAMPEMCertString).getPublicKey().getEncoded()));
+                CertificateHelper.convertPEMToX509(dummyPlatformAAMPEMCertString).getPublicKey().getEncoded()));
 
         // adding key to revoked repository
         SubjectsRevokedKeys subjectsRevokedKeys = new SubjectsRevokedKeys(issuer, keySet);
         revokedKeysRepository.save(subjectsRevokedKeys);
 
         // check if platform token is is valid
-        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
 
@@ -474,11 +473,12 @@ public class AAMUnitTests extends
             NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException, ValidationException {
         // issuing dummy platform token
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" + AAMConstants
-                        .AAM_LOGIN,
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" +
+                        SecurityConstants
+                        .AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         String platformId = "core-2";
         //inject platform PEM Certificate to the database
@@ -491,7 +491,7 @@ public class AAMUnitTests extends
         pemWriter.close();
 
         // check if platform token is valid
-        ValidationStatus response = tokenManager.validate(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
 
@@ -501,14 +501,15 @@ public class AAMUnitTests extends
             NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException,
             IOException {
         // issuing dummy platform token
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
-                        .AAM_LOGIN,
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
+                        SecurityConstants
+                        .AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if home token is valid
-        ValidationStatus response = tokenManager.validateFederatedToken(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validateForeignToken(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
 
@@ -517,11 +518,12 @@ public class AAMUnitTests extends
             NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException, ValidationException {
         // issuing dummy platform token
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/conn_err/paam" + AAMConstants
-                        .AAM_LOGIN,
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/conn_err/paam" +
+                        SecurityConstants
+                                .AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         String platformId = "testaam-connerr";
         // registering the platform to the Core AAM so it will be available for token revocation
@@ -546,7 +548,7 @@ public class AAMUnitTests extends
         platformRepository.save(dummyPlatform);
 
         // check if validation will fail due to for example connection problems
-        ValidationStatus response = tokenManager.validateFederatedToken(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validateForeignToken(dummyHomeToken.getToken(), "");
         assertEquals(ValidationStatus.WRONG_AAM, response);
     }
 
@@ -557,11 +559,11 @@ public class AAMUnitTests extends
             NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException, ValidationException {
         // issuing dummy platform token
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/conn_err/paam" + AAMConstants
-                        .AAM_LOGIN,
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/conn_err/paam" + SecurityConstants
+                        .AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         String platformId = "testaam-connerr";
         // registering the platform to the Core AAM so it will be available for token revocation
@@ -586,7 +588,7 @@ public class AAMUnitTests extends
         platformRepository.save(dummyPlatform);
 
         // check if validation will use certificate before relay
-        ValidationStatus response = tokenManager.validateFederatedToken(dummyHomeToken.getToken(), "certificate");
+        ValidationStatus response = validationHelper.validateForeignToken(dummyHomeToken.getToken(), "certificate");
         assertEquals(ValidationStatus.VALID, response);
     }
 
@@ -595,20 +597,21 @@ public class AAMUnitTests extends
             CertificateException, NoSuchProviderException, KeyStoreException {
         String appUsername = "NewApplication";
 
-        UserRegistrationRequest request= new UserRegistrationRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+        UserManagementRequest request = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole
                         .USER));
         restTemplate.postForEntity(serverAddress + registrationUri, request, RegistrationStatus.class);
 
         KeyPair pair = generateKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal(registrationManager.getAAMCertificate().getSubjectX500Principal().getName()), pair.getPublic());
+                new X500Principal(certificationAuthorityHelper.getAAMCertificate().getSubjectX500Principal().getName
+                        ()), pair.getPublic());
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
         CertificateRequest certRequest = new CertificateRequest(appUsername,wrongpassword,clientId,csr);
-        ResponseEntity<String> response2 = restTemplate.postForEntity(serverAddress + getCertificateUri,
+        ResponseEntity<String> response2 = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
                 certRequest, String.class);
         assertEquals("Wrong credentials",response2.getBody());
     }
@@ -619,7 +622,7 @@ public class AAMUnitTests extends
             NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException {
         String appUsername = "NewApplication";
 
-        UserRegistrationRequest request = new UserRegistrationRequest(new Credentials(AAMOwnerUsername,
+        UserManagementRequest request = new UserManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword),
                 new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole
                         .USER));
@@ -629,21 +632,22 @@ public class AAMUnitTests extends
         KeyPair pair = generateKeyPair();
 
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal(registrationManager.getAAMCertificate().getSubjectX500Principal().getName()), pair.getPublic());
+                new X500Principal(certificationAuthorityHelper.getAAMCertificate().getSubjectX500Principal().getName()), pair.getPublic());
         //assertEquals("somethin",registrationManager.getAAMCertificate().getSubjectX500Principal().getName());
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csr);
 
-        ResponseEntity<String> response2 = restTemplate.postForEntity(serverAddress + getCertificateUri,
+        ResponseEntity<String> response2 = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
                 certRequest, String.class);
         assertNotEquals(CertificateException.class,response2.getBody().getClass());
 
         Thread.sleep(tokenValidityPeriod+1000);
 
         CertificateRequest certRequest2 = new CertificateRequest(appUsername, password, clientId, csr);
-        ResponseEntity<String> response3 = restTemplate.postForEntity(serverAddress + getCertificateUri, certRequest2, String.class);
+        ResponseEntity<String> response3 = restTemplate.postForEntity(serverAddress + SecurityConstants
+                .AAM_GET_CLIENT_CERTIFICATE, certRequest2, String.class);
         assertEquals("Key revoked",response3.getBody());
     }
 
@@ -651,7 +655,7 @@ public class AAMUnitTests extends
     public void getCertificateCheckCSR() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException {
         String appUsername = "NewApplication";
 
-        UserRegistrationRequest request = new UserRegistrationRequest(new Credentials(AAMOwnerUsername,
+        UserManagementRequest request = new UserManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword),
                 new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole
                         .USER));
@@ -665,7 +669,7 @@ public class AAMUnitTests extends
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csr);
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + getCertificateUri,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
                 certRequest, String.class);
         assertEquals("Subject name doesn't match",response.getBody());
     }
@@ -683,7 +687,7 @@ public class AAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // revocation
-        tokenManager.revoke(new Credentials(username, password), user.getCertificate());
+        revocationHelper.revoke(new Credentials(username, password), user.getCertificate());
 
         // verify the user keys are revoked
         assertTrue(revokedKeysRepository.exists(username));
@@ -697,13 +701,13 @@ public class AAMUnitTests extends
         assertNotNull(user);
 
         // acquiring valid token
-        Token homeToken = tokenManager.createHomeToken(user);
+        Token homeToken = tokenIssuer.getHomeToken(user);
 
         // verify the user token is not yet revoked
         assertFalse(revokedTokensRepository.exists(homeToken.getClaims().getId()));
 
         // revocation
-        tokenManager.revoke(new Credentials(username, password), homeToken);
+        revocationHelper.revoke(new Credentials(username, password), homeToken);
 
         // verify the user token is revoked
         assertTrue(revokedTokensRepository.exists(homeToken.getClaims().getId()));
@@ -713,11 +717,11 @@ public class AAMUnitTests extends
     @Test
     public void revokeUserTokenByPlatform() throws ValidationException, IOException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException {
         // issuing dummy platform token
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
-                        .AAM_LOGIN,
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + SecurityConstants
+                        .AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         String platformId = "platform-1";
         // registering the platform to the Core AAM so it will be available for token revocation
@@ -744,7 +748,7 @@ public class AAMUnitTests extends
         // ensure that token is not in revoked token repository
         assertFalse(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
         // revocation
-        tokenManager.revoke(new Credentials(platformOwnerUsername, platformOwnerPassword), dummyHomeToken);
+        revocationHelper.revoke(new Credentials(platformOwnerUsername, platformOwnerPassword), dummyHomeToken);
         // check if token is in revoked tokens repository
         assertTrue(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
 

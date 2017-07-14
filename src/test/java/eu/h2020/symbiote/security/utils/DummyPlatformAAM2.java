@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.security.utils;
 
 
-import eu.h2020.symbiote.security.constants.AAMConstants;
+import eu.h2020.symbiote.security.constants.SecurityConstants;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.ValidationStatus;
 import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
@@ -39,7 +39,7 @@ public class DummyPlatformAAM2 {
     private static final String CERTIFICATE_ALIAS = "platform-2-1-c1";
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_2.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
-    private static final String PATH = AAMConstants.AAM_PUBLIC_PATH + "/test/second/paam";
+    private static final String PATH = SecurityConstants.AAM_PUBLIC_PATH + "/test/second/paam";
 
     public DummyPlatformAAM2() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -48,10 +48,10 @@ public class DummyPlatformAAM2 {
     /**
      * acts temporarily as a platform AAM
      */
-    @RequestMapping(method = RequestMethod.POST, path = PATH + AAMConstants.AAM_LOGIN, produces =
+    @RequestMapping(method = RequestMethod.POST, path = PATH + SecurityConstants.AAM_GET_HOME_TOKEN, produces =
             "application/json", consumes = "application/json")
     public ResponseEntity<?> doLogin(@RequestBody Credentials credential) {
-        log.info("User trying to login " + credential.getUsername() + " - " + credential.getPassword());
+        log.info("User trying to getHomeToken " + credential.getUsername() + " - " + credential.getPassword());
         try {
             KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
             ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
@@ -68,7 +68,7 @@ public class DummyPlatformAAM2 {
             Token coreToken = new Token(tokenString);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.add(AAMConstants.TOKEN_HEADER_NAME, coreToken.getToken());
+            headers.add(SecurityConstants.TOKEN_HEADER_NAME, coreToken.getToken());
 
             /* Finally issues and return foreign_token */
             return new ResponseEntity<>(headers, HttpStatus.OK);
@@ -83,14 +83,14 @@ public class DummyPlatformAAM2 {
     /**
      * return valid status
      */
-    @PostMapping(path = PATH + AAMConstants.AAM_VALIDATE)
-    public ValidationStatus validate(@RequestHeader(AAMConstants
+    @PostMapping(path = PATH + SecurityConstants.AAM_VALIDATE)
+    public ValidationStatus validate(@RequestHeader(SecurityConstants
             .TOKEN_HEADER_NAME) String token) {
         log.info("Validating token " + token);
         return ValidationStatus.VALID;
     }
 
-    @GetMapping(path = PATH + AAMConstants.AAM_GET_CA_CERTIFICATE)
+    @GetMapping(path = PATH + SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE)
     public String getRootCertificate() throws NoSuchProviderException, KeyStoreException, IOException,
             UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException {
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");

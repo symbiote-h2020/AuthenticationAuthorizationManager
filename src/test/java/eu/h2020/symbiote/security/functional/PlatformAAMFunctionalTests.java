@@ -2,12 +2,12 @@ package eu.h2020.symbiote.security.functional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import eu.h2020.symbiote.security.commons.User;
 import eu.h2020.symbiote.security.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.enums.UserRole;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.UserDetails;
-import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
+import eu.h2020.symbiote.security.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.repositories.entities.User;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
@@ -43,7 +43,7 @@ public class PlatformAAMFunctionalTests extends
     @Test
     public void userRegistrationOverRESTSuccess() throws JsonProcessingException {
         String testAppUsername = "NewApplication";
-        UserRegistrationRequest request = new UserRegistrationRequest(
+        UserManagementRequest request = new UserManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 new UserDetails(new Credentials(testAppUsername, "NewPassword"), "", "", UserRole.USER));
         // verify that app is not in the repository
@@ -71,7 +71,7 @@ public class PlatformAAMFunctionalTests extends
      */
     @Test
     public void userUnregistrationOverRESTSuccess() throws JsonProcessingException {
-        UserRegistrationRequest request = new UserRegistrationRequest(
+        UserManagementRequest request = new UserManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 new UserDetails(new Credentials(username, password),
                         "", "", UserRole.USER));

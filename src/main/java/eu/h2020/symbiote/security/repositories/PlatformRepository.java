@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.security.repositories;
 
-import eu.h2020.symbiote.security.commons.Platform;
-import eu.h2020.symbiote.security.commons.User;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.User;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**

@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.config;
 
-import eu.h2020.symbiote.security.constants.AAMConstants;
+import eu.h2020.symbiote.security.constants.SecurityConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
@@ -24,7 +24,7 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         web.ignoring()
                 // Spring Security should completely ignore URLs starting with:
                 .antMatchers(
-                        AAMConstants.AAM_PUBLIC_PATH + "/**"
+                        SecurityConstants.AAM_PUBLIC_PATH + "/**"
                 );
     }
 
@@ -35,7 +35,7 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .anyRequest().authenticated()
                 .and()
                 .formLogin()
-                .loginPage(AAMConstants.AAM_ADMIN_PATH + "/login")
+                .loginPage(SecurityConstants.AAM_ADMIN_PATH + "/getHomeToken")
                 .permitAll()
                 .and()
                 .logout()

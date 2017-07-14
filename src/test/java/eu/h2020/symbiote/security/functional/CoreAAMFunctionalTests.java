@@ -3,10 +3,7 @@ package eu.h2020.symbiote.security.functional;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.certificate.Certificate;
-import eu.h2020.symbiote.security.commons.Platform;
-import eu.h2020.symbiote.security.commons.TokenManager;
-import eu.h2020.symbiote.security.commons.User;
-import eu.h2020.symbiote.security.constants.AAMConstants;
+import eu.h2020.symbiote.security.constants.SecurityConstants;
 import eu.h2020.symbiote.security.enums.CoreAttributes;
 import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.enums.RegistrationStatus;
@@ -15,6 +12,10 @@ import eu.h2020.symbiote.security.exceptions.SecurityException;
 import eu.h2020.symbiote.security.exceptions.custom.*;
 import eu.h2020.symbiote.security.payloads.*;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
+import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.session.AAM;
 import eu.h2020.symbiote.security.token.Token;
 import eu.h2020.symbiote.security.token.jwt.JWTClaims;
@@ -42,7 +43,6 @@ import java.io.StringWriter;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -72,17 +72,19 @@ public class CoreAAMFunctionalTests extends
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
-    private UserRegistrationRequest appUserRegistrationRequest;
+    private UserManagementRequest appUserManagementRequest;
     private RpcClient appRegistrationClient;
     private UserDetails appUserDetails;
     private RpcClient platformRegistrationOverAMQPClient;
     private UserDetails platformOwnerUserDetails;
-    private PlatformRegistrationRequest platformRegistrationOverAMQPRequest;
+    private PlatformManagementRequest platformRegistrationOverAMQPRequest;
     @Autowired
     private PlatformRepository platformRepository;
 
     @Autowired
-    private TokenManager tokenManager;
+    private ValidationHelper validationHelper;
+    @Autowired
+    private TokenIssuer tokenIssuer;
 
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
@@ -102,8 +104,8 @@ public class CoreAAMFunctionalTests extends
                 userRegistrationRequestQueue, 5000);
         appUserDetails = new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER);
-        appUserRegistrationRequest = new
-                UserRegistrationRequest(new
+        appUserManagementRequest = new
+                UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), appUserDetails);
 
         // platform registration useful
@@ -111,7 +113,7 @@ public class CoreAAMFunctionalTests extends
                 platformRegistrationRequestQueue, 5000);
         platformOwnerUserDetails = new UserDetails(new Credentials(
                 platformOwnerUsername, platformOwnerPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER);
-        platformRegistrationOverAMQPRequest = new PlatformRegistrationRequest(new Credentials(AAMOwnerUsername,
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword), platformOwnerUserDetails, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
                 preferredPlatformId);
@@ -131,7 +133,7 @@ public class CoreAAMFunctionalTests extends
 
         // issue the app registration over AMQP expecting with wrong AAMOwnerUsername
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
-                UserRegistrationRequest(new
+                UserManagementRequest(new
                 Credentials(AAMOwnerUsername + "wrongString", AAMOwnerPassword), new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
 
@@ -144,7 +146,7 @@ public class CoreAAMFunctionalTests extends
 
         // issue the same app registration over AMQP expecting with wrong AAMOwnerPassword
         response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
-                UserRegistrationRequest(new
+                UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword + "wrongString"), new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
 
@@ -169,7 +171,7 @@ public class CoreAAMFunctionalTests extends
 
         // issue the same app registration over AMQP expecting with wrong PlatformOwner UserRole
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
-                UserRegistrationRequest(new
+                UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER)))
                 .getBytes());
@@ -183,7 +185,7 @@ public class CoreAAMFunctionalTests extends
 
         // issue the same app registration over AMQP expecting with wrong Null UserRole
         response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
-                UserRegistrationRequest(new
+                UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.NULL))).getBytes());
 
@@ -208,7 +210,7 @@ public class CoreAAMFunctionalTests extends
 
         // issue app registration over AMQP
         appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
-                UserRegistrationRequest(new
+                UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
 
@@ -218,7 +220,7 @@ public class CoreAAMFunctionalTests extends
 
         // issue the same app registration over AMQP expecting refusal
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
-                UserRegistrationRequest(new
+                UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
 
@@ -238,7 +240,7 @@ public class CoreAAMFunctionalTests extends
 
         // issue app registration over AMQP with missing username
         appUserDetails.getCredentials().setUsername("");
-        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
+        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserManagementRequest)
                 .getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
@@ -258,7 +260,7 @@ public class CoreAAMFunctionalTests extends
 
         // issue app registration over AMQP with missing password
         appUserDetails.getCredentials().setPassword("");
-        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
+        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserManagementRequest)
                 .getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
@@ -278,7 +280,7 @@ public class CoreAAMFunctionalTests extends
 
         // issue app registration over AMQP with missing federatedId
         appUserDetails.setFederatedID("");
-        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
+        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserManagementRequest)
                 .getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
@@ -297,7 +299,7 @@ public class CoreAAMFunctionalTests extends
 
         // issue app registration over AMQP with missing recovery mail
         appUserDetails.setRecoveryMail("");
-        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
+        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserManagementRequest)
                 .getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
@@ -321,7 +323,7 @@ public class CoreAAMFunctionalTests extends
 
         // issue app registration over AMQP
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
-                UserRegistrationRequest(new
+                UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
 
@@ -349,11 +351,12 @@ public class CoreAAMFunctionalTests extends
             TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException {
         // issuing dummy platform token
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
-                        .AAM_LOGIN,
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
+                        SecurityConstants
+                                .AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         String platformId = "platform-1";
         // registering the platform to the Core AAM so it will be available for token revocation
@@ -377,21 +380,21 @@ public class CoreAAMFunctionalTests extends
 
         // preparing request
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(AAMConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
+        httpHeaders.add(SecurityConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
 
         HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
 
         // adding a dummy federation rule
-        tokenManager.federatedMappingRules.put("DummyRule", "dummyRule");
+        tokenIssuer.federatedMappingRules.put("DummyRule", "dummyRule");
 
         // checking issuing of federated token using the dummy platform token
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants
-                .AAM_REQUEST_FOREIGN_TOKEN, entity, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants
+                .AAM_GET_FOREIGN_TOKEN, entity, String.class);
         HttpHeaders rspHeaders = response.getHeaders();
 
         // check if returned status is ok and if there is token in header
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(rspHeaders.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        assertNotNull(rspHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
     }
 
 
@@ -406,11 +409,12 @@ public class CoreAAMFunctionalTests extends
             TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException {
         // issuing dummy platform token
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + AAMConstants
-                        .AAM_LOGIN,
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
+                        SecurityConstants
+                                .AAM_GET_HOME_TOKEN,
                 new Credentials(username, password), String.class);
         Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(AAMConstants.TOKEN_HEADER_NAME).get(0));
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         String platformId = "platform-1";
         // registering the platform to the Core AAM so it will be available for token revocation
@@ -434,17 +438,17 @@ public class CoreAAMFunctionalTests extends
 
         // preparing request
         HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(AAMConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
+        httpHeaders.add(SecurityConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
 
         HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
 
         // making sure the federatedMappingRules are empty
-        tokenManager.federatedMappingRules.clear();
+        tokenIssuer.federatedMappingRules.clear();
 
         // checking issuing of federated token using the dummy platform token
         try {
-            ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants
-                    .AAM_REQUEST_FOREIGN_TOKEN, entity, String.class);
+            ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants
+                    .AAM_GET_FOREIGN_TOKEN, entity, String.class);
             assert false;
         } catch (HttpServerErrorException e) {
             assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getRawStatusCode());
@@ -465,8 +469,8 @@ public class CoreAAMFunctionalTests extends
         // issue platform registration over AMQP
         byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
-        PlatformRegistrationResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
-                PlatformRegistrationResponse.class);
+        PlatformManagementResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
+                PlatformManagementResponse.class);
 
         // TODO verify that released PO certificate has no CA property
 
@@ -503,8 +507,8 @@ public class CoreAAMFunctionalTests extends
         platformRegistrationOverAMQPRequest.setPlatformInstanceId("");
         byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
-        PlatformRegistrationResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
-                PlatformRegistrationResponse.class);
+        PlatformManagementResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
+                PlatformManagementResponse.class);
 
         // TODO verify that released PO certificate has no CA property
 
@@ -544,14 +548,14 @@ public class CoreAAMFunctionalTests extends
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
                 new Credentials(platformOwnerUsername, platformOwnerPassword), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user
-        assertNotNull(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
 
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
 
         //verify that JWT is of type Core as was released by a CoreAAM
         assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
@@ -665,8 +669,8 @@ public class CoreAAMFunctionalTests extends
                 (platformRegistrationOverAMQPRequest).getBytes());
 
         // verify that platform with preferred id is in repository and is tied with the given PO
-        PlatformRegistrationResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
-                PlatformRegistrationResponse.class);
+        PlatformManagementResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
+                PlatformManagementResponse.class);
         // verified that we received the preferred platformId
         assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
         assertNotNull(platformRepository.findOne(preferredPlatformId));
@@ -696,8 +700,8 @@ public class CoreAAMFunctionalTests extends
                 (platformRegistrationOverAMQPRequest).getBytes());
 
         // verify that platform with preferred id is in repository and is tied with the given PO
-        PlatformRegistrationResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
-                PlatformRegistrationResponse.class);
+        PlatformManagementResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
+                PlatformManagementResponse.class);
         // verified that we received the preferred platformId
         assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
         assertNotNull(platformRepository.findOne(preferredPlatformId));
@@ -730,19 +734,19 @@ public class CoreAAMFunctionalTests extends
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
-        // login the platform owner
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
+        // getHomeToken the platform owner
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
                 new Credentials(platformOwnerUsername, platformOwnerPassword), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user
-        assertNotNull(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
 
         // issue owned platform details request with the given token
         RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (headers.getFirst(AAMConstants.TOKEN_HEADER_NAME)).getBytes());
+                (headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME)).getBytes());
         OwnedPlatformDetails ownedPlatformDetails = mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails.class);
 
         Platform ownedPlatformInDB = platformRepository.findOne(preferredPlatformId);
@@ -774,13 +778,13 @@ public class CoreAAMFunctionalTests extends
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
-        // login the platform owner
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
+        // getHomeToken the platform owner
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
                 new Credentials(platformOwnerUsername, platformOwnerPassword), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user
-        assertNotNull(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
 
         // waiting for the token to expire
         Thread.sleep(tokenValidityPeriod + 1000);
@@ -789,7 +793,7 @@ public class CoreAAMFunctionalTests extends
         RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (headers.getFirst(AAMConstants.TOKEN_HEADER_NAME)).getBytes());
+                (headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME)).getBytes());
 
         try {
             mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails.class);
@@ -818,24 +822,24 @@ public class CoreAAMFunctionalTests extends
 
         // issue app registration over AMQP
         appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
-                UserRegistrationRequest(new
+                UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
 
 
-        // login an ordinary user to get token
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + AAMConstants.AAM_LOGIN,
+        // getHomeToken an ordinary user to get token
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
                 new Credentials(coreAppUsername, coreAppPassword), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user
-        assertNotNull(headers.getFirst(AAMConstants.TOKEN_HEADER_NAME));
+        assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
 
         // issue owned platform details request with the given token
         RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (headers.getFirst(AAMConstants.TOKEN_HEADER_NAME)).getBytes());
+                (headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME)).getBytes());
 
         // verify error response
         ErrorResponseContainer errorResponse = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer.class);
@@ -850,24 +854,22 @@ public class CoreAAMFunctionalTests extends
     @Test
     public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
             CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        ResponseEntity<List<AAM>> response = restTemplate.exchange(serverAddress + AAMConstants
-                .AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<List<AAM>>() {
+        ResponseEntity<Map<String, AAM>> response = restTemplate.exchange(serverAddress + SecurityConstants
+                .AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<Map<String, AAM>>() {
         });
         assertEquals(HttpStatus.OK, response.getStatusCode());
 
         // verify the body
-        List<AAM> aams = response.getBody();
+        Map<String, AAM> aams = response.getBody();
         // there should be only core AAM in the list
-        assertEquals(1, aams.size());
-
         // verifying the contents
-        AAM aam = aams.get(0);
+        AAM aam = aams.get(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID);
         // this expected PlatformAAM is due to the value stored in the issued certificate in the test keystore
-        assertEquals(AAMConstants.AAM_CORE_AAM_INSTANCE_ID, aam.getAamInstanceId());
+        assertEquals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, aam.getAamInstanceId());
         assertEquals(coreInterfaceAddress, aam.getAamAddress());
         // maybe we could externalize it to spring config
-        assertEquals(AAMConstants.AAM_CORE_AAM_FRIENDLY_NAME, aam.getAamInstanceFriendlyName());
-        assertEquals(registrationManager.getAAMCert(), aam.getCertificate().getCertificateString());
+        assertEquals(SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME, aam.getAamInstanceFriendlyName());
+        assertEquals(certificationAuthorityHelper.getAAMCert(), aam.getCertificate().getCertificateString());
     }
 
     /**
@@ -881,32 +883,33 @@ public class CoreAAMFunctionalTests extends
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
-        // get the list
-        ResponseEntity<List<AAM>> response = restTemplate.exchange(serverAddress + AAMConstants
-                .AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<List<AAM>>() {
+        ResponseEntity<Map<String, AAM>> response = restTemplate.exchange(serverAddress + SecurityConstants
+                .AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<Map<String, AAM>>() {
         });
         assertEquals(HttpStatus.OK, response.getStatusCode());
 
         // verify the body
-        List<AAM> aams = response.getBody();
-        // there should be Core AAM and the registered platform
+        Map<String, AAM> aams = response.getBody();
+
+        // there should be only core AAM in the list
         assertEquals(2, aams.size());
 
         // verifying the contents
         // first should be served the core AAM
-        AAM coreAAM = aams.get(0);
+        AAM coreAAM = (AAM) aams.values().toArray()[0];
         // this expected PlatformAAM is due to the value stored in the issued certificate in the test keystore
-        assertEquals(AAMConstants.AAM_CORE_AAM_INSTANCE_ID, coreAAM.getAamInstanceId());
+        assertEquals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, coreAAM.getAamInstanceId());
         assertEquals(coreInterfaceAddress, coreAAM.getAamAddress());
-        assertEquals(AAMConstants.AAM_CORE_AAM_FRIENDLY_NAME, coreAAM.getAamInstanceFriendlyName());
+        assertEquals(SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME, coreAAM.getAamInstanceFriendlyName());
 
         // then comes the registered platform
-        AAM platformAAM = aams.get(1);
+        AAM platformAAM = (AAM) aams.values().toArray()[1];
         assertEquals(preferredPlatformId, platformAAM.getAamInstanceId());
         assertEquals(platformInterworkingInterfaceAddress + platformAAMSuffixAtInterWorkingInterface, platformAAM
                 .getAamAddress());
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
         // TODO we don't know the cert... until R3 when we will know it
         assertEquals("", platformAAM.getCertificate().getCertificateString());
+
     }
 }

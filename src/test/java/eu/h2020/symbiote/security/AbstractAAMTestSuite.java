@@ -1,18 +1,18 @@
 package eu.h2020.symbiote.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.h2020.symbiote.security.amqp.RabbitManager;
-import eu.h2020.symbiote.security.commons.RegistrationManager;
-import eu.h2020.symbiote.security.constants.AAMConstants;
+import eu.h2020.symbiote.security.constants.SecurityConstants;
 import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.listeners.amqp.RabbitManager;
 import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.payloads.UserDetails;
-import eu.h2020.symbiote.security.payloads.UserRegistrationRequest;
+import eu.h2020.symbiote.security.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
-import eu.h2020.symbiote.security.services.UserRegistrationService;
+import eu.h2020.symbiote.security.services.UsersManagementService;
+import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
@@ -47,10 +47,8 @@ public abstract class AbstractAAMTestSuite {
     protected final String password = "testApplicationPassword";
     protected final String wrongusername = "veryWrongTestApplicationUsername";
     protected final String wrongpassword = "veryWrongTestApplicationPassword";
-    protected final String homeTokenValue = "home_token_from_platform_aam-" + username;
     protected final String registrationUri = "/register";
     protected final String unregistrationUri = "/unregister";
-    protected final String getCertificateUri = "/certificate";
     protected final String usernameWithAt = "test@";
     protected final String clientId = "clientId";
     @Autowired
@@ -64,15 +62,15 @@ public abstract class AbstractAAMTestSuite {
     @Autowired
     protected RabbitManager rabbitManager;
     @Autowired
-    protected RegistrationManager registrationManager;
+    protected CertificationAuthorityHelper certificationAuthorityHelper;
     @Autowired
-    protected UserRegistrationService userRegistrationService;
+    protected UsersManagementService usersManagementService;
     protected RestTemplate restTemplate = new RestTemplate();
     protected ObjectMapper mapper = new ObjectMapper();
     protected String serverAddress;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     protected String coreInterfaceAddress;
-    @Value("${rabbit.queue.login.request}")
+    @Value("${rabbit.queue.getHomeToken.request}")
     protected String loginRequestQueue;
     @Value("${rabbit.queue.register.user.request}")
     protected String userRegistrationRequestQueue;
@@ -100,7 +98,7 @@ public abstract class AbstractAAMTestSuite {
     @Before
     public void setUp() throws Exception {
         // Catch the random port
-        serverAddress = "https://localhost:" + port + AAMConstants.AAM_PUBLIC_PATH;
+        serverAddress = "https://localhost:" + port + SecurityConstants.AAM_PUBLIC_PATH;
 
 
         // Create a trust manager that does not validate certificate chains
@@ -136,10 +134,10 @@ public abstract class AbstractAAMTestSuite {
 
 
         // Register test user user into DB
-        UserRegistrationRequest userRegistrationRequest = new UserRegistrationRequest(new
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
                 (username, password), "federatedId", "nullMail", UserRole.USER));
-        userRegistrationService.register(userRegistrationRequest);
+        usersManagementService.register(userManagementRequest);
     }
 
     @Configuration

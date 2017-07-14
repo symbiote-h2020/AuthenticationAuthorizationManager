@@ -1,4 +1,6 @@
 language: java
+git:
+  depth: 100
 env:
   global:
   - GITHUB_REPO=symbiote-h2020/AuthenticationAuthorizationManager
@@ -9,6 +11,7 @@ before_install:
 - gradle -b wrapper.gradle wrapper
 services:
 - rabbitmq
+sudo: true
 branches:
   only:
   - staging
