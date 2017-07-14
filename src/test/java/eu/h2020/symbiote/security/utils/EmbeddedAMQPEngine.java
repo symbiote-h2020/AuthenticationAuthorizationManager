@@ -3,8 +3,8 @@ package eu.h2020.symbiote.security.utils;
 import io.arivera.oss.embedded.rabbitmq.EmbeddedRabbitMq;
 import io.arivera.oss.embedded.rabbitmq.EmbeddedRabbitMqConfig;
 import io.arivera.oss.embedded.rabbitmq.PredefinedVersion;
+import io.arivera.oss.embedded.rabbitmq.RabbitMqEnvVar;
 import org.apache.commons.lang.SystemUtils;
-import org.assertj.core.api.exception.RuntimeIOException;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PreDestroy;
@@ -21,39 +21,35 @@ import java.text.Normalizer;
  */
 @Component
 public class EmbeddedAMQPEngine {
-    private EmbeddedRabbitMqConfig embeddedRabbitMqConfig;
     private EmbeddedRabbitMq embeddedRabbitMq;
     private String extractionPath;
 
     public EmbeddedAMQPEngine() {
+        EmbeddedRabbitMqConfig.Builder embeddedRabbitMqConfigBuilder = new EmbeddedRabbitMqConfig.Builder()
+                .version(PredefinedVersion.LATEST)
+                .rabbitMqServerInitializationTimeoutInMillis(60000);//1 minute
         if (SystemUtils.IS_OS_WINDOWS && pathContainsInvalidChar()) {
             avoidInvalidChar();
-            embeddedRabbitMqConfig = new EmbeddedRabbitMqConfig.Builder()
-                    .version(PredefinedVersion.LATEST)
-                    .extractionFolder(new File(extractionPath + "/rabbitTemps"))
-                    .build();
-        } else {
-            embeddedRabbitMqConfig = new EmbeddedRabbitMqConfig.Builder()
-                    .version(PredefinedVersion.LATEST)
-                    .build();
+            embeddedRabbitMqConfigBuilder.extractionFolder(new File(extractionPath))
+                    .envVar(RabbitMqEnvVar.CONF_ENV_FILE, "C:/Temp/rabbitTemp");
         }
-
-        embeddedRabbitMq = new EmbeddedRabbitMq(embeddedRabbitMqConfig);
+        embeddedRabbitMq = new EmbeddedRabbitMq(embeddedRabbitMqConfigBuilder.build());
         embeddedRabbitMq.start();
     }
 
     /*
-     *  Issue valid extracion path
+     *  Issue valid extraction path
      */
     public void avoidInvalidChar() {
-        Path tempPath = Paths.get(System.getProperty("java.io.tmpdir") + "/rabbitTemps");
+        String workaroundPath = "C:/Temp/rabbitTemp";
+        Path tempPath = Paths.get(workaroundPath);
         if (Files.exists(tempPath)) {
-            //  Success - Path exists, select it for extraction
-            extractionPath = System.getProperty("java.io.tmpdir");
+            // Success - Path exists, select it for extraction
+            extractionPath = workaroundPath;
         } else {
-            //  Fail - Path does not exist - needs creation
-            throw new RuntimeIOException("User Home Path contains illegal characters. Please create " +
-                    "new directory in C:/Temp/rabbitTemps");
+            // Fail - Path does not exist - needs creation
+            throw new UnsupportedOperationException("User Home Path contains illegal characters. Please create "
+                    + "new directory " + workaroundPath);
         }
     }
 
