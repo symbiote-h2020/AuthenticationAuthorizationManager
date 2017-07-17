@@ -171,8 +171,13 @@ public class AAMUnitTests extends
         assertTrue(revokedKeysRepository.exists(username));
         SubjectsRevokedKeys revokedKeys = revokedKeysRepository.findOne(username);
         assertNotNull(revokedKeys);
-        assertTrue(revokedKeys.getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(
-                user.getCertificate().getX509().getPublicKey().getEncoded())));
+
+        Set<String> certs = new HashSet<String>();
+        for (Certificate c : user.getClientCertificates().values()){
+            certs.add(Base64.getEncoder().encodeToString(c.getX509().getPublicKey().getEncoded()));
+        }
+
+        assertTrue(revokedKeys.getRevokedKeysSet().containsAll(certs));
     }
 
     @Test
@@ -674,6 +679,11 @@ public class AAMUnitTests extends
         assertEquals("Subject name doesn't match",response.getBody());
     }
 
+    public void getCertificateSuccess(){
+        
+    }
+
+
     // test for revoke function
     @Test
     public void revokeUserPublicKey() throws SecurityException, CertificateException,
@@ -687,7 +697,7 @@ public class AAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // revocation
-        revocationHelper.revoke(new Credentials(username, password), user.getCertificate());
+        revocationHelper.revoke(new Credentials(username, password), user.getClientCertificates().get("clientId"));
 
         // verify the user keys are revoked
         assertTrue(revokedKeysRepository.exists(username));

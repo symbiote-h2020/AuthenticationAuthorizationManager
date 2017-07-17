@@ -72,8 +72,9 @@ public class RevocationHelper {
         if (user == null) {
             throw new NotExistingUserException();
         }
+        String clientId = certificate.getX509().getSubjectDN().getName().split("CN=")[1].split("@")[1];
         if (passwordEncoder.matches(credentials.getPassword(), user.getPasswordEncrypted())) {
-            if (user.getCertificate().getCertificateString().equals(certificate.getCertificateString())) {
+            if (user.getClientCertificates().get(clientId).getCertificateString().equals(certificate.getCertificateString())) {
                 SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(user.getUsername());
                 Set<String> keySet = (subjectsRevokedKeys == null) ? new HashSet<>() : subjectsRevokedKeys
                         .getRevokedKeysSet();
@@ -102,7 +103,7 @@ public class RevocationHelper {
         if (user != null) {
             if (passwordEncoder.matches(credentials.getPassword(), user.getPasswordEncrypted())) {
                 // user
-                if (Base64.getEncoder().encodeToString(user.getCertificate().getX509().getPublicKey().getEncoded())
+                if (Base64.getEncoder().encodeToString(user.getClientCertificates().get("clientId").getX509().getPublicKey().getEncoded())
                         .equals(token.getClaims().get("spk"))) {
                     revokedTokensRepository.save(token);
                     return;

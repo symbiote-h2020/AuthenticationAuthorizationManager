@@ -561,7 +561,7 @@ public class CoreAAMFunctionalTests extends
 
         // verify that the token contains the platform owner public key
         byte[] userPublicKeyInRepository = userRepository.findOne
-                (platformOwnerUsername).getCertificate().getX509().getPublicKey().getEncoded();
+                (platformOwnerUsername).getClientCertificates().get("clientId").getX509().getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
 

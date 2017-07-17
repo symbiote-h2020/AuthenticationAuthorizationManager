@@ -141,7 +141,7 @@ public class ValidationHelper {
             }
 
             // check if subject certificate is valid
-            if (isExpired(userRepository.findOne(claims.getSubject()).getCertificate().getX509())) {
+            if (isExpired(userRepository.findOne(claims.getSubject()).getClientCertificates().get("clientId").getX509())) {
                 return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
             }
 

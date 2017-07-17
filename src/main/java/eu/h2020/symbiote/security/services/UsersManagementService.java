@@ -115,7 +115,7 @@ public class UsersManagementService {
         user.setPasswordEncrypted(passwordEncoder.encode(userRegistrationDetails.getCredentials().getPassword()));
         user.setRecoveryMail(userRegistrationDetails.getRecoveryMail());
         // TODO R3 drop as this is a separate step
-        user.setCertificate(certificate);
+        user.getClientCertificates().put(userRegistrationDetails.getFederatedId(),certificate);
         userRepository.save(user);
 
         return RegistrationStatus.OK;
@@ -145,8 +145,11 @@ public class UsersManagementService {
         // add user certificated to revoked repository
         Set<String> keys = new HashSet<>();
         try {
-            keys.add(Base64.getEncoder().encodeToString(
-                    userRepository.findOne(username).getCertificate().getX509().getPublicKey().getEncoded()));
+            for(Certificate c: userRepository.findOne(username).getClientCertificates().values()){
+                keys.add(Base64.getEncoder().encodeToString(
+                        c.getX509().getPublicKey().getEncoded()));
+            }
+
             revokedKeysRepository.save(new SubjectsRevokedKeys(username, keys));
         } catch (CertificateException e) {
             log.error(e);

@@ -16,7 +16,6 @@ import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +24,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
@@ -94,29 +92,27 @@ public class GetClientCertificateService {
         ResponseEntity<String> response = coreServicesController.getComponentCertificate();
         X509Certificate caCert = CertificateHelper.convertPEMToX509(response.getBody());
 
-        X500Principal principal = user.getCertificate().getX509().getSubjectX500Principal();
-        log.debug("************");
-        log.debug(principal.getName());
-        log.debug("************");
-        X500Name x500ClientId = new X500Name(principal.getName().split("CN=")[1].split("@")[1]);
+        Certificate userCert = user.getClientCertificates().get(certificateRequest.getClientId());
+        //.getX509().getSubjectX500Principal();
+        //X500Name x500ClientId = new X500Name(principal.getName().split("CN=")[1].split("@")[1]);
 
-        X509Certificate cert509 = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
 
-        String pem = CertificateHelper.convertX509ToPEM(cert509);
+        String pem = CertificateHelper.convertX509ToPEM(certFromCSR);
 
-        if (x500ClientId.equals(certificateRequest.getClientId())) {
-            if (user.getCertificate().getX509().getPublicKey().equals(cert509.getPublicKey())) {
+        if (userCert!=null) {
+            if (userCert.getX509().getPublicKey().equals(certFromCSR.getPublicKey())) {
                 Certificate cert = new Certificate(pem);
-                user.setCertificate(cert);
+                user.getClientCertificates().clear();
+                user.getClientCertificates().replace(certificateRequest.getClientId(),cert);
             } else {
-                revocationHelper.revoke(new Credentials(user.getUsername(), user.getPasswordEncrypted()), user
-                        .getCertificate());
+                revocationHelper.revoke(new Credentials(user.getUsername(), user.getPasswordEncrypted()),userCert);
                 Certificate cert = new Certificate(pem);
-                user.setCertificate(cert);
+                user.getClientCertificates().put(certificateRequest.getClientId(),cert);
             }
         } else {
             Certificate cert = new Certificate(pem);
-            user.setCertificate(cert);
+            user.getClientCertificates().put(certificateRequest.getClientId(),cert);
         }
 
         return pem;

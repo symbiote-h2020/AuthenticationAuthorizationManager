@@ -6,7 +6,9 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -28,8 +30,7 @@ public class User {
     // TODO R3 add ownedPlatform set
 
     // TODO R3  @Mikołaj, change to Set<String,Certificate> clientCertificates
-    private Certificate certificate = new Certificate();
-
+    private Map<String,Certificate> clientCertificates = new HashMap<String,Certificate>();
     // TODO Release 4 - add OAuth federated ID support
 
     /**
@@ -45,20 +46,20 @@ public class User {
     /**
      * Used to create a new user entity
      *
-     * @param username          selected username
-     * @param passwordEncrypted encrypted password for authentication
-     * @param recoveryMail      for password reset/recovery purposes
-     * @param certificate       user's public certificate
-     * @param role              user's role in symbIoTe ecosystem, see @{@link UserRole}
-     * @param attributes        used to assign in registration phase user-unique attributes
+     * @param username              selected username
+     * @param passwordEncrypted     encrypted password for authentication
+     * @param recoveryMail          for password reset/recovery purposes
+     * @param clientCertificates    user's public certificates
+     * @param role                  user's role in symbIoTe ecosystem, see @{@link UserRole}
+     * @param attributes            used to assign in registration phase user-unique attributes
      */
-    public User(String username, String passwordEncrypted, String recoveryMail, Certificate certificate,
+    public User(String username, String passwordEncrypted, String recoveryMail, HashMap<String,Certificate> clientCertificates,
                 UserRole role,
                 List<String> attributes) {
         this.username = username;
         this.passwordEncrypted = passwordEncrypted;
         this.recoveryMail = recoveryMail;
-        this.certificate = certificate;
+        this.clientCertificates =  clientCertificates;
         this.role = role;
         this.attributes = attributes;
     }
@@ -104,12 +105,11 @@ public class User {
         this.recoveryMail = recoveryMail;
     }
 
-    public Certificate getCertificate() {
-        return certificate;
+    public Map<String, Certificate> getClientCertificates() {
+        return clientCertificates;
     }
 
-    public void setCertificate(Certificate certificate) {
-        this.certificate = certificate;
+    public void setClientCertificates(Map<String, Certificate> clientCertificates) {
+        this.clientCertificates = clientCertificates;
     }
-
 }

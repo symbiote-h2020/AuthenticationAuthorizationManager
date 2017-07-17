@@ -121,7 +121,7 @@ public class PlatformAAMUnitTests extends
         ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
         X509Certificate cert = (X509Certificate) ks.getCertificate("platform-1-1-exp-c1");
         Certificate certificate = new Certificate(CertificateHelper.convertX509ToPEM(cert));
-        user.setCertificate(certificate);
+        user.getClientCertificates().put("clientId",certificate);
         userRepository.save(user);
 
         // check if home token is valid
