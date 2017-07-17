@@ -7,7 +7,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.interfaces.IAAMServices;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
-import eu.h2020.symbiote.security.helpers.TrustChainValidator;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
@@ -76,6 +75,7 @@ public class ValidationHelper {
         this.revokedTokensRepository = revokedTokensRepository;
         this.userRepository = userRepository;
     }
+
 
     public ValidationStatus validate(String tokenString, String certificateString) {
         try {
@@ -158,7 +158,7 @@ public class ValidationHelper {
             NullPointerException, ValidationException, NoSuchAlgorithmException, NoSuchProviderException,
             KeyStoreException, IOException {
         // if the certificate is not empty, then check the trust chain
-        if (!certificateString.isEmpty() && !TrustChainValidator.isTrusted(certificationAuthorityHelper
+        if (!certificateString.isEmpty() && !isTrusted(certificationAuthorityHelper
                 .getAAMCertificate(), certificateString))
             return ValidationStatus.INVALID_TRUST_CHAIN;
         // TODO check if AAM is online or is configured to allow 'offline' trust chain only validation
@@ -206,5 +206,13 @@ public class ValidationHelper {
             return true;
         }
         return false;
+    }
+
+    /**
+     * TODO R3 @Daniele
+     * implement method to validate trust chain
+     */
+    private boolean isTrusted(X509Certificate AAMCertificate, String certificateString) {
+        return true;
     }
 }
