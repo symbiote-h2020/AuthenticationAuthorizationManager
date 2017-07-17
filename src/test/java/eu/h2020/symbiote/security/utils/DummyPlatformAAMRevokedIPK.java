@@ -1,14 +1,14 @@
 package eu.h2020.symbiote.security.utils;
 
 
-import eu.h2020.symbiote.security.constants.SecurityConstants;
-import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.enums.ValidationStatus;
-import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.payloads.Credentials;
-import eu.h2020.symbiote.security.token.Token;
-import eu.h2020.symbiote.security.token.jwt.JWTEngine;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
+import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
@@ -60,7 +60,7 @@ public class DummyPlatformAAMRevokedIPK {
 
             HashMap<String, String> attributes = new HashMap<>();
             attributes.put("name", "test2");
-            String tokenString = JWTEngine.generateJWTToken(credential.getUsername(), attributes, ks.getCertificate
+            String tokenString = TokenIssuer.generateJWTToken(credential.getUsername(), attributes, ks.getCertificate
                             (CERTIFICATE_ALIAS).getPublicKey().getEncoded(), IssuingAuthorityType.PLATFORM, new Date().getTime()
                             + 60000
                     , "platform-1", ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),

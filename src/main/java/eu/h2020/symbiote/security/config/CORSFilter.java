@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.config;
 
-import eu.h2020.symbiote.security.constants.SecurityConstants;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

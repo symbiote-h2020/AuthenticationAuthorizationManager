@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.services;
 
-import eu.h2020.symbiote.security.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

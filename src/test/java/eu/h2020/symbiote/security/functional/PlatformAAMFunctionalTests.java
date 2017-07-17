@@ -2,11 +2,11 @@ package eu.h2020.symbiote.security.functional;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import eu.h2020.symbiote.security.enums.RegistrationStatus;
-import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.payloads.Credentials;
-import eu.h2020.symbiote.security.payloads.UserDetails;
-import eu.h2020.symbiote.security.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.UserDetails;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.junit.Before;
 import org.junit.Test;

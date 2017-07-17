@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.security.repositories.entities;
 
-import eu.h2020.symbiote.security.certificate.Certificate;
-import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 

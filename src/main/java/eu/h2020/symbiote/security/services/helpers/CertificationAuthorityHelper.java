@@ -1,8 +1,8 @@
 package eu.h2020.symbiote.security.services.helpers;
 
-import eu.h2020.symbiote.security.certificate.CertificateHelper;
-import eu.h2020.symbiote.security.constants.SecurityConstants;
-import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.helpers.CertificateHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;

@@ -1,14 +1,14 @@
 package eu.h2020.symbiote.security.services;
 
-import eu.h2020.symbiote.security.certificate.Certificate;
-import eu.h2020.symbiote.security.certificate.CertificateHelper;
-import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.enums.RegistrationStatus;
-import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.exceptions.SecurityException;
-import eu.h2020.symbiote.security.exceptions.custom.*;
-import eu.h2020.symbiote.security.payloads.UserDetails;
-import eu.h2020.symbiote.security.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.UserDetails;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.helpers.CertificateHelper;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;

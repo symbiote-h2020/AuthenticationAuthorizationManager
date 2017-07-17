@@ -1,12 +1,12 @@
 package eu.h2020.symbiote.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.h2020.symbiote.security.constants.SecurityConstants;
-import eu.h2020.symbiote.security.enums.UserRole;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.UserDetails;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.listeners.amqp.RabbitManager;
-import eu.h2020.symbiote.security.payloads.Credentials;
-import eu.h2020.symbiote.security.payloads.UserDetails;
-import eu.h2020.symbiote.security.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;

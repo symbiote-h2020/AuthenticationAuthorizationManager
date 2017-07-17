@@ -1,13 +1,13 @@
 package eu.h2020.symbiote.security.listeners.rest;
 
-import eu.h2020.symbiote.security.constants.SecurityConstants;
-import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.exceptions.SecurityException;
-import eu.h2020.symbiote.security.interfaces.IRegistration;
-import eu.h2020.symbiote.security.payloads.Credentials;
-import eu.h2020.symbiote.security.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.payloads.UserDetails;
-import eu.h2020.symbiote.security.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.communication.interfaces.IRegistration;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.UserDetails;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import net.lingala.zip4j.exception.ZipException;

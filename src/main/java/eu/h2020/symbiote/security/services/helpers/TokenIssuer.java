@@ -1,22 +1,31 @@
 package eu.h2020.symbiote.security.services.helpers;
 
-import eu.h2020.symbiote.security.enums.CoreAttributes;
-import eu.h2020.symbiote.security.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.enums.UserRole;
-import eu.h2020.symbiote.security.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.exceptions.custom.SecurityMisconfigurationException;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
+import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.helpers.ECDSAHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.token.Token;
-import eu.h2020.symbiote.security.token.jwt.JWTClaims;
-import eu.h2020.symbiote.security.token.jwt.JWTEngine;
+import io.jsonwebtoken.JwtBuilder;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,6 +38,7 @@ import java.util.Map;
 public class TokenIssuer {
 
     private static Log log = LogFactory.getLog(TokenIssuer.class);
+    private static SecureRandom random = new SecureRandom();
     // TODO R3 create a CRUD for this
     public Map<String, String> federatedMappingRules = new HashMap<>();
     // AAM configuration
@@ -48,6 +58,58 @@ public class TokenIssuer {
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
         this.platformRepository = platformRepository;
+    }
+
+    public static String generateJWTToken(String userId, Map<String, String> attributes, byte[] userPublicKey,
+                                          IssuingAuthorityType deploymentType, Long tokenValidity, String
+                                                  deploymentID, PublicKey aamPublicKey, PrivateKey aamPrivateKey)
+            throws JWTCreationException {
+        ECDSAHelper.enableECDSAProvider();
+
+        String jti = String.valueOf(random.nextInt());
+        Map<String, Object> claimsMap = new HashMap<>();
+
+        try {
+            // Insert AAM Public Key
+            claimsMap.put("ipk", org.apache.commons.codec.binary.Base64.encodeBase64String(aamPublicKey.getEncoded()));
+
+            //Insert issuee Public Key
+            claimsMap.put("spk", org.apache.commons.codec.binary.Base64.encodeBase64String(userPublicKey));
+
+            //Add symbIoTe related attributes to token
+            if (attributes != null && !attributes.isEmpty()) {
+                for (Map.Entry<String, String> entry : attributes.entrySet()) {
+                    claimsMap.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + entry.getKey(), entry.getValue());
+                }
+            }
+
+            //Insert token type based on AAM deployment type (Core or Platform)
+            switch (deploymentType) {
+                case CORE:
+                    claimsMap.put(SecurityConstants.CLAIM_NAME_TOKEN_TYPE, IssuingAuthorityType.CORE);
+                    break;
+                case PLATFORM:
+                    claimsMap.put(SecurityConstants.CLAIM_NAME_TOKEN_TYPE, IssuingAuthorityType.PLATFORM);
+                    break;
+                case NULL:
+                    throw new JWTCreationException("uninitialized deployment type, must be CORE or PLATFORM");
+            }
+
+            JwtBuilder jwtBuilder = Jwts.builder();
+            jwtBuilder.setClaims(claimsMap);
+            jwtBuilder.setId(jti);
+            jwtBuilder.setIssuer(deploymentID);
+            jwtBuilder.setSubject(userId);
+            jwtBuilder.setIssuedAt(new Date());
+            jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + tokenValidity));
+            jwtBuilder.signWith(SignatureAlgorithm.ES256, aamPrivateKey);
+
+            return jwtBuilder.compact();
+        } catch (Exception e) {
+            String message = "JWT creation error";
+            log.error(message, e);
+            throw new JWTCreationException(message, e);
+        }
     }
 
     /**
@@ -83,7 +145,7 @@ public class TokenIssuer {
                 case NULL:
                     throw new JWTCreationException("Misconfigured AAM deployment type");
             }
-            return new Token(JWTEngine.generateJWTToken(user.getUsername(), attributes, user.getCertificate().getX509()
+            return new Token(generateJWTToken(user.getUsername(), attributes, user.getCertificate().getX509()
                             .getPublicKey().getEncoded(), deploymentType, tokenValidity, deploymentId,
                     certificationAuthorityHelper
                             .getAAMPublicKey(), certificationAuthorityHelper.getAAMPrivateKey()));
@@ -104,7 +166,7 @@ public class TokenIssuer {
             if (federatedMappingRules.isEmpty())
                 throw new SecurityMisconfigurationException("AAM has no federation rules defined");
             return new Token(
-                    JWTEngine.generateJWTToken(claims.getIss(), federatedAttributes, Base64.getDecoder().decode(claims
+                    generateJWTToken(claims.getIss(), federatedAttributes, Base64.getDecoder().decode(claims
                                     .getIpk()), deploymentType, tokenValidity, deploymentId,
                             certificationAuthorityHelper
                                     .getAAMPublicKey(),

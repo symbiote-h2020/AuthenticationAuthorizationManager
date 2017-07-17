@@ -1,12 +1,12 @@
 package eu.h2020.symbiote.security.services;
 
-import eu.h2020.symbiote.security.certificate.Certificate;
-import eu.h2020.symbiote.security.certificate.CertificateHelper;
-import eu.h2020.symbiote.security.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
+import eu.h2020.symbiote.security.helpers.CertificateHelper;
 import eu.h2020.symbiote.security.listeners.rest.AAMServices;
-import eu.h2020.symbiote.security.payloads.CertificateRequest;
-import eu.h2020.symbiote.security.payloads.Credentials;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;

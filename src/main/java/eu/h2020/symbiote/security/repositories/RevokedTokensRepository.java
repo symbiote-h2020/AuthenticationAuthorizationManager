@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.repositories;
 
-import eu.h2020.symbiote.security.token.Token;
+import eu.h2020.symbiote.security.commons.Token;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**
