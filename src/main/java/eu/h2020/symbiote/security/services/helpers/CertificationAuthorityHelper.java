@@ -32,7 +32,6 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 
-
 /**
  * Certificate related set of functions.
  *
@@ -43,6 +42,9 @@ import java.util.Date;
 @Component
 public class CertificationAuthorityHelper {
     private static Log log = LogFactory.getLog(CertificationAuthorityHelper.class);
+    @Value("${aam.deployment.token.validityMillis}")
+    protected Long tokenValidityPeriod;
+
 
     @Value("${aam.security.KEY_STORE_FILE_NAME}")
     private String KEY_STORE_FILE_NAME;
@@ -234,7 +236,7 @@ public class CertificationAuthorityHelper {
                 issuer,
                 BigInteger.valueOf(1),
                 new Date(System.currentTimeMillis()),
-                new Date(System.currentTimeMillis() + 1L * 365L * 24L * 60L * 60L * 1000L),
+                new Date(System.currentTimeMillis() + tokenValidityPeriod),
                 jcaRequest.getSubject(),
                 jcaRequest.getPublicKey())
                 .addExtension(

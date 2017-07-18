@@ -623,40 +623,6 @@ public class AAMUnitTests extends
         assertEquals("Wrong credentials",response2.getBody());
     }
 
-    @Ignore
-    @Test
-    public void getCertificateRevokedKeyFailure() throws OperatorCreationException, IOException, InterruptedException,
-            NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException {
-        String appUsername = "NewApplication";
-
-        UserManagementRequest request = new UserManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword),
-                new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole
-                        .USER));
-        ResponseEntity<RegistrationStatus> response = restTemplate.postForEntity(serverAddress +
-                registrationUri, request, RegistrationStatus.class);
-
-        KeyPair pair = generateKeyPair();
-
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal("CN="+appUsername+"@"+clientId+"@"+certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1]), pair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
-        ContentSigner signer = csBuilder.build(pair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csr);
-
-        ResponseEntity<String> response2 = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
-                certRequest, String.class);
-        assertNotEquals(CertificateException.class,response2.getBody().getClass());
-
-        Thread.sleep(tokenValidityPeriod+1000);
-
-        CertificateRequest certRequest2 = new CertificateRequest(appUsername, password, clientId, csr);
-        ResponseEntity<String> response3 = restTemplate.postForEntity(serverAddress + SecurityConstants
-                .AAM_GET_CLIENT_CERTIFICATE, certRequest2, String.class);
-        assertEquals("Key revoked",response3.getBody());
-    }
-
     @Test
     public void getCertificateCheckCSR() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException {
         String appUsername = "NewApplication";
@@ -691,9 +657,9 @@ public class AAMUnitTests extends
         restTemplate.postForEntity(serverAddress + registrationUri, request, RegistrationStatus.class);
         KeyPair pair = generateKeyPair();
 
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal("CN="+appUsername+"@"+clientId+"@"+certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1]),
-                pair.getPublic());
+        String cn = "CN="+appUsername+"@"+clientId+"@"+certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
+
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), pair.getPublic());
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
@@ -703,8 +669,9 @@ public class AAMUnitTests extends
                 certRequest, String.class);
 
         assertTrue(response.getBody().contains("BEGIN CERTIFICATE"));
+        assertNotNull(CertificateHelper.convertPEMToX509(response.getBody()));
+        assertEquals(cn,CertificateHelper.convertPEMToX509(response.getBody()).getSubjectDN().getName());
     }
-
 
     // test for revoke function
     @Test
