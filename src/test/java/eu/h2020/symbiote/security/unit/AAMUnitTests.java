@@ -15,6 +15,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsExce
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.*;
 import eu.h2020.symbiote.security.helpers.CertificateHelper;
+import eu.h2020.symbiote.security.listeners.rest.AAMServices;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -94,6 +95,7 @@ public class AAMUnitTests extends
     private RpcClient platformRegistrationOverAMQPClient;
     private UserDetails platformOwnerUserDetails;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
+    private AAMServices coreServicesController;
 
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
@@ -637,8 +639,7 @@ public class AAMUnitTests extends
         KeyPair pair = generateKeyPair();
 
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal(certificationAuthorityHelper.getAAMCertificate().getSubjectX500Principal().getName()), pair.getPublic());
-        //assertEquals("somethin",registrationManager.getAAMCertificate().getSubjectX500Principal().getName());
+                new X500Principal("CN="+appUsername+"@"+clientId+"@"+certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1]), pair.getPublic());
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
@@ -668,7 +669,7 @@ public class AAMUnitTests extends
 
         KeyPair pair = generateKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal("CN=WrongName"), pair.getPublic());
+                new X500Principal("CN=WrongName@WrongClientId@WrongPlatformInstanceId"), pair.getPublic());
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
@@ -679,8 +680,29 @@ public class AAMUnitTests extends
         assertEquals("Subject name doesn't match",response.getBody());
     }
 
-    public void getCertificateSuccess(){
-        
+    @Test
+    public void getCertificateSuccess() throws OperatorCreationException, IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException {
+        String appUsername = "NewApplication";
+
+        UserManagementRequest request = new UserManagementRequest(new Credentials(AAMOwnerUsername,
+                AAMOwnerPassword),
+                new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole
+                        .USER));
+        restTemplate.postForEntity(serverAddress + registrationUri, request, RegistrationStatus.class);
+        KeyPair pair = generateKeyPair();
+
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
+                new X500Principal("CN="+appUsername+"@"+clientId+"@"+certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1]),
+                pair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
+        ContentSigner signer = csBuilder.build(pair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+
+        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csr);
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
+                certRequest, String.class);
+
+        assertTrue(response.getBody().contains("BEGIN CERTIFICATE"));
     }
 
 

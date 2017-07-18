@@ -79,21 +79,20 @@ public class GetClientCertificateService {
         if (!passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
             throw new WrongCredentialsException("Wrong credentials");
 
-        if (revokedKeysRepository.exists(certificateRequest.getUsername()))
+        if (revokedKeysRepository.exists(certificateRequest.getClientId()))
             throw new InvalidKeyException("Key revoked");
 
         byte[] bytes = Base64.decodeBase64(certificateRequest.getClientCSR());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
-        //System.out.println(req.getSubject().toString());
-        if (!req.getSubject().toString().equals
-                (certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName()))
-            throw new CertificateException("Subject name doesn't match");
 
         ResponseEntity<String> response = coreServicesController.getComponentCertificate();
         X509Certificate caCert = CertificateHelper.convertPEMToX509(response.getBody());
 
+        if (!req.getSubject().toString().split("CN=")[1].split("@")[2].equals
+                (caCert.getSubjectDN().getName().split("CN=")[1]))
+            throw new CertificateException("Subject name doesn't match");
+
         Certificate userCert = user.getClientCertificates().get(certificateRequest.getClientId());
-        //.getX509().getSubjectX500Principal();
         //X500Name x500ClientId = new X500Name(principal.getName().split("CN=")[1].split("@")[1]);
 
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
