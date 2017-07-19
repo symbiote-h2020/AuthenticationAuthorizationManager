@@ -166,6 +166,7 @@ public class AAMIntegrationTests extends
      * Features: PAAM - 3, CAAM - 5 (Authentication & relevent token issuing)
      * Interfaces: PAAM - 3, CAAM - 7;
      * CommunicationType REST
+     * TODO getting certificate
      */
     @Test
     public void userLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws CertificateException,
@@ -184,7 +185,8 @@ public class AAMIntegrationTests extends
 
         // verify that the token contains the user public key
         byte[] userPublicKeyInRepository = userRepository.findOne
-                (username).getClientCertificates().get("clientId").getX509().getPublicKey().getEncoded();
+                (username).getClientCertificates().entrySet().iterator().next().getValue().getX509()
+                .getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
 
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);

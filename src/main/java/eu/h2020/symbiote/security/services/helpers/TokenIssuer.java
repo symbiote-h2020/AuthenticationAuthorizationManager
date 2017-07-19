@@ -145,8 +145,8 @@ public class TokenIssuer {
                 case NULL:
                     throw new JWTCreationException("Misconfigured AAM deployment type");
             }
-            return new Token(generateJWTToken(user.getUsername(), attributes, user.getClientCertificates().get("clientId").getX509()
-                            .getPublicKey().getEncoded(), deploymentType, tokenValidity, deploymentId,
+            return new Token(generateJWTToken(user.getUsername(), attributes, user.getClientCertificates().entrySet().iterator()
+                            .next().getValue().getX509().getPublicKey().getEncoded(), deploymentType, tokenValidity, deploymentId,
                     certificationAuthorityHelper
                             .getAAMPublicKey(), certificationAuthorityHelper.getAAMPrivateKey()));
         } catch (Exception e) {

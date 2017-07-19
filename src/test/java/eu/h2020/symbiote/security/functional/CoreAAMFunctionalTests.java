@@ -535,6 +535,7 @@ public class CoreAAMFunctionalTests extends
      * Features: CAAM - 5 (Authentication & relevent token issuing)
      * Interfaces: CAAM - 7;
      * CommunicationType REST
+     * TODO getting certificate
      */
     @Test
     public void platformOwnerLoginOverRESTSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws IOException,
@@ -561,7 +562,8 @@ public class CoreAAMFunctionalTests extends
 
         // verify that the token contains the platform owner public key
         byte[] userPublicKeyInRepository = userRepository.findOne
-                (platformOwnerUsername).getClientCertificates().get("clientId").getX509().getPublicKey().getEncoded();
+                (platformOwnerUsername).getClientCertificates().entrySet().iterator().next().getValue().getX509()
+                .getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
 

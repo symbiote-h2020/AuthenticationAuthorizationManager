@@ -1,20 +1,30 @@
 package eu.h2020.symbiote.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.helpers.CertificateHelper;
 import eu.h2020.symbiote.security.listeners.amqp.RabbitManager;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
+import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +33,8 @@ import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -32,6 +44,11 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.security.auth.x500.X500Principal;
+import java.security.KeyPair;
+import java.security.cert.X509Certificate;
+
+import static io.jsonwebtoken.impl.crypto.RsaProvider.generateKeyPair;
 
 /**
  * AAM test suite stub with possibly shareable fields.
@@ -51,6 +68,9 @@ public abstract class AbstractAAMTestSuite {
     protected final String unregistrationUri = "/unregister";
     protected final String usernameWithAt = "test@";
     protected final String clientId = "clientId";
+    protected final KeyPair keyPair = generateKeyPair();
+    protected final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
     @Autowired
     protected UserRepository userRepository;
     @Autowired
@@ -95,6 +115,7 @@ public abstract class AbstractAAMTestSuite {
     @LocalServerPort
     private int port;
 
+
     @Before
     public void setUp() throws Exception {
         // Catch the random port
@@ -137,7 +158,28 @@ public abstract class AbstractAAMTestSuite {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
                 (username, password), "federatedId", "nullMail", UserRole.USER));
-        usersManagementService.register(userManagementRequest);
+
+        User user = new User();
+        user.setRole(userManagementRequest.getUserDetails().getRole());
+        user.setUsername(userManagementRequest.getUserDetails().getCredentials().getUsername());
+        user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
+        user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
+
+        String cn = "CN="+username+"@"+clientId+"@"+certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), keyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
+        ContentSigner signer = csBuilder.build(keyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csr);
+        byte[] bytes = Base64.decodeBase64(certRequest.getClientCSR());
+        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        String pem = CertificateHelper.convertX509ToPEM(certFromCSR);
+        Certificate cert = new Certificate(pem);
+
+        user.getClientCertificates().put(clientId,cert);
+        userRepository.save(user);
+
     }
 
     @Configuration

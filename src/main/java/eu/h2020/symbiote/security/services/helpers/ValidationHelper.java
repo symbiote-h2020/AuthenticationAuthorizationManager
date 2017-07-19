@@ -76,7 +76,7 @@ public class ValidationHelper {
         this.userRepository = userRepository;
     }
 
-
+    //TODO getting certificates
     public ValidationStatus validate(String tokenString, String certificateString) {
         try {
             // basic validation (signature and exp)
@@ -141,7 +141,8 @@ public class ValidationHelper {
             }
 
             // check if subject certificate is valid
-            if (isExpired(userRepository.findOne(claims.getSubject()).getClientCertificates().get("clientId").getX509())) {
+            if (isExpired(userRepository.findOne(claims.getSubject()).getClientCertificates().entrySet().iterator()
+                    .next().getValue().getX509())) {
                 return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
             }
 

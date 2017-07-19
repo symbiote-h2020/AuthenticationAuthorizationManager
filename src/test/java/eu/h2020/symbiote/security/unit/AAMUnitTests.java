@@ -674,6 +674,7 @@ public class AAMUnitTests extends
     }
 
     // test for revoke function
+    //TODO getting certificate
     @Test
     public void revokeUserPublicKey() throws SecurityException, CertificateException,
             NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
@@ -686,7 +687,8 @@ public class AAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // revocation
-        revocationHelper.revoke(new Credentials(username, password), user.getClientCertificates().get("clientId"));
+        revocationHelper.revoke(new Credentials(username, password), user.getClientCertificates().entrySet().iterator()
+                .next().getValue());
 
         // verify the user keys are revoked
         assertTrue(revokedKeysRepository.exists(username));

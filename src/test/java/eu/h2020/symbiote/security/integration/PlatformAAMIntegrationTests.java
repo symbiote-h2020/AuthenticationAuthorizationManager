@@ -64,7 +64,8 @@ public class PlatformAAMIntegrationTests extends
 
         // verify that the token contains the user public key
         byte[] userPublicKeyInRepository = userRepository.findOne
-                (username).getClientCertificates().get("clientId").getX509().getPublicKey().getEncoded();
+                (username).getClientCertificates().entrySet().iterator().next().getValue().getX509()
+                .getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
     }

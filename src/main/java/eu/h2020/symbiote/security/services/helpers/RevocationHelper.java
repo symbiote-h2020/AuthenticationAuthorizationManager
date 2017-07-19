@@ -65,6 +65,7 @@ public class RevocationHelper {
 
 
     // certificate revoke function - not finished
+    //TODO getting certificate
     public void revoke(Credentials credentials, Certificate certificate)
             throws CertificateException, WrongCredentialsException, NotExistingUserException {
         // user public key revocation
@@ -103,7 +104,8 @@ public class RevocationHelper {
         if (user != null) {
             if (passwordEncoder.matches(credentials.getPassword(), user.getPasswordEncrypted())) {
                 // user
-                if (Base64.getEncoder().encodeToString(user.getClientCertificates().get("clientId").getX509().getPublicKey().getEncoded())
+                if (Base64.getEncoder().encodeToString(user.getClientCertificates().entrySet().iterator()
+                        .next().getValue().getX509().getPublicKey().getEncoded())
                         .equals(token.getClaims().get("spk"))) {
                     revokedTokensRepository.save(token);
                     return;
