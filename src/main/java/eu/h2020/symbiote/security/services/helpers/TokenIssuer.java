@@ -9,6 +9,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.helpers.CertificateHelper;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -21,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
@@ -48,7 +50,7 @@ public class TokenIssuer {
     private Long tokenValidity;
     private CertificationAuthorityHelper certificationAuthorityHelper;
     private PlatformRepository platformRepository;
-
+    private KeyPair guestKeyPair;
 
     @Autowired
     public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper,
@@ -177,7 +179,18 @@ public class TokenIssuer {
         }
     }
 
-    public void getGuestToken() {
-        // TODO @Jakub implement and return a guest token
+    public Token getGuestToken() throws JWTCreationException {
+        try {
+            if (this.guestKeyPair == null) {
+                this.guestKeyPair = CertificateHelper.createKeyPair();
+            }
+            Map<String, String> attributes = new HashMap<>();
+            return new Token(generateJWTToken(SecurityConstants.GUEST_NAME, attributes, this.guestKeyPair.getPublic().getEncoded(), deploymentType, tokenValidity, deploymentId,
+                    certificationAuthorityHelper.getAAMPublicKey(),
+                    certificationAuthorityHelper.getAAMPrivateKey()));
+        } catch (Exception e) {
+            log.error(e);
+            throw new JWTCreationException(e);
+        }
     }
 }

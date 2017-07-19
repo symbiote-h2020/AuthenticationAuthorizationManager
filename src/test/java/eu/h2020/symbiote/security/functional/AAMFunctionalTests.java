@@ -195,7 +195,6 @@ public class AAMFunctionalTests extends
                     ErrorResponseContainer.class);
             assert false;
         } catch (HttpClientErrorException e) {
-            assertNull(token);
             assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
         }
 
@@ -215,7 +214,6 @@ public class AAMFunctionalTests extends
                             wrongpassword),
                     ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
-            assertNull(token);
             assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
         }
     }
@@ -363,4 +361,16 @@ public class AAMFunctionalTests extends
         assertEquals("Credentials contain illegal sign",response.getBody());
     }
 
+    @Test
+    public void getGuestTokenOverRESTSuccess() throws MalformedJWTException {
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_GUEST_TOKEN,
+                null,
+                String.class);
+        HttpHeaders headers = response.getHeaders();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+        assertTrue(claimsFromToken.getAtt().isEmpty());
+    }
 }

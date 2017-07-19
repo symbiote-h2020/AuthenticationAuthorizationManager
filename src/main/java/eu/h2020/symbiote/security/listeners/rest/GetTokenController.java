@@ -121,8 +121,16 @@ public class GetTokenController implements IGetToken {
 
     @Override
     public ResponseEntity<?> getGuestToken() {
-        // TODO R3 Jakub
-        return null;
+        try {
+            Token token = getTokenService.login();
+            HttpHeaders headers = new HttpHeaders();
+            headers.add(SecurityConstants.TOKEN_HEADER_NAME, token.getToken());
+            return new ResponseEntity<>(headers, HttpStatus.OK);
+        } catch (SecurityException e) {
+            log.error(e);
+            return new ResponseEntity<>(new ErrorResponseContainer(e.getErrorMessage(), e
+                    .getStatusCode().ordinal()), e.getStatusCode());
+        }
     }
 
     //L1 Diagrams - getHomeToken()

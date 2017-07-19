@@ -52,6 +52,10 @@ public class GetTokenService {
         return tokenIssuer.getHomeToken(user);
     }
 
+    private Token getGuestToken() throws JWTCreationException {
+        return tokenIssuer.getGuestToken();
+    }
+
     public ValidationStatus validate(String tokenString, String certificateString) {
         return validationHelper.validate(tokenString, certificateString);
     }
@@ -71,4 +75,7 @@ public class GetTokenService {
         return this.getHomeToken(userInDB);
     }
 
+    public Token login() throws JWTCreationException {
+        return this.getGuestToken();
+    }
 }
