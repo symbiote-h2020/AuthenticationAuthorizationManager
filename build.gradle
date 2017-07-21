@@ -39,10 +39,15 @@ Forces dependencies' cache invalidation for each build for dependencies marked w
     e.g.
     compile('com.github.symbiote-h2020:SymbIoTeSecurity:develop-SNAPSHOT'){ changing = true }
  */
-configurations.all {
-    // check for updates every build
-    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+configurations {
+    // we don't use jax-rs 1.1
+    compile.exclude group: 'javax.ws.rs', module: 'jsr311-api'
+    all {
+        // check for updates every build
+        resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+    }
 }
+
 
 dependencies {
     /* SymbIoTeSecurity manual:
@@ -56,9 +61,9 @@ dependencies {
             3) project dependency requires changes in settings.gradle file in this project
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
-    //compile project(':SymbIoTeSecurity')
+    compile project(':SymbIoTeSecurity')
     //compile('com.github.symbiote-h2020:SymbIoTeSecurity:0.2.0'){ changing = true }
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:develop-SNAPSHOT'){ changing = true }
+    //compile('com.github.symbiote-h2020:SymbIoTeSecurity:develop-SNAPSHOT'){ changing = true }
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
@@ -67,6 +72,8 @@ dependencies {
     compile('org.springframework.cloud:spring-cloud-starter-zipkin')
     compile('org.springframework.boot:spring-boot-starter-amqp')
     compile('org.springframework.boot:spring-boot-starter-web')
+    compile 'javax.servlet:javax.servlet-api:3.1.0'
+    compile('org.springframework.boot:spring-boot-starter-jersey')
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
 
     // registration page
@@ -78,7 +85,7 @@ dependencies {
     // tests only
     testCompile('junit:junit:4.+')
     testCompile('org.springframework.boot:spring-boot-starter-test')
-    testCompile ('com.github.fakemongo:fongo:2.1.0')
+    testCompile('com.github.fakemongo:fongo:2.1.0')
 }
 
 // code quality below

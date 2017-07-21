@@ -12,8 +12,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
@@ -51,13 +49,13 @@ public class AAMServices implements IAAMServices, IGetComponentCertificate {
     }
 
 
-    public ResponseEntity<String> getComponentCertificate() {
+    public String getComponentCertificate() {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(certificationAuthorityHelper.getAAMCert());
+            return certificationAuthorityHelper.getAAMCert();
         } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException |
                 NoSuchProviderException e) {
             log.error(e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+            return "";
         }
     }
 

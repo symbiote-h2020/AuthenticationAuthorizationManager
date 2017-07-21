@@ -10,8 +10,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.HeaderParam;
 
 
 /**
@@ -37,8 +39,8 @@ public class ValidateCredentialsController implements IValidateCredentials {
     }
 
     @Override
-    public ValidationStatus validate(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String token,
-                                     @RequestHeader(name = SecurityConstants.CERTIFICATE_HEADER_NAME, defaultValue = "")
+    public ValidationStatus validate(@HeaderParam(SecurityConstants.TOKEN_HEADER_NAME) String token,
+                                     @HeaderParam(SecurityConstants.CERTIFICATE_HEADER_NAME) @DefaultValue("")
                                              String certificate) {
         try {
             // input sanity check

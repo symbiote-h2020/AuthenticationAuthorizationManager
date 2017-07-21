@@ -23,12 +23,12 @@ import java.security.cert.CertificateException;
  */
 
 @RestController
-public class GetClientCertificateComponent implements IGetClientCertificate {
-    private static final Log log = LogFactory.getLog(GetClientCertificateComponent.class);
+public class GetClientCertificateController implements IGetClientCertificate {
+    private static final Log log = LogFactory.getLog(GetClientCertificateController.class);
     private GetClientCertificateService getClientCertificateService;
 
     @Autowired
-    public GetClientCertificateComponent(GetClientCertificateService getClientCertificateService) {
+    public GetClientCertificateController(GetClientCertificateService getClientCertificateService) {
         this.getClientCertificateService = getClientCertificateService;
     }
 
