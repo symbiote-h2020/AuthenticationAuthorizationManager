@@ -8,13 +8,16 @@ import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MissingArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ValidationRequest;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -37,10 +40,7 @@ import org.springframework.web.client.RestClientException;
 
 import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
-import java.security.KeyPair;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
@@ -66,11 +66,11 @@ public class AAMFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void userLoginOverAMQPSuccessAndIssuesCoreTokenType() throws IOException, TimeoutException,
-            MalformedJWTException {
+    public void userLoginOverAMQPSuccessAndIssuesCoreTokenType() throws IOException, TimeoutException, MalformedJWTException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(username, password))
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(CryptoHelper.signedObjectToString(signObject))
                 .getBytes());
         Token token = mapper.readValue(response, Token.class);
 
@@ -97,21 +97,23 @@ public class AAMFunctionalTests extends
 
         // test combinations of wrong credentials
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+        SignedObject signObject = CryptoHelper.objectToSignedObject(wrongusername + "@" + clientId, userKeyPair.getPrivate());
 
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(wrongusername, password))
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(CryptoHelper.signedObjectToString(signObject))
                 .getBytes());
         ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
 
-        byte[] response2 = client.primitiveCall(mapper.writeValueAsString(new Credentials(username, wrongpassword))
+        signObject = CryptoHelper.objectToSignedObject(username + "@" + wrongClientId, userKeyPair.getPrivate());
+        byte[] response2 = client.primitiveCall(mapper.writeValueAsString(CryptoHelper.signedObjectToString(signObject))
                 .getBytes());
         ErrorResponseContainer noToken2 = mapper.readValue(response2, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken2.getErrorMessage());
+        signObject = CryptoHelper.objectToSignedObject(wrongusername + "@" + wrongClientId, userKeyPair.getPrivate());
 
-        byte[] response3 = client.primitiveCall(mapper.writeValueAsString(new Credentials(wrongusername,
-                wrongpassword)).getBytes());
+        byte[] response3 = client.primitiveCall(mapper.writeValueAsString(CryptoHelper.signedObjectToString(signObject)).getBytes());
         ErrorResponseContainer noToken3 = mapper.readValue(response3, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken3.getErrorMessage());
@@ -135,13 +137,34 @@ public class AAMFunctionalTests extends
     public void userLoginOverAMQPMissingArgumentsFailure() throws IOException, TimeoutException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(new Credentials(/* no username and/or
-        password */)).getBytes());
+        SignedObject signObject = CryptoHelper.objectToSignedObject("@", userKeyPair.getPrivate());
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(CryptoHelper.signedObjectToString(signObject)).getBytes());
         ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
 
         assertEquals(new MissingArgumentsException().getErrorMessage(), noToken.getErrorMessage());
+    }
+
+    /**
+     * Feature: 3 (Authentication of components/ and users registered in a platform)
+     * Interface: PAAM - 1, CAAM (for Administration)
+     * CommunicationType AMQP
+     *
+     * @throws IOException
+     * @throws TimeoutException
+     */
+    @Test
+    public void userLoginOverAMQPWrongSignFailure() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
+
+        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
+        KeyPair keyPair = CryptoHelper.createKeyPair();
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, keyPair.getPrivate());
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(CryptoHelper.signedObjectToString(signObject)).getBytes());
+        ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
+
+        log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
+        assertEquals(new WrongCredentialsException().getErrorMessage(), noToken.getErrorMessage());
     }
 
 
@@ -156,12 +179,11 @@ public class AAMFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException,
-            ValidationException {
-
+    public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException {
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants
                         .AAM_GET_HOME_TOKEN,
-                new Credentials(username, password), String.class);
+                CryptoHelper.signedObjectToString(signObject), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
@@ -186,12 +208,11 @@ public class AAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void userLoginOverRESTWrongUsernameFailure() {
+    public void userLoginOverRESTWrongUsernameFailure() throws IOException {
         ResponseEntity<ErrorResponseContainer> token = null;
+        SignedObject signObject = CryptoHelper.objectToSignedObject(wrongusername + "@" + clientId, userKeyPair.getPrivate());
         try {
-            token = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, new Credentials
-                            (wrongusername,
-                            password),
+            token = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, CryptoHelper.signedObjectToString(signObject),
                     ErrorResponseContainer.class);
             assert false;
         } catch (HttpClientErrorException e) {
@@ -206,12 +227,11 @@ public class AAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void userLoginOverRESTWrongPasswordFailure() {
+    public void userLoginOverRESTWrongClientIdFailure() throws IOException {
         ResponseEntity<ErrorResponseContainer> token = null;
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + wrongClientId, userKeyPair.getPrivate());
         try {
-            token = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, new Credentials
-                            (username,
-                            wrongpassword),
+            token = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, CryptoHelper.signedObjectToString(signObject),
                     ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
             assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
@@ -222,13 +242,13 @@ public class AAMFunctionalTests extends
      * Features: PAAM - 3, CAAM - 5 (Authentication & relevent token issuing)
      * Interfaces: PAAM - 3, CAAM - 7;
      * CommunicationType REST
-     * TODO getting certificate
+     *
      */
     @Test
-    public void userLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws CertificateException,
-            MalformedJWTException {
+    public void userLoginOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws IOException, MalformedJWTException, CertificateException {
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                new Credentials(username, password), String.class);
+                CryptoHelper.signedObjectToString(signObject), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
@@ -255,9 +275,10 @@ public class AAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void federatedTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() {
+    public void federatedTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() throws IOException {
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                new Credentials(username, password), String.class);
+                CryptoHelper.signedObjectToString(signObject), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
@@ -286,10 +307,10 @@ public class AAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void validationOverRESTValid() {
-
+    public void validationOverRESTValid() throws IOException {
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                new Credentials(username, password), String.class);
+                CryptoHelper.signedObjectToString(signObject), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
@@ -311,10 +332,10 @@ public class AAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void validationOverRESTExpired() throws InterruptedException {
-
+    public void validationOverRESTExpired() throws IOException, InterruptedException {
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                new Credentials(username, password), String.class);
+                CryptoHelper.signedObjectToString(signObject), String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         //Introduce latency so that JWT expires

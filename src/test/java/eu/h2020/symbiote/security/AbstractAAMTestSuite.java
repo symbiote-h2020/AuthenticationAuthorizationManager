@@ -8,7 +8,7 @@ import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateR
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManagementRequest;
-import eu.h2020.symbiote.security.helpers.CertificateHelper;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.listeners.amqp.RabbitManager;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
@@ -48,8 +48,6 @@ import javax.security.auth.x500.X500Principal;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
 
-import static io.jsonwebtoken.impl.crypto.RsaProvider.generateKeyPair;
-
 /**
  * AAM test suite stub with possibly shareable fields.
  */
@@ -68,9 +66,9 @@ public abstract class AbstractAAMTestSuite {
     protected final String unregistrationUri = "/unregister";
     protected final String usernameWithAt = "test@";
     protected final String clientId = "clientId";
-    protected final KeyPair keyPair = generateKeyPair();
+    protected final String wrongClientId = "wrongClientId";
     protected final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-
+    protected KeyPair userKeyPair;
     @Autowired
     protected UserRepository userRepository;
     @Autowired
@@ -143,7 +141,7 @@ public abstract class AbstractAAMTestSuite {
         SSLContext sc = SSLContext.getInstance("SSL");
         sc.init(null, trustAllCerts, new java.security.SecureRandom());
         HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-
+        userKeyPair = CryptoHelper.createKeyPair();
         // Test rest template
         restTemplate = new RestTemplate();
 
@@ -166,15 +164,15 @@ public abstract class AbstractAAMTestSuite {
         user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
 
         String cn = "CN="+username+"@"+clientId+"@"+certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), keyPair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
-        ContentSigner signer = csBuilder.build(keyPair.getPrivate());
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), userKeyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(userKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csr);
         byte[] bytes = Base64.decodeBase64(certRequest.getClientCSR());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
-        String pem = CertificateHelper.convertX509ToPEM(certFromCSR);
+        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
         Certificate cert = new Certificate(pem);
 
         user.getClientCertificates().put(clientId,cert);

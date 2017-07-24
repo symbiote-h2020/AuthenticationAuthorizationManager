@@ -2,7 +2,7 @@ package eu.h2020.symbiote.security.services.helpers;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.helpers.CertificateHelper;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -133,7 +133,7 @@ public class CertificationAuthorityHelper {
 
         // create the certificate - version 3
         ContentSigner sigGen = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM).setProvider
-                (CertificateHelper.PROVIDER_NAME).build
+                (CryptoHelper.PROVIDER_NAME).build
                 (privKey); //
 
         X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
@@ -148,12 +148,12 @@ public class CertificationAuthorityHelper {
                         false,
                         new BasicConstraints(false));// true if it is allowed to sign other certs;
 
-        X509Certificate cert = new JcaX509CertificateConverter().setProvider(CertificateHelper.PROVIDER_NAME)
+        X509Certificate cert = new JcaX509CertificateConverter().setProvider(CryptoHelper.PROVIDER_NAME)
                 .getCertificate(certGen
                         .build(sigGen));
 
         ByteArrayInputStream bIn = new ByteArrayInputStream(cert.getEncoded());
-        CertificateFactory certFact = CertificateFactory.getInstance("X.509", CertificateHelper.PROVIDER_NAME);
+        CertificateFactory certFact = CertificateFactory.getInstance("X.509", CryptoHelper.PROVIDER_NAME);
         cert = (X509Certificate) certFact.generateCertificate(bIn);
 
         return cert;
@@ -169,7 +169,7 @@ public class CertificationAuthorityHelper {
      */
     public String getAAMCert() throws NoSuchProviderException, KeyStoreException, IOException,
             CertificateException, NoSuchAlgorithmException {
-        return CertificateHelper.convertX509ToPEM(getAAMCertificate());
+        return CryptoHelper.convertX509ToPEM(getAAMCertificate());
     }
 
     /**
@@ -229,7 +229,7 @@ public class CertificationAuthorityHelper {
         JcaPKCS10CertificationRequest jcaRequest = new JcaPKCS10CertificationRequest(request);
 
         ContentSigner sigGen = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM).setProvider
-                (CertificateHelper.PROVIDER_NAME).build
+                (CryptoHelper.PROVIDER_NAME).build
                 (privKey);
 
         X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
@@ -244,7 +244,7 @@ public class CertificationAuthorityHelper {
                         false,
                         new BasicConstraints(false));
 
-        X509Certificate cert = new JcaX509CertificateConverter().setProvider(CertificateHelper.PROVIDER_NAME)
+        X509Certificate cert = new JcaX509CertificateConverter().setProvider(CryptoHelper.PROVIDER_NAME)
                 .getCertificate(certGen
                 .build(sigGen));
 

@@ -10,8 +10,8 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.interfaces.IAAMServices;
 import eu.h2020.symbiote.security.communication.interfaces.IGetToken;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.apache.commons.logging.Log;
@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import java.security.SignedObject;
 import java.util.Map;
 
 
@@ -134,9 +135,10 @@ public class GetTokenController implements IGetToken {
     }
 
     //L1 Diagrams - getHomeToken()
-    public ResponseEntity<?> getHomeToken(@RequestBody Credentials user) {
+    public ResponseEntity<?> getHomeToken(@RequestBody String stringCredentials) {
         try {
-            Token token = getTokenService.login(user);
+            SignedObject signedCredentials = CryptoHelper.stringToSignedObject(stringCredentials);
+            Token token = getTokenService.login(signedCredentials);
             HttpHeaders headers = new HttpHeaders();
             headers.add(SecurityConstants.TOKEN_HEADER_NAME, token.getToken());
             return new ResponseEntity<>(headers, HttpStatus.OK);
@@ -144,6 +146,10 @@ public class GetTokenController implements IGetToken {
             log.error(e);
             return new ResponseEntity<>(new ErrorResponseContainer(e.getErrorMessage(), e
                     .getStatusCode().ordinal()), e.getStatusCode());
+        } catch (Exception e) {
+            log.error(e);
+            return new ResponseEntity<>(new ErrorResponseContainer(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.ordinal()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+
     }
 }

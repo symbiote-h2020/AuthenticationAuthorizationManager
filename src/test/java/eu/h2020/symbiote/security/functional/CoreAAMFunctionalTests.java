@@ -14,6 +14,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.*;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -24,7 +25,12 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
+import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +42,7 @@ import org.springframework.http.*;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.HttpServerErrorException;
 
+import javax.security.auth.x500.X500Principal;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
@@ -65,6 +72,9 @@ public class CoreAAMFunctionalTests extends
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
     private final String platformOwnerUsername = "testPlatformOwnerUsername";
     private final String platformOwnerPassword = "testPlatormOwnerPassword";
+    private final String platformId = "testPlatformId";
+    protected KeyPair platformOwnerKeyPair;
+
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
@@ -116,6 +126,7 @@ public class CoreAAMFunctionalTests extends
                 AAMOwnerPassword), platformOwnerUserDetails, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
                 preferredPlatformId);
+        platformOwnerKeyPair = CryptoHelper.createKeyPair();
 
     }
 
@@ -346,14 +357,13 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void federatedLoginToCoreUsingPlatformTokenOverRESTSuccess() throws ValidationException, IOException,
-            TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException,
-            NoSuchAlgorithmException {
+    public void federatedLoginToCoreUsingPlatformTokenOverRESTSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
         // issuing dummy platform token
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                new Credentials(username, password), String.class);
+                CryptoHelper.signedObjectToString(signObject), String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -403,15 +413,13 @@ public class CoreAAMFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void federatedLoginToCoreUsingPlatformTokenOverRESTFailsForUndefinedFederationMapping() throws
-            ValidationException, IOException,
-            TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException,
-            NoSuchAlgorithmException {
+    public void federatedLoginToCoreUsingPlatformTokenOverRESTFailsForUndefinedFederationMapping() throws IOException, ValidationException, TimeoutException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException {
         // issuing dummy platform token
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                new Credentials(username, password), String.class);
+                CryptoHelper.signedObjectToString(signObject), String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -535,21 +543,35 @@ public class CoreAAMFunctionalTests extends
      * Features: CAAM - 5 (Authentication & relevent token issuing)
      * Interfaces: CAAM - 7;
      * CommunicationType REST
-     * TODO getting certificate
      */
     @Test
-    public void platformOwnerLoginOverRESTSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws IOException,
-            TimeoutException, MalformedJWTException, JSONException, CertificateException {
+    public void platformOwnerLoginOverRESTSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws IOException, TimeoutException, MalformedJWTException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
-
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
+        User user = userRepository.findOne(platformOwnerUsername);
+        //platform owner adding
+        String cn = "CN=" + platformOwnerUsername + "@" + platformId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), platformOwnerKeyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(platformOwnerKeyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csr);
+        byte[] bytes = Base64.decodeBase64(certRequest.getClientCSR());
+        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
+        Certificate cert = new Certificate(pem);
+        user.getClientCertificates().put(platformId, cert);
+        userRepository.save(user);
+
+        SignedObject signObject = CryptoHelper.objectToSignedObject(platformOwnerUsername + "@" + platformId, platformOwnerKeyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                new Credentials(platformOwnerUsername, platformOwnerPassword), String.class);
+                CryptoHelper.signedObjectToString(signObject), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user
@@ -562,7 +584,7 @@ public class CoreAAMFunctionalTests extends
 
         // verify that the token contains the platform owner public key
         byte[] userPublicKeyInRepository = userRepository.findOne
-                (platformOwnerUsername).getClientCertificates().entrySet().iterator().next().getValue().getX509()
+                (platformOwnerUsername).getClientCertificates().get(platformId).getX509()
                 .getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
@@ -726,7 +748,7 @@ public class CoreAAMFunctionalTests extends
     @Test
     public void platformOwnerLoginOverRESTAndReceivesInAdministrationDetailsOfHisOwnedPlatform() throws IOException,
             TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException,
-            InterruptedException {
+            InterruptedException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
@@ -735,9 +757,27 @@ public class CoreAAMFunctionalTests extends
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
+        User user = userRepository.findOne(platformOwnerUsername);
+        //platform owner adding certificate
+        String cn = "CN=" + platformOwnerUsername + "@" + preferredPlatformId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), platformOwnerKeyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(platformOwnerKeyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, preferredPlatformId, csr);
+        byte[] bytes = Base64.decodeBase64(certRequest.getClientCSR());
+        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
+        Certificate cert = new Certificate(pem);
+        user.getClientCertificates().clear();
+        user.getClientCertificates().put(preferredPlatformId, cert);
+        userRepository.save(user);
+
         // getHomeToken the platform owner
+        SignedObject signedObject = CryptoHelper.objectToSignedObject(platformOwnerUsername + "@" + preferredPlatformId, platformOwnerKeyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                new Credentials(platformOwnerUsername, platformOwnerPassword), String.class);
+                CryptoHelper.signedObjectToString(signedObject), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user
@@ -770,7 +810,7 @@ public class CoreAAMFunctionalTests extends
     public void platformOwnerLoginOverRESTAndUsesExpiredTokenToReceivesInAdministrationDetailsOfHisOwnedPlatform()
             throws IOException,
             TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException,
-            InterruptedException {
+            InterruptedException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
@@ -778,10 +818,25 @@ public class CoreAAMFunctionalTests extends
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
+        User user = userRepository.findOne(platformOwnerUsername);
+        String cn = "CN=" + platformOwnerUsername + "@" + platformId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), platformOwnerKeyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(platformOwnerKeyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csr);
+        byte[] bytes = Base64.decodeBase64(certRequest.getClientCSR());
+        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
+        Certificate cert = new Certificate(pem);
+        user.getClientCertificates().put(platformId, cert);
+        userRepository.save(user);
 
         // getHomeToken the platform owner
+        SignedObject signedObject = CryptoHelper.objectToSignedObject(platformOwnerUsername + "@" + platformId, platformOwnerKeyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                new Credentials(platformOwnerUsername, platformOwnerPassword), String.class);
+                CryptoHelper.signedObjectToString(signedObject), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user
@@ -812,7 +867,7 @@ public class CoreAAMFunctionalTests extends
      */
     @Test
     public void nonPlatformOwnerLoginOverRESTAndIsDeclinedOwnedPlatformDetailsRequest() throws IOException,
-            TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException {
+            TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertFalse(userRepository.exists(platformOwnerUsername));
@@ -827,10 +882,27 @@ public class CoreAAMFunctionalTests extends
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
 
+        //put certificate into database
+        User user = userRepository.findOne(coreAppUsername);
+        KeyPair keyPair = CryptoHelper.createKeyPair();
+        String cn = "CN=" + coreAppUsername + "@" + platformId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), keyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(keyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+        CertificateRequest certRequest = new CertificateRequest(coreAppUsername, coreAppPassword, platformId, csr);
+        byte[] bytes = Base64.decodeBase64(certRequest.getClientCSR());
+        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
+        Certificate cert = new Certificate(pem);
+        user.getClientCertificates().put(platformId, cert);
+        userRepository.save(user);
 
         // getHomeToken an ordinary user to get token
+        SignedObject signObject = CryptoHelper.objectToSignedObject(coreAppUsername + "@" + platformId, keyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                new Credentials(coreAppUsername, coreAppPassword), String.class);
+                CryptoHelper.signedObjectToString(signObject), String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user

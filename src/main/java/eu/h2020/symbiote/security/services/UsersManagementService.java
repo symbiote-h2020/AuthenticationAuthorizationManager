@@ -8,7 +8,7 @@ import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManagementRequest;
-import eu.h2020.symbiote.security.helpers.CertificateHelper;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
@@ -94,10 +94,10 @@ public class UsersManagementService {
         Certificate certificate;
         try {
             // Generate key pair for the new user
-            KeyPair userKeyPair = CertificateHelper.createKeyPair();
+            KeyPair userKeyPair = CryptoHelper.createKeyPair();
 
             // Generate PEM certificate for the user
-            certificate = new Certificate(CertificateHelper.convertX509ToPEM
+            certificate = new Certificate(CryptoHelper.convertX509ToPEM
                     (certificationAuthorityHelper.createECCert(userRegistrationDetails.getCredentials().getUsername(),
                             userKeyPair.getPublic())));
 

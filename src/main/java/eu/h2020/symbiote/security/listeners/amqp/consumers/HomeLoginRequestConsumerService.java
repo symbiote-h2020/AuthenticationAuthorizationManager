@@ -9,18 +9,19 @@ import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MissingArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
+import java.security.SignedObject;
+import java.security.cert.CertificateException;
 
 /**
  * RabbitMQ Consumer implementation used for Login actions
  *
- * TODO @Jakub R3 change to support home getHomeToken with the new API
  */
 public class HomeLoginRequestConsumerService extends DefaultConsumer {
 
@@ -57,7 +58,7 @@ public class HomeLoginRequestConsumerService extends DefaultConsumer {
 
         String message = new String(body, "UTF-8");
         ObjectMapper om = new ObjectMapper();
-        Credentials loginReq;
+        String loginReq;
         String response;
 
         if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
@@ -67,10 +68,10 @@ public class HomeLoginRequestConsumerService extends DefaultConsumer {
                 .correlationId(properties.getCorrelationId())
                 .build();
             try {
-                loginReq = om.readValue(message, Credentials.class);
-                log.debug("[x] Received Login Request by: '" + loginReq.getUsername() + "'");
+                loginReq = om.readValue(message, String.class);
+                SignedObject signedReq = CryptoHelper.stringToSignedObject(loginReq);
                 try {
-                    Token token = getTokenService.login(loginReq);
+                    Token token = getTokenService.login(signedReq);
                     response = om.writeValueAsString(token);
                     this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
                 } catch (MissingArgumentsException | WrongCredentialsException | JWTCreationException e) {
@@ -78,12 +79,10 @@ public class HomeLoginRequestConsumerService extends DefaultConsumer {
                     response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
                     this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
                 }
-
-            } catch (IOException e) {
+            } catch (CertificateException | ClassNotFoundException e) {
                 log.error(e);
-                throw e;
+                throw new SecurityException(e.getMessage(), e.getCause());
             }
-
             log.info("Login Response: sent back");
         } else {
             log.warn("Received RPC message without ReplyTo or CorrelationId properties.");

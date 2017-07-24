@@ -6,8 +6,8 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
-import eu.h2020.symbiote.security.helpers.CertificateHelper;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
@@ -67,7 +67,7 @@ public class PlatformAAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // acquiring valid token
-        Token homeToken = tokenIssuer.getHomeToken(user);
+        Token homeToken = tokenIssuer.getHomeToken(user, clientId);
 
         // check if home token is valid
         ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
@@ -75,12 +75,13 @@ public class PlatformAAMUnitTests extends
     }
 
     @Test
-    public void validateRevokedIPK() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException {
+    public void validateRevokedIPK() throws IOException, ValidationException {
         // issuing dummy platform token from platform with revoked certificate
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/rev_ipk/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                new Credentials(username, password), String.class);
+                CryptoHelper.signedObjectToString(signObject), String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -90,12 +91,13 @@ public class PlatformAAMUnitTests extends
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws IOException, ValidationException {
         // issuing dummy platform token from unregistered platform
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/second/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                new Credentials(username, password), String.class);
+                CryptoHelper.signedObjectToString(signObject), String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -113,16 +115,16 @@ public class PlatformAAMUnitTests extends
         // verify the user keys are not yet revoked
         assertFalse(revokedKeysRepository.exists(username));
 
-        // acquiring valid token
-        Token homeToken = tokenIssuer.getHomeToken(user);
-
         // injection of expired certificate
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
         X509Certificate cert = (X509Certificate) ks.getCertificate("platform-1-1-exp-c1");
-        Certificate certificate = new Certificate(CertificateHelper.convertX509ToPEM(cert));
+        Certificate certificate = new Certificate(CryptoHelper.convertX509ToPEM(cert));
         user.getClientCertificates().put(clientId,certificate);
         userRepository.save(user);
+
+        // acquiring valid token
+        Token homeToken = tokenIssuer.getHomeToken(user, clientId);
 
         // check if home token is valid
         ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
@@ -130,12 +132,14 @@ public class PlatformAAMUnitTests extends
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMsButRevoked() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMsButRevoked() throws IOException, ValidationException {
         // issuing dummy platform token
+        // acquiring valid token
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" +
                         SecurityConstants
                         .AAM_GET_HOME_TOKEN,
-                new Credentials(username, password), String.class);
+                CryptoHelper.signedObjectToString(signObject), String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 

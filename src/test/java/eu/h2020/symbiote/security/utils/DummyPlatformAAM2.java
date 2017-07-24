@@ -7,7 +7,7 @@ import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -49,9 +49,10 @@ public class DummyPlatformAAM2 {
      * acts temporarily as a platform AAM
      */
     @RequestMapping(method = RequestMethod.POST, path = PATH + SecurityConstants.AAM_GET_HOME_TOKEN, produces =
-            "application/json", consumes = "application/json")
-    public ResponseEntity<?> doLogin(@RequestBody Credentials credential) {
-        log.info("User trying to getHomeToken " + credential.getUsername() + " - " + credential.getPassword());
+            "application/json", consumes = "text/plain")
+    public ResponseEntity<?> doLogin(@RequestBody String stringCredential) throws IOException, ClassNotFoundException {
+        SignedObject credential = CryptoHelper.stringToSignedObject(stringCredential);
+        log.info("User trying to getHomeToken " + credential.getObject().toString().split("@")[0] + " - " + credential.getObject().toString().split("@")[1]);
         try {
             KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
             ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
@@ -59,7 +60,7 @@ public class DummyPlatformAAM2 {
 
             HashMap<String, String> attributes = new HashMap<>();
             attributes.put("name", "test2");
-            String tokenString = TokenIssuer.generateJWTToken(credential.getUsername(), attributes, ks.getCertificate
+            String tokenString = TokenIssuer.generateJWTToken(credential.getObject().toString().split("@")[0], attributes, ks.getCertificate
                             (CERTIFICATE_ALIAS).getPublicKey().getEncoded(), IssuingAuthorityType.PLATFORM, new Date().getTime()
                             + 60000
                     , "platform-2", ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),

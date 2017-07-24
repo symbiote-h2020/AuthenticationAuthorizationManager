@@ -9,7 +9,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.helpers.CertificateHelper;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -115,17 +115,15 @@ public class TokenIssuer {
     }
 
     /**
-     * TODO R3 needs client id, to know which SPK to include
      *
      * @param user for which to issue to token
      * @return home token issued for given user
      * @throws JWTCreationException on error
      */
-    public Token getHomeToken(User user)
+    public Token getHomeToken(User user, String clientId)
             throws JWTCreationException {
         try {
             Map<String, String> attributes = new HashMap<>();
-
             switch (deploymentType) {
                 case CORE:
                     switch (user.getRole()) {
@@ -147,8 +145,7 @@ public class TokenIssuer {
                 case NULL:
                     throw new JWTCreationException("Misconfigured AAM deployment type");
             }
-            return new Token(generateJWTToken(user.getUsername(), attributes, user.getClientCertificates().entrySet().iterator()
-                            .next().getValue().getX509().getPublicKey().getEncoded(), deploymentType, tokenValidity, deploymentId,
+            return new Token(generateJWTToken(user.getUsername(), attributes, user.getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded(), deploymentType, tokenValidity, deploymentId,
                     certificationAuthorityHelper
                             .getAAMPublicKey(), certificationAuthorityHelper.getAAMPrivateKey()));
         } catch (Exception e) {
@@ -182,7 +179,7 @@ public class TokenIssuer {
     public Token getGuestToken() throws JWTCreationException {
         try {
             if (this.guestKeyPair == null) {
-                this.guestKeyPair = CertificateHelper.createKeyPair();
+                this.guestKeyPair = CryptoHelper.createKeyPair();
             }
             Map<String, String> attributes = new HashMap<>();
             return new Token(generateJWTToken(SecurityConstants.GUEST_NAME, attributes, this.guestKeyPair.getPublic().getEncoded(), deploymentType, tokenValidity, deploymentId,
@@ -193,4 +190,5 @@ public class TokenIssuer {
             throw new JWTCreationException(e);
         }
     }
+
 }

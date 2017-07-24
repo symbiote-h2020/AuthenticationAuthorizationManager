@@ -4,9 +4,8 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
@@ -19,11 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertificateException;
-import java.util.concurrent.TimeoutException;
+import java.security.SignedObject;
 
 import static org.junit.Assert.assertEquals;
 
@@ -52,14 +47,13 @@ public class PlatformExpiredCertificateUnitTests extends
     }
 
     @Test
-    public void validateIssuerCertificateExpired() throws IOException, TimeoutException,
-            NoSuchProviderException, KeyStoreException, CertificateException,
-            NoSuchAlgorithmException, ValidationException, JWTCreationException {
+    public void validateIssuerCertificateExpired() throws IOException, ValidationException {
         // issuing dummy core token
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                new Credentials(username, password), String.class);
+                CryptoHelper.signedObjectToString(signObject), String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 

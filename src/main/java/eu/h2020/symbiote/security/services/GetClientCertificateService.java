@@ -5,7 +5,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserExcep
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
-import eu.h2020.symbiote.security.helpers.CertificateHelper;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.listeners.rest.AAMServices;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
@@ -86,7 +86,7 @@ public class GetClientCertificateService {
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
 
         ResponseEntity<String> response = coreServicesController.getComponentCertificate();
-        X509Certificate caCert = CertificateHelper.convertPEMToX509(response.getBody());
+        X509Certificate caCert = CryptoHelper.convertPEMToX509(response.getBody());
 
         if (!req.getSubject().toString().split("CN=")[1].split("@")[2].equals
                 (caCert.getSubjectDN().getName().split("CN=")[1]))
@@ -97,7 +97,7 @@ public class GetClientCertificateService {
 
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
 
-        String pem = CertificateHelper.convertX509ToPEM(certFromCSR);
+        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
 
         if (userCert!=null) {
             if (userCert.getX509().getPublicKey().equals(certFromCSR.getPublicKey())) {
