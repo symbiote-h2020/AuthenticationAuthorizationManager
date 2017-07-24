@@ -49,7 +49,8 @@ public class PlatformExpiredCertificateUnitTests extends
     @Test
     public void validateIssuerCertificateExpired() throws IOException, ValidationException {
         // issuing dummy core token
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate
+                ());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,

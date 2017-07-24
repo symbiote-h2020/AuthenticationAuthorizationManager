@@ -746,7 +746,43 @@ public class AAMUnitTests extends
         revocationHelper.revoke(new Credentials(platformOwnerUsername, platformOwnerPassword), dummyHomeToken);
         // check if token is in revoked tokens repository
         assertTrue(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
+    }
 
+
+    /**
+     * Feature: common but defined in CAAM - 5 (Token with AAM relevant attribute provisioning and issuing)
+     * Interface: CAAM - 5
+     * CommunicationType AMQP
+     */
+    @Test
+    @Ignore("Not R2 crucial, at R2 we will issue attributes from properties")
+    public void common_provisionedAttributesIssuedToRegisteredApplication() throws IOException, TimeoutException {
+        /*
+            // R2
+        1. log in to AAM as an AAM owner
+        2. send the attributes list
+        3. receive a success status
+        4. log in as an user and check if the token does contain sent attributes
+        */
+    }
+
+    /**
+     * Feature: common but defined in CAAM - 8 (Home to Core/Foreign Tokens translation with federation agreed
+     * provisioned attributes mapping)
+     * Interface: CAAM - 6
+     * CommunicationType AMQP
+     */
+    @Test
+    @Ignore("Not R2")
+    public void common_federatedAttributesIssuedUsingProvisionedAttributesMappingList() throws IOException,
+            TimeoutException {
+        /*
+        // R2
+        1. log in to AAM as an AAM owner
+        2. send an attribute mapping list
+        3. receive a success status
+        4. request foreign tokens which should be based on given tokens
+        */
     }
 
 }
