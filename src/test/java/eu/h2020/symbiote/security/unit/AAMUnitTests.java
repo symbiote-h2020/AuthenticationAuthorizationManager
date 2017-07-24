@@ -5,13 +5,10 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
-import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.enums.*;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -19,6 +16,7 @@ import eu.h2020.symbiote.security.listeners.rest.AAMServices;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
@@ -52,10 +50,7 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.ECGenParameterSpec;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeoutException;
 
 import static io.jsonwebtoken.impl.crypto.RsaProvider.generateKeyPair;
@@ -90,6 +85,8 @@ public class AAMUnitTests extends
     private ValidationHelper validationHelper;
     @Autowired
     private TokenIssuer tokenIssuer;
+    @Autowired
+    private GetTokenService getTokenService;
     @Autowired
     private RevocationHelper revocationHelper;
     private RpcClient platformRegistrationOverAMQPClient;
@@ -746,6 +743,135 @@ public class AAMUnitTests extends
         revocationHelper.revoke(new Credentials(platformOwnerUsername, platformOwnerPassword), dummyHomeToken);
         // check if token is in revoked tokens repository
         assertTrue(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
+    }
+
+    @Test
+    public void getGuestTokenSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException {
+        Token token = getTokenService.login();
+        assertNotNull(token);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken().toString());
+        assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+        assertTrue(claimsFromToken.getAtt().isEmpty());
+    }
+
+    @Test
+    public void getHomeTokenByUserSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException, CertificateException {
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+        Token token = tokenIssuer.getHomeToken(user, clientId);
+        assertNotNull(token);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken().toString());
+        assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+
+        Map<String, String> attributes = claimsFromToken.getAtt();
+        assertEquals(UserRole.USER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+        // verify that the token contains the user public key
+        byte[] userPublicKeyInRepository = userRepository.findOne
+                (username).getClientCertificates().get(clientId).getX509()
+                .getPublicKey().getEncoded();
+        byte[] publicKeyFromToken = org.apache.commons.codec.binary.Base64.decodeBase64(claimsFromToken.getSpk());
+
+        assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
+    }
+
+    @Test
+    public void getHomeTokenByPlatformOwnerSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException, CertificateException, KeyStoreException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
+        //platformOwner registration and certificate
+        User user = new User();
+        user.setRole(UserRole.PLATFORM_OWNER);
+        user.setUsername(platformOwnerUsername);
+        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
+        user.setRecoveryMail("nullMail");
+
+        KeyPair platformKeyPair = CryptoHelper.createKeyPair();
+        String cn = "CN=" + platformOwnerUsername + "@" + federatedOAuthId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), platformKeyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(platformKeyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, csr);
+        byte[] bytes = org.apache.commons.codec.binary.Base64.decodeBase64(certRequest.getClientCSR());
+        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
+        Certificate cert = new Certificate(pem);
+        user.getClientCertificates().put(federatedOAuthId, cert);
+        userRepository.save(user);
+
+        Platform platform = new Platform("platformInstanceId", null, null, user, null);
+        platformRepository.save(platform);
+
+        Token token = tokenIssuer.getHomeToken(user, federatedOAuthId);
+        assertNotNull(token);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken().toString());
+        assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+
+        Map<String, String> attributes = claimsFromToken.getAtt();
+        assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+        // verify that the token contains the user public key
+        byte[] userPublicKeyInRepository = userRepository.findOne
+                (platformOwnerUsername).getClientCertificates().get(federatedOAuthId).getX509()
+                .getPublicKey().getEncoded();
+        byte[] publicKeyFromToken = org.apache.commons.codec.binary.Base64.decodeBase64(claimsFromToken.getSpk());
+        assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
+    }
+
+    @Test(expected = JWTCreationException.class)
+    public void getHomeTokenByPlatformOwnerFailureNoPlatform() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException, CertificateException, KeyStoreException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
+        //platformOwner registration and certificate
+        User user = new User();
+        user.setRole(UserRole.PLATFORM_OWNER);
+        user.setUsername(platformOwnerUsername);
+        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
+        user.setRecoveryMail("nullMail");
+
+        KeyPair platformKeyPair = CryptoHelper.createKeyPair();
+        String cn = "CN=" + platformOwnerUsername + "@" + federatedOAuthId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), platformKeyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(platformKeyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, csr);
+        byte[] bytes = org.apache.commons.codec.binary.Base64.decodeBase64(certRequest.getClientCSR());
+        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
+        Certificate cert = new Certificate(pem);
+        user.getClientCertificates().put(federatedOAuthId, cert);
+        userRepository.save(user);
+
+        Token token = tokenIssuer.getHomeToken(user, federatedOAuthId);
+    }
+
+
+    @Test
+    public void getHomeTokenSuccess() throws IOException {
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        Token token = null;
+        try {
+            token = getTokenService.login(signObject);
+        } catch (Exception e) {
+            fail("Exception thrown");
+        }
+        assertNotNull(token);
+    }
+
+    @Test(expected = WrongCredentialsException.class)
+    public void getHomeTokenWrongSign() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
+        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, CryptoHelper.createKeyPair().getPrivate());
+        getTokenService.login(signObject);
+    }
+
+    @Test(expected = WrongCredentialsException.class)
+    public void getHomeTokenWrongCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException {
+        SignedObject signObject = CryptoHelper.objectToSignedObject(wrongusername + "@" + clientId, userKeyPair.getPrivate());
+        getTokenService.login(signObject);
+    }
+
+    @Test(expected = MissingArgumentsException.class)
+    public void getHomeTokenMissingCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException {
+        SignedObject signObject = CryptoHelper.objectToSignedObject("@" + clientId, userKeyPair.getPrivate());
+        getTokenService.login(signObject);
     }
 
 
