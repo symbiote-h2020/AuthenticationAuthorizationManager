@@ -121,6 +121,7 @@ public class TokenIssuer {
      */
     public Token getHomeToken(User user)
             throws JWTCreationException {
+        System.out.println("MARKER3");
         try {
             Map<String, String> attributes = new HashMap<>();
 

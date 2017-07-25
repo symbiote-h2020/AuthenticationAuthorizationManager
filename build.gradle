@@ -23,7 +23,7 @@ repositories {
     mavenCentral()
     maven { url "https://jitpack.io" }
 }
-// Spring related configs
+// Sprdepeng related configs
 ext {
     springCloudVersion = 'Dalston.SR1'
 }
@@ -79,7 +79,7 @@ dependencies {
     // registration page
     compile('net.lingala.zip4j:zip4j:1.3.2')
     compile('commons-io:commons-io:2.5')
-    compile('org.springframework.boot:spring-boot-starter-security')
+    //compile('org.springframework.boot:spring-boot-starter-security')
     compile('org.springframework.boot:spring-boot-starter-thymeleaf')
 
     // tests only

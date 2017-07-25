@@ -10,10 +10,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Component;
 
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.core.MediaType;
 
 
 /**
@@ -24,7 +26,8 @@ import javax.ws.rs.HeaderParam;
  * @author Piotr Kicki (PSNC)
  * @see CredentialsValidationService
  */
-@RestController
+@Component
+//@RestController
 public class ValidateCredentialsController implements IValidateCredentials {
 
     private Log log = LogFactory.getLog(ValidateCredentialsController.class);
@@ -39,6 +42,7 @@ public class ValidateCredentialsController implements IValidateCredentials {
     }
 
     @Override
+    @Consumes(MediaType.APPLICATION_JSON)
     public ValidationStatus validate(@HeaderParam(SecurityConstants.TOKEN_HEADER_NAME) String token,
                                      @HeaderParam(SecurityConstants.CERTIFICATE_HEADER_NAME) @DefaultValue("")
                                              String certificate) {

@@ -6,9 +6,16 @@ import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.communication.interfaces.IGetToken;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
+import eu.h2020.symbiote.security.config.JerseyConfig;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
+import eu.h2020.symbiote.security.utils.DummyCoreAAM;
+import feign.Feign;
+import feign.Logger;
+import feign.jackson.JacksonDecoder;
+import feign.jackson.JacksonEncoder;
+import feign.jaxrs.JAXRSContract;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
@@ -16,8 +23,6 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
-import org.springframework.context.annotation.Bean;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.RestTemplate;
 
@@ -25,6 +30,7 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -56,15 +62,13 @@ public class AAMExpiredCertificateUnitTests extends
     @LocalServerPort
     private int port;
 
-    @Bean
-    DummyPlatformAAM getDummyPlatformAAM() {
-        return new DummyPlatformAAM();
-    }
+    @Autowired
+    private JerseyConfig jerseyConfig;
 
     @Override
     @Before
     public void setUp() throws Exception {
-        serverAddress = "https://localhost:" + port + SecurityConstants.AAM_PUBLIC_PATH;
+        serverAddress = "https://localhost:" + port + "/test/caam";//
 
         // Create a trust manager that does not validate certificate chains
         TrustManager[] trustAllCerts = new TrustManager[]{
@@ -96,6 +100,9 @@ public class AAMExpiredCertificateUnitTests extends
         revokedKeysRepository.deleteAll();
         revokedTokensRepository.deleteAll();
         platformRepository.deleteAll();
+
+        jerseyConfig.register(DummyCoreAAM.class);
+        log.info("DummyCore is Registered: " + jerseyConfig.isRegistered(DummyCoreAAM.class));
     }
 
     @Test
@@ -103,12 +110,19 @@ public class AAMExpiredCertificateUnitTests extends
             NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException, ValidationException, JWTCreationException {
         // issuing dummy core token from CoreAAM with expired certificate
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" +
+        /*ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                new Credentials(username, password), String.class);
+                new Credentials(username, password), String.class);    */
+
+        IGetToken client = Feign.builder().logLevel(Logger.Level.FULL)
+                .encoder(new JacksonEncoder()).decoder(new JacksonDecoder())
+                .contract(new JAXRSContract()).target(IGetToken.class, serverAddress  );
+
+        Response loginResponse = client.getHomeToken(new Credentials(username,password));
+
         Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0).toString());
 
 
         ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");

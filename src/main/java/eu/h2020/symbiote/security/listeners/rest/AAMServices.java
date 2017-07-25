@@ -12,7 +12,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.security.KeyStoreException;
@@ -28,7 +28,8 @@ import java.util.TreeMap;
  *
  * @author Mikołaj Dobski (PSNC)
  */
-@RestController
+//@RestController
+@Component
 public class AAMServices implements IAAMServices, IGetComponentCertificate {
 
     private static final Log log = LogFactory.getLog(AAMServices.class);

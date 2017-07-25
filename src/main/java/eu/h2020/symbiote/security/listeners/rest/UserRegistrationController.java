@@ -14,15 +14,16 @@ import net.lingala.zip4j.exception.ZipException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.Map;
 
@@ -37,7 +38,8 @@ import java.util.Map;
  * @author Nemanja Ignjatov (UNIVIE)
  * @see GetTokenService
  */
-@RestController
+@Component
+//@RestController
 public class UserRegistrationController implements IRegistration {
 
     private static Log log = LogFactory.getLog(UserRegistrationController.class);
@@ -48,9 +50,13 @@ public class UserRegistrationController implements IRegistration {
         this.registrationService = registrationService;
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @PostMapping(value = SecurityConstants.AAM_ADMIN_PATH + "/web_register")
-    ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response)
+   //@PreAuthorize("isAuthenticated()")
+    //@PostMapping(value = SecurityConstants.AAM_ADMIN_PATH + "/web_register")
+    @POST
+    @Path(value = SecurityConstants.AAM_ADMIN_PATH + "/web_register")
+    //@Consumes(MediaType.APPLICATION_JSON)
+    //@Produces(MediaType.APPLICATION_JSON)
+    public Response register(@Context Map<String, String> requestMap,@Context HttpServletResponse response)//@RequestParam
             throws SecurityException, IOException, ZipException {
         UserManagementRequest request = new UserManagementRequest();
         // TODO R3 incorporate federated Id (and possibly recovery e-mail)
@@ -58,27 +64,36 @@ public class UserRegistrationController implements IRegistration {
         ), "R3-feature", "not-applicable", UserRole.USER));
         registrationService.register(request);
 
-        return new ResponseEntity<HttpServletResponse>(HttpStatus.OK);
+        return //new ResponseEntity<HttpServletResponse>(HttpStatus.OK);
+                Response.status(Response.Status.OK).build();
     }
-
-    public ResponseEntity<?> register(@RequestBody UserManagementRequest request) {
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response register(  UserManagementRequest request) {//RequestBody
         try {
-            return new ResponseEntity<>(registrationService.authRegister(request), HttpStatus.OK);
+            return //new ResponseEntity<>(registrationService.authRegister(request), HttpStatus.OK);
+            Response.status(Response.Status.OK).entity(registrationService.authRegister(request)).build();
         } catch (SecurityException e) {
             log.error(e);
-            return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
-                    .getStatusCode().ordinal()), e.getStatusCode());
+            return //new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
+                   // .getStatusCode().ordinal()), e.getStatusCode());
+            Response.status(Response.Status.NOT_ACCEPTABLE).entity(new ErrorResponseContainer(e.getErrorMessage(),
+                    e.getStatusCode().ordinal())).build();
         }
     }
-
-    public ResponseEntity<?> unregister(@RequestBody UserManagementRequest request) {
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response unregister(UserManagementRequest request) {
         try {
             registrationService.authUnregister(request);
-            return new ResponseEntity<>(HttpStatus.OK);
+            return //new ResponseEntity<>(HttpStatus.OK);
+            Response.status(Response.Status.OK).build();
         } catch (SecurityException e) {
             log.error(e);
-            return new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
-                    .getStatusCode().ordinal()), e.getStatusCode());
+            return /*new ResponseEntity<ErrorResponseContainer>(new ErrorResponseContainer(e.getErrorMessage(), e
+                    .getStatusCode().ordinal()), e.getStatusCode());*/
+            Response.status(Response.Status.NOT_ACCEPTABLE).entity(new ErrorResponseContainer(e.getErrorMessage(), e
+                    .getStatusCode().ordinal())).build();
         }
     }
 }

@@ -11,9 +11,10 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.stereotype.Component;
 
+import javax.ws.rs.Consumes;
+import javax.ws.rs.core.MediaType;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
@@ -22,7 +23,8 @@ import java.security.cert.CertificateException;
  * @author Maks Marcinowski (PSNC)
  */
 
-@RestController
+//@RestController
+@Component
 public class GetClientCertificateController implements IGetClientCertificate {
     private static final Log log = LogFactory.getLog(GetClientCertificateController.class);
     private GetClientCertificateService getClientCertificateService;
@@ -33,7 +35,8 @@ public class GetClientCertificateController implements IGetClientCertificate {
     }
 
     @Override
-    public ResponseEntity<String> getClientCertificate(@RequestBody CertificateRequest certificateRequest) {
+    @Consumes(MediaType.APPLICATION_JSON)
+    public ResponseEntity<String> getClientCertificate( CertificateRequest certificateRequest) {//@RequestBody
         try{
             String certificate = getClientCertificateService.getCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
