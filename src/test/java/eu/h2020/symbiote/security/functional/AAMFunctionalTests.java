@@ -5,7 +5,6 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
@@ -80,7 +79,7 @@ public class AAMFunctionalTests extends
         assertNotNull(token);
         // check if issuing authority is core
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
-        assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+        assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
     }
 
 
@@ -262,7 +261,7 @@ public class AAMFunctionalTests extends
         assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         // As the AAM is now configured as core we confirm that relevant token type was issued.
-        assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+        assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
 
         // verify that this JWT contains attributes relevant for user role
         Map<String, String> attributes = claimsFromToken.getAtt();
@@ -399,7 +398,7 @@ public class AAMFunctionalTests extends
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
-        assertEquals(IssuingAuthorityType.CORE, IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()));
+        assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));
         assertTrue(claimsFromToken.getAtt().isEmpty());
     }
 }

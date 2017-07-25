@@ -6,9 +6,9 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
@@ -91,10 +91,9 @@ public class    OwnedPlatformDetailsRequestConsumerService extends DefaultConsum
                 token = new Token(om.readValue(message, String.class));
 
                 JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
-
                 //verify that JWT is of type Core as was released by a CoreAAM
-                if (IssuingAuthorityType.CORE != IssuingAuthorityType.valueOf(claimsFromToken.getTtyp()))
-                    throw new ValidationException("");//todo replace empty string with something more informative
+                if (Token.Type.HOME == Token.Type.valueOf(claimsFromToken.getTtyp()) && !claimsFromToken.getIss().equals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID))
+                    throw new ValidationException("Provider of the HOME Token is not a CORE AAM");
 
                 // verify that the token contains the platform owner public key
 

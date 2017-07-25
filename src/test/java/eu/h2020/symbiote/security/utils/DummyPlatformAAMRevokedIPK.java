@@ -3,7 +3,6 @@ package eu.h2020.symbiote.security.utils;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
@@ -62,7 +61,7 @@ public class DummyPlatformAAMRevokedIPK {
             HashMap<String, String> attributes = new HashMap<>();
             attributes.put("name", "test2");
             String tokenString = TokenIssuer.generateJWTToken(credential.getObject().toString().split("@")[0], attributes, ks.getCertificate
-                            (CERTIFICATE_ALIAS).getPublicKey().getEncoded(), IssuingAuthorityType.PLATFORM, new Date().getTime()
+                            (CERTIFICATE_ALIAS).getPublicKey().getEncoded(), Token.Type.HOME, new Date().getTime()
                             + 60000
                     , "platform-1", ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
                     (PrivateKey) key);
