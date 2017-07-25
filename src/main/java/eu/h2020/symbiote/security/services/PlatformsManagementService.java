@@ -8,10 +8,9 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ExistingPlatformExce
 import eu.h2020.symbiote.security.commons.exceptions.custom.ExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MissingArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UnauthorizedRegistrationException;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementResponse;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.UserDetails;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
@@ -57,8 +56,7 @@ public class PlatformsManagementService {
             SecurityException {
 
         // check if we received required credentials
-        if (request.getAAMOwnerCredentials() == null || request.getPlatformOwnerDetails() == null || request
-                .getPlatformOwnerDetails().getCredentials() == null)
+        if (request.getAAMOwnerCredentials() == null || request.getPlatformOwnerCredentials() == null)
             throw new MissingArgumentsException("Missing credentials");
         // check if this operation is authorized
         if (!request.getAAMOwnerCredentials().getUsername().equals(AAMOwnerUsername)
@@ -70,15 +68,9 @@ public class PlatformsManagementService {
     public PlatformManagementResponse register(PlatformManagementRequest platformManagementRequest)
             throws SecurityException {
 
-        UserDetails platformOwnerDetails = platformManagementRequest.getPlatformOwnerDetails();
+        Credentials platformOwnerCredentials = platformManagementRequest.getPlatformOwnerCredentials();
 
-        // validate request
-        if (deploymentType == IssuingAuthorityType.CORE &&
-                (platformOwnerDetails.getRecoveryMail()
-                        .isEmpty() || platformOwnerDetails.getFederatedId().isEmpty()))
-            throw new MissingArgumentsException("Missing recovery e-mail or federated identity");
-        if (platformOwnerDetails.getCredentials().getUsername().isEmpty() || platformOwnerDetails.getCredentials()
-                .getPassword().isEmpty())
+        if (platformOwnerCredentials.getUsername().isEmpty() || platformOwnerCredentials.getPassword().isEmpty())
             throw new MissingArgumentsException("Missing username or password");
         if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
             throw new MissingArgumentsException("Missing Platform AAM URL");
@@ -86,7 +78,7 @@ public class PlatformsManagementService {
             throw new MissingArgumentsException("Missing Platform Instance Friendly Name");
 
         // check if platform owner already in repository
-        if (userRepository.exists(platformOwnerDetails.getCredentials().getUsername())) {
+        if (userRepository.exists(platformOwnerCredentials.getUsername())) {
             throw new ExistingUserException();
         }
 
@@ -106,16 +98,16 @@ public class PlatformsManagementService {
         }
 
         // register platform owner in user repository
-        usersManagementService.authRegister(new UserManagementRequest(platformManagementRequest
-                .getAAMOwnerCredentials(),
-                        platformOwnerDetails));
+        //usersManagementService.authRegister(new UserManagementRequest(platformManagementRequest
+        //        .getAAMOwnerCredentials(),
+        //                platformOwnerCredentials));
 
         // register platform in repository
         // TODO R3 set the certificate from the received CSR.
         Platform platform = new Platform(platformId, platformManagementRequest
                 .getPlatformInterworkingInterfaceAddress(),
                 platformManagementRequest.getPlatformInstanceFriendlyName(), userRepository
-                .findOne(platformOwnerDetails.getCredentials().getUsername()), new Certificate());
+                .findOne(platformOwnerCredentials.getUsername()), new Certificate());
         platformRepository.save(platform);
 
         return new PlatformManagementResponse(platform.getPlatformInstanceId(), RegistrationStatus.OK);

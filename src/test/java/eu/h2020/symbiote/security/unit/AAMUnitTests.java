@@ -90,7 +90,7 @@ public class AAMUnitTests extends
     @Autowired
     private RevocationHelper revocationHelper;
     private RpcClient platformRegistrationOverAMQPClient;
-    private UserDetails platformOwnerUserDetails;
+    private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
     private AAMServices coreServicesController;
 
@@ -112,10 +112,9 @@ public class AAMUnitTests extends
         // platform registration useful
         platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 platformRegistrationRequestQueue, 5000);
-        platformOwnerUserDetails = new UserDetails(new Credentials(
-                platformOwnerUsername, platformOwnerPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER);
+        platformOwnerUserCredentials = new Credentials(platformOwnerUsername, platformOwnerPassword);
         platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserDetails, platformInterworkingInterfaceAddress,
+                AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
                 preferredPlatformId);
     }

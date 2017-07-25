@@ -85,7 +85,7 @@ public class CoreAAMFunctionalTests extends
     private RpcClient appRegistrationClient;
     private UserDetails appUserDetails;
     private RpcClient platformRegistrationOverAMQPClient;
-    private UserDetails platformOwnerUserDetails;
+    private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
     @Autowired
     private PlatformRepository platformRepository;
@@ -120,10 +120,9 @@ public class CoreAAMFunctionalTests extends
         // platform registration useful
         platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 platformRegistrationRequestQueue, 5000);
-        platformOwnerUserDetails = new UserDetails(new Credentials(
-                platformOwnerUsername, platformOwnerPassword), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER);
+        platformOwnerUserCredentials = new Credentials(platformOwnerUsername, platformOwnerPassword);
         platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserDetails, platformInterworkingInterfaceAddress,
+                AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
                 preferredPlatformId);
         platformOwnerKeyPair = CryptoHelper.createKeyPair();
@@ -730,7 +729,7 @@ public class CoreAAMFunctionalTests extends
         assertNotNull(platformRepository.findOne(preferredPlatformId));
 
         // issue registration request with the same preferred platform identifier but different PO
-        platformRegistrationOverAMQPRequest.getPlatformOwnerDetails().getCredentials().setUsername
+        platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setUsername
                 (platformOwnerUsername + "differentOne");
         response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());

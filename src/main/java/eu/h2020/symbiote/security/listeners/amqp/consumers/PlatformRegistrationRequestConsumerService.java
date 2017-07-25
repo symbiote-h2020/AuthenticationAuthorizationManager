@@ -5,9 +5,7 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.UserRegistrationException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementResponse;
@@ -75,8 +73,8 @@ public class PlatformRegistrationRequestConsumerService extends DefaultConsumer 
                 log.debug("[x] Received Platform Registration Request for: " + request.getAAMOwnerCredentials()
                         .getUsername());
                 // this endpoint should only allow registering platform owners
-                if (request.getPlatformOwnerDetails().getRole() != UserRole.PLATFORM_OWNER)
-                    throw new UserRegistrationException();
+                //if (request.getPlatformOwnerDetails().getRole() != UserRole.PLATFORM_OWNER)
+                //    throw new UserRegistrationException();
 
                 PlatformManagementResponse registrationResponse = platformsManagementService.authRegister
                         (request);
