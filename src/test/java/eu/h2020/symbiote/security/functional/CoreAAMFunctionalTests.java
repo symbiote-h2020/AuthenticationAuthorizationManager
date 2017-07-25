@@ -117,6 +117,14 @@ public class CoreAAMFunctionalTests extends
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), appUserDetails);
 
+        //user registration useful
+        User user = new User();
+        user.setUsername(platformOwnerUsername);
+        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.PLATFORM_OWNER);
+        userRepository.save(user);
+
         // platform registration useful
         platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 platformRegistrationRequestQueue, 5000);
@@ -470,7 +478,7 @@ public class CoreAAMFunctionalTests extends
     public void platformRegistrationOverAMQPWithPreferredPlatformIdSuccess() throws IOException, TimeoutException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
+        //assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP
         byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
@@ -507,7 +515,7 @@ public class CoreAAMFunctionalTests extends
     @Test
     public void platformRegistrationOverAMQPWithGeneratedPlatformIdSuccess() throws IOException, TimeoutException {
         // verify that our platformOwner is not in repository
-        assertFalse(userRepository.exists(platformOwnerUsername));
+        //assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without preferred platform identifier
         platformRegistrationOverAMQPRequest.setPlatformInstanceId("");
@@ -547,7 +555,7 @@ public class CoreAAMFunctionalTests extends
     public void platformOwnerLoginOverRESTSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws IOException, TimeoutException, MalformedJWTException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
+        //assertFalse(userRepository.exists(platformOwnerUsername));
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
@@ -605,7 +613,7 @@ public class CoreAAMFunctionalTests extends
     public void platformRegistrationOverAMQPFailureUnauthorized() throws IOException, TimeoutException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
+        //assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP expecting with wrong AAMOwnerUsername
         platformRegistrationOverAMQPRequest.getAAMOwnerCredentials().setUsername(AAMOwnerUsername + "somethingWrong");
@@ -614,7 +622,7 @@ public class CoreAAMFunctionalTests extends
 
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
+       // assertFalse(userRepository.exists(platformOwnerUsername));
 
         // verify error response
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
@@ -628,7 +636,7 @@ public class CoreAAMFunctionalTests extends
 
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
+        //assertFalse(userRepository.exists(platformOwnerUsername));
 
         // verify error response
         errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
@@ -644,7 +652,7 @@ public class CoreAAMFunctionalTests extends
     public void platformRegistrationOverAMQPFailureMissingAAMURL() throws IOException, TimeoutException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
+        //assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without required Platform's AAM URL
         platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress("");
@@ -664,7 +672,7 @@ public class CoreAAMFunctionalTests extends
     public void platformRegistrationOverAMQPFailureMissingFriendlyName() throws IOException, TimeoutException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
+        //assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without required Platform's instance friendly name
         platformRegistrationOverAMQPRequest.setPlatformInstanceFriendlyName("");
@@ -684,7 +692,7 @@ public class CoreAAMFunctionalTests extends
     public void platformRegistrationOverAMQPFailurePOUsernameExists() throws IOException, TimeoutException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
+        //assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP
         byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
@@ -715,7 +723,7 @@ public class CoreAAMFunctionalTests extends
     public void platformRegistrationOverAMQPFailurePreferredPlatformIdExists() throws IOException, TimeoutException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
+        //assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP
         byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
@@ -750,7 +758,7 @@ public class CoreAAMFunctionalTests extends
             InterruptedException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
+        //assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
@@ -812,7 +820,7 @@ public class CoreAAMFunctionalTests extends
             InterruptedException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
+        //assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
@@ -869,7 +877,7 @@ public class CoreAAMFunctionalTests extends
             TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
         // verify that our platform and platformOwner are not in repositories
         assertFalse(platformRepository.exists(preferredPlatformId));
-        assertFalse(userRepository.exists(platformOwnerUsername));
+        //assertFalse(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
