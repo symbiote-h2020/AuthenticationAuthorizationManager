@@ -110,20 +110,15 @@ public class AAMExpiredCertificateUnitTests extends
             NoSuchProviderException, KeyStoreException, CertificateException,
             NoSuchAlgorithmException, ValidationException, JWTCreationException {
         // issuing dummy core token from CoreAAM with expired certificate
-        /*ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress +
-                        SecurityConstants
-                                .AAM_GET_HOME_TOKEN,
-                new Credentials(username, password), String.class);    */
-
         IGetToken client = Feign.builder().logLevel(Logger.Level.FULL)
                 .encoder(new JacksonEncoder()).decoder(new JacksonDecoder())
                 .contract(new JAXRSContract()).target(IGetToken.class, serverAddress  );
 
         Response loginResponse = client.getHomeToken(new Credentials(username,password));
+        log.info("Received : " + loginResponse);
 
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0).toString());
-
 
         ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
         // check if platform token is not revoked

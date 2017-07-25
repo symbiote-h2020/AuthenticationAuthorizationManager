@@ -146,7 +146,6 @@ public class GetTokenController implements IGetToken {
     //@Consumes(MediaType.APPLICATION_JSON)
     @Path(SecurityConstants.AAM_PUBLIC_PATH + SecurityConstants.AAM_GET_HOME_TOKEN)
     public Response getHomeToken(@Context Credentials user) {
-        log.info("MARKER1");
         try {
             Token token = getTokenService.login(user);
             HttpHeaders headers = new HttpHeaders();

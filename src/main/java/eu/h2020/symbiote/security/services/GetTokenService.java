@@ -49,7 +49,6 @@ public class GetTokenService {
      * @throws JWTCreationException
      */
     public Token getHomeToken(User user) throws JWTCreationException {
-        System.out.println("MARKER4");
         return tokenIssuer.getHomeToken(user);
     }
 

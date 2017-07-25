@@ -62,8 +62,9 @@ public class DummyCoreAAM {
     @Produces(MediaType.APPLICATION_JSON)
     @Path(value = SecurityConstants.AAM_PUBLIC_PATH + SecurityConstants.AAM_GET_HOME_TOKEN)
     public Response getHomeToken(Credentials credential) {
-        log.info("MARKER2");
+        log.info("ENTRYMARKER");
         log.info("User trying to getHomeToken " + credential.getUsername() + " - " + credential.getPassword());
+
         try {
             KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
             ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
@@ -81,10 +82,12 @@ public class DummyCoreAAM {
 
             HttpHeaders headers = new HttpHeaders();
             headers.add(SecurityConstants.TOKEN_HEADER_NAME, coreToken.getToken());
+            log.info("Headers are : " + headers);
 
             /* Finally issues and return foreign_token */
             log.info("SUCCESSMARKER");
-            return Response.status(Response.Status.OK).entity(headers).build();
+            return Response.status(Response.Status.OK).entity(headers).type(MediaType.APPLICATION_JSON)
+                    .build(); //Throws FeignException
         } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException |
                 UnrecoverableKeyException | JWTCreationException | NoSuchProviderException | ValidationException
                 e) {
