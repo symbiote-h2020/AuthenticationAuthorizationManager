@@ -709,7 +709,29 @@ public class AAMUnitTests extends
 
     // test for revoke function
     @Test
-    public void revokeUserTokenByPlatform() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException {    // issuing dummy platform token
+    public void revokeUserTokenByPlatform() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException, OperatorCreationException, UnrecoverableKeyException {    // issuing dummy platform token
+        User user = new User();
+        user.setUsername(platformOwnerUsername);
+        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.PLATFORM_OWNER);
+        String cn = "CN=" + platformOwnerUsername + "@" + preferredPlatformId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), userKeyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(userKeyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, preferredPlatformId, csr);
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
+        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
+        Certificate cert = new Certificate(pem);
+
+        user.getClientCertificates().put(federatedOAuthId, cert);
+
+        userRepository.save(user);
+
+
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + SecurityConstants
                         .AAM_GET_HOME_TOKEN,
