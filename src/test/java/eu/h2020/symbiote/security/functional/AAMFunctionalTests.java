@@ -17,7 +17,6 @@ import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateR
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.ContentSigner;
@@ -41,6 +40,7 @@ import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -271,7 +271,7 @@ public class AAMFunctionalTests extends
         byte[] userPublicKeyInRepository = userRepository.findOne
                 (username).getClientCertificates().entrySet().iterator().next().getValue().getX509()
                 .getPublicKey().getEncoded();
-        byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
+        byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
 
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
     }

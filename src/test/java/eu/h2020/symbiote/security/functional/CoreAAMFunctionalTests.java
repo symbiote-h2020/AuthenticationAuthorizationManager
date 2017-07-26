@@ -20,7 +20,6 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
@@ -49,6 +48,7 @@ import java.io.StringWriter;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -569,7 +569,7 @@ public class CoreAAMFunctionalTests extends
         ContentSigner signer = csBuilder.build(platformOwnerKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csr);
-        byte[] bytes = Base64.decodeBase64(certRequest.getClientCSR());
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
@@ -594,7 +594,7 @@ public class CoreAAMFunctionalTests extends
         byte[] userPublicKeyInRepository = userRepository.findOne
                 (platformOwnerUsername).getClientCertificates().get(platformId).getX509()
                 .getPublicKey().getEncoded();
-        byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
+        byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
 
         // verify that this JWT contains attributes relevant for platform owner
@@ -774,7 +774,7 @@ public class CoreAAMFunctionalTests extends
         ContentSigner signer = csBuilder.build(platformOwnerKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, preferredPlatformId, csr);
-        byte[] bytes = Base64.decodeBase64(certRequest.getClientCSR());
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
@@ -834,7 +834,7 @@ public class CoreAAMFunctionalTests extends
         ContentSigner signer = csBuilder.build(platformOwnerKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csr);
-        byte[] bytes = Base64.decodeBase64(certRequest.getClientCSR());
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
@@ -900,7 +900,7 @@ public class CoreAAMFunctionalTests extends
         ContentSigner signer = csBuilder.build(keyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(coreAppUsername, coreAppPassword, platformId, csr);
-        byte[] bytes = Base64.decodeBase64(certRequest.getClientCSR());
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);

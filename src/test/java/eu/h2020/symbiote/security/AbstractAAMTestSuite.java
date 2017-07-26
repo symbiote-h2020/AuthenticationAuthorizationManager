@@ -17,7 +17,6 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.ContentSigner;
@@ -47,6 +46,7 @@ import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
 import java.security.KeyPair;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 
 /**
  * AAM test suite stub with possibly shareable fields.
@@ -169,7 +169,7 @@ public abstract class AbstractAAMTestSuite {
         ContentSigner signer = csBuilder.build(userKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csr);
-        byte[] bytes = Base64.decodeBase64(certRequest.getClientCSR());
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);

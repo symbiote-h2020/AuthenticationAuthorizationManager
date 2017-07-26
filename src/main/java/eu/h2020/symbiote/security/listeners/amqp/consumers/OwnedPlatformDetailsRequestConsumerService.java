@@ -20,7 +20,6 @@ import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import io.jsonwebtoken.ExpiredJwtException;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpStatus;
@@ -28,6 +27,7 @@ import org.springframework.http.HttpStatus;
 import java.io.IOException;
 import java.security.cert.CertificateException;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Map;
 
 /**
@@ -100,7 +100,7 @@ public class    OwnedPlatformDetailsRequestConsumerService extends DefaultConsum
                 for(Certificate c: userRepository.findOne
                         (token.getClaims().getSubject()).getClientCertificates().values()){
                     byte[] platformOwnersPublicKeyInRepository = c.getX509().getPublicKey().getEncoded();
-                    byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
+                    byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
                     if (!Arrays.equals(platformOwnersPublicKeyInRepository, publicKeyFromToken))
                         throw new ValidationException("Subject public key doesn't match with local");
                 }

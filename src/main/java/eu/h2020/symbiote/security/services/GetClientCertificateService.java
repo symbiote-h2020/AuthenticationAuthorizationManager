@@ -13,9 +13,6 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,17 +25,16 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 
 /**
- * TODO @Maks finish it!
  *
  * @author Maks Marcinowski (PSNC)
  */
 
 @Service
 public class GetClientCertificateService {
-    public static final String illegalSign = "@";
-    private static Log log = LogFactory.getLog(GetClientCertificateService.class);
+    private static final String illegalSign = "@";
     private final UserRepository userRepository;
     private final RevokedKeysRepository revokedKeysRepository;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
@@ -82,7 +78,7 @@ public class GetClientCertificateService {
         if (revokedKeysRepository.exists(certificateRequest.getClientId()))
             throw new InvalidKeyException("Key revoked");
 
-        byte[] bytes = Base64.decodeBase64(certificateRequest.getClientCSR());
+        byte[] bytes = Base64.getDecoder().decode(certificateRequest.getClientCSR());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
 
         ResponseEntity<String> response = coreServicesController.getComponentCertificate();

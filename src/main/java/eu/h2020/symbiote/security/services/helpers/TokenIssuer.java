@@ -73,10 +73,10 @@ public class TokenIssuer {
 
         try {
             // Insert AAM Public Key
-            claimsMap.put("ipk", org.apache.commons.codec.binary.Base64.encodeBase64String(aamPublicKey.getEncoded()));
+            claimsMap.put("ipk", Base64.getEncoder().encodeToString(aamPublicKey.getEncoded()));
 
             //Insert issuee Public Key
-            claimsMap.put("spk", org.apache.commons.codec.binary.Base64.encodeBase64String(userPublicKey));
+            claimsMap.put("spk", Base64.getEncoder().encodeToString(userPublicKey));
 
             //Add symbIoTe related attributes to token
             if (attributes != null && !attributes.isEmpty()) {

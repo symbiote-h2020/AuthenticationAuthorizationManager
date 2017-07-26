@@ -8,7 +8,6 @@ import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManagementRequest;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
@@ -16,14 +15,11 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.Base64;
 import java.util.HashSet;
@@ -43,7 +39,6 @@ public class UsersManagementService {
     private static Log log = LogFactory.getLog(UsersManagementService.class);
     private final UserRepository userRepository;
     private final RevokedKeysRepository revokedKeysRepository;
-    private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PasswordEncoder passwordEncoder;
     @Value("${aam.deployment.owner.username}")
     private String adminUsername;
@@ -57,7 +52,6 @@ public class UsersManagementService {
                                   PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.revokedKeysRepository = revokedKeysRepository;
-        this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.passwordEncoder = passwordEncoder;
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
     }
@@ -90,32 +84,12 @@ public class UsersManagementService {
             throw new UserRegistrationException();
 
 
-        // TODO R3 drop as this is a separate step post registration
-        Certificate certificate;
-        try {
-            // Generate key pair for the new user
-            KeyPair userKeyPair = CryptoHelper.createKeyPair();
-
-            // Generate PEM certificate for the user
-            certificate = new Certificate(CryptoHelper.convertX509ToPEM
-                    (certificationAuthorityHelper.createECCert(userRegistrationDetails.getCredentials().getUsername(),
-                            userKeyPair.getPublic())));
-
-        } catch (NoSuchProviderException | NoSuchAlgorithmException | IOException |
-                InvalidAlgorithmParameterException | UnrecoverableKeyException | OperatorCreationException |
-                KeyStoreException | CertificateException e) {
-            log.error(e);
-            throw new UserRegistrationException(e);
-        }
-
         // Register the user
         User user = new User();
         user.setRole(userRegistrationDetails.getRole());
         user.setUsername(userRegistrationDetails.getCredentials().getUsername());
         user.setPasswordEncrypted(passwordEncoder.encode(userRegistrationDetails.getCredentials().getPassword()));
         user.setRecoveryMail(userRegistrationDetails.getRecoveryMail());
-        // TODO R3 drop as this is a separate step
-        user.getClientCertificates().put(userRegistrationDetails.getFederatedId(),certificate);
         userRepository.save(user);
 
         return RegistrationStatus.OK;

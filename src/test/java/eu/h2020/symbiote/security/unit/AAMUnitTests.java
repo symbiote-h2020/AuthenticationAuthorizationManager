@@ -793,7 +793,7 @@ public class AAMUnitTests extends
         byte[] userPublicKeyInRepository = userRepository.findOne
                 (username).getClientCertificates().get(clientId).getX509()
                 .getPublicKey().getEncoded();
-        byte[] publicKeyFromToken = org.apache.commons.codec.binary.Base64.decodeBase64(claimsFromToken.getSpk());
+        byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
 
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
     }
@@ -814,7 +814,7 @@ public class AAMUnitTests extends
         ContentSigner signer = csBuilder.build(platformKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, csr);
-        byte[] bytes = org.apache.commons.codec.binary.Base64.decodeBase64(certRequest.getClientCSR());
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
@@ -836,7 +836,7 @@ public class AAMUnitTests extends
         byte[] userPublicKeyInRepository = userRepository.findOne
                 (platformOwnerUsername).getClientCertificates().get(federatedOAuthId).getX509()
                 .getPublicKey().getEncoded();
-        byte[] publicKeyFromToken = org.apache.commons.codec.binary.Base64.decodeBase64(claimsFromToken.getSpk());
+        byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
     }
 
@@ -856,7 +856,7 @@ public class AAMUnitTests extends
         ContentSigner signer = csBuilder.build(platformKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, csr);
-        byte[] bytes = org.apache.commons.codec.binary.Base64.decodeBase64(certRequest.getClientCSR());
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
