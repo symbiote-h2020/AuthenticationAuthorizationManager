@@ -23,23 +23,25 @@ import java.security.cert.CertificateException;
  */
 
 @RestController
-public class GetClientCertificateComponent implements IGetClientCertificate {
-    private static final Log log = LogFactory.getLog(GetClientCertificateComponent.class);
+public class GetClientCertificateController implements IGetClientCertificate {
+    private static final Log log = LogFactory.getLog(GetClientCertificateController.class);
     private GetClientCertificateService getClientCertificateService;
 
     @Autowired
-    public GetClientCertificateComponent(GetClientCertificateService getClientCertificateService) {
+    public GetClientCertificateController(GetClientCertificateService getClientCertificateService) {
         this.getClientCertificateService = getClientCertificateService;
     }
 
     @Override
     public ResponseEntity<String> getClientCertificate(@RequestBody CertificateRequest certificateRequest) {
         try{
+            // TODO review that the CSR is in PEM format...
             String certificate = getClientCertificateService.getCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
         }catch(WrongCredentialsException | IOException | CertificateException | NoSuchAlgorithmException |
                 NoSuchProviderException | KeyStoreException | UnrecoverableKeyException | OperatorCreationException |
                 NotExistingUserException | InvalidKeyException | IllegalArgumentException e){
+            log.error(e);
             return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
         }
     }
