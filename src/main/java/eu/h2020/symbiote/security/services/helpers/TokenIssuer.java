@@ -63,7 +63,7 @@ public class TokenIssuer {
     }
 
     public static String generateJWTToken(String userId, Map<String, String> attributes, byte[] userPublicKey,
-                                          IssuingAuthorityType deploymentType, Long tokenValidity, String
+                                          Token.Type tokenType, Long tokenValidity, String
                                                   deploymentID, PublicKey aamPublicKey, PrivateKey aamPrivateKey)
             throws JWTCreationException {
         ECDSAHelper.enableECDSAProvider();
@@ -85,17 +85,8 @@ public class TokenIssuer {
                 }
             }
 
-            //Insert token type based on AAM deployment type (Core or Platform)
-            switch (deploymentType) {
-                case CORE:
-                    claimsMap.put(SecurityConstants.CLAIM_NAME_TOKEN_TYPE, IssuingAuthorityType.CORE);
-                    break;
-                case PLATFORM:
-                    claimsMap.put(SecurityConstants.CLAIM_NAME_TOKEN_TYPE, IssuingAuthorityType.PLATFORM);
-                    break;
-                case NULL:
-                    throw new JWTCreationException("uninitialized deployment type, must be CORE or PLATFORM");
-            }
+            //Insert token type
+            claimsMap.put(SecurityConstants.CLAIM_NAME_TOKEN_TYPE, tokenType);
 
             JwtBuilder jwtBuilder = Jwts.builder();
             jwtBuilder.setClaims(claimsMap);
@@ -145,7 +136,7 @@ public class TokenIssuer {
                 case NULL:
                     throw new JWTCreationException("Misconfigured AAM deployment type");
             }
-            return new Token(generateJWTToken(user.getUsername(), attributes, user.getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded(), deploymentType, tokenValidity, deploymentId,
+            return new Token(generateJWTToken(user.getUsername(), attributes, user.getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded(), Token.Type.HOME, tokenValidity, deploymentId,
                     certificationAuthorityHelper
                             .getAAMPublicKey(), certificationAuthorityHelper.getAAMPrivateKey()));
         } catch (Exception e) {
@@ -166,7 +157,7 @@ public class TokenIssuer {
                 throw new SecurityMisconfigurationException("AAM has no federation rules defined");
             return new Token(
                     generateJWTToken(claims.getIss(), federatedAttributes, Base64.getDecoder().decode(claims
-                                    .getIpk()), deploymentType, tokenValidity, deploymentId,
+                                    .getIpk()), Token.Type.FOREIGN, tokenValidity, deploymentId,
                             certificationAuthorityHelper
                                     .getAAMPublicKey(),
                             certificationAuthorityHelper.getAAMPrivateKey()));
@@ -182,7 +173,7 @@ public class TokenIssuer {
                 this.guestKeyPair = CryptoHelper.createKeyPair();
             }
             Map<String, String> attributes = new HashMap<>();
-            return new Token(generateJWTToken(SecurityConstants.GUEST_NAME, attributes, this.guestKeyPair.getPublic().getEncoded(), deploymentType, tokenValidity, deploymentId,
+            return new Token(generateJWTToken(SecurityConstants.GUEST_NAME, attributes, this.guestKeyPair.getPublic().getEncoded(), Token.Type.GUEST, tokenValidity, deploymentId,
                     certificationAuthorityHelper.getAAMPublicKey(),
                     certificationAuthorityHelper.getAAMPrivateKey()));
         } catch (Exception e) {

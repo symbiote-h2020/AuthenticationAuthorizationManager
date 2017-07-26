@@ -58,7 +58,8 @@ dependencies {
     */
     //compile('com.github.symbiote-h2020:SymbIoTeSecurity:0.2.0'){ changing = true }
     //compile project(':SymbIoTeSecurity')
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:develop-SNAPSHOT'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:1.+'){ changing = true }
+
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
