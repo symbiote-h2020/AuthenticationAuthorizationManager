@@ -5,7 +5,6 @@ import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ExistingPlatformException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MissingArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UnauthorizedRegistrationException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
@@ -78,10 +77,9 @@ public class PlatformsManagementService {
             throw new MissingArgumentsException("Missing Platform Instance Friendly Name");
 
         // check if platform owner already in repository
-        if (userRepository.exists(platformOwnerCredentials.getUsername())) {
-            throw new ExistingUserException();
-        }
-
+        //if (userRepository.exists(platformOwnerCredentials.getUsername())) {
+        //    throw new ExistingUserException();
+        //}
 
         String platformId;
         // verify if platform owner provided a preferred platform identifier
