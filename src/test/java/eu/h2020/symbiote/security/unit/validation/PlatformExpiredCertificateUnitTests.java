@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security.unit;
+package eu.h2020.symbiote.security.unit.validation;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;

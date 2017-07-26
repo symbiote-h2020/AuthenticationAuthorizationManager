@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security.unit;
+package eu.h2020.symbiote.security.unit.validation;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
@@ -37,10 +37,10 @@ import static org.junit.Assert.*;
  * @author Piotr Kicki (PSNC)
  */
 @TestPropertySource("/platform.properties")
-public class PlatformAAMUnitTests extends
+public class PlatformValidationUnitTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(PlatformAAMUnitTests.class);
+    private static Log log = LogFactory.getLog(PlatformValidationUnitTests.class);
     @Autowired
     private ValidationHelper validationHelper;
     @Autowired
