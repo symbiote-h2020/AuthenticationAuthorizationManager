@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security.functional.certificates;
+package eu.h2020.symbiote.security.functional;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
@@ -11,7 +11,6 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Test;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
@@ -27,24 +26,8 @@ import static io.jsonwebtoken.impl.crypto.RsaProvider.generateKeyPair;
 import static org.junit.Assert.assertEquals;
 
 @TestPropertySource("/core.properties")
-public class CertificatesFunctionalTests extends
+public class ClientCertificatesIssuingFunctionalTests extends
         AbstractAAMTestSuite {
-
-
-    /**
-     * Features: CAAM - 12 (AAM as a CA)
-     * Interfaces: CAAM - 15;
-     * CommunicationType REST
-     */
-    @Test
-    public void getComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
-            NoSuchProviderException, KeyStoreException, IOException {
-        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + SecurityConstants
-                .AAM_GET_COMPONENT_CERTIFICATE, String.class);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(certificationAuthorityHelper.getAAMCert(), response.getBody());
-    }
-
     @Test
     public void getClientCertificateOverRESTInvalidArguments() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException {
@@ -59,4 +42,6 @@ public class CertificatesFunctionalTests extends
                 certRequest, String.class);
         assertEquals("Credentials contain illegal sign", response.getBody());
     }
+
+    // TODO where are other tests?
 }

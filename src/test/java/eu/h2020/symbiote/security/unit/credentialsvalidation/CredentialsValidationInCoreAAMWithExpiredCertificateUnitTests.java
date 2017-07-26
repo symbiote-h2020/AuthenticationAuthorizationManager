@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security.unit.validation;
+package eu.h2020.symbiote.security.unit.credentialsvalidation;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
@@ -37,10 +37,10 @@ import static org.junit.Assert.assertEquals;
 
 
 @TestPropertySource("/coreExpired.properties")
-public class ExpiredCertificateUnitTests extends AbstractAAMTestSuite {
+public class CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests extends AbstractAAMTestSuite {
 
 
-    private static Log log = LogFactory.getLog(ExpiredCertificateUnitTests.class);
+    private static Log log = LogFactory.getLog(CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests.class);
 
     protected final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
     private final String recoveryMail = "null@dev.null";

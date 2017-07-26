@@ -21,6 +21,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
@@ -45,7 +46,9 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
-import java.security.KeyPair;
+import java.io.IOException;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 /**
@@ -150,9 +153,9 @@ public abstract class AbstractAAMTestSuite {
         revokedKeysRepository.deleteAll();
         revokedTokensRepository.deleteAll();
         platformRepository.deleteAll();
+    }
 
-
-        // Register test user user into DB
+    protected void addTestUserWithClientCertificateToRepository() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
                 (username, password), "federatedId", "nullMail", UserRole.USER));
@@ -163,7 +166,7 @@ public abstract class AbstractAAMTestSuite {
         user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
         user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
 
-        String cn = "CN="+username+"@"+clientId+"@"+certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
+        String cn = "CN=" + username + "@" + clientId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), userKeyPair.getPublic());
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(userKeyPair.getPrivate());
@@ -175,9 +178,8 @@ public abstract class AbstractAAMTestSuite {
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
         Certificate cert = new Certificate(pem);
 
-        user.getClientCertificates().put(clientId,cert);
+        user.getClientCertificates().put(clientId, cert);
         userRepository.save(user);
-
     }
 
     @Configuration

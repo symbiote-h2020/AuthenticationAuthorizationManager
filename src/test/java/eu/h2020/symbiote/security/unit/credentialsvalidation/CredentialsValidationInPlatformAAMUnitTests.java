@@ -1,9 +1,10 @@
-package eu.h2020.symbiote.security.unit.validation;
+package eu.h2020.symbiote.security.unit.credentialsvalidation;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
@@ -27,6 +28,8 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
@@ -37,10 +40,10 @@ import static org.junit.Assert.*;
  * @author Piotr Kicki (PSNC)
  */
 @TestPropertySource("/platform.properties")
-public class PlatformValidationUnitTests extends
+public class CredentialsValidationInPlatformAAMUnitTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(PlatformValidationUnitTests.class);
+    private static Log log = LogFactory.getLog(CredentialsValidationInPlatformAAMUnitTests.class);
     @Autowired
     private ValidationHelper validationHelper;
     @Autowired
@@ -58,7 +61,10 @@ public class PlatformValidationUnitTests extends
     }
 
     @Test
-    public void validateValidPlatform() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException {
+    public void validateValidPlatform() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+
+        // prepare the user in db
+        addTestUserWithClientCertificateToRepository();
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -108,6 +114,8 @@ public class PlatformValidationUnitTests extends
 
     @Test
     public void validateExpiredSubjectCertificate() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException, InvalidAlgorithmParameterException, UnrecoverableKeyException, OperatorCreationException {
+        // prepare the user in db
+        userRepository.save(new User(username, passwordEncoder.encode(password), "", new HashMap<>(), UserRole.USER, new ArrayList<>()));
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -120,7 +128,7 @@ public class PlatformValidationUnitTests extends
         ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
         X509Certificate cert = (X509Certificate) ks.getCertificate("platform-1-1-exp-c1");
         Certificate certificate = new Certificate(CryptoHelper.convertX509ToPEM(cert));
-        user.getClientCertificates().put(clientId,certificate);
+        user.getClientCertificates().put(clientId, certificate);
         userRepository.save(user);
 
         // acquiring valid token
@@ -138,7 +146,7 @@ public class PlatformValidationUnitTests extends
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" +
                         SecurityConstants
-                        .AAM_GET_HOME_TOKEN,
+                                .AAM_GET_HOME_TOKEN,
                 CryptoHelper.signedObjectToString(signObject), String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));

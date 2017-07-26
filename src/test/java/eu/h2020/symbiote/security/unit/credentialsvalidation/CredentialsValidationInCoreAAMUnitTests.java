@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security.unit.validation;
+package eu.h2020.symbiote.security.unit.credentialsvalidation;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
@@ -21,7 +21,6 @@ import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -52,14 +51,11 @@ import java.util.concurrent.TimeoutException;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
-public class ValidationUnitTests extends
+public class CredentialsValidationInCoreAAMUnitTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(ValidationUnitTests.class);
+    private static Log log = LogFactory.getLog(CredentialsValidationInCoreAAMUnitTests.class);
 
-    protected final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
-    private final String recoveryMail = "null@dev.null";
-    private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
@@ -138,6 +134,7 @@ public class ValidationUnitTests extends
                 platformInstanceFriendlyName,
                 preferredPlatformId);
 
+        addTestUserWithClientCertificateToRepository();
     }
 
     @Test
