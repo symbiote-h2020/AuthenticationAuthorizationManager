@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security.unit.management;
+package eu.h2020.symbiote.security.unit;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
@@ -17,7 +17,6 @@ import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
-import eu.h2020.symbiote.security.unit.certificates.CertificatesUnitTests;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
 import org.apache.commons.logging.Log;
@@ -31,9 +30,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.TestPropertySource;
 
 import java.security.cert.CertificateException;
-import java.util.Base64;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -41,7 +38,7 @@ import static org.junit.Assert.*;
 @TestPropertySource("/core.properties")
 public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(CertificatesUnitTests.class);
+    private static Log log = LogFactory.getLog(ClientCertificatesIssuingUnitTests.class);
     protected final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
     private final String recoveryMail = "null@dev.null";
     private final String federatedOAuthId = "federatedOAuthId";
@@ -127,6 +124,10 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
 
     @Test
     public void userInternalUnregistrationSuccess() throws SecurityException, CertificateException {
+
+        // prepare the user in db
+        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.USER, new ArrayList<>()));
+
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);

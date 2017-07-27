@@ -1,14 +1,12 @@
-package eu.h2020.symbiote.security.functional.management;
+package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ExistingPlatformException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MissingArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UnauthorizedRegistrationException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.*;
-import eu.h2020.symbiote.security.functional.others.OtherFunctionalTests;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
@@ -19,7 +17,6 @@ import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +33,7 @@ import static org.junit.Assert.*;
 public class PlatformsManagementFunctionalTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(OtherFunctionalTests.class);
+    private static Log log = LogFactory.getLog(OtherListenersFunctionalTests.class);
     private final String coreAppUsername = "testCoreAppUsername";
     private final String coreAppPassword = "testCoreAppPassword";
     private final String recoveryMail = "null@dev.null";
@@ -262,38 +259,6 @@ public class PlatformsManagementFunctionalTests extends
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
         assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
-    }
-
-    /**
-     * Feature: CAAM - 3 (Platform Registration)
-     * Interface: CAAM - 2
-     * CommunicationType AMQP
-     */
-    @Test
-    @Ignore("Platform registration and platform owner registration are separate")
-    public void platformRegistrationOverAMQPFailurePOUsernameExists() throws IOException, TimeoutException {
-        // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
-
-        // issue platform registration over AMQP
-        byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
-        // verify that platform with preferred id is in repository and is tied with the given PO
-        PlatformManagementResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
-                PlatformManagementResponse.class);
-        // verified that we received the preferred platformId
-        assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
-        assertNotNull(platformRepository.findOne(preferredPlatformId));
-
-        // issue registration request with different preferred platform identifier but for the same PO
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(preferredPlatformId + "different");
-        response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(ExistingUserException.errorMessage, errorResponse.getErrorMessage());
     }
 
     /**

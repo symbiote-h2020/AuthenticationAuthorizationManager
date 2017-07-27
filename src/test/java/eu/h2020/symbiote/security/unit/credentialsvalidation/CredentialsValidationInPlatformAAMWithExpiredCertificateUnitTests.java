@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security.unit.validation;
+package eu.h2020.symbiote.security.unit.credentialsvalidation;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
@@ -28,10 +28,10 @@ import static org.junit.Assert.assertEquals;
  * @author Piotr Kicki (PSNC)
  */
 @TestPropertySource("/platformExpired.properties")
-public class PlatformExpiredCertificateUnitTests extends
+public class CredentialsValidationInPlatformAAMWithExpiredCertificateUnitTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(PlatformExpiredCertificateUnitTests.class);
+    private static Log log = LogFactory.getLog(CredentialsValidationInPlatformAAMWithExpiredCertificateUnitTests.class);
     @Autowired
     private ValidationHelper validationHelper;
 

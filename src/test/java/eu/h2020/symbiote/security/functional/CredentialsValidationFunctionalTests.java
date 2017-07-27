@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security.functional.validation;
+package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.communication.interfaces.payloads.ValidationRe
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -18,17 +19,18 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.io.IOException;
-import java.security.SignedObject;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 @TestPropertySource("/core.properties")
-public class ValidationFunctionalTests extends
+public class CredentialsValidationFunctionalTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(ValidationFunctionalTests.class);
+    private static Log log = LogFactory.getLog(CredentialsValidationFunctionalTests.class);
 
     /**
      * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
@@ -41,7 +43,8 @@ public class ValidationFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException {
+    public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException {
+        addTestUserWithClientCertificateToRepository();
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants
                         .AAM_GET_HOME_TOKEN,
@@ -71,7 +74,8 @@ public class ValidationFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void validationOverRESTValid() throws IOException {
+    public void validationOverRESTValid() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException {
+        addTestUserWithClientCertificateToRepository();
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
                 CryptoHelper.signedObjectToString(signObject), String.class);
@@ -96,7 +100,8 @@ public class ValidationFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void validationOverRESTExpired() throws IOException, InterruptedException {
+    public void validationOverRESTExpired() throws IOException, InterruptedException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException {
+        addTestUserWithClientCertificateToRepository();
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
                 CryptoHelper.signedObjectToString(signObject), String.class);

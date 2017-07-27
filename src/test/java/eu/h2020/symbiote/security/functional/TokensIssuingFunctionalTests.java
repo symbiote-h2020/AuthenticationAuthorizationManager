@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security.functional.tokens;
+package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
@@ -60,11 +60,10 @@ import java.util.concurrent.TimeoutException;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
-public class TokenFunctionalTests extends
+public class TokensIssuingFunctionalTests extends
         AbstractAAMTestSuite {
 
-
-    private static Log log = LogFactory.getLog(TokenFunctionalTests.class);
+    private static Log log = LogFactory.getLog(TokensIssuingFunctionalTests.class);
     private final String coreAppUsername = "testCoreAppUsername";
     private final String coreAppPassword = "testCoreAppPassword";
     private final String recoveryMail = "null@dev.null";
@@ -76,14 +75,13 @@ public class TokenFunctionalTests extends
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
     private final String platformOwnerUsername = "testPlatformOwnerUsername";
     private final String platformOwnerPassword = "testPlatormOwnerPassword";
-    private KeyPair platformOwnerKeyPair;
-
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
+    private KeyPair platformOwnerKeyPair;
     private UserManagementRequest appUserManagementRequest;
     private RpcClient appRegistrationClient;
     private UserDetails appUserDetails;
@@ -147,8 +145,8 @@ public class TokenFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void getHomeTokenForUserOverAMQPSuccessAndIssuesCoreTokenType() throws IOException, TimeoutException, MalformedJWTException {
-
+    public void getHomeTokenForUserOverAMQPSuccessAndIssuesCoreTokenType() throws IOException, TimeoutException, MalformedJWTException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException {
+        addTestUserWithClientCertificateToRepository();
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         byte[] response = client.primitiveCall(mapper.writeValueAsString(CryptoHelper.signedObjectToString(signObject))
@@ -264,6 +262,7 @@ public class TokenFunctionalTests extends
 
     @Test
     public void getHomeTokenForUserOverRESTWrongUsernameFailure() throws IOException {
+
         SignedObject signObject = CryptoHelper.objectToSignedObject(wrongusername + "@" + clientId, userKeyPair.getPrivate());
         try {
             restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, CryptoHelper.signedObjectToString(signObject), ErrorResponseContainer.class);
@@ -293,10 +292,11 @@ public class TokenFunctionalTests extends
      * Features: PAAM - 3, CAAM - 5 (Authentication & relevent token issuing)
      * Interfaces: PAAM - 3, CAAM - 7;
      * CommunicationType REST
-     *
      */
     @Test
-    public void getHomeTokenForUserOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws IOException, MalformedJWTException, CertificateException {
+    public void getHomeTokenForUserOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws IOException, MalformedJWTException, CertificateException, OperatorCreationException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidKeyException {
+        addTestUserWithClientCertificateToRepository();
+
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
                 CryptoHelper.signedObjectToString(signObject), String.class);
@@ -326,7 +326,8 @@ public class TokenFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getForeignTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() throws IOException {
+    public void getForeignTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException {
+        addTestUserWithClientCertificateToRepository();
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
                 CryptoHelper.signedObjectToString(signObject), String.class);

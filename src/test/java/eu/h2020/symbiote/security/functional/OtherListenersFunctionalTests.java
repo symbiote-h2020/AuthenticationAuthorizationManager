@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security.functional.others;
+package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
@@ -40,10 +40,10 @@ import static org.junit.Assert.assertEquals;
  * Test suite for Core AAM deployment scenarios.
  */
 @TestPropertySource("/core.properties")
-public class OtherFunctionalTests extends
+public class OtherListenersFunctionalTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(OtherFunctionalTests.class);
+    private static Log log = LogFactory.getLog(OtherListenersFunctionalTests.class);
     private final String coreAppUsername = "testCoreAppUsername";
     private final String coreAppPassword = "testCoreAppPassword";
     private final String recoveryMail = "null@dev.null";
@@ -77,7 +77,7 @@ public class OtherFunctionalTests extends
     private TokenIssuer tokenIssuer;
 
     @Bean
-    DummyPlatformAAM getDummyPlatformAAM() {
+    DummyPlatformAAM dummyPlatformAAM() {
         return new DummyPlatformAAM();
     }
 
@@ -116,7 +116,6 @@ public class OtherFunctionalTests extends
                 platformInstanceFriendlyName,
                 preferredPlatformId);
         platformOwnerKeyPair = CryptoHelper.createKeyPair();
-
     }
 
     /**
@@ -182,6 +181,19 @@ public class OtherFunctionalTests extends
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
         // TODO we don't know the cert... until R3 when we will know it
         assertEquals("", platformAAM.getCertificate().getCertificateString());
+    }
 
+    /**
+     * Features: CAAM - 12 (AAM as a CA)
+     * Interfaces: CAAM - 15;
+     * CommunicationType REST
+     */
+    @Test
+    public void getComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
+            NoSuchProviderException, KeyStoreException, IOException {
+        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + SecurityConstants
+                .AAM_GET_COMPONENT_CERTIFICATE, String.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(certificationAuthorityHelper.getAAMCert(), response.getBody());
     }
 }

@@ -83,7 +83,6 @@ public class UsersManagementService {
         if (userRegistrationDetails.getRole() == UserRole.NULL)
             throw new UserRegistrationException();
 
-
         // Register the user
         User user = new User();
         user.setRole(userRegistrationDetails.getRole());

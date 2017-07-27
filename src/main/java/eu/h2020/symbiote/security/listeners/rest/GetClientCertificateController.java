@@ -23,23 +23,26 @@ import java.security.cert.CertificateException;
  */
 
 @RestController
-public class GetClientCertificateComponent implements IGetClientCertificate {
-    private static final Log log = LogFactory.getLog(GetClientCertificateComponent.class);
+public class GetClientCertificateController implements IGetClientCertificate {
+    private static final Log log = LogFactory.getLog(GetClientCertificateController.class);
     private GetClientCertificateService getClientCertificateService;
 
     @Autowired
-    public GetClientCertificateComponent(GetClientCertificateService getClientCertificateService) {
+    public GetClientCertificateController(GetClientCertificateService getClientCertificateService) {
         this.getClientCertificateService = getClientCertificateService;
     }
 
     @Override
     public ResponseEntity<String> getClientCertificate(@RequestBody CertificateRequest certificateRequest) {
-        try{
+        try {
+            // TODO review that the CSR is in PEM format and document so in the CertificateRequest
             String certificate = getClientCertificateService.getCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
-        }catch(WrongCredentialsException | IOException | CertificateException | NoSuchAlgorithmException |
+        } catch (WrongCredentialsException | IOException | CertificateException | NoSuchAlgorithmException |
                 NoSuchProviderException | KeyStoreException | UnrecoverableKeyException | OperatorCreationException |
-                NotExistingUserException | InvalidKeyException | IllegalArgumentException e){
+                NotExistingUserException | InvalidKeyException | IllegalArgumentException e) {
+            log.error(e);
+            // is it really ok? HttpStatus.OK, use properly exceptions
             return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
         }
     }

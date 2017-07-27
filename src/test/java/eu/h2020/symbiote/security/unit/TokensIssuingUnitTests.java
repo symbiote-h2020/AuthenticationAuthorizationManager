@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security.unit.tokens;
+package eu.h2020.symbiote.security.unit;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
@@ -22,7 +22,6 @@ import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
-import eu.h2020.symbiote.security.unit.certificates.CertificatesUnitTests;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
 import org.apache.commons.logging.Log;
@@ -36,6 +35,7 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -57,10 +57,10 @@ import java.util.concurrent.TimeoutException;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
-public class TokenUnitTests extends AbstractAAMTestSuite {
+public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
 
-    private static Log log = LogFactory.getLog(CertificatesUnitTests.class);
+    private static Log log = LogFactory.getLog(ClientCertificatesIssuingUnitTests.class);
     protected final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
     private final String recoveryMail = "null@dev.null";
     private final String federatedOAuthId = "federatedOAuthId";
@@ -90,12 +90,12 @@ public class TokenUnitTests extends AbstractAAMTestSuite {
     private AAMServices coreServicesController;
 
     @Bean
-    DummyPlatformAAM getDummyPlatformAAM() {
+    DummyPlatformAAM dummyPlatformAAM() {
         return new DummyPlatformAAM();
     }
 
     @Bean
-    DummyPlatformAAMConnectionProblem getDummyPlatformAAMConnectionProblem() {
+    DummyPlatformAAMConnectionProblem dummyPlatformAAMWithConnectionProblem() {
         return new DummyPlatformAAMConnectionProblem();
     }
 
@@ -117,7 +117,9 @@ public class TokenUnitTests extends AbstractAAMTestSuite {
 
     // test for revoke function
     @Test
-    public void revokeUserToken() throws SecurityException, CertificateException, InvalidKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException {
+    public void revokeUserToken() throws SecurityException, CertificateException, InvalidKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException, UnrecoverableKeyException, OperatorCreationException {
+        addTestUserWithClientCertificateToRepository();
+
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -206,7 +208,8 @@ public class TokenUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getHomeTokenByUserSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException, CertificateException {
+    public void getHomeTokenByUserSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException, CertificateException, OperatorCreationException, InvalidKeyException, KeyStoreException, UnrecoverableKeyException {
+        addTestUserWithClientCertificateToRepository();
         User user = userRepository.findOne(username);
         assertNotNull(user);
         Token token = tokenIssuer.getHomeToken(user, clientId);
@@ -296,7 +299,8 @@ public class TokenUnitTests extends AbstractAAMTestSuite {
 
 
     @Test
-    public void getHomeTokenSuccess() throws IOException {
+    public void getHomeTokenSuccess() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException {
+        addTestUserWithClientCertificateToRepository();
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         Token token = null;
         try {
@@ -324,5 +328,30 @@ public class TokenUnitTests extends AbstractAAMTestSuite {
         SignedObject signObject = CryptoHelper.objectToSignedObject("@" + clientId, userKeyPair.getPrivate());
         getTokenService.login(signObject);
     }
+
+
+    @Test
+    @Ignore("Not R2 crucial, at R2 we will issue attributes from properties")
+    public void getHomeTokenWithAttributesProvisionedToBeIssuedForGivenUser() throws IOException, TimeoutException {
+        /*
+        TODO attributes provisioning test
+        2. send the attributes list
+        3. receive a success status
+        4. log in as an user and check if the token does contain sent attributes
+        */
+    }
+
+    @Test
+    @Ignore("Not R2")
+    public void getForeignTokenWithFederatedAttributesIssuedUsingProvisionedAttributesMappingListForGivenHomeToken() throws IOException,
+            TimeoutException {
+        /*
+        // TODO attributes mapping list provisioning R3? R4?
+        2. send an attribute mapping list
+        3. receive a success status
+        4. request foreign tokens which should be based on given tokens
+        */
+    }
+
 
 }
