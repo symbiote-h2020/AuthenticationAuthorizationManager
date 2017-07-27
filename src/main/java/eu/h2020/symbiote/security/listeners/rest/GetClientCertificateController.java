@@ -34,14 +34,15 @@ public class GetClientCertificateController implements IGetClientCertificate {
 
     @Override
     public ResponseEntity<String> getClientCertificate(@RequestBody CertificateRequest certificateRequest) {
-        try{
-            // TODO review that the CSR is in PEM format...
+        try {
+            // TODO review that the CSR is in PEM format and document so in the CertificateRequest
             String certificate = getClientCertificateService.getCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
-        }catch(WrongCredentialsException | IOException | CertificateException | NoSuchAlgorithmException |
+        } catch (WrongCredentialsException | IOException | CertificateException | NoSuchAlgorithmException |
                 NoSuchProviderException | KeyStoreException | UnrecoverableKeyException | OperatorCreationException |
-                NotExistingUserException | InvalidKeyException | IllegalArgumentException e){
+                NotExistingUserException | InvalidKeyException | IllegalArgumentException e) {
             log.error(e);
+            // is it really ok? HttpStatus.OK, use properly exceptions
             return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
         }
     }

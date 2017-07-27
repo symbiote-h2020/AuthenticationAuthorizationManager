@@ -6,13 +6,11 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsExce
 import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.listeners.rest.AAMServices;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
-import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -20,7 +18,6 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -30,20 +27,21 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 /**
- * TODO @Maks finish it!
+ * TODO @Maks finish it! and comment properly
  *
  * @author Maks Marcinowski (PSNC)
  */
 
 @Service
 public class GetClientCertificateService {
+    // todo move to security constants
     public static final String illegalSign = "@";
+    // todo use log for logging errors
     private static Log log = LogFactory.getLog(GetClientCertificateService.class);
     private final UserRepository userRepository;
     private final RevokedKeysRepository revokedKeysRepository;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PasswordEncoder passwordEncoder;
-    private final AAMServices coreServicesController;
     private final RevocationHelper revocationHelper;
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
@@ -53,15 +51,12 @@ public class GetClientCertificateService {
     @Autowired
     public GetClientCertificateService(UserRepository userRepository, RevokedKeysRepository revokedKeysRepository,
                                        CertificationAuthorityHelper certificationAuthorityHelper,
-                                       PasswordEncoder passwordEncoder, AAMServices coreServicesController,
-                                       ValidationHelper
-                                               validationHelper, RevocationHelper revocationHelper) {
+                                       PasswordEncoder passwordEncoder,
+                                       RevocationHelper revocationHelper) {
         this.userRepository = userRepository;
         this.revokedKeysRepository = revokedKeysRepository;
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.passwordEncoder = passwordEncoder;
-        this.coreServicesController = coreServicesController;
-        ValidationHelper validationHelper1 = validationHelper;
         this.revocationHelper = revocationHelper;
     }
 
@@ -85,8 +80,7 @@ public class GetClientCertificateService {
         byte[] bytes = Base64.decodeBase64(certificateRequest.getClientCSR());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
 
-        ResponseEntity<String> response = coreServicesController.getComponentCertificate();
-        X509Certificate caCert = CryptoHelper.convertPEMToX509(response.getBody());
+        X509Certificate caCert = certificationAuthorityHelper.getAAMCertificate();
 
         if (!req.getSubject().toString().split("CN=")[1].split("@")[2].equals
                 (caCert.getSubjectDN().getName().split("CN=")[1]))
@@ -99,19 +93,19 @@ public class GetClientCertificateService {
 
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
 
-        if (userCert!=null) {
+        if (userCert != null) {
             if (userCert.getX509().getPublicKey().equals(certFromCSR.getPublicKey())) {
                 Certificate cert = new Certificate(pem);
                 user.getClientCertificates().clear();
-                user.getClientCertificates().replace(certificateRequest.getClientId(),cert);
+                user.getClientCertificates().replace(certificateRequest.getClientId(), cert);
             } else {
-                revocationHelper.revoke(new Credentials(user.getUsername(), user.getPasswordEncrypted()),userCert);
+                revocationHelper.revoke(new Credentials(user.getUsername(), user.getPasswordEncrypted()), userCert);
                 Certificate cert = new Certificate(pem);
-                user.getClientCertificates().put(certificateRequest.getClientId(),cert);
+                user.getClientCertificates().put(certificateRequest.getClientId(), cert);
             }
         } else {
             Certificate cert = new Certificate(pem);
-            user.getClientCertificates().put(certificateRequest.getClientId(),cert);
+            user.getClientCertificates().put(certificateRequest.getClientId(), cert);
         }
 
         return pem;
