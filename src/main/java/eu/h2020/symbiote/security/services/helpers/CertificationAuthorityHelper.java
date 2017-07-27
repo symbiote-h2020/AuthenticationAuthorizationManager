@@ -23,12 +23,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.Date;
 
@@ -99,64 +97,6 @@ public class CertificationAuthorityHelper {
             return null;
         }
         return builder;
-    }
-
-    /**
-     * TODO R3 remove as it is obsolete with new certificate acquisition service
-     *
-     * @param username
-     * @param pubKey
-     * @return
-     * @throws NoSuchProviderException
-     * @throws KeyStoreException
-     * @throws IOException
-     * @throws CertificateException
-     * @throws NoSuchAlgorithmException
-     * @throws UnrecoverableKeyException
-     * @throws OperatorCreationException
-     */
-    @Deprecated
-    public X509Certificate createECCert(String username, PublicKey pubKey) throws NoSuchProviderException,
-            KeyStoreException,
-            IOException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            UnrecoverableKeyException,
-            OperatorCreationException {
-
-        // retrieves AAM private key from keystore
-        PrivateKey privKey = this.getAAMPrivateKey();
-
-        // distinguished name table.
-        X500NameBuilder issuerBuilder = createStdBuilder(getAAMInstanceIdentifier());
-        X500NameBuilder subjectBuilder = createStdBuilder(username);
-
-        // create the certificate - version 3
-        ContentSigner sigGen = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM).setProvider
-                (CryptoHelper.PROVIDER_NAME).build
-                (privKey); //
-
-        X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
-                issuerBuilder.build(),
-                BigInteger.valueOf(1),
-                new Date(System.currentTimeMillis()),
-                new Date(System.currentTimeMillis() + 1L * 365L * 24L * 60L * 60L * 1000L),
-                subjectBuilder.build(),
-                pubKey)
-                .addExtension(
-                        new ASN1ObjectIdentifier("2.5.29.19"),
-                        false,
-                        new BasicConstraints(false));// true if it is allowed to sign other certs;
-
-        X509Certificate cert = new JcaX509CertificateConverter().setProvider(CryptoHelper.PROVIDER_NAME)
-                .getCertificate(certGen
-                        .build(sigGen));
-
-        ByteArrayInputStream bIn = new ByteArrayInputStream(cert.getEncoded());
-        CertificateFactory certFact = CertificateFactory.getInstance("X.509", CryptoHelper.PROVIDER_NAME);
-        cert = (X509Certificate) certFact.generateCertificate(bIn);
-
-        return cert;
     }
 
     /**

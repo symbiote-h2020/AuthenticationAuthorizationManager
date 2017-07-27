@@ -110,20 +110,6 @@ public class ClientCertificatesIssuingUnitTests extends
 
 
     @Test
-    public void certificateCreationAndVerification() throws Exception {
-        // Generate certificate for given user username (ie. "Daniele")
-        KeyPair keyPair = CryptoHelper.createKeyPair();
-        X509Certificate cert = certificationAuthorityHelper.createECCert("Daniele", keyPair.getPublic());
-
-        // retrieves Platform AAM ("Daniele"'s certificate issuer) public key from keystore in order to verify
-        // "Daniele"'s certificate
-        cert.verify(certificationAuthorityHelper.getAAMPublicKey());
-
-        // also check time validity
-        cert.checkValidity(new Date());
-    }
-
-    @Test
     public void generateCertificateFromCSRSuccess() throws OperatorCreationException, CertificateException,
             UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException,
             InvalidKeyException, IOException, InvalidAlgorithmParameterException {
@@ -214,7 +200,7 @@ public class ClientCertificatesIssuingUnitTests extends
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
                 new X500Principal(certificationAuthorityHelper.getAAMCertificate().getSubjectX500Principal().getName
                         ()), pair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
@@ -237,7 +223,7 @@ public class ClientCertificatesIssuingUnitTests extends
         KeyPair pair = generateKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
                 new X500Principal("CN=WrongName@WrongClientId@WrongPlatformInstanceId"), pair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
@@ -261,7 +247,7 @@ public class ClientCertificatesIssuingUnitTests extends
         String cn = "CN=" + appUsername + "@" + clientId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
 
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), pair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder("SHA256withRSA");
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
