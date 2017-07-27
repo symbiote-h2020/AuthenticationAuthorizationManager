@@ -9,11 +9,11 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.interfaces.IGetToken;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.config.JerseyConfig;
+import eu.h2020.symbiote.security.config.ResponseDecoder;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import feign.Feign;
 import feign.Logger;
-import feign.jackson.JacksonDecoder;
 import feign.jackson.JacksonEncoder;
 import feign.jaxrs.JAXRSContract;
 import org.apache.commons.logging.Log;
@@ -68,7 +68,7 @@ public class AAMExpiredCertificateUnitTests extends
     @Override
     @Before
     public void setUp() throws Exception {
-        serverAddress = "https://localhost:" + port + "/test/caam";//
+        serverAddress = "https://localhost:" + port + "/test/caam";
 
         // Create a trust manager that does not validate certificate chains
         TrustManager[] trustAllCerts = new TrustManager[]{
@@ -111,14 +111,12 @@ public class AAMExpiredCertificateUnitTests extends
             NoSuchAlgorithmException, ValidationException, JWTCreationException {
         // issuing dummy core token from CoreAAM with expired certificate
         IGetToken client = Feign.builder().logLevel(Logger.Level.FULL)
-                .encoder(new JacksonEncoder()).decoder(new JacksonDecoder())
-                .contract(new JAXRSContract()).target(IGetToken.class, serverAddress  );
+                .encoder(new JacksonEncoder()).decoder(new ResponseDecoder())
+                .contract(new JAXRSContract()).target(IGetToken.class, serverAddress);
 
-        Response loginResponse = client.getHomeToken(new Credentials(username,password));
-        log.info("Received : " + loginResponse);
+        Response loginResponse = client.getHomeToken(new Credentials(username, password));
 
-        Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0).toString());
+        Token dummyHomeToken = new Token(loginResponse.getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString());
 
         ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
         // check if platform token is not revoked

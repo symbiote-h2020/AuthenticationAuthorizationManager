@@ -12,7 +12,6 @@ import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,7 +40,6 @@ import java.util.HashMap;
  * @author Piotr Kicki (PSNC)
  */
 @Component
-//@RestController
 @Path(value = "/test/caam")
 public class DummyCoreAAM {
     private static final Log log = LogFactory.getLog(DummyCoreAAM.class);
@@ -62,14 +60,12 @@ public class DummyCoreAAM {
     @Produces(MediaType.APPLICATION_JSON)
     @Path(value = SecurityConstants.AAM_PUBLIC_PATH + SecurityConstants.AAM_GET_HOME_TOKEN)
     public Response getHomeToken(Credentials credential) {
-        log.info("ENTRYMARKER");
         log.info("User trying to getHomeToken " + credential.getUsername() + " - " + credential.getPassword());
 
         try {
             KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
             ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
             Key key = ks.getKey(CERTIFICATE_ALIAS, CERTIFICATE_PASSWORD.toCharArray());
-
             HashMap<String, String> attributes = new HashMap<>();
             attributes.put("name", "test2");
             String tokenString = TokenIssuer.generateJWTToken(credential.getUsername(), attributes, ks.getCertificate
@@ -79,21 +75,14 @@ public class DummyCoreAAM {
                     (PrivateKey) key);
 
             Token coreToken = new Token(tokenString);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.add(SecurityConstants.TOKEN_HEADER_NAME, coreToken.getToken());
-            log.info("Headers are : " + headers);
-
-            /* Finally issues and return foreign_token */
-            log.info("SUCCESSMARKER");
-            return Response.status(Response.Status.OK).entity(headers).type(MediaType.APPLICATION_JSON)
-                    .build(); //Throws FeignException
+            return Response.status(Response.Status.OK)
+                    .header(SecurityConstants.TOKEN_HEADER_NAME, coreToken.getToken())
+                    .build();
         } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException |
                 UnrecoverableKeyException | JWTCreationException | NoSuchProviderException | ValidationException
                 e) {
             log.error(e);
         }
-        log.info("FAILUREMARKER");
         return null;
     }
 

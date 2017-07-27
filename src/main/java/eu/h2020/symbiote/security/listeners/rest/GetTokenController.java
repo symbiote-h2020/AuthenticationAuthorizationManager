@@ -45,7 +45,6 @@ import java.util.Map;
  * @see GetTokenService
  */
 @Component
-//@RestController
 @Path(value = "/test/caam")
 public class GetTokenController implements IGetToken {
 
@@ -67,8 +66,6 @@ public class GetTokenController implements IGetToken {
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
     }
 
-
-
     public Response getForeignToken(@HeaderParam(SecurityConstants.TOKEN_HEADER_NAME) String
                                                      homeToken) {
         HttpHeaders headers = new HttpHeaders();
@@ -80,8 +77,7 @@ public class GetTokenController implements IGetToken {
             // checking revocation in relevant AAM
             if (receivedToken.getClaims().getIssuer().equals(deploymentId)) {
                 log.debug("Someone tried issuing a federated token using a home token");
-                return //new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
-                Response.status(Response.Status.BAD_REQUEST).entity(headers).build();
+                return Response.status(Response.Status.BAD_REQUEST).entity(headers).build();
             } else {
                 Map<String, AAM> availableAAMs;
                 if (deploymentType == IssuingAuthorityType.CORE) {
@@ -99,8 +95,7 @@ public class GetTokenController implements IGetToken {
                 AAM remoteAAM = availableAAMs.get(receivedToken.getClaims().getIssuer());
                 if (remoteAAM == null) {
                     log.debug("Couldn't find AAM related with the given token");
-                    return //new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
-                            Response.status(Response.Status.BAD_REQUEST).entity(headers).build();
+                    return Response.status(Response.Status.BAD_REQUEST).entity(headers).build();
                 }
 
                 MultiValueMap<String, String> headersMap = new LinkedMultiValueMap<>();
@@ -113,26 +108,22 @@ public class GetTokenController implements IGetToken {
                 ValidationStatus validationStatus = status.getBody();
                 if (validationStatus != ValidationStatus.VALID) {
                     log.debug("Couldn't find AAM related with the given token");
-                    return //new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
-                            Response.status(Response.Status.BAD_REQUEST).entity(headers).build();
+                    return Response.status(Response.Status.BAD_REQUEST).entity(headers).build();
                 }
             }
             federatedHomeToken = new Token(getTokenService.createFederatedHomeTokenForForeignToken(homeToken)
                     .getToken());
         } catch (ValidationException e) {
             log.error(e);
-            return //new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
-                    Response.status(Response.Status.BAD_REQUEST).entity(headers).build();
+            return Response.status(Response.Status.BAD_REQUEST).entity(headers).build();
         } catch (JWTCreationException e) {
             log.error(e);
-            return //new ResponseEntity<>(headers, HttpStatus.INTERNAL_SERVER_ERROR);
-                    Response.status(Response.Status.BAD_REQUEST).entity(headers).build();
+            return Response.status(Response.Status.BAD_REQUEST).entity(headers).build();
         }
         headers.add(SecurityConstants.TOKEN_HEADER_NAME, federatedHomeToken.getToken());
 
         /* Finally issues and return foreign_token */
-        return //new ResponseEntity<>(headers, HttpStatus.OK);
-                Response.status(Response.Status.BAD_REQUEST).entity(headers).build();
+        return Response.status(Response.Status.BAD_REQUEST).entity(headers).build();
     }
 
     @Override
@@ -143,19 +134,15 @@ public class GetTokenController implements IGetToken {
 
     //L1 Diagrams - getHomeToken()
     @POST
-    //@Consumes(MediaType.APPLICATION_JSON)
     @Path(SecurityConstants.AAM_PUBLIC_PATH + SecurityConstants.AAM_GET_HOME_TOKEN)
     public Response getHomeToken(@Context Credentials user) {
         try {
             Token token = getTokenService.login(user);
             HttpHeaders headers = new HttpHeaders();
             headers.add(SecurityConstants.TOKEN_HEADER_NAME, token.getToken());
-            //return new ResponseEntity<>(headers, HttpStatus.OK);
             return Response.status(Response.Status.OK).entity(headers).build();
         } catch (SecurityException e) {
             log.error(e);
-           /* return new ResponseEntity<String>(new ErrorResponseContainer(e.getErrorMessage(), e
-                    .getStatusCode().ordinal()).toString(), e.getStatusCode());*/
            return Response.status(Response.Status.NOT_ACCEPTABLE).entity(new ErrorResponseContainer(e.getErrorMessage(), e
                    .getStatusCode().ordinal())).build();
         }
