@@ -3,10 +3,11 @@ package eu.h2020.symbiote.security.unit;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.*;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.listeners.rest.AAMServices;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -109,20 +110,6 @@ public class ClientCertificatesIssuingUnitTests extends
 
 
     @Test
-    public void certificateCreationAndVerification() throws Exception {
-        // Generate certificate for given user username (ie. "Daniele")
-        KeyPair keyPair = CryptoHelper.createKeyPair();
-        X509Certificate cert = certificationAuthorityHelper.createECCert("Daniele", keyPair.getPublic());
-
-        // retrieves Platform AAM ("Daniele"'s certificate issuer) public key from keystore in order to verify
-        // "Daniele"'s certificate
-        cert.verify(certificationAuthorityHelper.getAAMPublicKey());
-
-        // also check time validity
-        cert.checkValidity(new Date());
-    }
-
-    @Test
     public void generateCertificateFromCSRSuccess() throws OperatorCreationException, CertificateException,
             UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException,
             InvalidKeyException, IOException, InvalidAlgorithmParameterException {
@@ -204,10 +191,12 @@ public class ClientCertificatesIssuingUnitTests extends
             CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
         String appUsername = "NewApplication";
 
-        UserManagementRequest request = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole
-                        .USER));
-        restTemplate.postForEntity(serverAddress + registrationUri, request, RegistrationStatus.class);
+        User user = new User();
+        user.setUsername(appUsername);
+        user.setPasswordEncrypted(passwordEncoder.encode(password));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.USER);
+        userRepository.save(user);
 
         KeyPair pair = CryptoHelper.createKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
@@ -227,11 +216,12 @@ public class ClientCertificatesIssuingUnitTests extends
     public void getCertificateCheckCSR() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
         String appUsername = "NewApplication";
 
-        UserManagementRequest request = new UserManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword),
-                new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole
-                        .USER));
-        restTemplate.postForEntity(serverAddress + registrationUri, request, RegistrationStatus.class);
+        User user = new User();
+        user.setUsername(appUsername);
+        user.setPasswordEncrypted(passwordEncoder.encode(password));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.USER);
+        userRepository.save(user);
 
         KeyPair pair = CryptoHelper.createKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
@@ -250,12 +240,15 @@ public class ClientCertificatesIssuingUnitTests extends
     public void getCertificateSuccess() throws OperatorCreationException, IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
         String appUsername = "NewApplication";
 
-        UserManagementRequest request = new UserManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword),
-                new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole
-                        .USER));
-        restTemplate.postForEntity(serverAddress + registrationUri, request, RegistrationStatus.class);
+        User user = new User();
+        user.setUsername(appUsername);
+        user.setPasswordEncrypted(passwordEncoder.encode(password));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.USER);
+        userRepository.save(user);
+
         KeyPair pair = CryptoHelper.createKeyPair();
+
 
         String cn = "CN=" + appUsername + "@" + clientId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
 
