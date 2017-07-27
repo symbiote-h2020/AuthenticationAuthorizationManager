@@ -1,6 +1,5 @@
 package eu.h2020.symbiote.security.functional;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
@@ -17,15 +16,11 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
@@ -275,49 +270,6 @@ public class ActorsManagementFunctionalTests extends
 
         // verify that the user has no certs
         assertTrue(registeredUser.getClientCertificates().isEmpty());
-    }
-
-    @Test
-    public void userRegistrationOverRESTSuccess() throws JsonProcessingException {
-        String testAppUsername = "NewApplication";
-        UserManagementRequest request = new UserManagementRequest(
-                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new UserDetails(new Credentials(testAppUsername, "NewPassword"), federatedOAuthId, recoveryMail, UserRole.USER));
-        // verify that app is not in the repository
-        User registeredUser = userRepository.findOne(testAppUsername);
-        assertNull(registeredUser);
-
-        ResponseEntity<RegistrationStatus> response = restTemplate.postForEntity(serverAddress +
-                registrationUri, request, RegistrationStatus.class);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        // verify that app really is in repository
-        registeredUser = userRepository.findOne(testAppUsername);
-        assertNotNull(registeredUser);
-        assertEquals(UserRole.USER, registeredUser.getRole());
-
-        // verify that the user has no certs
-        assertTrue(registeredUser.getClientCertificates().isEmpty());
-    }
-
-    /**
-     * Feature: PAAM - 2 (Application Registration)
-     * Interface: PAAM - 3a
-     * CommunicationType REST
-     */
-    @Test
-    public void userUnregistrationOverRESTSuccess() throws JsonProcessingException {
-        UserManagementRequest request = new UserManagementRequest(
-                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new UserDetails(new Credentials(username, password),
-                        federatedOAuthId, recoveryMail, UserRole.USER));
-        // prepare the user in db
-        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.USER, new ArrayList<>()));
-
-        ResponseEntity<Void> response = restTemplate.postForEntity(serverAddress + unregistrationUri, request,
-                Void.class);
-        // check that it succeed
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertFalse(userRepository.exists(username));
     }
 
 }
