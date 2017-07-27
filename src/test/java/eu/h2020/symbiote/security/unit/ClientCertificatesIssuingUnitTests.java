@@ -42,7 +42,6 @@ import java.security.cert.X509Certificate;
 import java.security.spec.ECGenParameterSpec;
 import java.util.Date;
 
-import static io.jsonwebtoken.impl.crypto.RsaProvider.generateKeyPair;
 import static org.junit.Assert.*;
 
 /**
@@ -188,7 +187,7 @@ public class ClientCertificatesIssuingUnitTests extends
 
     @Test
     public void getCertificateWrongCredentialsFailure() throws OperatorCreationException, IOException, NoSuchAlgorithmException,
-            CertificateException, NoSuchProviderException, KeyStoreException {
+            CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
         String appUsername = "NewApplication";
 
         UserManagementRequest request = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -196,7 +195,7 @@ public class ClientCertificatesIssuingUnitTests extends
                         .USER));
         restTemplate.postForEntity(serverAddress + registrationUri, request, RegistrationStatus.class);
 
-        KeyPair pair = generateKeyPair();
+        KeyPair pair = CryptoHelper.createKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
                 new X500Principal(certificationAuthorityHelper.getAAMCertificate().getSubjectX500Principal().getName
                         ()), pair.getPublic());
@@ -211,7 +210,7 @@ public class ClientCertificatesIssuingUnitTests extends
     }
 
     @Test
-    public void getCertificateCheckCSR() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException {
+    public void getCertificateCheckCSR() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
         String appUsername = "NewApplication";
 
         UserManagementRequest request = new UserManagementRequest(new Credentials(AAMOwnerUsername,
@@ -220,7 +219,7 @@ public class ClientCertificatesIssuingUnitTests extends
                         .USER));
         restTemplate.postForEntity(serverAddress + registrationUri, request, RegistrationStatus.class);
 
-        KeyPair pair = generateKeyPair();
+        KeyPair pair = CryptoHelper.createKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
                 new X500Principal("CN=WrongName@WrongClientId@WrongPlatformInstanceId"), pair.getPublic());
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
@@ -234,7 +233,7 @@ public class ClientCertificatesIssuingUnitTests extends
     }
 
     @Test
-    public void getCertificateSuccess() throws OperatorCreationException, IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException {
+    public void getCertificateSuccess() throws OperatorCreationException, IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
         String appUsername = "NewApplication";
 
         UserManagementRequest request = new UserManagementRequest(new Credentials(AAMOwnerUsername,
@@ -242,7 +241,7 @@ public class ClientCertificatesIssuingUnitTests extends
                 new UserDetails(new Credentials(appUsername, password), preferredPlatformId, recoveryMail, UserRole
                         .USER));
         restTemplate.postForEntity(serverAddress + registrationUri, request, RegistrationStatus.class);
-        KeyPair pair = generateKeyPair();
+        KeyPair pair = CryptoHelper.createKeyPair();
 
         String cn = "CN=" + appUsername + "@" + clientId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
 

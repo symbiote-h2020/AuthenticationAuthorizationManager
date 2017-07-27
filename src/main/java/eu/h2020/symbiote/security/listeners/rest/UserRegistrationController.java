@@ -10,7 +10,6 @@ import eu.h2020.symbiote.security.communication.interfaces.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.UsersManagementService;
-import net.lingala.zip4j.exception.ZipException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +50,7 @@ public class UserRegistrationController implements IRegistration {
     @PreAuthorize("isAuthenticated()")
     @PostMapping(value = SecurityConstants.AAM_ADMIN_PATH + "/web_register")
     ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response)
-            throws SecurityException, IOException, ZipException {
+            throws SecurityException, IOException {
         UserManagementRequest request = new UserManagementRequest();
         // TODO R3 incorporate federated Id (and possibly recovery e-mail)
         request.setUserDetails(new UserDetails(new Credentials(requestMap.get("username"), requestMap.get("password")

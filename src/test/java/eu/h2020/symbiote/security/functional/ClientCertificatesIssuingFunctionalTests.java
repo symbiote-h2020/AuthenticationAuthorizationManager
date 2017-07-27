@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -16,13 +17,9 @@ import org.springframework.test.context.TestPropertySource;
 
 import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
-import java.security.KeyPair;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import java.security.*;
 import java.security.cert.CertificateException;
 
-import static io.jsonwebtoken.impl.crypto.RsaProvider.generateKeyPair;
 import static org.junit.Assert.assertEquals;
 
 @TestPropertySource("/core.properties")
@@ -30,8 +27,8 @@ public class ClientCertificatesIssuingFunctionalTests extends
         AbstractAAMTestSuite {
     @Test
     public void getClientCertificateOverRESTInvalidArguments() throws NoSuchAlgorithmException, CertificateException,
-            NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException {
-        KeyPair pair = generateKeyPair();
+            NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException, InvalidAlgorithmParameterException {
+        KeyPair pair = CryptoHelper.createKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
                 new X500Principal(certificationAuthorityHelper.getAAMCertificate().getSubjectX500Principal().getName()), pair.getPublic());
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
