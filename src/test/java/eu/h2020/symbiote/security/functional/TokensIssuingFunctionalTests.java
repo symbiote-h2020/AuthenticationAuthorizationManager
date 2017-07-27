@@ -315,7 +315,7 @@ public class TokensIssuingFunctionalTests extends
         byte[] userPublicKeyInRepository = userRepository.findOne
                 (username).getClientCertificates().entrySet().iterator().next().getValue().getX509()
                 .getPublicKey().getEncoded();
-        byte[] publicKeyFromToken = Base64.decodeBase64(claimsFromToken.getSpk());
+        byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
 
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
     }
