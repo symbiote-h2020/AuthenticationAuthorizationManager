@@ -52,7 +52,7 @@ public class UserRegistrationController implements IRegistration {
     ResponseEntity<?> register(@RequestParam Map<String, String> requestMap, HttpServletResponse response)
             throws SecurityException, IOException {
         UserManagementRequest request = new UserManagementRequest();
-        // TODO R3 incorporate federated Id (and possibly recovery e-mail)
+        // TODO R3 incorporate foreign Id (and possibly recovery e-mail)
         request.setUserDetails(new UserDetails(new Credentials(requestMap.get("username"), requestMap.get("password")
         ), "R3-feature", "not-applicable", UserRole.USER));
         registrationService.register(request);

@@ -42,7 +42,7 @@ public class TokenIssuer {
     private static Log log = LogFactory.getLog(TokenIssuer.class);
     private static SecureRandom random = new SecureRandom();
     // TODO R3 create a CRUD for this
-    public Map<String, String> federatedMappingRules = new HashMap<>();
+    public Map<String, String> foreignMappingRules = new HashMap<>();
     // AAM configuration
     private String deploymentId = "";
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
@@ -145,18 +145,18 @@ public class TokenIssuer {
         }
     }
 
-    public Token getForeignToken(String foreignToken)
+    public Token getForeignToken(String homeToken)
             throws JWTCreationException {
         try {
-            JWTClaims claims = JWTEngine.getClaimsFromToken(foreignToken);
+            JWTClaims claims = JWTEngine.getClaimsFromToken(homeToken);
             // TODO R3 Attribute Mapping Function
-            Map<String, String> federatedAttributes = new HashMap<>();
+            Map<String, String> foreignAttributes = new HashMap<>();
 
-            // disabling federated token issuing when the mapping rule is empty
-            if (federatedMappingRules.isEmpty())
-                throw new SecurityMisconfigurationException("AAM has no federation rules defined");
+            // disabling foreign token issuing when the mapping rule is empty
+            if (foreignMappingRules.isEmpty())
+                throw new SecurityMisconfigurationException("AAM has no foreign rules defined");
             return new Token(
-                    generateJWTToken(claims.getIss(), federatedAttributes, Base64.getDecoder().decode(claims
+                    generateJWTToken(claims.getIss(), foreignAttributes, Base64.getDecoder().decode(claims
                                     .getIpk()), Token.Type.FOREIGN, tokenValidity, deploymentId,
                             certificationAuthorityHelper
                                     .getAAMPublicKey(),

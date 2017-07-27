@@ -367,7 +367,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
     // test for relay
     @Test
-    public void validateFederatedTokenIssuerNotInAvailableAAMs() throws IOException, ValidationException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException {
+    public void validateForeignTokenIssuerNotInAvailableAAMs() throws IOException, ValidationException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException {
         // issuing dummy platform token
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
@@ -383,7 +383,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     }
 
     @Test
-    public void validateFederatedTokenRequestFails() throws IOException, ValidationException, TimeoutException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException {
+    public void validateForeignTokenRequestFails() throws IOException, ValidationException, TimeoutException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException {
         // issuing dummy platform token
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/conn_err/paam" +
@@ -423,7 +423,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
     @Test
     @Ignore("TODO missing trust chain validation")
-    public void validateFederatedTokenRequestInIntranetUsingProvidedCertificate() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+    public void validateForeignTokenRequestInIntranetUsingProvidedCertificate() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
         // issuing dummy platform token
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/conn_err/paam" + SecurityConstants
