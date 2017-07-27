@@ -7,7 +7,7 @@ plugins {
     id 'org.springframework.boot' version '1.5.4.RELEASE'
     // code quality
     id "jacoco"
-    id "org.owasp.dependencycheck" version "2.0.1"
+    id "org.owasp.dependencycheck" version "2.1.0"
     // IDEs
     id "eclipse"
     id "idea"
@@ -25,7 +25,7 @@ repositories {
 }
 // Spring related configs
 ext {
-    springCloudVersion = 'Dalston.SR1'
+    springCloudVersion = 'Dalston.SR2'
 }
 dependencyManagement {
     imports {

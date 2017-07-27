@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -28,6 +29,7 @@ import static org.junit.Assert.assertEquals;
  * @author Piotr Kicki (PSNC)
  */
 @TestPropertySource("/platformExpired.properties")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class CredentialsValidationInPlatformAAMWithExpiredCertificateUnitTests extends
         AbstractAAMTestSuite {
 

@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.RestTemplate;
 
@@ -37,6 +38,7 @@ import static org.junit.Assert.assertEquals;
 
 
 @TestPropertySource("/coreExpired.properties")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests extends AbstractAAMTestSuite {
 
 
