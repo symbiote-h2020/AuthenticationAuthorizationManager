@@ -67,7 +67,7 @@ public class UsersManagementService {
         if (deploymentType == IssuingAuthorityType.CORE &&
                 (userRegistrationDetails.getRecoveryMail()
                         .isEmpty() || userRegistrationDetails.getFederatedId().isEmpty()))
-            throw new MissingArgumentsException("Missing recovery e-mail or federated identity");
+            throw new MissingArgumentsException("Missing recovery e-mail or foreign identity");
         if (userRegistrationDetails.getCredentials().getUsername().isEmpty() || userRegistrationDetails
                 .getCredentials().getPassword().isEmpty()) {
             throw new MissingArgumentsException("Missing username or password");

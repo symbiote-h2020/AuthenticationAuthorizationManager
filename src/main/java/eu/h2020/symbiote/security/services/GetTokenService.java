@@ -41,8 +41,8 @@ public class GetTokenService {
 
     }
 
-    public Token createFederatedHomeTokenForForeignToken(String foreignToken) throws JWTCreationException {
-        return tokenIssuer.getForeignToken(foreignToken);
+    public Token createForeignHomeTokenForForeignToken(String homeToken) throws JWTCreationException {
+        return tokenIssuer.getForeignToken(homeToken);
     }
 
     /**

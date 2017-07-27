@@ -210,12 +210,12 @@ public class ActorsManagementFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void userRegistrationOverAMQPFailureMissingAppFederatedId() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureMissingAppForeignId() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(username));
 
 
-        // issue app registration over AMQP with missing federatedId
+        // issue app registration over AMQP with missing foreignId
         appUserDetails.setFederatedID("");
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(appUserManagementRequest)
                 .getBytes());

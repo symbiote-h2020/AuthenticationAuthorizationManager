@@ -366,7 +366,7 @@ public class TokensIssuingFunctionalTests extends
 
 
     @Test
-    public void getForeignTokenFromCoreUsingPlatformTokenOverRESTSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+    public void getForeignTokenUsingPlatformTokenOverRESTSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException {
         // issuing dummy platform token
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
@@ -402,10 +402,10 @@ public class TokensIssuingFunctionalTests extends
 
         HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
 
-        // adding a dummy federation rule
-        tokenIssuer.federatedMappingRules.put("DummyRule", "dummyRule");
+        // adding a dummy foreign rule
+        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
 
-        // checking issuing of federated token using the dummy platform token
+        // checking issuing of foreign token using the dummy platform token
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants
                 .AAM_GET_FOREIGN_TOKEN, entity, String.class);
         HttpHeaders rspHeaders = response.getHeaders();
@@ -413,6 +413,8 @@ public class TokensIssuingFunctionalTests extends
         // check if returned status is ok and if there is token in header
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(rspHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(rspHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        assertEquals(Token.Type.FOREIGN, Token.Type.valueOf(claimsFromToken.getTtyp()));
     }
 
 
@@ -422,7 +424,7 @@ public class TokensIssuingFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getForeignTokenFromCoreUsingPlatformTokenOverRESTFailsForUndefinedFederationMapping() throws IOException, ValidationException, TimeoutException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException {
+    public void getForeignTokenFromCoreUsingPlatformTokenOverRESTFailsForUndefinedForeignMapping() throws IOException, ValidationException, TimeoutException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException {
         // issuing dummy platform token
         SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
@@ -458,10 +460,10 @@ public class TokensIssuingFunctionalTests extends
 
         HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
 
-        // making sure the federatedMappingRules are empty
-        tokenIssuer.federatedMappingRules.clear();
+        // making sure the foreignMappingRules are empty
+        tokenIssuer.foreignMappingRules.clear();
 
-        // checking issuing of federated token using the dummy platform token
+        // checking issuing of foreign token using the dummy platform token
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants
                     .AAM_GET_FOREIGN_TOKEN, entity, String.class);

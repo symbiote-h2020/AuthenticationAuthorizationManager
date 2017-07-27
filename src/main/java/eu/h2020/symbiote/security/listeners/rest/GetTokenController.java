@@ -63,14 +63,14 @@ public class GetTokenController implements IGetToken {
     public ResponseEntity<?> getForeignToken(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String
                                                      homeToken) {
         HttpHeaders headers = new HttpHeaders();
-        Token federatedHomeToken;
+        Token foreignToken;
         try {
             // validating the string from request
             Token receivedToken = new Token(homeToken);
 
             // checking revocation in relevant AAM
             if (receivedToken.getClaims().getIssuer().equals(deploymentId)) {
-                log.debug("Someone tried issuing a federated token using a home token");
+                log.debug("Someone tried issuing a foreign token using a home token");
                 return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
             } else {
                 Map<String, AAM> availableAAMs;
@@ -105,7 +105,7 @@ public class GetTokenController implements IGetToken {
                     return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
                 }
             }
-            federatedHomeToken = new Token(getTokenService.createFederatedHomeTokenForForeignToken(homeToken)
+            foreignToken = new Token(getTokenService.createForeignHomeTokenForForeignToken(homeToken)
                     .getToken());
         } catch (ValidationException e) {
             log.error(e);
@@ -114,7 +114,7 @@ public class GetTokenController implements IGetToken {
             log.error(e);
             return new ResponseEntity<>(headers, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        headers.add(SecurityConstants.TOKEN_HEADER_NAME, federatedHomeToken.getToken());
+        headers.add(SecurityConstants.TOKEN_HEADER_NAME, foreignToken.getToken());
 
         /* Finally issues and return foreign_token */
         return new ResponseEntity<>(headers, HttpStatus.OK);
