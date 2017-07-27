@@ -109,6 +109,20 @@ public class ClientCertificatesIssuingUnitTests extends
 
 
     @Test
+    public void certificateCreationAndVerification() throws Exception {
+        // Generate certificate for given user username (ie. "Daniele")
+        KeyPair keyPair = CryptoHelper.createKeyPair();
+        X509Certificate cert = certificationAuthorityHelper.createECCert("Daniele", keyPair.getPublic());
+
+        // retrieves Platform AAM ("Daniele"'s certificate issuer) public key from keystore in order to verify
+        // "Daniele"'s certificate
+        cert.verify(certificationAuthorityHelper.getAAMPublicKey());
+
+        // also check time validity
+        cert.checkValidity(new Date());
+    }
+
+    @Test
     public void generateCertificateFromCSRSuccess() throws OperatorCreationException, CertificateException,
             UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException,
             InvalidKeyException, IOException, InvalidAlgorithmParameterException {
