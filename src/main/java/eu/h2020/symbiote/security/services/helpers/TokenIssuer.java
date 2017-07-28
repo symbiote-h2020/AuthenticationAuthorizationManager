@@ -62,8 +62,8 @@ public class TokenIssuer {
         this.platformRepository = platformRepository;
     }
 
-    public static String generateJWTToken(String userId, Map<String, String> attributes, byte[] userPublicKey,
-                                          Token.Type tokenType, Long tokenValidity, String
+    public static String buildAuthorizationToken(String userId, Map<String, String> attributes, byte[] userPublicKey,
+                                                 Token.Type tokenType, Long tokenValidity, String
                                                   deploymentID, PublicKey aamPublicKey, PrivateKey aamPrivateKey)
             throws JWTCreationException {
         ECDSAHelper.enableECDSAProvider();
@@ -136,7 +136,7 @@ public class TokenIssuer {
                 case NULL:
                     throw new JWTCreationException("Misconfigured AAM deployment type");
             }
-            return new Token(generateJWTToken(user.getUsername(), attributes, user.getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded(), Token.Type.HOME, tokenValidity, deploymentId,
+            return new Token(buildAuthorizationToken(user.getUsername(), attributes, user.getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded(), Token.Type.HOME, tokenValidity, deploymentId,
                     certificationAuthorityHelper
                             .getAAMPublicKey(), certificationAuthorityHelper.getAAMPrivateKey()));
         } catch (Exception e) {
@@ -145,6 +145,11 @@ public class TokenIssuer {
         }
     }
 
+    /**
+     * @param homeToken from which needed informations and attribiutes are gathered and maped
+     * @return foreigToken issued for given user
+     * @throws JWTCreationException
+     */
     public Token getForeignToken(String homeToken)
             throws JWTCreationException {
         try {
@@ -156,7 +161,7 @@ public class TokenIssuer {
             if (foreignMappingRules.isEmpty())
                 throw new SecurityMisconfigurationException("AAM has no foreign rules defined");
             return new Token(
-                    generateJWTToken(claims.getIss(), foreignAttributes, Base64.getDecoder().decode(claims
+                    buildAuthorizationToken(claims.getIss(), foreignAttributes, Base64.getDecoder().decode(claims
                                     .getIpk()), Token.Type.FOREIGN, tokenValidity, deploymentId,
                             certificationAuthorityHelper
                                     .getAAMPublicKey(),
@@ -167,13 +172,19 @@ public class TokenIssuer {
         }
     }
 
+    /**
+     * Function creating GuestToken, all with the same keyPair and empty attributes list.
+     *
+     * @return Token - GuestToken
+     * @throws JWTCreationException - in case of fail in building GuestToken
+     */
     public Token getGuestToken() throws JWTCreationException {
         try {
             if (this.guestKeyPair == null) {
                 this.guestKeyPair = CryptoHelper.createKeyPair();
             }
             Map<String, String> attributes = new HashMap<>();
-            return new Token(generateJWTToken(SecurityConstants.GUEST_NAME, attributes, this.guestKeyPair.getPublic().getEncoded(), Token.Type.GUEST, tokenValidity, deploymentId,
+            return new Token(buildAuthorizationToken(SecurityConstants.GUEST_NAME, attributes, this.guestKeyPair.getPublic().getEncoded(), Token.Type.GUEST, tokenValidity, deploymentId,
                     certificationAuthorityHelper.getAAMPublicKey(),
                     certificationAuthorityHelper.getAAMPrivateKey()));
         } catch (Exception e) {

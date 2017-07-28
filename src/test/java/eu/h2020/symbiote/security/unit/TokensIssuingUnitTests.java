@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
@@ -138,7 +139,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
     // test for revoke function
     @Test
-    public void revokeUserTokenByPlatform() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException, OperatorCreationException, UnrecoverableKeyException {    // issuing dummy platform token
+    public void revokeUserTokenByPlatform() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException, OperatorCreationException, UnrecoverableKeyException, JWTCreationException {    // issuing dummy platform token
         User user = new User();
         user.setUsername(platformOwnerUsername);
         user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
@@ -160,11 +161,11 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
         userRepository.save(user);
 
-
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + SecurityConstants
                         .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -298,14 +299,51 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getForeignTokenSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+    public void getHomeTokenSuccess() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
+        addTestUserWithClientCertificateToRepository();
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        Token token = null;
+        try {
+            token = getTokenService.login(loginRequest);
+        } catch (Exception e) {
+            fail("Exception thrown");
+        }
+        assertNotNull(token);
+        assertEquals(Token.Type.HOME, token.getType());
+    }
+
+    @Test(expected = WrongCredentialsException.class)
+    public void getHomeTokenWrongSign() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, MalformedJWTException, ValidationException {
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        getTokenService.login(loginRequest);
+    }
+
+    @Test(expected = WrongCredentialsException.class)
+    public void getHomeTokenWrongCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, MalformedJWTException, ValidationException {
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        getTokenService.login(loginRequest);
+    }
+
+    @Test(expected = MissingArgumentsException.class)
+    public void getHomeTokenMissingCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, MalformedJWTException, ValidationException {
+        HomeCredentials homeCredentials = new HomeCredentials(null, null, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        getTokenService.login(loginRequest);
+    }
+
+    @Test
+    public void getForeignTokenSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException, JWTCreationException {
 
         addTestUserWithClientCertificateToRepository();
         assertNotNull(userRepository.findOne(username));
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         try {
-            token = getTokenService.login(signObject);
+            token = getTokenService.login(loginRequest);
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -346,11 +384,12 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     public void getForeignTokenFailForUndefinedForeignMapping() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
 
         addTestUserWithClientCertificateToRepository();
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         assertNotNull(userRepository.findOne(username));
         try {
-            token = getTokenService.login(signObject);
+            token = getTokenService.login(loginRequest);
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -381,37 +420,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
 
-    @Test
-    public void getHomeTokenSuccess() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException {
-        addTestUserWithClientCertificateToRepository();
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
-        Token token = null;
-        try {
-            token = getTokenService.login(signObject);
-        } catch (Exception e) {
-            fail("Exception thrown");
-        }
-        assertNotNull(token);
-        assertEquals(Token.Type.HOME, token.getType());
-    }
-
-    @Test(expected = WrongCredentialsException.class)
-    public void getHomeTokenWrongSign() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, CryptoHelper.createKeyPair().getPrivate());
-        getTokenService.login(signObject);
-    }
-
-    @Test(expected = WrongCredentialsException.class)
-    public void getHomeTokenWrongCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException {
-        SignedObject signObject = CryptoHelper.objectToSignedObject(wrongusername + "@" + clientId, userKeyPair.getPrivate());
-        getTokenService.login(signObject);
-    }
-
-    @Test(expected = MissingArgumentsException.class)
-    public void getHomeTokenMissingCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException {
-        SignedObject signObject = CryptoHelper.objectToSignedObject("@" + clientId, userKeyPair.getPrivate());
-        getTokenService.login(signObject);
-    }
 
 
     @Test

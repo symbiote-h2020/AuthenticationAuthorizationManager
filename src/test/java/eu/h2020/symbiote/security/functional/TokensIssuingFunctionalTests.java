@@ -5,12 +5,10 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.MissingArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.*;
@@ -145,11 +143,12 @@ public class TokensIssuingFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void getHomeTokenForUserOverAMQPSuccessAndIssuesCoreTokenType() throws IOException, TimeoutException, MalformedJWTException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException {
+    public void getHomeTokenForUserOverAMQPSuccessAndIssuesCoreTokenType() throws IOException, TimeoutException, MalformedJWTException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
         addTestUserWithClientCertificateToRepository();
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(CryptoHelper.signedObjectToString(signObject))
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(loginRequest)
                 .getBytes());
         Token token = mapper.readValue(response, Token.class);
 
@@ -172,27 +171,28 @@ public class TokensIssuingFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void getHomeTokenForUserOverAMQPWrongCredentialsFailure() throws IOException, TimeoutException {
+    public void getHomeTokenForUserOverAMQPWrongCredentialsFailure() throws IOException, TimeoutException, JWTCreationException {
 
         // test combinations of wrong credentials
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        SignedObject signObject = CryptoHelper.objectToSignedObject(wrongusername + "@" + clientId, userKeyPair.getPrivate());
-
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(CryptoHelper.signedObjectToString(signObject))
+        HomeCredentials homeCredentials = new HomeCredentials(null, wrongusername, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(loginRequest)
                 .getBytes());
         ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
 
-        signObject = CryptoHelper.objectToSignedObject(username + "@" + wrongClientId, userKeyPair.getPrivate());
-        byte[] response2 = client.primitiveCall(mapper.writeValueAsString(CryptoHelper.signedObjectToString(signObject))
+        homeCredentials = new HomeCredentials(null, username, wrongClientId, null, userKeyPair.getPrivate());
+        loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        byte[] response2 = client.primitiveCall(mapper.writeValueAsString(loginRequest)
                 .getBytes());
         ErrorResponseContainer noToken2 = mapper.readValue(response2, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken2.getErrorMessage());
-        signObject = CryptoHelper.objectToSignedObject(wrongusername + "@" + wrongClientId, userKeyPair.getPrivate());
-
-        byte[] response3 = client.primitiveCall(mapper.writeValueAsString(CryptoHelper.signedObjectToString(signObject)).getBytes());
+        homeCredentials = new HomeCredentials(null, wrongusername, wrongClientId, null, userKeyPair.getPrivate());
+        loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        byte[] response3 = client.primitiveCall(mapper.writeValueAsString(loginRequest).getBytes());
         ErrorResponseContainer noToken3 = mapper.readValue(response3, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken3.getErrorMessage());
@@ -213,11 +213,12 @@ public class TokensIssuingFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void getHomeTokenForUserOverAMQPMissingArgumentsFailure() throws IOException, TimeoutException {
+    public void getHomeTokenForUserOverAMQPMissingArgumentsFailure() throws IOException, TimeoutException, JWTCreationException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        SignedObject signObject = CryptoHelper.objectToSignedObject("@", userKeyPair.getPrivate());
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(CryptoHelper.signedObjectToString(signObject)).getBytes());
+        HomeCredentials homeCredentials = new HomeCredentials(null, "", "", null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(loginRequest).getBytes());
         ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
@@ -234,12 +235,13 @@ public class TokensIssuingFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void getHomeTokenForUserOverAMQPWrongSignFailure() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
+    public void getHomeTokenForUserOverAMQPWrongSignFailure() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
         KeyPair keyPair = CryptoHelper.createKeyPair();
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, keyPair.getPrivate());
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(CryptoHelper.signedObjectToString(signObject)).getBytes());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        byte[] response = client.primitiveCall(mapper.writeValueAsString(loginRequest).getBytes());
         ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
@@ -247,12 +249,13 @@ public class TokensIssuingFunctionalTests extends
     }
 
     @Test
-    public void getHomeTokenForUserOverRESTWrongSignFailure() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
+    public void getHomeTokenForUserOverRESTWrongSignFailure() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException {
         ResponseEntity<ErrorResponseContainer> token = null;
         KeyPair keyPair = CryptoHelper.createKeyPair();
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, keyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         try {
-            token = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, CryptoHelper.signedObjectToString(signObject),
+            token = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, loginRequest,
                     ErrorResponseContainer.class);
         } catch (HttpClientErrorException e) {
             assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
@@ -261,11 +264,12 @@ public class TokensIssuingFunctionalTests extends
     }
 
     @Test
-    public void getHomeTokenForUserOverRESTWrongUsernameFailure() throws IOException {
+    public void getHomeTokenForUserOverRESTWrongUsernameFailure() throws IOException, JWTCreationException {
 
-        SignedObject signObject = CryptoHelper.objectToSignedObject(wrongusername + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         try {
-            restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, CryptoHelper.signedObjectToString(signObject), ErrorResponseContainer.class);
+            restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, loginRequest, ErrorResponseContainer.class);
             fail("No error thrown");
         } catch (HttpClientErrorException e) {
             assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
@@ -278,10 +282,11 @@ public class TokensIssuingFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getHomeTokenForUserOverRESTWrongClientIdFailure() throws IOException {
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + wrongClientId, userKeyPair.getPrivate());
+    public void getHomeTokenForUserOverRESTWrongClientIdFailure() throws IOException, JWTCreationException {
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, wrongClientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         try {
-            restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, CryptoHelper.signedObjectToString(signObject), ErrorResponseContainer.class);
+            restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, loginRequest, ErrorResponseContainer.class);
             fail("No error thrown");
         } catch (HttpClientErrorException e) {
             assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
@@ -294,12 +299,12 @@ public class TokensIssuingFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getHomeTokenForUserOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws IOException, MalformedJWTException, CertificateException, OperatorCreationException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidKeyException {
+    public void getHomeTokenForUserOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws IOException, MalformedJWTException, CertificateException, OperatorCreationException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
         addTestUserWithClientCertificateToRepository();
-
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
@@ -326,11 +331,12 @@ public class TokensIssuingFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getForeignTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException {
+    public void getForeignTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
         addTestUserWithClientCertificateToRepository();
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         HttpHeaders loginHeaders = response.getHeaders();
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
@@ -366,13 +372,14 @@ public class TokensIssuingFunctionalTests extends
 
 
     @Test
-    public void getForeignTokenUsingPlatformTokenOverRESTSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException {
+    public void getForeignTokenUsingPlatformTokenOverRESTSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException {
         // issuing dummy platform token
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -424,13 +431,14 @@ public class TokensIssuingFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getForeignTokenFromCoreUsingPlatformTokenOverRESTFailsForUndefinedForeignMapping() throws IOException, ValidationException, TimeoutException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException {
+    public void getForeignTokenFromCoreUsingPlatformTokenOverRESTFailsForUndefinedForeignMapping() throws IOException, ValidationException, TimeoutException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, JWTCreationException {
         // issuing dummy platform token
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -479,7 +487,7 @@ public class TokensIssuingFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getHomeTokenForPlatformOwnerOverRESTSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws IOException, TimeoutException, MalformedJWTException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
+    public void getHomeTokenForPlatformOwnerOverRESTSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws IOException, TimeoutException, MalformedJWTException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException, JWTCreationException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -503,9 +511,10 @@ public class TokensIssuingFunctionalTests extends
         user.getClientCertificates().put(platformId, cert);
         userRepository.save(user);
 
-        SignedObject signObject = CryptoHelper.objectToSignedObject(platformOwnerUsername + "@" + platformId, platformOwnerKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, platformOwnerKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user
@@ -539,7 +548,7 @@ public class TokensIssuingFunctionalTests extends
     @Test
     public void getHomeTokenForPlatformOwnerOverRESTAndReceivesInAdministrationDetailsOfHisOwnedPlatform() throws IOException,
             TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException,
-            InterruptedException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
+            InterruptedException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException, JWTCreationException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -566,9 +575,10 @@ public class TokensIssuingFunctionalTests extends
         userRepository.save(user);
 
         // getHomeToken the platform owner
-        SignedObject signedObject = CryptoHelper.objectToSignedObject(platformOwnerUsername + "@" + preferredPlatformId, platformOwnerKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, preferredPlatformId, null, platformOwnerKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signedObject), String.class);
+                loginRequest, String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user
@@ -601,7 +611,7 @@ public class TokensIssuingFunctionalTests extends
     public void getHomeTokenForPlatformOwnerOverRESTAndUsesExpiredTokenToReceivesInAdministrationDetailsOfHisOwnedPlatform()
             throws IOException,
             TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException,
-            InterruptedException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
+            InterruptedException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException, JWTCreationException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -625,9 +635,10 @@ public class TokensIssuingFunctionalTests extends
         userRepository.save(user);
 
         // getHomeToken the platform owner
-        SignedObject signedObject = CryptoHelper.objectToSignedObject(platformOwnerUsername + "@" + platformId, platformOwnerKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, platformOwnerKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signedObject), String.class);
+                loginRequest, String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user
@@ -658,7 +669,7 @@ public class TokensIssuingFunctionalTests extends
      */
     @Test
     public void getHomeTokenForPlatformOwnerOverRESTAndIsDeclinedOwnedPlatformDetailsRequestNoPlatform() throws IOException,
-            TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
+            TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException, JWTCreationException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -691,9 +702,10 @@ public class TokensIssuingFunctionalTests extends
         userRepository.save(user);
 
         // getHomeToken an ordinary user to get token
-        SignedObject signObject = CryptoHelper.objectToSignedObject(coreAppUsername + "@" + platformId, keyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, coreAppUsername, platformId, null, keyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         //verify that JWT was issued for user

@@ -11,7 +11,6 @@ import eu.h2020.symbiote.security.communication.interfaces.IAAMServices;
 import eu.h2020.symbiote.security.communication.interfaces.IGetToken;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.apache.commons.logging.Log;
@@ -27,7 +26,6 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
-import java.security.SignedObject;
 import java.util.Map;
 
 
@@ -120,7 +118,6 @@ public class GetTokenController implements IGetToken {
         return new ResponseEntity<>(headers, HttpStatus.OK);
     }
 
-    @Override
     public ResponseEntity<?> getGuestToken() {
         try {
             Token token = getTokenService.login();
@@ -135,10 +132,9 @@ public class GetTokenController implements IGetToken {
     }
 
     //L1 Diagrams - getHomeToken()
-    public ResponseEntity<?> getHomeToken(@RequestBody String stringCredentials) {
+    public ResponseEntity<?> getHomeToken(@RequestBody String loginRequest) {
         try {
-            SignedObject signedCredentials = CryptoHelper.stringToSignedObject(stringCredentials);
-            Token token = getTokenService.login(signedCredentials);
+            Token token = getTokenService.login(loginRequest);
             HttpHeaders headers = new HttpHeaders();
             headers.add(SecurityConstants.TOKEN_HEADER_NAME, token.getToken());
             return new ResponseEntity<>(headers, HttpStatus.OK);

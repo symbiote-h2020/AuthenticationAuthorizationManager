@@ -5,8 +5,10 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
@@ -41,7 +43,10 @@ import javax.net.ssl.X509TrustManager;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.security.*;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
@@ -262,13 +267,14 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndRelayValidation() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+    public void validateIssuerDiffersDeploymentIdAndRelayValidation() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, JWTCreationException {
         // issuing dummy platform token
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
 
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
@@ -301,13 +307,14 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     }
 
     @Test
-    public void validateRevokedDummyCorePK() throws IOException, ValidationException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+    public void validateRevokedDummyCorePK() throws IOException, ValidationException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, JWTCreationException {
         // issuing dummy platform token
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -342,13 +349,14 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     }
 
     @Test
-    public void validateTokenFromDummyCoreByCore() throws IOException, ValidationException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+    public void validateTokenFromDummyCoreByCore() throws IOException, ValidationException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, JWTCreationException {
         // issuing dummy platform token
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -369,13 +377,14 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
     // test for relay
     @Test
-    public void validateForeignTokenIssuerNotInAvailableAAMs() throws IOException, ValidationException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException {
+    public void validateForeignTokenIssuerNotInAvailableAAMs() throws IOException, ValidationException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, JWTCreationException {
         // issuing dummy platform token
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -385,13 +394,14 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     }
 
     @Test
-    public void validateForeignTokenRequestFails() throws IOException, ValidationException, TimeoutException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException {
+    public void validateForeignTokenRequestFails() throws IOException, ValidationException, TimeoutException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, JWTCreationException {
         // issuing dummy platform token
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/conn_err/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -425,12 +435,13 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
     @Test
     @Ignore("TODO missing trust chain validation")
-    public void validateForeignTokenRequestInIntranetUsingProvidedCertificate() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+    public void validateForeignTokenRequestInIntranetUsingProvidedCertificate() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, JWTCreationException {
         // issuing dummy platform token
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/conn_err/paam" + SecurityConstants
                         .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 

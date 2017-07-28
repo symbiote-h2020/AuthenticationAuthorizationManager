@@ -2,21 +2,16 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.MissingArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.security.SignedObject;
 import java.security.cert.CertificateException;
 
 /**
@@ -27,7 +22,6 @@ import java.security.cert.CertificateException;
  */
 @Service
 public class GetTokenService {
-    private static Log log = LogFactory.getLog(GetTokenService.class);
     private final ValidationHelper validationHelper;
     private final TokenIssuer tokenIssuer;
     private UserRepository userRepository;
@@ -62,22 +56,23 @@ public class GetTokenService {
         return validationHelper.validate(tokenString, certificateString);
     }
 
-    public Token login(SignedObject user) throws CertificateException, WrongCredentialsException, IOException, ClassNotFoundException, MissingArgumentsException, JWTCreationException {
+    public Token login(String loginRequest) throws MalformedJWTException, MissingArgumentsException, JWTCreationException, WrongCredentialsException, CertificateException, ValidationException {
 
         // validate request
-        String userCredentials = user.getObject().toString();
-        if (userCredentials.split("@").length != 2 || userCredentials.split("@")[0].isEmpty() || userCredentials.split("@")[1].isEmpty()) {
+        JWTClaims claims = JWTEngine.getClaimsFromToken(loginRequest);
+
+        if (claims.getIss() == null || claims.getSub() == null || claims.getIss().isEmpty() || claims.getSub().isEmpty()) {
             throw new MissingArgumentsException();
         }
         // try to find user
-        User userInDB = userRepository.findOne(user.getObject().toString().split("@")[0]);
+        User userInDB = userRepository.findOne(claims.getIss());
 
         // verify user credentials
-        if (userInDB == null || userInDB.getClientCertificates().get(userCredentials.split("@")[1]) == null || !CryptoHelper.verifySignedObject(user, userInDB.getClientCertificates().get(userCredentials.split("@")[1]).getX509().getPublicKey())) {
+        if (userInDB == null || userInDB.getClientCertificates().get(claims.getSub()) == null || JWTEngine.validateTokenString(loginRequest, userInDB.getClientCertificates().get(claims.getSub()).getX509().getPublicKey()) != ValidationStatus.VALID) {
             throw new WrongCredentialsException();
         }
 
-        return this.getHomeToken(userInDB, user.getObject().toString().split("@")[1]);
+        return this.getHomeToken(userInDB, claims.getSub());
 
     }
     public Token login() throws JWTCreationException {

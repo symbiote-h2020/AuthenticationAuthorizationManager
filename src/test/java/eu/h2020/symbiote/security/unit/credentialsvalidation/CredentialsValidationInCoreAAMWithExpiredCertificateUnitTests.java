@@ -4,7 +4,9 @@ import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
@@ -32,7 +34,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
-import java.security.SignedObject;
 
 import static org.junit.Assert.assertEquals;
 
@@ -132,13 +133,14 @@ public class CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests exten
 
 
     @Test
-    public void validateIssuerCertificateExpired() throws IOException, ValidationException {
+    public void validateIssuerCertificateExpired() throws IOException, ValidationException, JWTCreationException {
         // issuing dummy core token from CoreAAM with expired certificate
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
