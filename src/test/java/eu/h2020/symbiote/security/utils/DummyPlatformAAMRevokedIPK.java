@@ -41,7 +41,7 @@ public class DummyPlatformAAMRevokedIPK {
     private static final String CERTIFICATE_ALIAS = "platform-1-2-c1";
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
-    private static final String PATH = SecurityConstants.AAM_PUBLIC_PATH + "/test/rev_ipk/paam";
+    private static final String PATH = "/test/rev_ipk/paam";
 
     public DummyPlatformAAMRevokedIPK() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());

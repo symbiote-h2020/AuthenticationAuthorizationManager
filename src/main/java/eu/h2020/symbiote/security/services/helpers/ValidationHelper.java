@@ -165,7 +165,7 @@ public class ValidationHelper {
         // TODO check if AAM is online or is configured to allow 'offline' trust chain only validation
 
         Map<String, AAM> aams = new HashMap<>();
-        for (AAM aam : coreServices.getAvailableAAMs().values())
+        for (AAM aam : coreServices.getAvailableAAMs().getBody().getAvailableAAMs().values())
             aams.put(aam.getAamInstanceId(), aam);
         Claims claims = JWTEngine.getClaims(tokenString);
         String issuer = claims.getIssuer();

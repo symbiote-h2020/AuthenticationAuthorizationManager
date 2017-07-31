@@ -77,7 +77,7 @@ public class GetClientCertificateService {
         if (revokedKeysRepository.exists(certificateRequest.getClientId()))
             throw new InvalidKeyException("Key revoked");
 
-        byte[] bytes = Base64.getDecoder().decode(certificateRequest.getClientCSR());
+        byte[] bytes = Base64.getDecoder().decode(certificateRequest.getClientCSRinPEMFormat());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
 
         X509Certificate caCert = certificationAuthorityHelper.getAAMCertificate();

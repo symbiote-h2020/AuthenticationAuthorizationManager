@@ -98,7 +98,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     public void setUp() throws Exception {
         super.setUp();
 
-        serverAddress = "https://localhost:" + port + SecurityConstants.AAM_PUBLIC_PATH;
+        serverAddress = "https://localhost:" + port;
 
         // Create a trust manager that does not validate certificate chains
         TrustManager[] trustAllCerts = new TrustManager[]{

@@ -1,20 +1,14 @@
 package eu.h2020.symbiote.security.unit;
 
-import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.listeners.rest.AAMServices;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
-import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
-import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
 import org.apache.commons.logging.Log;
@@ -27,7 +21,6 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,6 +34,7 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.ECGenParameterSpec;
+import java.util.Base64;
 import java.util.Date;
 
 import static org.junit.Assert.*;
@@ -57,13 +51,6 @@ public class ClientCertificatesIssuingUnitTests extends
     private static Log log = LogFactory.getLog(ClientCertificatesIssuingUnitTests.class);
     private final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
     private final String recoveryMail = "null@dev.null";
-    private final String federatedOAuthId = "federatedOAuthId";
-    private final String preferredPlatformId = "preferredPlatformId";
-    private final String platformInstanceFriendlyName = "friendlyPlatformName";
-    private final String platformInterworkingInterfaceAddress =
-            "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
-    private final String platformOwnerUsername = "testPlatformOwnerUsername";
-    private final String platformOwnerPassword = "testPlatormOwnerPassword";
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
@@ -71,17 +58,7 @@ public class ClientCertificatesIssuingUnitTests extends
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
     @Autowired
-    private ValidationHelper validationHelper;
-    @Autowired
-    private TokenIssuer tokenIssuer;
-    @Autowired
-    private GetTokenService getTokenService;
-    @Autowired
     private RevocationHelper revocationHelper;
-    private RpcClient platformRegistrationOverAMQPClient;
-    private Credentials platformOwnerUserCredentials;
-    private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-    private AAMServices coreServicesController;
 
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
@@ -92,22 +69,6 @@ public class ClientCertificatesIssuingUnitTests extends
     DummyPlatformAAMConnectionProblem getDummyPlatformAAMConnectionProblem() {
         return new DummyPlatformAAMConnectionProblem();
     }
-
-    @Override
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-
-        // platform registration useful
-        platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                platformRegistrationRequestQueue, 5000);
-        platformOwnerUserCredentials = new Credentials(platformOwnerUsername, platformOwnerPassword);
-        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
-                platformInstanceFriendlyName,
-                preferredPlatformId);
-    }
-
 
     @Test
     public void generateCertificateFromCSRSuccess() throws OperatorCreationException, CertificateException,
@@ -206,7 +167,7 @@ public class ClientCertificatesIssuingUnitTests extends
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
-        CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, csr);
+        CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
         ResponseEntity<String> response2 = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
                 certRequest, String.class);
         assertEquals("Wrong credentials", response2.getBody());
@@ -230,7 +191,7 @@ public class ClientCertificatesIssuingUnitTests extends
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csr);
+        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
                 certRequest, String.class);
         assertEquals("Subject name doesn't match", response.getBody());
@@ -257,7 +218,7 @@ public class ClientCertificatesIssuingUnitTests extends
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csr);
+        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
                 certRequest, String.class);
 

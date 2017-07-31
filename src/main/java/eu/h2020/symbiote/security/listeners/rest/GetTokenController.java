@@ -10,7 +10,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.communication.interfaces.IAAMServices;
 import eu.h2020.symbiote.security.communication.interfaces.IGetToken;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.apache.commons.logging.Log;
@@ -42,7 +41,8 @@ public class GetTokenController implements IGetToken {
 
     private final GetTokenService getTokenService;
     private Log log = LogFactory.getLog(GetTokenController.class);
-    private IAAMServices coreServices;
+    // todo use a service, not a rest controller!
+    private IAAMServices coreServicesController;
     private String deploymentId = "";
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
 
@@ -53,13 +53,15 @@ public class GetTokenController implements IGetToken {
     public GetTokenController(GetTokenService getTokenService, IAAMServices coreServices, CertificationAuthorityHelper
             certificationAuthorityHelper) {
         this.getTokenService = getTokenService;
-        this.coreServices = coreServices;
+        this.coreServicesController = coreServices;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
     }
 
-    public ResponseEntity<?> getForeignToken(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String
-                                                     remoteHomeToken) {
+    public ResponseEntity<String> getForeignToken(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String remoteHomeToken,
+                                                  @RequestHeader(name = SecurityConstants.CERTIFICATE_HEADER_NAME,
+                                                          defaultValue = "") String certificate) {
+        // todo use certificate for validation
         HttpHeaders headers = new HttpHeaders();
         Token foreignToken;
         try {
@@ -75,7 +77,7 @@ public class GetTokenController implements IGetToken {
                 Map<String, AAM> availableAAMs;
                 if (deploymentType == IssuingAuthorityType.CORE) {
                     // if Core AAM then we know the available AAMs
-                    availableAAMs = coreServices.getAvailableAAMs();
+                    availableAAMs = coreServicesController.getAvailableAAMs().getBody().getAvailableAAMs();
                 } else {
                     // a PAAM needs to fetch them from core
                     RestTemplate restTemplate = new RestTemplate();
@@ -118,7 +120,7 @@ public class GetTokenController implements IGetToken {
         return new ResponseEntity<>(headers, HttpStatus.OK);
     }
 
-    public ResponseEntity<?> getGuestToken() {
+    public ResponseEntity<String> getGuestToken() {
         try {
             Token token = getTokenService.getGuestToken();
             HttpHeaders headers = new HttpHeaders();
@@ -126,13 +128,12 @@ public class GetTokenController implements IGetToken {
             return new ResponseEntity<>(headers, HttpStatus.OK);
         } catch (SecurityException e) {
             log.error(e);
-            return new ResponseEntity<>(new ErrorResponseContainer(e.getErrorMessage(), e
-                    .getStatusCode().ordinal()), e.getStatusCode());
+            return new ResponseEntity<>(e.getErrorMessage(), e.getStatusCode());
         }
     }
 
     //L1 Diagrams - getHomeToken()
-    public ResponseEntity<?> getHomeToken(@RequestBody String loginRequest) {
+    public ResponseEntity<String> getHomeToken(@RequestBody String loginRequest) {
         try {
             Token token = getTokenService.getHomeToken(loginRequest);
             HttpHeaders headers = new HttpHeaders();
@@ -140,11 +141,10 @@ public class GetTokenController implements IGetToken {
             return new ResponseEntity<>(headers, HttpStatus.OK);
         } catch (SecurityException e) {
             log.error(e);
-            return new ResponseEntity<>(new ErrorResponseContainer(e.getErrorMessage(), e
-                    .getStatusCode().ordinal()), e.getStatusCode());
+            return new ResponseEntity<>(e.getErrorMessage(), e.getStatusCode());
         } catch (Exception e) {
             log.error(e);
-            return new ResponseEntity<>(new ErrorResponseContainer(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.ordinal()), HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
     }

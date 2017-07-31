@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.communication.interfaces.IAAMServices;
 import eu.h2020.symbiote.security.communication.interfaces.IGetComponentCertificate;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
@@ -21,7 +22,6 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -31,9 +31,9 @@ import java.util.TreeMap;
  * @author Mikołaj Dobski (PSNC)
  */
 @RestController
-public class AAMServices implements IAAMServices, IGetComponentCertificate {
+public class AAMServicesController implements IAAMServices, IGetComponentCertificate {
 
-    private static final Log log = LogFactory.getLog(AAMServices.class);
+    private static final Log log = LogFactory.getLog(AAMServicesController.class);
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}")
@@ -44,7 +44,7 @@ public class AAMServices implements IAAMServices, IGetComponentCertificate {
     private PlatformRepository platformRepository;
 
     @Autowired
-    public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper, PlatformRepository
+    public AAMServicesController(CertificationAuthorityHelper certificationAuthorityHelper, PlatformRepository
             platformRepository) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.platformRepository = platformRepository;
@@ -61,7 +61,7 @@ public class AAMServices implements IAAMServices, IGetComponentCertificate {
         }
     }
 
-    public Map<String, AAM> getAvailableAAMs() {
+    public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {
         Map<String, AAM> availableAAMs = new TreeMap<>();
         try {
             // Core AAM
@@ -86,10 +86,10 @@ public class AAMServices implements IAAMServices, IGetComponentCertificate {
                 // add the platform AAM entrypoint to the results
                 availableAAMs.put(platformAAM.getAamInstanceId(), platformAAM);
             }
-            return availableAAMs;
         } catch (Exception e) {
             log.error(e);
-            return new HashMap<>();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
+        return new ResponseEntity<>(new AvailableAAMsCollection(availableAAMs), HttpStatus.OK);
     }
 }

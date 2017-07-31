@@ -1,6 +1,5 @@
 package eu.h2020.symbiote.security.unit.credentialsvalidation;
 
-import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
@@ -8,16 +7,12 @@ import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.UserRepository;
-import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,28 +39,19 @@ public class CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests exten
 
 
     private static Log log = LogFactory.getLog(CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests.class);
-
-    protected final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
-    private final String recoveryMail = "null@dev.null";
-    private final String federatedOAuthId = "federatedOAuthId";
-    private final String preferredPlatformId = "preferredPlatformId";
-    private final String platformInstanceFriendlyName = "friendlyPlatformName";
-    private final String platformInterworkingInterfaceAddress =
-            "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
     private final String platformOwnerUsername = "testPlatformOwnerUsername";
     private final String platformOwnerPassword = "testPlatormOwnerPassword";
 
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
+    @Autowired
+    protected UserRepository userRepository;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
     @Autowired
     private ValidationHelper validationHelper;
-    @Autowired
-    protected UserRepository userRepository;
-
     @LocalServerPort
     private int port;
 
@@ -74,19 +60,12 @@ public class CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests exten
         return new DummyPlatformAAM();
     }
 
-    @Autowired
-    private TokenIssuer tokenIssuer;
-
-    private RpcClient platformRegistrationOverAMQPClient;
-    private Credentials platformOwnerUserCredentials;
-    private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
 
-        serverAddress = "https://localhost:" + port + SecurityConstants.AAM_PUBLIC_PATH;
+        serverAddress = "https://localhost:" + port;
 
         // Create a trust manager that does not validate certificate chains
         TrustManager[] trustAllCerts = new TrustManager[]{
@@ -121,14 +100,6 @@ public class CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests exten
         userKeyPair = CryptoHelper.createKeyPair();
 
         // platform registration useful
-        platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                platformRegistrationRequestQueue, 5000);
-        platformOwnerUserCredentials = new Credentials(platformOwnerUsername, platformOwnerPassword);
-        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
-                platformInstanceFriendlyName,
-                preferredPlatformId);
-
     }
 
 

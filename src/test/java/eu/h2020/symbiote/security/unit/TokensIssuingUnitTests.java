@@ -16,13 +16,11 @@ import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateR
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.listeners.rest.AAMServices;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
-import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
 import org.apache.commons.logging.Log;
@@ -78,8 +76,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
     @Autowired
-    private ValidationHelper validationHelper;
-    @Autowired
     private TokenIssuer tokenIssuer;
     @Autowired
     private GetTokenService getTokenService;
@@ -88,7 +84,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-    private AAMServices coreServicesController;
 
     @Bean
     DummyPlatformAAM dummyPlatformAAM() {
@@ -150,8 +145,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(userKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, preferredPlatformId, csr);
-        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, preferredPlatformId, Base64.getEncoder().encodeToString(csr.getEncoded()));
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
@@ -203,7 +198,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     public void getGuestTokenSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException {
         Token token = getTokenService.getGuestToken();
         assertNotNull(token);
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken().toString());
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.toString());
         assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));
         assertTrue(claimsFromToken.getAtt().isEmpty());
     }
@@ -215,7 +210,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         assertNotNull(user);
         Token token = tokenIssuer.getHomeToken(user, clientId);
         assertNotNull(token);
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken().toString());
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.toString());
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
 
         Map<String, String> attributes = claimsFromToken.getAtt();
@@ -244,8 +239,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(platformKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, csr);
-        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, Base64.getEncoder().encodeToString(csr.getEncoded()));
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
@@ -258,7 +253,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
         Token token = tokenIssuer.getHomeToken(user, federatedOAuthId);
         assertNotNull(token);
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken().toString());
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.toString());
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
 
         Map<String, String> attributes = claimsFromToken.getAtt();
@@ -286,8 +281,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(platformKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, csr);
-        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, Base64.getEncoder().encodeToString(csr.getEncoded()));
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
