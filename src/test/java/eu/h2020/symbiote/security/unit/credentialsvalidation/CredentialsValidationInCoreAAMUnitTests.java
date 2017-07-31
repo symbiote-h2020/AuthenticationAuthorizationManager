@@ -280,6 +280,9 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         String platformId = "platform-1";
+
+        savePlatformOwner();
+
         // registering the platform to the Core AAM so it will be available for token revocation
         platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
         platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
@@ -287,6 +290,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
+
 
         //inject platform PEM Certificate to the database
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
@@ -406,6 +410,9 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         String platformId = "testaam-connerr";
+
+        savePlatformOwner();
+
         // registering the platform to the Core AAM so it will be available for token revocation
         platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
         platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test/conn_err");

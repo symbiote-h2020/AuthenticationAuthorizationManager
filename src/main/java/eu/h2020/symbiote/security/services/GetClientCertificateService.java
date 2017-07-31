@@ -87,7 +87,6 @@ public class GetClientCertificateService {
             throw new CertificateException("Subject name doesn't match");
 
         Certificate userCert = user.getClientCertificates().get(certificateRequest.getClientId());
-        //X500Name x500ClientId = new X500Name(principal.getName().split("CN=")[1].split("@")[1]);
 
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
 

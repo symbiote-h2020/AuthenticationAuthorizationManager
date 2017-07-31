@@ -101,11 +101,11 @@ public class ActorsManagementFunctionalTests extends
         // verify that our app is not in repository
         assertNull(userRepository.findOne(username));
 
-        // issue the same app registration over AMQP expecting with wrong PlatformOwner UserRole
+        // issue the same app registration over AMQP expecting with wrong UserRole
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                username, password), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER)))
+                username, password), federatedOAuthId, recoveryMail, UserRole.NULL)))
                 .getBytes());
 
         // verify that our app was not registered in the repository
@@ -272,4 +272,37 @@ public class ActorsManagementFunctionalTests extends
         assertTrue(registeredUser.getClientCertificates().isEmpty());
     }
 
+
+    /**
+     * Feature: CAAM - 2 (App Registration)
+     * Interface: CAAM - 3
+     * CommunicationType AMQP
+     */
+    @Test
+    public void platformOwnerRegistrationOverAMQPSuccess() throws IOException, TimeoutException, CertificateException,
+            NoSuchAlgorithmException, UnrecoverableKeyException, MissingArgumentsException, KeyStoreException,
+            InvalidAlgorithmParameterException, NoSuchProviderException, OperatorCreationException,
+            WrongCredentialsException, ExistingUserException {
+
+        // verify that our app is not in repository
+        assertNull(userRepository.findOne(username));
+
+        // issue app registration over AMQP
+        byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
+                UserManagementRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
+                username, password), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER))).getBytes());
+
+        RegistrationStatus platformOwnerRegistrationResponse = mapper.readValue(response,
+                RegistrationStatus.class);
+        assertEquals(platformOwnerRegistrationResponse, RegistrationStatus.OK);
+
+        // verify that app really is in repository
+        User registeredUser = userRepository.findOne(username);
+        assertNotNull(registeredUser);
+        assertEquals(UserRole.PLATFORM_OWNER, registeredUser.getRole());
+        assertNull(platformRepository.findByPlatformOwner(registeredUser));
+        // verify that the user has no certs
+        assertTrue(registeredUser.getClientCertificates().isEmpty());
+    }
 }

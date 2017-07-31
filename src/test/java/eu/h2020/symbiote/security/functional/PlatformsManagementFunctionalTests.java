@@ -265,9 +265,16 @@ public class PlatformsManagementFunctionalTests extends
         assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
         assertNotNull(platformRepository.findOne(preferredPlatformId));
 
+        User user = new User();
+        user.setUsername(platformOwnerUsername + "differentOne");
+        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.PLATFORM_OWNER);
+        userRepository.save(user);
         // issue registration request with the same preferred platform identifier but different PO
         platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setUsername
                 (platformOwnerUsername + "differentOne");
+
         response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 

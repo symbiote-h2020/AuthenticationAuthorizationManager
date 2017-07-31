@@ -61,14 +61,13 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(ClientCertificatesIssuingUnitTests.class);
     protected final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
-    private final String recoveryMail = "null@dev.null";
+
     private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
-    private final String platformOwnerUsername = "testPlatformOwnerUsername";
-    private final String platformOwnerPassword = "testPlatormOwnerPassword";
+
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
@@ -344,6 +343,9 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         }
         assertNotNull(token);
         String platformId = "platform-1";
+
+        savePlatformOwner();
+
         // registering the platform to the Core AAM so it will be available for token revocation
         platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
         platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
@@ -360,7 +362,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         pemWriter.close();
         String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
         Platform dummyPlatform = platformRepository.findOne(platformId);
-        dummyPlatform.setPlatformAAMCertificate(new eu.h2020.symbiote.security.commons.Certificate(dummyPlatformAAMPEMCertString));
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
         platformRepository.save(dummyPlatform);
 
         // adding a dummy foreign rule

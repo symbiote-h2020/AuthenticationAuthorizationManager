@@ -87,6 +87,9 @@ public abstract class AbstractAAMTestSuite {
     protected RestTemplate restTemplate = new RestTemplate();
     protected ObjectMapper mapper = new ObjectMapper();
     protected String serverAddress;
+    protected final String platformOwnerUsername = "testPlatformOwnerUsername";
+    protected final String platformOwnerPassword = "testPlatormOwnerPassword";
+    protected final String recoveryMail = "null@dev.null";
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     protected String coreInterfaceAddress;
     @Value("${rabbit.queue.getHomeToken.request}")
@@ -150,6 +153,15 @@ public abstract class AbstractAAMTestSuite {
         revokedKeysRepository.deleteAll();
         revokedTokensRepository.deleteAll();
         platformRepository.deleteAll();
+    }
+
+    protected void savePlatformOwner() {
+        User user = new User();
+        user.setUsername(platformOwnerUsername);
+        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.PLATFORM_OWNER);
+        userRepository.save(user);
     }
 
     protected void addTestUserWithClientCertificateToRepository() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
