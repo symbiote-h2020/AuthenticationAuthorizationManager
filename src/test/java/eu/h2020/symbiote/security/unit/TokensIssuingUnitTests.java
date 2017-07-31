@@ -201,7 +201,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
     @Test
     public void getGuestTokenSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException {
-        Token token = getTokenService.login();
+        Token token = getTokenService.getGuestToken();
         assertNotNull(token);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken().toString());
         assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));
@@ -305,7 +305,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         try {
-            token = getTokenService.login(loginRequest);
+            token = getTokenService.getHomeToken(loginRequest);
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -317,21 +317,21 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     public void getHomeTokenWrongSign() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, MalformedJWTException, ValidationException {
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        getTokenService.login(loginRequest);
+        getTokenService.getHomeToken(loginRequest);
     }
 
     @Test(expected = WrongCredentialsException.class)
     public void getHomeTokenWrongCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, MalformedJWTException, ValidationException {
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        getTokenService.login(loginRequest);
+        getTokenService.getHomeToken(loginRequest);
     }
 
     @Test(expected = MissingArgumentsException.class)
     public void getHomeTokenMissingCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, MalformedJWTException, ValidationException {
         HomeCredentials homeCredentials = new HomeCredentials(null, null, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        getTokenService.login(loginRequest);
+        getTokenService.getHomeToken(loginRequest);
     }
 
     @Test
@@ -343,7 +343,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         try {
-            token = getTokenService.login(loginRequest);
+            token = getTokenService.getHomeToken(loginRequest);
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -372,7 +372,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
         Token foreignToken = null;
         try {
-            foreignToken = getTokenService.createForeignHomeTokenForForeignToken(token.toString());
+            foreignToken = getTokenService.getForeignToken(token.toString());
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -389,7 +389,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         Token token = null;
         assertNotNull(userRepository.findOne(username));
         try {
-            token = getTokenService.login(loginRequest);
+            token = getTokenService.getHomeToken(loginRequest);
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -416,7 +416,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         //no dummy maping rule
         tokenIssuer.foreignMappingRules.clear();
 
-        getTokenService.createForeignHomeTokenForForeignToken(token.toString());
+        getTokenService.getForeignToken(token.toString());
     }
 
 

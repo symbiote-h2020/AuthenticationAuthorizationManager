@@ -9,6 +9,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigura
 import eu.h2020.symbiote.security.listeners.amqp.consumers.*;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
+import eu.h2020.symbiote.security.services.CredentialsValidationService;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.PlatformsManagementService;
 import eu.h2020.symbiote.security.services.UsersManagementService;
@@ -35,6 +36,7 @@ public class RabbitManager {
 
     private final UsersManagementService usersManagementService;
     private final PlatformsManagementService platformsManagementService;
+    private final CredentialsValidationService credentialsValidationService;
     private final GetTokenService getTokenService;
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
@@ -88,11 +90,12 @@ public class RabbitManager {
 
     @Autowired
     public RabbitManager(UsersManagementService usersManagementService, PlatformsManagementService
-            platformsManagementService, GetTokenService getTokenService, UserRepository userRepository,
+            platformsManagementService, CredentialsValidationService credentialsValidationService, GetTokenService getTokenService, UserRepository userRepository,
                          PlatformRepository platformRepository, CertificationAuthorityHelper
                                  certificationAuthorityHelper) {
         this.usersManagementService = usersManagementService;
         this.platformsManagementService = platformsManagementService;
+        this.credentialsValidationService = credentialsValidationService;
         this.getTokenService = getTokenService;
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
@@ -164,10 +167,9 @@ public class RabbitManager {
      * Method creates queue and binds it globally available exchange and adequate Routing Key.
      * It also creates a consumer for messages incoming to this queue, regarding to Login requests.
      *
-     * @throws InterruptedException
      * @throws IOException
      */
-    private void startConsumerOfLoginRequestMessages() throws InterruptedException, IOException {
+    private void startConsumerOfLoginRequestMessages() throws IOException {
 
         String queueName = this.getHomeTokenRequestQueue;
 
@@ -192,10 +194,9 @@ public class RabbitManager {
      * Method creates queue and binds it globally available exchange and adequate Routing Key.
      * It also creates a consumer for messages incoming to this queue, regarding to Login requests.
      *
-     * @throws InterruptedException
      * @throws IOException
      */
-    private void startConsumerOfValidateRequestMessages() throws InterruptedException, IOException {
+    private void startConsumerOfValidateRequestMessages() throws IOException {
 
         String queueName = this.validateRequestQueue;
 
@@ -208,7 +209,7 @@ public class RabbitManager {
 
             log.info("Authentication and Authorization Manager waiting for check token revocation request messages");
 
-            Consumer consumer = new ValidationRequestConsumerService(channel, getTokenService);
+            Consumer consumer = new ValidationRequestConsumerService(channel, credentialsValidationService);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
             log.error(e);
@@ -220,10 +221,9 @@ public class RabbitManager {
      * Method creates queue and binds it globally available exchange and adequate Routing Key.
      * It also creates a consumer for messages incoming to this queue, regarding to Application Registration requests.
      *
-     * @throws InterruptedException
      * @throws IOException
      */
-    private void startConsumerOfApplicationRegistrationRequestMessages() throws InterruptedException, IOException {
+    private void startConsumerOfApplicationRegistrationRequestMessages() throws IOException {
 
         String queueName = this.userRegistrationRequestQueue;
 
@@ -248,10 +248,9 @@ public class RabbitManager {
      * Method creates queue and binds it globally available exchange and adequate Routing Key.
      * It also creates a consumer for messages incoming to this queue, regarding to Owned Platform Details requests.
      *
-     * @throws InterruptedException
      * @throws IOException
      */
-    private void startConsumerOfOwnedPlatformDetailsRequestMessages() throws InterruptedException, IOException {
+    private void startConsumerOfOwnedPlatformDetailsRequestMessages() throws IOException {
 
         String queueName = this.ownedPlatformDetailsRequestQueue;
 

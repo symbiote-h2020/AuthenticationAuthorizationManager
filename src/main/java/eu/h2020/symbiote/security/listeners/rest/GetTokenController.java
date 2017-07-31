@@ -59,18 +59,19 @@ public class GetTokenController implements IGetToken {
     }
 
     public ResponseEntity<?> getForeignToken(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String
-                                                     homeToken) {
+                                                     remoteHomeToken) {
         HttpHeaders headers = new HttpHeaders();
         Token foreignToken;
         try {
             // validating the string from request
-            Token receivedToken = new Token(homeToken);
+            Token receivedToken = new Token(remoteHomeToken);
 
             // checking revocation in relevant AAM
             if (receivedToken.getClaims().getIssuer().equals(deploymentId)) {
                 log.debug("Someone tried issuing a foreign token using a home token");
                 return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
             } else {
+                // TODO call validation service inside the service
                 Map<String, AAM> availableAAMs;
                 if (deploymentType == IssuingAuthorityType.CORE) {
                     // if Core AAM then we know the available AAMs
@@ -78,11 +79,11 @@ public class GetTokenController implements IGetToken {
                 } else {
                     // a PAAM needs to fetch them from core
                     RestTemplate restTemplate = new RestTemplate();
-                    Map<String, AAM> response = restTemplate.exchange(coreAAMAddress + SecurityConstants
+                    availableAAMs = restTemplate.exchange(coreAAMAddress + SecurityConstants
                             .AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<Map<String,
                             AAM>>() {
                     }).getBody();
-                    availableAAMs = response;
+                    ;
                 }
                 AAM remoteAAM = availableAAMs.get(receivedToken.getClaims().getIssuer());
                 if (remoteAAM == null) {
@@ -103,8 +104,7 @@ public class GetTokenController implements IGetToken {
                     return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
                 }
             }
-            foreignToken = new Token(getTokenService.createForeignHomeTokenForForeignToken(homeToken)
-                    .getToken());
+            foreignToken = getTokenService.getForeignToken(remoteHomeToken);
         } catch (ValidationException e) {
             log.error(e);
             return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
@@ -120,7 +120,7 @@ public class GetTokenController implements IGetToken {
 
     public ResponseEntity<?> getGuestToken() {
         try {
-            Token token = getTokenService.login();
+            Token token = getTokenService.getGuestToken();
             HttpHeaders headers = new HttpHeaders();
             headers.add(SecurityConstants.TOKEN_HEADER_NAME, token.getToken());
             return new ResponseEntity<>(headers, HttpStatus.OK);
@@ -134,7 +134,7 @@ public class GetTokenController implements IGetToken {
     //L1 Diagrams - getHomeToken()
     public ResponseEntity<?> getHomeToken(@RequestBody String loginRequest) {
         try {
-            Token token = getTokenService.login(loginRequest);
+            Token token = getTokenService.getHomeToken(loginRequest);
             HttpHeaders headers = new HttpHeaders();
             headers.add(SecurityConstants.TOKEN_HEADER_NAME, token.getToken());
             return new ResponseEntity<>(headers, HttpStatus.OK);

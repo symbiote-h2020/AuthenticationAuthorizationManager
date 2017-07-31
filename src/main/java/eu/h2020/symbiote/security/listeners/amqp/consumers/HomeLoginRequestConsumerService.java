@@ -66,7 +66,7 @@ public class HomeLoginRequestConsumerService extends DefaultConsumer {
             try {
                 loginReq = om.readValue(message, String.class);
 
-                Token token = getTokenService.login(loginReq);
+                Token token = getTokenService.getHomeToken(loginReq);
                     response = om.writeValueAsString(token);
                     this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
             } catch (MissingArgumentsException | WrongCredentialsException | JWTCreationException e) {
