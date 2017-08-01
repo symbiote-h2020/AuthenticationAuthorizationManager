@@ -1,6 +1,8 @@
 package eu.h2020.symbiote.security.utils;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
+import feign.Headers;
 import feign.RequestLine;
 import feign.Response;
 
@@ -13,5 +15,10 @@ public interface FeignRestInterfce {
     //  DONE
     @RequestLine("GET " + SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE)
     Response getComponentCertificate();
+
+    //  DONE
+    @RequestLine("POST " + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE)
+    @Headers("Content-Type: application/json")
+    Response getClientCertificate(CertificateRequest certificateRequest);
 
 }

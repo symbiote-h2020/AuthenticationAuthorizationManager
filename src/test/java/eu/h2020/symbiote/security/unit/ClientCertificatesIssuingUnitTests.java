@@ -11,6 +11,7 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
+import feign.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -25,7 +26,6 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.security.auth.x500.X500Principal;
@@ -168,9 +168,8 @@ public class ClientCertificatesIssuingUnitTests extends
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
         CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        ResponseEntity<String> response2 = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
-                certRequest, String.class);
-        assertEquals("Wrong credentials", response2.getBody());
+        Response response2 = restInterfce.getClientCertificate(certRequest);
+        assertEquals("Wrong credentials", response2.body().toString());
     }
 
     @Test
@@ -192,9 +191,8 @@ public class ClientCertificatesIssuingUnitTests extends
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
-                certRequest, String.class);
-        assertEquals("Subject name doesn't match", response.getBody());
+        Response response = restInterfce.getClientCertificate(certRequest);
+        assertEquals("Subject name doesn't match", response.body().toString());
     }
 
     @Test
@@ -219,12 +217,11 @@ public class ClientCertificatesIssuingUnitTests extends
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
-                certRequest, String.class);
+        Response response = restInterfce.getClientCertificate(certRequest);
 
-        assertTrue(response.getBody().contains("BEGIN CERTIFICATE"));
-        assertNotNull(CryptoHelper.convertPEMToX509(response.getBody()));
-        assertEquals(cn, CryptoHelper.convertPEMToX509(response.getBody()).getSubjectDN().getName());
+        assertTrue(response.body().toString().contains("BEGIN CERTIFICATE"));
+        assertNotNull(CryptoHelper.convertPEMToX509(response.body().toString()));
+        assertEquals(cn, CryptoHelper.convertPEMToX509(response.body().toString()).getSubjectDN().getName());
     }
 
     // test for revoke function
