@@ -12,13 +12,20 @@ import feign.Response;
  */
 
 public interface FeignRestInterfce {
-    //  DONE
+
     @RequestLine("GET " + SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE)
     Response getComponentCertificate();
 
-    //  DONE
     @RequestLine("POST " + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE)
     @Headers("Content-Type: application/json")
     Response getClientCertificate(CertificateRequest certificateRequest);
+
+    @RequestLine("POST " + SecurityConstants.AAM_GET_GUEST_TOKEN)
+    Response getGuestToken();
+
+    @RequestLine("POST " + SecurityConstants.AAM_GET_HOME_TOKEN)
+    @Headers("Content-Type: application/json")
+    Response getHomeToken(String loginRequest);
+
 
 }

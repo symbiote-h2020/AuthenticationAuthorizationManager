@@ -18,6 +18,7 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
+import feign.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
@@ -40,7 +41,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClientException;
 
@@ -246,17 +246,12 @@ public class TokensIssuingFunctionalTests extends
 
     @Test
     public void getHomeTokenForUserOverRESTWrongSignFailure() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException {
-        ResponseEntity<ErrorResponseContainer> token = null;
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        try {
-            token = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, loginRequest,
-                    ErrorResponseContainer.class);
-        } catch (HttpClientErrorException e) {
-            assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
-        }
-        assertNull(token);
+
+        Response response = restInterfce.getHomeToken(loginRequest);
+        assertEquals(HttpStatus.UNAUTHORIZED.value(), response.status());
     }
 
     @Test
@@ -264,12 +259,9 @@ public class TokensIssuingFunctionalTests extends
 
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        try {
-            restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, loginRequest, ErrorResponseContainer.class);
-            fail("No error thrown");
-        } catch (HttpClientErrorException e) {
-            assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
-        }
+
+        Response response = restInterfce.getHomeToken(loginRequest);
+        assertEquals(HttpStatus.UNAUTHORIZED.value(), response.status());
     }
 
     /**
@@ -281,12 +273,9 @@ public class TokensIssuingFunctionalTests extends
     public void getHomeTokenForUserOverRESTWrongClientIdFailure() throws IOException, JWTCreationException {
         HomeCredentials homeCredentials = new HomeCredentials(null, username, wrongClientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        try {
-            restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN, loginRequest, ErrorResponseContainer.class);
-            fail("No error thrown");
-        } catch (HttpClientErrorException e) {
-            assertEquals(HttpStatus.UNAUTHORIZED.value(), e.getRawStatusCode());
-        }
+
+        Response response = restInterfce.getHomeToken(loginRequest);
+        assertEquals(HttpStatus.UNAUTHORIZED.value(), response.status());
     }
 
     /**
@@ -355,13 +344,10 @@ public class TokensIssuingFunctionalTests extends
 
     @Test
     public void getGuestTokenOverRESTSuccess() throws MalformedJWTException {
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_GUEST_TOKEN,
-                null,
-                String.class);
-        HttpHeaders headers = response.getHeaders();
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        Response response = restInterfce.getGuestToken();
+        assertEquals(HttpStatus.OK.value(), response.status());
+        assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toString());
         assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));
         assertTrue(claimsFromToken.getAtt().isEmpty());
     }

@@ -134,8 +134,12 @@ public class GetTokenController implements IGetToken {
 
     //L1 Diagrams - getHomeToken()
     public ResponseEntity<String> getHomeToken(@RequestBody String loginRequest) {
+        //  Temporary - Removes additional '"' coming from encoder
+        String checked = loginRequest;
+        if (loginRequest.startsWith("\"") && loginRequest.endsWith("\""))
+            checked = loginRequest.replaceAll("\"", "");
         try {
-            Token token = getTokenService.getHomeToken(loginRequest);
+            Token token = getTokenService.getHomeToken(checked);
             HttpHeaders headers = new HttpHeaders();
             headers.add(SecurityConstants.TOKEN_HEADER_NAME, token.getToken());
             return new ResponseEntity<>(headers, HttpStatus.OK);
