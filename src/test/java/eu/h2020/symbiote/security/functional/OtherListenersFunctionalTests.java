@@ -11,6 +11,9 @@ import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
+import eu.h2020.symbiote.security.utils.FeignRestInterfce;
+import feign.Feign;
+import feign.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
@@ -18,7 +21,6 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -56,7 +58,7 @@ public class OtherListenersFunctionalTests extends
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-
+    private FeignRestInterfce restInterfce;
     @Bean
     DummyPlatformAAM dummyPlatformAAM() {
         return new DummyPlatformAAM();
@@ -83,6 +85,8 @@ public class OtherListenersFunctionalTests extends
                 AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
                 preferredPlatformId);
+
+        restInterfce = Feign.builder().target(FeignRestInterfce.class, serverAddress);
     }
 
     /**
@@ -154,9 +158,8 @@ public class OtherListenersFunctionalTests extends
     @Test
     public void getComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException {
-        ResponseEntity<String> response = restTemplate.getForEntity(serverAddress + SecurityConstants
-                .AAM_GET_COMPONENT_CERTIFICATE, String.class);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(certificationAuthorityHelper.getAAMCert(), response.getBody());
+        Response response = restInterfce.getComponentCertificate();
+        assertEquals(HttpStatus.OK.value(), response.status());
+        assertEquals(certificationAuthorityHelper.getAAMCert(), response.body().toString());
     }
 }
