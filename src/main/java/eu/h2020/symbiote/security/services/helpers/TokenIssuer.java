@@ -64,45 +64,38 @@ public class TokenIssuer {
 
     public static String buildAuthorizationToken(String userId, Map<String, String> attributes, byte[] userPublicKey,
                                                  Token.Type tokenType, Long tokenValidity, String
-                                                  deploymentID, PublicKey aamPublicKey, PrivateKey aamPrivateKey)
-            throws JWTCreationException {
+                                                         deploymentID, PublicKey aamPublicKey, PrivateKey aamPrivateKey) {
         ECDSAHelper.enableECDSAProvider();
 
         String jti = String.valueOf(random.nextInt());
         Map<String, Object> claimsMap = new HashMap<>();
 
-        try {
-            // Insert AAM Public Key
-            claimsMap.put("ipk", Base64.getEncoder().encodeToString(aamPublicKey.getEncoded()));
+        // Insert AAM Public Key
+        claimsMap.put("ipk", Base64.getEncoder().encodeToString(aamPublicKey.getEncoded()));
 
-            //Insert issuee Public Key
-            claimsMap.put("spk", Base64.getEncoder().encodeToString(userPublicKey));
+        //Insert issuee Public Key
+        claimsMap.put("spk", Base64.getEncoder().encodeToString(userPublicKey));
 
-            //Add symbIoTe related attributes to token
-            if (attributes != null && !attributes.isEmpty()) {
-                for (Map.Entry<String, String> entry : attributes.entrySet()) {
-                    claimsMap.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + entry.getKey(), entry.getValue());
-                }
+        //Add symbIoTe related attributes to token
+        if (attributes != null && !attributes.isEmpty()) {
+            for (Map.Entry<String, String> entry : attributes.entrySet()) {
+                claimsMap.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + entry.getKey(), entry.getValue());
             }
-
-            //Insert token type
-            claimsMap.put(SecurityConstants.CLAIM_NAME_TOKEN_TYPE, tokenType);
-
-            JwtBuilder jwtBuilder = Jwts.builder();
-            jwtBuilder.setClaims(claimsMap);
-            jwtBuilder.setId(jti);
-            jwtBuilder.setIssuer(deploymentID);
-            jwtBuilder.setSubject(userId);
-            jwtBuilder.setIssuedAt(new Date());
-            jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + tokenValidity));
-            jwtBuilder.signWith(SignatureAlgorithm.ES256, aamPrivateKey);
-
-            return jwtBuilder.compact();
-        } catch (Exception e) {
-            String message = "JWT creation error";
-            log.error(message, e);
-            throw new JWTCreationException(message, e);
         }
+
+        //Insert token type
+        claimsMap.put(SecurityConstants.CLAIM_NAME_TOKEN_TYPE, tokenType);
+
+        JwtBuilder jwtBuilder = Jwts.builder();
+        jwtBuilder.setClaims(claimsMap);
+        jwtBuilder.setId(jti);
+        jwtBuilder.setIssuer(deploymentID);
+        jwtBuilder.setSubject(userId);
+        jwtBuilder.setIssuedAt(new Date());
+        jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + tokenValidity));
+        jwtBuilder.signWith(SignatureAlgorithm.ES256, aamPrivateKey);
+
+        return jwtBuilder.compact();
     }
 
     /**
@@ -146,14 +139,14 @@ public class TokenIssuer {
     }
 
     /**
-     * @param homeToken from which needed informations and attribiutes are gathered and maped
+     * @param remoteHomeToken from which needed informations and attribiutes are gathered and maped
      * @return foreigToken issued for given user
      * @throws JWTCreationException
      */
-    public Token getForeignToken(String homeToken)
+    public Token getForeignToken(Token remoteHomeToken)
             throws JWTCreationException {
         try {
-            JWTClaims claims = JWTEngine.getClaimsFromToken(homeToken);
+            JWTClaims claims = JWTEngine.getClaimsFromToken(remoteHomeToken.toString());
             // TODO R3 Attribute Mapping Function
             Map<String, String> foreignAttributes = new HashMap<>();
 

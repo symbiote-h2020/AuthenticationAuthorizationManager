@@ -22,7 +22,7 @@ import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
+import eu.h2020.symbiote.security.utils.DummyPlatformAAMRevokedIPK;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -90,8 +90,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Bean
-    DummyPlatformAAMConnectionProblem dummyPlatformAAMWithConnectionProblem() {
-        return new DummyPlatformAAMConnectionProblem();
+    DummyPlatformAAMRevokedIPK dummyPlatformAAMRevokedIPK() {
+        return new DummyPlatformAAMRevokedIPK();
     }
 
     @Override
@@ -337,7 +337,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         try {
-            token = getTokenService.getHomeToken(loginRequest);
+            token = new Token(dummyPlatformAAM().doLogin(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -369,27 +369,87 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
         Token foreignToken = null;
         try {
-            foreignToken = getTokenService.getForeignToken(token.toString());
+            foreignToken = getTokenService.getForeignToken(token, "");
         } catch (Exception e) {
+            log.error(e.getMessage(), e.getCause());
             fail("Exception thrown");
         }
         assertNotNull(foreignToken);
         assertEquals(Token.Type.FOREIGN, foreignToken.getType());
     }
 
-    @Ignore("WIP")
     @Test(expected = JWTCreationException.class)
     public void getForeignTokenFailForUndefinedForeignMapping() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
-        /*
-        // TODO
-        // 1 USE DUMMY PLATFORM AAM as HOME TOKEN issuer
-          //no dummy maping rule
-        tokenIssuer.foreignMappingRules.clear();
 
-        getTokenService.getForeignToken(token.toString());
-        */
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        Token token = null;
+        try {
+            token = new Token(dummyPlatformAAM().doLogin(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        } catch (Exception e) {
+            fail("Exception thrown");
+        }
+        tokenIssuer.foreignMappingRules.clear();
+        tokenIssuer.getForeignToken(token);
     }
 
+    @Test(expected = ValidationException.class)
+    public void getForeignTokenFailsForHomeTokenUsedAsRequest() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+
+        addTestUserWithClientCertificateToRepository();
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+        Token token = null;
+        try {
+            token = tokenIssuer.getHomeToken(user, clientId);
+        } catch (Exception e) {
+            fail("Exception thrown");
+        }
+        assertNotNull(token);
+        getTokenService.getForeignToken(token, "");
+    }
+
+    @Test(expected = ValidationException.class)
+    public void getForeignTokenFailsPlatformNotRegistered() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+
+        addTestUserWithClientCertificateToRepository();
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        Token token = null;
+        try {
+            token = new Token(dummyPlatformAAM().doLogin(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        } catch (Exception e) {
+            fail("Exception thrown");
+        }
+        assertNotNull(token);
+        getTokenService.getForeignToken(token, "");
+    }
+
+    @Test(expected = ValidationException.class)
+    public void getForeignTokenFailsPlatformHasNotCertificate() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+
+        addTestUserWithClientCertificateToRepository();
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        Token token = null;
+        try {
+            token = new Token(dummyPlatformAAM().doLogin(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        } catch (Exception e) {
+            fail("Exception thrown");
+        }
+        assertNotNull(token);
+        String platformId = "platform-1";
+
+        savePlatformOwner();
+
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        getTokenService.getForeignToken(token, "");
+    }
 
     @Test
     @Ignore("Not R2 crucial, at R2 we will issue attributes from properties")
