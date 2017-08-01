@@ -197,35 +197,6 @@ public class ClientCertificatesIssuingUnitTests extends
         assertEquals("Subject name doesn't match", response.getBody());
     }
 
-    @Test
-    public void getCertificateSuccess() throws OperatorCreationException, IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
-        String appUsername = "NewApplication";
-
-        User user = new User();
-        user.setUsername(appUsername);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
-        userRepository.save(user);
-
-        KeyPair pair = CryptoHelper.createKeyPair();
-
-
-        String cn = "CN=" + appUsername + "@" + clientId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
-
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), pair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(pair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
-
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
-                certRequest, String.class);
-
-        assertTrue(response.getBody().contains("BEGIN CERTIFICATE"));
-        assertNotNull(CryptoHelper.convertPEMToX509(response.getBody()));
-        assertEquals(cn, CryptoHelper.convertPEMToX509(response.getBody()).getSubjectDN().getName());
-    }
 
     // test for revoke function
     //TODO getting certificate

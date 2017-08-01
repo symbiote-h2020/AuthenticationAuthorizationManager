@@ -34,10 +34,9 @@ import java.util.Base64;
 
 @Service
 public class GetClientCertificateService {
-    // todo move to security constants
-    public static final String illegalSign = "@";
     // todo use log for logging errors
     private static Log log = LogFactory.getLog(GetClientCertificateService.class);
+    public static final String illegalSign = "@";
     private final UserRepository userRepository;
     private final RevokedKeysRepository revokedKeysRepository;
     private final CertificationAuthorityHelper certificationAuthorityHelper;

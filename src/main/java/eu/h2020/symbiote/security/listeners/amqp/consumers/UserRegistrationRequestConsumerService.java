@@ -71,9 +71,7 @@ public class UserRegistrationRequestConsumerService extends DefaultConsumer {
                 log.debug("[x] Received User Registration Request for: " + request.getUserDetails()
                         .getCredentials().getUsername() + " on behalf of " + request.getAdministratorCredentials()
                         .getUsername());
-                // this endpoint should only allow registering Users
-                //if (request.getUserDetails().getRole() != UserRole.USER)
-                //    throw new UserRegistrationException();
+
 
                 response = om.writeValueAsString(usersManagementService.authRegister
                         (request));
