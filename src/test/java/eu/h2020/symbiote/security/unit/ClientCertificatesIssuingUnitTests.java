@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateR
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
@@ -29,12 +30,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.security.auth.x500.X500Principal;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.spec.ECGenParameterSpec;
-import java.util.Base64;
 import java.util.Date;
 
 import static org.junit.Assert.*;
@@ -59,6 +60,8 @@ public class ClientCertificatesIssuingUnitTests extends
     String coreInterfaceAddress;
     @Autowired
     private RevocationHelper revocationHelper;
+    @Autowired
+    protected CertificationAuthorityHelper certificationAuthorityHelper;
 
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
@@ -160,14 +163,10 @@ public class ClientCertificatesIssuingUnitTests extends
         userRepository.save(user);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal(certificationAuthorityHelper.getAAMCertificate().getSubjectX500Principal().getName
-                        ()), pair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(pair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
 
-        CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
+        String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(),
+                user.getUsername(), clientId, pair);
+        CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, csr);
         ResponseEntity<String> response2 = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
                 certRequest, String.class);
         assertEquals("Wrong credentials", response2.getBody());
@@ -185,47 +184,19 @@ public class ClientCertificatesIssuingUnitTests extends
         userRepository.save(user);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal("CN=WrongName@WrongClientId@WrongPlatformInstanceId"), pair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(pair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
 
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
+
+        String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificate, username, clientId, pair);
+        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csr);
+
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
                 certRequest, String.class);
         assertEquals("Subject name doesn't match", response.getBody());
     }
 
-    @Test
-    public void getCertificateSuccess() throws OperatorCreationException, IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
-        String appUsername = "NewApplication";
-
-        User user = new User();
-        user.setUsername(appUsername);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
-        userRepository.save(user);
-
-        KeyPair pair = CryptoHelper.createKeyPair();
-
-
-        String cn = "CN=" + appUsername + "@" + clientId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
-
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), pair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(pair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
-
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
-                certRequest, String.class);
-
-        assertTrue(response.getBody().contains("BEGIN CERTIFICATE"));
-        assertNotNull(CryptoHelper.convertPEMToX509(response.getBody()));
-        assertEquals(cn, CryptoHelper.convertPEMToX509(response.getBody()).getSubjectDN().getName());
-    }
 
     // test for revoke function
     //TODO getting certificate

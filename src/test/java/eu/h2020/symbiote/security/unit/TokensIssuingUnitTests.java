@@ -22,7 +22,6 @@ import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAMRevokedIPK;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -87,11 +86,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     @Bean
     DummyPlatformAAM dummyPlatformAAM() {
         return new DummyPlatformAAM();
-    }
-
-    @Bean
-    DummyPlatformAAMRevokedIPK dummyPlatformAAMRevokedIPK() {
-        return new DummyPlatformAAMRevokedIPK();
     }
 
     @Override

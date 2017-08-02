@@ -2,9 +2,13 @@ package eu.h2020.symbiote.security.functional;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.entities.User;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -22,6 +26,7 @@ import java.security.cert.CertificateException;
 import java.util.Base64;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 @TestPropertySource("/core.properties")
 public class ClientCertificatesIssuingFunctionalTests extends
@@ -41,5 +46,29 @@ public class ClientCertificatesIssuingFunctionalTests extends
         assertEquals("Credentials contain illegal sign", response.getBody());
     }
 
-    // TODO where are other tests?
+    @Test
+    public void getClientCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
+            NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException {
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPasswordEncrypted(passwordEncoder.encode(password));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.USER);
+        userRepository.save(user);
+
+        AvailableAAMsCollection aamResponse = restTemplate.getForObject(serverAddress + SecurityConstants
+                .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class);
+        KeyPair pair = CryptoHelper.createKeyPair();
+        AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
+                certRequest, String.class);
+
+        //assertEquals(,response.getBody());
+        assertNotNull(CryptoHelper.convertPEMToX509(response.getBody()));
+        assertEquals("CN=" + username + "@" + clientId + "@" + homeAAM.getAamInstanceId(), CryptoHelper.convertPEMToX509(response.getBody()).getSubjectDN().getName());
+    }
 }
