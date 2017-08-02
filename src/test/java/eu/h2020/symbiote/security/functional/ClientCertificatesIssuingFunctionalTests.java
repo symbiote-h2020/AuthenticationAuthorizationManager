@@ -5,13 +5,18 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.utils.FeignRestInterface;
+import feign.Feign;
 import feign.Response;
+import feign.jackson.JacksonDecoder;
+import feign.jackson.JacksonEncoder;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.test.context.TestPropertySource;
 
@@ -26,6 +31,13 @@ import static org.junit.Assert.assertEquals;
 @TestPropertySource("/core.properties")
 public class ClientCertificatesIssuingFunctionalTests extends
         AbstractAAMTestSuite {
+    @Before
+    public void setup() {
+        restInterface = Feign.builder()
+                .encoder(new JacksonEncoder())
+                .decoder(new JacksonDecoder())
+                .target(FeignRestInterface.class, serverAddress);
+    }
     @Test
     public void getClientCertificateOverRESTInvalidArguments() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException, InvalidAlgorithmParameterException {

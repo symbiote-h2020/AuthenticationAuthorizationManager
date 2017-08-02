@@ -8,15 +8,17 @@ import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.utils.FeignRestInterface;
+import feign.Feign;
 import feign.Response;
+import feign.jackson.JacksonDecoder;
+import feign.jackson.JacksonEncoder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.junit.Before;
 import org.junit.Test;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -45,18 +47,21 @@ public class CredentialsValidationFunctionalTests extends
      * @throws IOException
      * @throws TimeoutException
      */
+
+    @Before
+    public void setup() {
+        restInterface = Feign.builder().encoder(new JacksonEncoder()).decoder(new JacksonDecoder()).target(FeignRestInterface.class, serverAddress);
+    }
     @Test
     public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants
-                        .AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
-        HttpHeaders headers = response.getHeaders();
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
-        String token = headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME);
+
+        Response response = restInterface.getHomeToken(loginRequest);
+        assertEquals(HttpStatus.OK.value(), response.status());
+        assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
+        String token = response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString();
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 validateRequestQueue,
@@ -77,26 +82,19 @@ public class CredentialsValidationFunctionalTests extends
      * Interfaces: PAAM - 4, CAAM - 10;
      * CommunicationType REST
      */
-    @Test//MARKER
+    @Test
     public void validationOverRESTValid() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
-        HttpHeaders loginHeaders = response.getHeaders();
+
+        Response response = restInterface.getHomeToken(loginRequest);
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(SecurityConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        headers.add(SecurityConstants.TOKEN_HEADER_NAME, response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString());
 
-        HttpEntity<String> request = new HttpEntity<String>(null, headers);
-        System.out.println("request " + request);
-        Response responsed = restInterface.validate(request.getHeaders().toString(), "null");
-        ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(serverAddress +
-                SecurityConstants.AAM_VALIDATE, request, ValidationStatus.class);
-        System.out.println("Status " + status);
-
-        assertEquals(ValidationStatus.VALID, status.getBody());
+        ValidationStatus status = restInterface.validate(headers.getFirst("X-Auth-Token").toString(), "null");
+        assertEquals(ValidationStatus.VALID, status);
     }
 
     /**
@@ -111,22 +109,15 @@ public class CredentialsValidationFunctionalTests extends
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
-        HttpHeaders loginHeaders = response.getHeaders();
-
+        Response response = restInterface.getHomeToken(loginRequest);
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 1000);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(SecurityConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        headers.add(SecurityConstants.TOKEN_HEADER_NAME, response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString());
 
-        HttpEntity<String> request = new HttpEntity<String>(null, headers);
-
-        ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(serverAddress +
-                SecurityConstants.AAM_VALIDATE, request, ValidationStatus.class);
-
+        ValidationStatus status = restInterface.validate(headers.getFirst("X-Auth-Token").toString(), "null");
         // TODO cover other situations (bad key, on purpose revocation)
-        assertEquals(ValidationStatus.EXPIRED_TOKEN, status.getBody());
+        assertEquals(ValidationStatus.EXPIRED_TOKEN, status);
     }
 
 

@@ -330,20 +330,9 @@ public class TokensIssuingFunctionalTests extends
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
         headers.add(SecurityConstants.TOKEN_HEADER_NAME, response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toString());
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
-
-        System.out.println("resp is: " + request);
-
-        System.out.println("head is: " + headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
-
-        //System.out.println("rcvd is: " + resp);
-        //Response resp =
         try {
-           /*restTemplate.postForEntity(serverAddress + SecurityConstants
-                            .AAM_GET_FOREIGN_TOKEN, request,
-                    String.class);*/
-            restInterface.getForeignToken("null",
-                    "X-Auth-Token : " + headers.getFirst("X-Auth-Token").toString());
-            //assert false;
+
+            restInterface.getForeignToken(request.getHeaders().get("X-Auth-Token").toArray()[0].toString(), "null");
         } catch (RestClientException | feign.FeignException e) {
             // TODO think of a better way to assert that BAD_REQUEST
             log.error(e);
@@ -363,11 +352,12 @@ public class TokensIssuingFunctionalTests extends
     }
 
 
-    @Test// WORKING EXAMPLE
+    @Test
     public void getForeignTokenUsingPlatformTokenOverRESTSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
@@ -402,16 +392,9 @@ public class TokensIssuingFunctionalTests extends
         HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
         // adding a dummy foreign rule
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
-
-        // checking issuing of foreign token using the dummy platform token
-        /*ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants
-                .AAM_GET_FOREIGN_TOKEN, entity, String.class);*/
-        //HttpHeaders rspHeaders = response.getHeaders();
-
         Response response = restInterface.getForeignToken(entity.getHeaders().get("X-Auth-Token").toArray()[0].toString(), "null");
 
         // check if returned status is ok and if there is token in header
-        System.out.println("received = " + response);
         assertEquals(HttpStatus.OK.value(), response.status());
         assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toString());
@@ -467,9 +450,7 @@ public class TokensIssuingFunctionalTests extends
 
         // checking issuing of foreign token using the dummy platform token
         try {
-            ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants
-                    .AAM_GET_FOREIGN_TOKEN, entity, String.class);
-            assert false;
+            Response response = restInterface.getForeignToken(entity.getHeaders().get("X-Auth-Token").toArray()[0].toString(), "null");
         } catch (HttpServerErrorException e) {
             assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getRawStatusCode());
         }

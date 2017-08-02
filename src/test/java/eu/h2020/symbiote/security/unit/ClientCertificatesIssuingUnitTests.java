@@ -11,7 +11,11 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
+import eu.h2020.symbiote.security.utils.FeignRestInterface;
+import feign.Feign;
 import feign.Response;
+import feign.jackson.JacksonDecoder;
+import feign.jackson.JacksonEncoder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -22,6 +26,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -68,6 +73,14 @@ public class ClientCertificatesIssuingUnitTests extends
     @Bean
     DummyPlatformAAMConnectionProblem getDummyPlatformAAMConnectionProblem() {
         return new DummyPlatformAAMConnectionProblem();
+    }
+
+    @Before
+    public void setup() {
+        restInterface = Feign.builder()
+                .encoder(new JacksonEncoder())
+                .decoder(new JacksonDecoder())
+                .target(FeignRestInterface.class, serverAddress);
     }
 
     @Test
