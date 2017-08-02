@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Base64;
 
 /**
  * TODO @Maks finish it! and comment properly
@@ -76,8 +75,7 @@ public class GetClientCertificateService {
         if (revokedKeysRepository.exists(certificateRequest.getClientId()))
             throw new InvalidKeyException("Key revoked");
 
-        byte[] bytes = Base64.getDecoder().decode(certificateRequest.getClientCSRinPEMFormat());
-        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
+        PKCS10CertificationRequest req = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
 
         X509Certificate caCert = certificationAuthorityHelper.getAAMCertificate();
 

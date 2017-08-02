@@ -25,7 +25,8 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.Base64;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 @TestPropertySource("/core.properties")
 public class ClientCertificatesIssuingFunctionalTests extends
@@ -60,14 +61,13 @@ public class ClientCertificatesIssuingFunctionalTests extends
                 .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class);
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
-        String csrString = CryptoHelper.buildCertificateSigningRequest(homeAAM.getCertificate().getX509(), username, clientId, pair);
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
         assertNotNull(csrString);
-
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
         ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
                 certRequest, String.class);
 
-        assertTrue(response.getBody().contains("BEGIN CERTIFICATE"));
+        //assertEquals(,response.getBody());
         assertNotNull(CryptoHelper.convertPEMToX509(response.getBody()));
         assertEquals("CN=" + username + "@" + clientId + "@" + homeAAM.getAamInstanceId(), CryptoHelper.convertPEMToX509(response.getBody()).getSubjectDN().getName());
     }
