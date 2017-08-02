@@ -1,17 +1,23 @@
 package eu.h2020.symbiote.security.utils;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
 import feign.Headers;
+import feign.Param;
 import feign.RequestLine;
 import feign.Response;
 
 /*
- *  Provides services provided by AAMS  (WIP)
+ *  Access to services provided by AAMS  (WIP)
  *  @author Dariusz Krajewski (PSNC)
  */
 
-public interface FeignRestInterfce {
+public interface FeignRestInterface {
+
+    @RequestLine("GET " + SecurityConstants.AAM_GET_AVAILABLE_AAMS)
+    @Headers("Content-Type: application/json")
+    AvailableAAMsCollection getAvailableAAMs();
 
     @RequestLine("GET " + SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE)
     Response getComponentCertificate();
@@ -27,5 +33,9 @@ public interface FeignRestInterfce {
     @Headers("Content-Type: application/json")
     Response getHomeToken(String loginRequest);
 
-
+    @RequestLine("POST " + SecurityConstants.AAM_GET_FOREIGN_TOKEN)
+    @Headers({"Accept: application/json",
+            SecurityConstants.TOKEN_HEADER_NAME + ": " + "{remoteHomeToken}",
+            SecurityConstants.CERTIFICATE_HEADER_NAME + ": " + "{certificate}"})
+    String getForeignToken(@Param("remoteHomeToken") String remoteHomeToken, @Param("certificate") String certificate);
 }

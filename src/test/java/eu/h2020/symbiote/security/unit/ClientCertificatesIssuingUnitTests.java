@@ -168,7 +168,7 @@ public class ClientCertificatesIssuingUnitTests extends
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
         CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        Response response2 = restInterfce.getClientCertificate(certRequest);
+        Response response2 = restInterface.getClientCertificate(certRequest);
         assertEquals("Wrong credentials", response2.body().toString());
     }
 
@@ -191,7 +191,7 @@ public class ClientCertificatesIssuingUnitTests extends
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        Response response = restInterfce.getClientCertificate(certRequest);
+        Response response = restInterface.getClientCertificate(certRequest);
         assertEquals("Subject name doesn't match", response.body().toString());
     }
 
@@ -217,7 +217,7 @@ public class ClientCertificatesIssuingUnitTests extends
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        Response response = restInterfce.getClientCertificate(certRequest);
+        Response response = restInterface.getClientCertificate(certRequest);
 
         assertTrue(response.body().toString().contains("BEGIN CERTIFICATE"));
         assertNotNull(CryptoHelper.convertPEMToX509(response.body().toString()));

@@ -17,9 +17,7 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import eu.h2020.symbiote.security.utils.FeignRestInterfce;
-import feign.Feign;
-import feign.jackson.JacksonEncoder;
+import eu.h2020.symbiote.security.utils.FeignRestInterface;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.ContentSigner;
@@ -120,7 +118,7 @@ public abstract class AbstractAAMTestSuite {
     @LocalServerPort
     private int port;
 
-    protected FeignRestInterfce restInterfce;
+    protected FeignRestInterface restInterface;
     @Before
     public void setUp() throws Exception {
         // Catch the random port
@@ -157,9 +155,6 @@ public abstract class AbstractAAMTestSuite {
         revokedTokensRepository.deleteAll();
         platformRepository.deleteAll();
 
-        restInterfce = Feign.builder()
-                .encoder(new JacksonEncoder())
-                .target(FeignRestInterfce.class, serverAddress);
     }
 
     protected void savePlatformOwner() {

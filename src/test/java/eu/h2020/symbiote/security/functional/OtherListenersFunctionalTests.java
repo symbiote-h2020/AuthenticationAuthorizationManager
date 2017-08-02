@@ -11,9 +11,11 @@ import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import eu.h2020.symbiote.security.utils.FeignRestInterfce;
+import eu.h2020.symbiote.security.utils.FeignRestInterface;
 import feign.Feign;
 import feign.Response;
+import feign.jackson.JacksonDecoder;
+import feign.jackson.JacksonEncoder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
@@ -58,7 +60,7 @@ public class OtherListenersFunctionalTests extends
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-    private FeignRestInterfce restInterfce;
+
     @Bean
     DummyPlatformAAM dummyPlatformAAM() {
         return new DummyPlatformAAM();
@@ -86,19 +88,22 @@ public class OtherListenersFunctionalTests extends
                 platformInstanceFriendlyName,
                 preferredPlatformId);
 
-        restInterfce = Feign.builder().target(FeignRestInterfce.class, serverAddress);
+        restInterface = Feign.builder()
+                .encoder(new JacksonEncoder())
+                .decoder(new JacksonDecoder())
+                .target(FeignRestInterface.class, serverAddress);
+
     }
 
     /**
      * Features: Core AAM  providing list of available security entry points
      * CommunicationType REST
      */
+
     @Test
     public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
             CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        AvailableAAMsCollection response = restTemplate.getForObject(serverAddress + SecurityConstants
-                .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class);
-
+        AvailableAAMsCollection response = restInterface.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
         // there should be only core AAM in the list
@@ -122,16 +127,11 @@ public class OtherListenersFunctionalTests extends
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
-
-        AvailableAAMsCollection response = restTemplate.getForObject(serverAddress + SecurityConstants
-                .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class);
-
+        AvailableAAMsCollection response = restInterface.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
-
         // there should be only core AAM in the list
         assertEquals(2, aams.size());
-
         // verifying the contents
         // first should be served the core AAM
         AAM coreAAM = (AAM) aams.values().toArray()[0];
@@ -139,7 +139,6 @@ public class OtherListenersFunctionalTests extends
         assertEquals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, coreAAM.getAamInstanceId());
         assertEquals(coreInterfaceAddress, coreAAM.getAamAddress());
         assertEquals(SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME, coreAAM.getAamInstanceFriendlyName());
-
         // then comes the registered platform
         AAM platformAAM = (AAM) aams.values().toArray()[1];
         assertEquals(preferredPlatformId, platformAAM.getAamInstanceId());
@@ -158,7 +157,7 @@ public class OtherListenersFunctionalTests extends
     @Test
     public void getComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException {
-        Response response = restInterfce.getComponentCertificate();
+        Response response = restInterface.getComponentCertificate();
         assertEquals(HttpStatus.OK.value(), response.status());
         assertEquals(certificationAuthorityHelper.getAAMCert(), response.body().toString());
     }

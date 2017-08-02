@@ -36,7 +36,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(usernameWithAt, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        Response response = restInterfce.getClientCertificate(certRequest);
+        Response response = restInterface.getClientCertificate(certRequest);
         assertEquals("Credentials contain illegal sign", response.body().toString());
     }
 
