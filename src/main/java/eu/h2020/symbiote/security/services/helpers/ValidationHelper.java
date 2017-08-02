@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.interfaces.IAAMServices;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
@@ -32,7 +33,6 @@ import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -55,6 +55,9 @@ public class ValidationHelper {
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
+
+    @Value("${symbiote.coreaam.url:localhost}")
+    private String coreAAMAddress = "";
     // dependencies
     private RestTemplate restTemplate = new RestTemplate();
     private IAAMServices coreServices;
@@ -164,9 +167,15 @@ public class ValidationHelper {
             return ValidationStatus.INVALID_TRUST_CHAIN;
         // TODO check if AAM is online or is configured to allow 'offline' trust chain only validation
 
-        Map<String, AAM> aams = new HashMap<>();
-        for (AAM aam : coreServices.getAvailableAAMs().getBody().getAvailableAAMs().values())
-            aams.put(aam.getAamInstanceId(), aam);
+        Map<String, AAM> aams;
+        if (deploymentType == IssuingAuthorityType.CORE) {
+            // if Core AAM then we know the available AAMs
+            aams = coreServices.getAvailableAAMs().getBody().getAvailableAAMs();
+        } else {
+            // a PAAM needs to fetch them from core
+            aams = restTemplate.getForEntity(coreAAMAddress + SecurityConstants
+                    .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class).getBody().getAvailableAAMs();
+        }
         Claims claims = JWTEngine.getClaims(tokenString);
         String issuer = claims.getIssuer();
         // Core does not know such an issuer and therefore this might be a forfeit

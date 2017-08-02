@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.utils;
 
 
+import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
@@ -8,6 +9,8 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTExceptio
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,9 +43,24 @@ public class DummyCoreAAM {
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/core.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String PATH = "/test/caam";
+    private AvailableAAMsCollection aams = new AvailableAAMsCollection();
 
-    public DummyCoreAAM() {
+    public DummyCoreAAM() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("core-1");
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        Certificate revokedCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
+
+        aams.getAvailableAAMs().put(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, new AAM("irrelevant",
+                SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME,
+                SecurityConstants.AAM_CORE_AAM_INSTANCE_ID,
+                revokedCert));
     }
 
     /**
@@ -100,6 +118,11 @@ public class DummyCoreAAM {
         pemWriter.writeObject(certificate);
         pemWriter.close();
         return signedCertificatePEMDataStringWriter.toString();
+    }
+
+    @GetMapping(path = PATH + SecurityConstants.AAM_GET_AVAILABLE_AAMS)
+    public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {
+        return new ResponseEntity<>(aams, HttpStatus.OK);
     }
 }
 

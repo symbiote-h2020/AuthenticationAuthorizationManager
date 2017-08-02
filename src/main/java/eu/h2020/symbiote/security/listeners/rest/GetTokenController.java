@@ -10,7 +10,6 @@ import eu.h2020.symbiote.security.services.GetTokenService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,9 +31,6 @@ public class GetTokenController implements IGetToken {
 
     private final GetTokenService getTokenService;
     private Log log = LogFactory.getLog(GetTokenController.class);
-
-    @Value("${symbiote.coreaam.url:localhost}")
-    private String coreAAMAddress = "";
 
     @Autowired
     public GetTokenController(GetTokenService getTokenService) {

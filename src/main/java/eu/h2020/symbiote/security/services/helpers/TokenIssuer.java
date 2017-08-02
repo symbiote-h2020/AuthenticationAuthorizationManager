@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -39,6 +40,7 @@ import java.util.Map;
 @Component
 public class TokenIssuer {
 
+    private static final String ISSUING_FOREIGN_TOKEN_ERROR = "Someone tried issuing a foreign token using a home token";
     private static Log log = LogFactory.getLog(TokenIssuer.class);
     private static SecureRandom random = new SecureRandom();
     // TODO R3 create a CRUD for this
@@ -99,7 +101,6 @@ public class TokenIssuer {
     }
 
     /**
-     *
      * @param user for which to issue to token
      * @return home token issued for given user
      * @throws JWTCreationException on error
@@ -139,14 +140,22 @@ public class TokenIssuer {
     }
 
     /**
-     * @param remoteHomeToken from which needed informations and attribiutes are gathered and maped
-     * @return foreigToken issued for given user
+     * @param remoteHomeToken from which needed information and attributes are gathered and mapped
+     * @return foreignToken issued for given user
      * @throws JWTCreationException
      */
     public Token getForeignToken(Token remoteHomeToken)
-            throws JWTCreationException {
+            throws JWTCreationException, ValidationException {
+
+        // if one has account in the AAM then should not request a foreign token
+        if (remoteHomeToken.getClaims().getIssuer().equals(deploymentId)) {
+            log.info(ISSUING_FOREIGN_TOKEN_ERROR);
+            throw new ValidationException(ISSUING_FOREIGN_TOKEN_ERROR);
+        }
+
         try {
             JWTClaims claims = JWTEngine.getClaimsFromToken(remoteHomeToken.toString());
+
             // TODO R3 Attribute Mapping Function
             Map<String, String> foreignAttributes = new HashMap<>();
 
