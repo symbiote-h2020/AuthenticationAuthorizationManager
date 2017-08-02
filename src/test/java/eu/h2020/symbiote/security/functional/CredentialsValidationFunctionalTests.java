@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import feign.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -76,7 +77,7 @@ public class CredentialsValidationFunctionalTests extends
      * Interfaces: PAAM - 4, CAAM - 10;
      * CommunicationType REST
      */
-    @Test
+    @Test//MARKER
     public void validationOverRESTValid() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -89,9 +90,11 @@ public class CredentialsValidationFunctionalTests extends
         headers.add(SecurityConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
-
+        System.out.println("request " + request);
+        Response responsed = restInterface.validate(request.getHeaders().toString(), "null");
         ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(serverAddress +
                 SecurityConstants.AAM_VALIDATE, request, ValidationStatus.class);
+        System.out.println("Status " + status);
 
         assertEquals(ValidationStatus.VALID, status.getBody());
     }

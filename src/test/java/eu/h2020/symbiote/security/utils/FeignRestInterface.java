@@ -34,8 +34,16 @@ public interface FeignRestInterface {
     Response getHomeToken(String loginRequest);
 
     @RequestLine("POST " + SecurityConstants.AAM_GET_FOREIGN_TOKEN)
-    @Headers({"Accept: application/json",
-            SecurityConstants.TOKEN_HEADER_NAME + ": " + "{remoteHomeToken}",
-            SecurityConstants.CERTIFICATE_HEADER_NAME + ": " + "{certificate}"})
-    String getForeignToken(@Param("remoteHomeToken") String remoteHomeToken, @Param("certificate") String certificate);
+    @Headers({SecurityConstants.TOKEN_HEADER_NAME + ": {token}",
+            SecurityConstants.CERTIFICATE_HEADER_NAME + ": {certificate}",
+            "Accept: application/json"})
+    Response getForeignToken(@Param("token") String homeToken,
+                             @Param("certificate") String certificate);
+
+    @RequestLine("POST " + SecurityConstants.AAM_VALIDATE)
+    @Headers({SecurityConstants.TOKEN_HEADER_NAME + ": {token}",
+            SecurityConstants.CERTIFICATE_HEADER_NAME + ": {certificate}",
+            "Accept: application/json"})
+    Response validate(@Param("token") String token,
+                      @Param("certificate") String certificate);
 }
