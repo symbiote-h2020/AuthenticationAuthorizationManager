@@ -8,6 +8,9 @@ import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
+import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,17 +28,24 @@ import java.security.cert.CertificateException;
 public class GetTokenService {
     private final TokenIssuer tokenIssuer;
     private UserRepository userRepository;
-
+    private ValidationHelper validationHelper;
+    private Log log = LogFactory.getLog(GetTokenService.class);
 
     @Autowired
-    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository) {
+    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository, ValidationHelper validationHelper) {
         this.tokenIssuer = tokenIssuer;
         this.userRepository = userRepository;
+        this.validationHelper = validationHelper;
 
     }
 
-    public Token getForeignToken(String remoteHomeToken) throws JWTCreationException {
-        return tokenIssuer.getForeignToken(remoteHomeToken);
+    public Token getForeignToken(Token receivedToken, String certificate) throws JWTCreationException, ValidationException {
+        ValidationStatus validationStatus = validationHelper.validate(receivedToken.toString(), certificate);
+        if (validationStatus != ValidationStatus.VALID) {
+            log.error("Validation error occured: " + validationStatus.name());
+            throw new ValidationException("Validation error occured");
+        }
+        return tokenIssuer.getForeignToken(receivedToken);
     }
 
     public Token getGuestToken() throws JWTCreationException {

@@ -7,8 +7,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.x500.X500Name;
-import org.bouncycastle.asn1.x500.X500NameBuilder;
-import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
@@ -46,6 +44,8 @@ public class CertificationAuthorityHelper {
 
     @Value("${aam.security.KEY_STORE_FILE_NAME}")
     private String KEY_STORE_FILE_NAME;
+    @Value("${aam.security.ROOT_CA_CERTIFICATE_ALIAS}")
+    private String ROOT_CA_CERTIFICATE_ALIAS;
     @Value("${aam.security.CERTIFICATE_ALIAS}")
     private String CERTIFICATE_ALIAS;
 
@@ -84,21 +84,6 @@ public class CertificationAuthorityHelper {
     }
 
 
-    private X500NameBuilder createStdBuilder(String givenName) throws NoSuchProviderException {
-        X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
-        builder.addRDN(BCStyle.NAME, givenName);
-        try {
-            builder.addRDN(BCStyle.OU,
-                    getAAMCertificate().getSubjectX500Principal().getName().split(",")[1].split("=")[1]);
-            builder.addRDN(BCStyle.O,
-                    getAAMCertificate().getSubjectX500Principal().getName().split(",")[2].split("=")[1]);
-        } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException e) {
-            log.error(e);
-            return null;
-        }
-        return builder;
-    }
-
     /**
      * @return Retrieves AAM's certificate in PEM format
      * @throws NoSuchProviderException
@@ -110,6 +95,34 @@ public class CertificationAuthorityHelper {
     public String getAAMCert() throws NoSuchProviderException, KeyStoreException, IOException,
             CertificateException, NoSuchAlgorithmException {
         return CryptoHelper.convertX509ToPEM(getAAMCertificate());
+    }
+
+    /**
+     * @return Retrieves RootCA's certificate in PEM format
+     * @throws NoSuchProviderException
+     * @throws KeyStoreException
+     * @throws IOException
+     * @throws CertificateException
+     * @throws NoSuchAlgorithmException
+     */
+    public String getRootCACert() throws NoSuchProviderException, KeyStoreException, IOException,
+            CertificateException, NoSuchAlgorithmException {
+        return CryptoHelper.convertX509ToPEM(getAAMCertificate());
+    }
+
+    /**
+     * @return RootCA certificate in X509 format
+     * @throws KeyStoreException
+     * @throws NoSuchProviderException
+     * @throws IOException
+     * @throws NoSuchAlgorithmException
+     * @throws CertificateException
+     */
+    public X509Certificate getRootCACertificate() throws KeyStoreException, NoSuchProviderException, IOException,
+            NoSuchAlgorithmException, CertificateException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        return (X509Certificate) pkcs12Store.getCertificate(ROOT_CA_CERTIFICATE_ALIAS);
     }
 
     /**
@@ -126,7 +139,6 @@ public class CertificationAuthorityHelper {
         pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         return (X509Certificate) pkcs12Store.getCertificate(CERTIFICATE_ALIAS);
     }
-
 
     /**
      * @return Retrieves AAM's public key from provisioned JavaKeyStore
@@ -165,7 +177,7 @@ public class CertificationAuthorityHelper {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         X509Certificate caCert = (X509Certificate) pkcs12Store.getCertificate(CERTIFICATE_ALIAS);
-        X500Name issuer = new X500Name( caCert.getSubjectX500Principal().getName() );
+        X500Name issuer = new X500Name(caCert.getSubjectX500Principal().getName());
         PrivateKey privKey = this.getAAMPrivateKey();
         JcaPKCS10CertificationRequest jcaRequest = new JcaPKCS10CertificationRequest(request);
 
@@ -190,11 +202,10 @@ public class CertificationAuthorityHelper {
                         false,
                         basicConstraints);
 
-        X509Certificate cert = new JcaX509CertificateConverter().setProvider(CryptoHelper.PROVIDER_NAME)
+        return new JcaX509CertificateConverter()
+                .setProvider(CryptoHelper.PROVIDER_NAME)
                 .getCertificate(certGen
-                .build(sigGen));
-
-        return cert;
+                        .build(sigGen));
     }
 
 }
