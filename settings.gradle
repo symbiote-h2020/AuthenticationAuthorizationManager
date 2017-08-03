@@ -4,5 +4,5 @@ rootProject.name = 'AuthenticationAuthorizationManager'
     - the path should point to where the SymbIoTeSecurity repository is cloned
     - when commiting and pushing to remote repository the lines below >>> MUST BE COMMENTED OUT <<< so that CI server will use the jar file from jitpack
 */
-//include 'SymbIoTeSecurity'
-//project(':SymbIoTeSecurity').projectDir = new File(settingsDir, "../SymbIoTeSecurity")
+include 'SymbIoTeSecurity'
+project(':SymbIoTeSecurity').projectDir = new File(settingsDir, "../SymbIoTeSecurity")

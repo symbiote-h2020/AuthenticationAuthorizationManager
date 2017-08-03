@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -69,7 +68,7 @@ public class GetTokenController implements IGetToken {
     }
 
     //L1 Diagrams - getHomeToken()
-    public ResponseEntity<String> getHomeToken(@RequestBody String loginRequest) {
+    public ResponseEntity<String> getHomeToken(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String loginRequest) {
         //  Temporary - Removes additional '"' coming from encoder
         String checked = loginRequest;
         if (loginRequest.startsWith("\"") && loginRequest.endsWith("\""))

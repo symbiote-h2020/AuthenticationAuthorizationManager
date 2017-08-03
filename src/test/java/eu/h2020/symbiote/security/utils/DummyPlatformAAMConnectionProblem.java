@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTExceptio
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -41,6 +42,21 @@ public class DummyPlatformAAMConnectionProblem {
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String PATH = "/test/conn_err/paam";
+    // Leaf Certificate
+    private static String applicationCertificatePEM =
+            "-----BEGIN CERTIFICATE-----\n" +
+                    "MIIB6jCCAZCgAwIBAgIEWWyv1DAKBggqhkjOPQQDAjB0MRQwEgYJKoZIhvcNAQkB\n" +
+                    "FgVhQGIuYzENMAsGA1UECxMEdGVzdDENMAsGA1UEChMEdGVzdDENMAsGA1UEBxME\n" +
+                    "dGVzdDENMAsGA1UECBMEdGVzdDELMAkGA1UEBhMCUEwxEzARBgNVBAMTCnBsYXRm\n" +
+                    "b3JtLTEwHhcNMTcwNzE3MTIzODUxWhcNMTgwNzE3MTIzODUxWjCBhTEUMBIGCSqG\n" +
+                    "SIb3DQEJARYFYUBiLmMxCzAJBgNVBAYTAklUMQ0wCwYDVQQIDAR0ZXN0MQ0wCwYD\n" +
+                    "VQQHDAR0ZXN0MQ0wCwYDVQQKDAR0ZXN0MQ0wCwYDVQQLDAR0ZXN0MSQwIgYDVQQD\n" +
+                    "DBthcHBsaWNhdGlvbi1wbGF0Zm9ybS0xLTEtYzEwWTATBgcqhkjOPQIBBggqhkjO\n" +
+                    "PQMBBwNCAASGxfZa6ivSR4+BWBHRh94MNURAXBpBrZECvMH/rcgm8/aTHach6ncN\n" +
+                    "fw8VY2RNf3l/runJOQQH/3xGEisDIY7fMAoGCCqGSM49BAMCA0gAMEUCIDrJxAet\n" +
+                    "0IqR6aiJc87BS1faA8Ijl7kQnkphPOazKiXXAiEAoVHhBTNZACa4+2/0OsSg2k2P\n" +
+                    "jExF7CXu6SB/rvivAXk=\n" +
+                    "-----END CERTIFICATE-----\n";
 
     public DummyPlatformAAMConnectionProblem() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -61,8 +77,7 @@ public class DummyPlatformAAMConnectionProblem {
 
             HashMap<String, String> attributes = new HashMap<>();
             attributes.put("name", "test2");
-            String tokenString = TokenIssuer.buildAuthorizationToken(claims.getIss(), attributes, ks.getCertificate
-                            (CERTIFICATE_ALIAS).getPublicKey().getEncoded(), Token.Type.HOME, new Date().getTime()
+            String tokenString = TokenIssuer.buildAuthorizationToken(claims.getIss(), attributes, CryptoHelper.convertPEMToX509(applicationCertificatePEM).getPublicKey().getEncoded(), Token.Type.HOME, new Date().getTime()
                             + 60000
                     , "testaam-connerr", ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
                     (PrivateKey) key);

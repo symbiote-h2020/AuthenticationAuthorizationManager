@@ -9,11 +9,11 @@ import feign.Param;
 import feign.RequestLine;
 import feign.Response;
 
-/*
- *  Access to services provided by AAMS  (WIP)
+/**
+ *  Access to services provided by AAMS
  *  @author Dariusz Krajewski (PSNC)
+ *  @author Mikołaj Dobski (PSNC)
  */
-
 public interface FeignRestInterface {
 
     @RequestLine("GET " + SecurityConstants.AAM_GET_AVAILABLE_AAMS)
@@ -31,8 +31,10 @@ public interface FeignRestInterface {
     Response getGuestToken();
 
     @RequestLine("POST " + SecurityConstants.AAM_GET_HOME_TOKEN)
-    @Headers("Content-Type: application/json")
-    Response getHomeToken(String loginRequest);
+    @Headers({SecurityConstants.TOKEN_HEADER_NAME + ": {token}",
+            "Content-Type: application/json",
+            "Accept: application/json"})
+    Response getHomeToken(@Param("token") String loginRequest);
 
     @RequestLine("POST " + SecurityConstants.AAM_GET_FOREIGN_TOKEN)
     @Headers({SecurityConstants.TOKEN_HEADER_NAME + ": {token}",

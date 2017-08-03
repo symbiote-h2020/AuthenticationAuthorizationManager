@@ -26,14 +26,6 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.*;
 import java.util.*;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.PublicKey;
-import java.security.cert.CertificateException;
-import java.security.cert.CertificateExpiredException;
-import java.security.cert.CertificateNotYetValidException;
-import java.security.cert.X509Certificate;
 
 /**
  * Used to validate given credentials against data in the AAMs
@@ -55,6 +47,9 @@ public class ValidationHelper {
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
+
+    @Value("${aam.deployment.validation.allow-offline}")
+    private boolean isOfflineEnough;
 
     // dependencies
     private RestTemplate restTemplate = new RestTemplate();
@@ -155,15 +150,30 @@ public class ValidationHelper {
         return ValidationStatus.VALID;
     }
 
-    public ValidationStatus validateForeignToken(String tokenString, String certificateString) throws
+    public ValidationStatus validateForeignToken(String tokenString, String clientCertificateChainPEMsString) throws
             CertificateException,
-            NullPointerException, ValidationException, NoSuchAlgorithmException, NoSuchProviderException,
+            ValidationException, NoSuchAlgorithmException, NoSuchProviderException,
             KeyStoreException, IOException {
         // if the certificate is not empty, then check the trust chain
-        if (!certificateString.isEmpty() && !isTrusted(certificationAuthorityHelper
-                .getAAMCertificate(), certificateString))
-            return ValidationStatus.INVALID_TRUST_CHAIN;
-        // TODO check if AAM is online or is configured to allow 'offline' trust chain only validation
+        if (!clientCertificateChainPEMsString.isEmpty()) {
+            try {
+                // TODO Daniele please refactor this awful code by Mikołaj :)
+                // split it into intermediate cert and app cert
+                String certEnd = "-----END CERTIFICATE-----\n";
+                int splitIndex = clientCertificateChainPEMsString.indexOf(certEnd) + certEnd.length();
+                String signingAAMCert = clientCertificateChainPEMsString.substring(0, splitIndex);
+                String appCert = clientCertificateChainPEMsString.substring(splitIndex);
+                // reject on failed trust chain
+                if (!isTrusted(CryptoHelper.convertPEMToX509(signingAAMCert), appCert))
+                    return ValidationStatus.INVALID_TRUST_CHAIN;
+                // end procedure if offline validation is enough
+                if (isOfflineEnough)
+                    return ValidationStatus.VALID;
+            } catch (NullPointerException npe) {
+                log.error("Problem with parsing the given PEMs string");
+                return ValidationStatus.INVALID_TRUST_CHAIN;
+            }
+        }
 
         // resolving available AAMs in search of the token issuer
         Map<String, AAM> availableAAMs = aamServices.getAvailableAAMs();
@@ -259,7 +269,7 @@ public class ValidationHelper {
 
             return true;
 
-        } catch(CertPathBuilderException  | InvalidAlgorithmParameterException e) {
+        } catch (CertPathBuilderException | InvalidAlgorithmParameterException e) {
             log.info(e);
             return false;
         }

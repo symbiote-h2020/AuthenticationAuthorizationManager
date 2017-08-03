@@ -562,12 +562,11 @@ public class TokensIssuingFunctionalTests extends
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
-        HttpHeaders loginHeaders = response.getHeaders();
+
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(SecurityConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        headers.add(SecurityConstants.TOKEN_HEADER_NAME,
+                restInterface.getHomeToken(loginRequest).headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString());
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
@@ -579,7 +578,6 @@ public class TokensIssuingFunctionalTests extends
         } catch (HttpClientErrorException e) {
             assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
         }
-
     }
 
     @Test
