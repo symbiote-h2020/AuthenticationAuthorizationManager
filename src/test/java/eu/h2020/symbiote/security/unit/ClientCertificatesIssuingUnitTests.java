@@ -32,7 +32,6 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.security.auth.x500.X500Principal;
@@ -179,15 +178,11 @@ public class ClientCertificatesIssuingUnitTests extends
 
         KeyPair pair = CryptoHelper.createKeyPair();
 
-        /*CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        Response response2 = restInterface.getClientCertificate(certRequest);
-        assertEquals("Wrong credentials", response2.body().toString());*/
         String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(),
                 user.getUsername(), clientId, pair);
         CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, csr);
-        ResponseEntity<String> response2 = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
-                certRequest, String.class);
-        assertEquals("Wrong credentials", response2.getBody());
+        Response response = restInterface.getClientCertificate(certRequest);
+        assertEquals("Wrong credentials", response.body().toString());
     }
 
     @Test
@@ -203,9 +198,6 @@ public class ClientCertificatesIssuingUnitTests extends
 
         KeyPair pair = CryptoHelper.createKeyPair();
 
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        Response response = restInterface.getClientCertificate(certRequest);
-        assertEquals("Subject name doesn't match", response.body().toString());
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
         X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
@@ -213,9 +205,8 @@ public class ClientCertificatesIssuingUnitTests extends
         String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificate, username, clientId, pair);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csr);
 
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
-                certRequest, String.class);
-        assertEquals("Subject name doesn't match", response.getBody());
+        Response response = restInterface.getClientCertificate(certRequest);
+        assertEquals("Subject name doesn't match", response.body().toString());
     }
 
     @Test
