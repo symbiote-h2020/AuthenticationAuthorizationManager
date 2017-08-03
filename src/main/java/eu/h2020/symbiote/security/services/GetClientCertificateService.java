@@ -86,11 +86,6 @@ public class GetClientCertificateService {
 
         X509Certificate caCert = certificationAuthorityHelper.getAAMCertificate();
 
-        log.info("*************");
-        log.info(req.getSubject().toString().split("CN=")[1]);
-        log.info("*************");
-
-
         if (!req.getSubject().toString().split("CN=")[1].contains(illegalSign)) {
             if (userRepository.findOne(certificateRequest.getUsername()).getRole() != UserRole.PLATFORM_OWNER) {
                 throw new SecurityException("User is not a Platform Owner");
