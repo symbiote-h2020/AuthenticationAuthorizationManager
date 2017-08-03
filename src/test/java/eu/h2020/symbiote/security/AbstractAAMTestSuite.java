@@ -118,7 +118,7 @@ public abstract class AbstractAAMTestSuite {
     @LocalServerPort
     private int port;
 
-    protected FeignRestInterface restInterface;
+    protected FeignRestInterface aamservices;
     @Before
     public void setUp() throws Exception {
         // Catch the random port

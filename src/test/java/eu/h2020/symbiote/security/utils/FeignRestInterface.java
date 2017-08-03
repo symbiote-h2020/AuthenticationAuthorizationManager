@@ -31,8 +31,9 @@ public interface FeignRestInterface {
     Response getGuestToken();
 
     @RequestLine("POST " + SecurityConstants.AAM_GET_HOME_TOKEN)
-    @Headers("Content-Type: application/json")
-    Response getHomeToken(String loginRequest);
+    @Headers({"Content-Type: text/plain", "Accept: text/plain",
+            SecurityConstants.TOKEN_HEADER_NAME + ": " + "{token}"})
+    Response getHomeToken(@Param("token") String loginRequest);
 
     @RequestLine("POST " + SecurityConstants.AAM_GET_FOREIGN_TOKEN)
     @Headers({SecurityConstants.TOKEN_HEADER_NAME + ": {token}",

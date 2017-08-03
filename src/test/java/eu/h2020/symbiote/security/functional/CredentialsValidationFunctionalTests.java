@@ -8,11 +8,8 @@ import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.utils.FeignRestInterface;
-import feign.Feign;
+import eu.h2020.symbiote.security.utils.AAMClients;
 import feign.Response;
-import feign.jackson.JacksonDecoder;
-import feign.jackson.JacksonEncoder;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -50,7 +47,7 @@ public class CredentialsValidationFunctionalTests extends
 
     @Before
     public void setup() {
-        restInterface = Feign.builder().encoder(new JacksonEncoder()).decoder(new JacksonDecoder()).target(FeignRestInterface.class, serverAddress);
+        aamservices = AAMClients.getJsonClient(serverAddress);
     }
     @Test
     public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
@@ -58,7 +55,7 @@ public class CredentialsValidationFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = restInterface.getHomeToken(loginRequest);
+        Response response = aamservices.getHomeToken(loginRequest);
         assertEquals(HttpStatus.OK.value(), response.status());
         assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
         String token = response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString();
@@ -88,12 +85,12 @@ public class CredentialsValidationFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = restInterface.getHomeToken(loginRequest);
+        Response response = aamservices.getHomeToken(loginRequest);
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
         headers.add(SecurityConstants.TOKEN_HEADER_NAME, response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString());
 
-        ValidationStatus status = restInterface.validate(headers.getFirst("X-Auth-Token").toString(), "null");
+        ValidationStatus status = aamservices.validate(headers.getFirst("X-Auth-Token").toString(), "null");
         assertEquals(ValidationStatus.VALID, status);
     }
 
@@ -109,13 +106,13 @@ public class CredentialsValidationFunctionalTests extends
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        Response response = restInterface.getHomeToken(loginRequest);
+        Response response = aamservices.getHomeToken(loginRequest);
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 1000);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
         headers.add(SecurityConstants.TOKEN_HEADER_NAME, response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString());
 
-        ValidationStatus status = restInterface.validate(headers.getFirst("X-Auth-Token").toString(), "null");
+        ValidationStatus status = aamservices.validate(headers.getFirst("X-Auth-Token").toString(), "null");
         // TODO cover other situations (bad key, on purpose revocation)
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status);
     }
