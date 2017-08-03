@@ -5,14 +5,14 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.RESTAAMClient;
+import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.GetClientCertificateService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
-import eu.h2020.symbiote.security.utils.AAMClients;
 import feign.Response;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -59,7 +59,7 @@ public class ClientCertificatesIssuingUnitTests extends
 
     @Before
     public void setup() {
-        aamservices = AAMClients.getJsonClient(serverAddress);
+        aamClient = RESTAAMClient.getJsonClient(serverAddress);
     }
 
     @Test
@@ -149,7 +149,7 @@ public class ClientCertificatesIssuingUnitTests extends
         String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(),
                 user.getUsername(), clientId, pair);
         CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, csr);
-        Response response = aamservices.getClientCertificate(certRequest);
+        Response response = aamClient.getClientCertificate(certRequest);
         assertEquals("Wrong credentials", response.body().toString());
         getClientCertificateService.getCertificate(certRequest);
     }

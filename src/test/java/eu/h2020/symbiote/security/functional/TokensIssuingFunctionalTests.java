@@ -11,13 +11,13 @@ import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.*;
+import eu.h2020.symbiote.security.communication.RESTAAMClient;
+import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
-import eu.h2020.symbiote.security.utils.AAMClients;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import feign.Response;
 import org.apache.commons.logging.Log;
@@ -128,7 +128,7 @@ public class TokensIssuingFunctionalTests extends
                 platformInstanceFriendlyName,
                 preferredPlatformId);
         platformOwnerKeyPair = CryptoHelper.createKeyPair();
-        aamservices = AAMClients.getJsonClient(serverAddress);
+        aamClient = RESTAAMClient.getJsonClient(serverAddress);
     }
 
     /**
@@ -250,7 +250,7 @@ public class TokensIssuingFunctionalTests extends
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        Response response = aamservices.getHomeToken(loginRequest);
+        Response response = aamClient.getHomeToken(loginRequest);
         assertEquals(HttpStatus.UNAUTHORIZED.value(), response.status());
     }
 
@@ -260,7 +260,7 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamservices.getHomeToken(loginRequest);
+        Response response = aamClient.getHomeToken(loginRequest);
         assertEquals(HttpStatus.UNAUTHORIZED.value(), response.status());
     }
 
@@ -274,7 +274,7 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, wrongClientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamservices.getHomeToken(loginRequest);
+        Response response = aamClient.getHomeToken(loginRequest);
         assertEquals(HttpStatus.UNAUTHORIZED.value(), response.status());
     }
 
@@ -289,7 +289,7 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamservices.getHomeToken(loginRequest);
+        Response response = aamClient.getHomeToken(loginRequest);
         assertEquals(HttpStatus.OK.value(), response.status());
         assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toString());
@@ -342,7 +342,7 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, platformOwnerKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamservices.getHomeToken(loginRequest);
+        Response response = aamClient.getHomeToken(loginRequest);
         assertEquals(HttpStatus.OK.value(), response.status());
         //verify that JWT was issued for user
         assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
@@ -405,7 +405,7 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, preferredPlatformId, null, platformOwnerKeyPair.getPrivate());
 
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        Response response = aamservices.getHomeToken(loginRequest);
+        Response response = aamClient.getHomeToken(loginRequest);
         assertEquals(HttpStatus.OK.value(), response.status());
         //verify that JWT was issued for user
         assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
@@ -463,7 +463,7 @@ public class TokensIssuingFunctionalTests extends
         // getHomeToken the platform owner
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, platformOwnerKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        Response response = aamservices.getHomeToken(loginRequest);
+        Response response = aamClient.getHomeToken(loginRequest);
         assertEquals(HttpStatus.OK.value(), response.status());
         //verify that JWT was issued for user
         assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
@@ -529,7 +529,7 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, coreAppUsername, platformId, null, keyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamservices.getHomeToken(loginRequest);
+        Response response = aamClient.getHomeToken(loginRequest);
         assertEquals(HttpStatus.OK.value(), response.status());
         //verify that JWT was issued for user
         assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
@@ -557,7 +557,7 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamservices.getHomeToken(loginRequest);
+        Response response = aamClient.getHomeToken(loginRequest);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
         headers.add(SecurityConstants.TOKEN_HEADER_NAME, response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toString());
 
@@ -615,7 +615,7 @@ public class TokensIssuingFunctionalTests extends
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
 
         // checking issuing of foreign token using the dummy platform token
-        Response response = aamservices.getForeignToken(entity.getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString(), "");
+        Response response = aamClient.getForeignToken(entity.getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString(), "");
 
         // check if returned status is ok and if there is token in header
         assertEquals(HttpStatus.OK.value(), response.status());
@@ -752,7 +752,7 @@ public class TokensIssuingFunctionalTests extends
 
     @Test
     public void getGuestTokenOverRESTSuccess() throws MalformedJWTException {
-        Response response = aamservices.getGuestToken();
+        Response response = aamClient.getGuestToken();
         //HttpHeaders headers = response.getHeaders();
         assertEquals(HttpStatus.OK.value(), response.status());
         assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));

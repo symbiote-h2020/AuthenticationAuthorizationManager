@@ -1,9 +1,9 @@
-package eu.h2020.symbiote.security.listeners.rest;
+package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
-import eu.h2020.symbiote.security.communication.interfaces.IGetClientCertificate;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.listeners.rest.interfaces.IGetClientCertificate;
 import eu.h2020.symbiote.security.services.GetClientCertificateService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

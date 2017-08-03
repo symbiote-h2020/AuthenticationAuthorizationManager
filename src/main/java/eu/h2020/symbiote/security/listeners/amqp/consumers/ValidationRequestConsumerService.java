@@ -6,7 +6,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.ValidationRequest;
+import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.services.CredentialsValidationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

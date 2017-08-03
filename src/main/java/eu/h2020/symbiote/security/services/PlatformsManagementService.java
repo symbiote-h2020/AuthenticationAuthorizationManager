@@ -1,20 +1,18 @@
 package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ExistingPlatformException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MissingArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UnauthorizedRegistrationException;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementResponse;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
+import eu.h2020.symbiote.security.communication.payloads.PlatformManagementResponse;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
-import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -33,23 +31,17 @@ public class PlatformsManagementService {
 
     private static final String GENERATED_PLATFORM_IDENTIFIER_PREFIX = "PLATFORM_";
     private final UserRepository userRepository;
-    private final UsersManagementService usersManagementService;
     private final PlatformRepository platformRepository;
 
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
-    private IssuingAuthorityType deploymentType;
 
     @Autowired
-    public PlatformsManagementService(UserRepository userRepository, UsersManagementService
-            usersManagementService, PlatformRepository platformRepository, CertificationAuthorityHelper
-                                              certificationAuthorityHelper) {
+    public PlatformsManagementService(UserRepository userRepository, PlatformRepository platformRepository) {
         this.userRepository = userRepository;
-        this.usersManagementService = usersManagementService;
         this.platformRepository = platformRepository;
-        this.deploymentType = certificationAuthorityHelper.getDeploymentType();
     }
 
     public PlatformManagementResponse authRegister(PlatformManagementRequest request) throws

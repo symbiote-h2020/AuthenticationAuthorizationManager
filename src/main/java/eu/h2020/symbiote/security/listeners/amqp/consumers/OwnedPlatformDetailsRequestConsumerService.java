@@ -14,8 +14,8 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTExceptio
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.OwnedPlatformDetails;
+import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.communication.payloads.OwnedPlatformDetails;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;

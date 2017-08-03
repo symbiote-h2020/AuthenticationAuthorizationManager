@@ -5,7 +5,7 @@ import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;

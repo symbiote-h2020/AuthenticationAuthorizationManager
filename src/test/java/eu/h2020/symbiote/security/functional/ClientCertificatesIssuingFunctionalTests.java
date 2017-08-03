@@ -4,13 +4,13 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.AvailableAAMsCollection;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.communication.RESTAAMClient;
+import eu.h2020.symbiote.security.communication.payloads.AAM;
+import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
+import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.utils.AAMClients;
 import feign.Response;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -36,7 +36,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
         AbstractAAMTestSuite {
     @Before
     public void setup() {
-        aamservices = AAMClients.getJsonClient(serverAddress);
+        aamClient = RESTAAMClient.getJsonClient(serverAddress);
     }
     @Test
     public void getClientCertificateOverRESTInvalidArguments() throws NoSuchAlgorithmException, CertificateException,
@@ -48,7 +48,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(usernameWithAt, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        Response response = aamservices.getClientCertificate(certRequest);
+        Response response = aamClient.getClientCertificate(certRequest);
         assertEquals("Credentials contain illegal sign", response.body().toString());
     }
 
@@ -63,13 +63,13 @@ public class ClientCertificatesIssuingFunctionalTests extends
         user.setRole(UserRole.USER);
         userRepository.save(user);
 
-        AvailableAAMsCollection aamResponse = aamservices.getAvailableAAMs();
+        AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        Response response = aamservices.getClientCertificate(certRequest);
+        Response response = aamClient.getClientCertificate(certRequest);
 
         assertNotNull(CryptoHelper.convertPEMToX509(response.body().toString()));
         assertEquals("CN=" + username + "@" + clientId + "@" + homeAAM.getAamInstanceId(), CryptoHelper.convertPEMToX509(response.body().toString()).getSubjectDN().getName());
@@ -93,7 +93,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
 
-        Response response = aamservices.getClientCertificate(certRequest);
+        Response response = aamClient.getClientCertificate(certRequest);
 
         assertNotNull(CryptoHelper.convertPEMToX509(response.body().toString()));
         assertEquals("CN=" + platform.getPlatformInstanceId(), CryptoHelper.convertPEMToX509(response.body().toString()).getSubjectDN().getName());

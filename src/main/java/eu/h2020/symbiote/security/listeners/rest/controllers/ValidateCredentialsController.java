@@ -1,10 +1,10 @@
-package eu.h2020.symbiote.security.listeners.rest;
+package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.interfaces.IValidateCredentials;
+import eu.h2020.symbiote.security.listeners.rest.interfaces.IValidateCredentials;
 import eu.h2020.symbiote.security.services.CredentialsValidationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

@@ -1,9 +1,9 @@
-package eu.h2020.symbiote.security.listeners.rest;
+package eu.h2020.symbiote.security.listeners.rest.controllers;
 
-import eu.h2020.symbiote.security.communication.interfaces.IAAMServices;
-import eu.h2020.symbiote.security.communication.interfaces.IGetComponentCertificate;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.AvailableAAMsCollection;
+import eu.h2020.symbiote.security.communication.payloads.AAM;
+import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
+import eu.h2020.symbiote.security.listeners.rest.interfaces.IAAMServices;
+import eu.h2020.symbiote.security.listeners.rest.interfaces.IGetComponentCertificate;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.apache.commons.logging.Log;

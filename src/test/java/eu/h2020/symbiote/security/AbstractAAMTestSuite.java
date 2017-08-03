@@ -4,10 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.UserDetails;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.communication.interfaces.FeignAAMRESTInterface;
+import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.UserDetails;
+import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.listeners.amqp.RabbitManager;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
@@ -17,7 +18,6 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import eu.h2020.symbiote.security.utils.FeignRestInterface;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.ContentSigner;
@@ -119,7 +119,7 @@ public abstract class AbstractAAMTestSuite {
     @LocalServerPort
     private int port;
 
-    protected FeignRestInterface aamservices;
+    protected FeignAAMRESTInterface aamClient;
     @Before
     public void setUp() throws Exception {
         // Catch the random port

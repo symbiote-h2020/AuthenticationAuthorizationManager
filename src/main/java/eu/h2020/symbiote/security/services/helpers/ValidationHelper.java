@@ -5,7 +5,7 @@ import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
+import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;

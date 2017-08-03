@@ -5,12 +5,12 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.AvailableAAMsCollection;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
+import eu.h2020.symbiote.security.communication.RESTAAMClient;
+import eu.h2020.symbiote.security.communication.payloads.AAM;
+import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.utils.AAMClients;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import feign.Response;
 import org.apache.commons.logging.Log;
@@ -85,7 +85,7 @@ public class OtherListenersFunctionalTests extends
                 platformInstanceFriendlyName,
                 preferredPlatformId);
 
-        aamservices = AAMClients.getJsonClient(serverAddress);
+        aamClient = RESTAAMClient.getJsonClient(serverAddress);
 
     }
 
@@ -97,7 +97,7 @@ public class OtherListenersFunctionalTests extends
     @Test
     public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
             CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        AvailableAAMsCollection response = aamservices.getAvailableAAMs();
+        AvailableAAMsCollection response = aamClient.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
         // there should be only core AAM in the list
@@ -121,7 +121,7 @@ public class OtherListenersFunctionalTests extends
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
-        AvailableAAMsCollection response = aamservices.getAvailableAAMs();
+        AvailableAAMsCollection response = aamClient.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
         // there should be only core AAM in the list
@@ -151,7 +151,7 @@ public class OtherListenersFunctionalTests extends
     @Test
     public void getComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException {
-        Response response = aamservices.getComponentCertificate();
+        Response response = aamClient.getComponentCertificate();
         assertEquals(HttpStatus.OK.value(), response.status());
         assertEquals(certificationAuthorityHelper.getAAMCert(), response.body().toString());
     }
