@@ -75,14 +75,8 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
 
             // registered platforms' AAMs
             for (Platform platform : platformRepository.findAll()) {
-                // TODO R3 include the real platform certificate
-                AAM platformAAM = new AAM("temporary", platform.getPlatformInstanceFriendlyName(), platform
+                AAM platformAAM = new AAM(platform.getPlatformInterworkingInterfaceAddress() + platformAAMSuffixAtInterWorkingInterface, platform.getPlatformInstanceFriendlyName(), platform
                         .getPlatformInstanceId(), platform.getPlatformAAMCertificate());
-                // building paam path
-                StringBuilder paamAddress = new StringBuilder(platform.getPlatformInterworkingInterfaceAddress());
-                paamAddress.append(platformAAMSuffixAtInterWorkingInterface);
-                // setting the AAM properly
-                platformAAM.setAamAddress(paamAddress.toString());
                 // add the platform AAM entrypoint to the results
                 availableAAMs.put(platformAAM.getAamInstanceId(), platformAAM);
             }

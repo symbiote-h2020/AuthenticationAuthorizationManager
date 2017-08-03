@@ -11,7 +11,6 @@ import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManageme
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -50,11 +49,6 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
         return new DummyPlatformAAM();
-    }
-
-    @Bean
-    DummyPlatformAAMConnectionProblem getDummyPlatformAAMConnectionProblem() {
-        return new DummyPlatformAAMConnectionProblem();
     }
 
     @Override

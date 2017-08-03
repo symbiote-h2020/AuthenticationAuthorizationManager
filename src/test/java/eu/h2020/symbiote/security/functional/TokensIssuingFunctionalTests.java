@@ -46,7 +46,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestClientException;
 
 import javax.security.auth.x500.X500Principal;
 import java.io.FileInputStream;
@@ -316,147 +315,6 @@ public class TokensIssuingFunctionalTests extends
     }
 
     /**
-     * Features: PAAM - 4, CAAM - 5 (tokens issueing)
-     * Interfaces: PAAM - 5, CAAM - 11;
-     * CommunicationType REST
-     */
-    @Test// REVIEW
-    public void getForeignTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
-        addTestUserWithClientCertificateToRepository();
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-
-        Response response = restInterface.getHomeToken(loginRequest);
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(SecurityConstants.TOKEN_HEADER_NAME, response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toString());
-        HttpEntity<String> request = new HttpEntity<String>(null, headers);
-        try {
-
-            restInterface.getForeignToken(request.getHeaders().get("X-Auth-Token").toArray()[0].toString(), "null");
-        } catch (RestClientException | feign.FeignException e) {
-            // TODO think of a better way to assert that BAD_REQUEST
-            log.error(e);
-            assertNotNull(e);
-        }
-
-    }
-
-    @Test
-    public void getGuestTokenOverRESTSuccess() throws MalformedJWTException {
-        Response response = restInterface.getGuestToken();
-        assertEquals(HttpStatus.OK.value(), response.status());
-        assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toString());
-        assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));
-        assertTrue(claimsFromToken.getAtt().isEmpty());
-    }
-
-
-    @Test
-    public void getForeignTokenUsingPlatformTokenOverRESTSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException {
-        // issuing dummy platform token
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
-                        SecurityConstants
-                                .AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
-        Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
-
-        String platformId = "platform-1";
-        // registering the platform to the Core AAM so it will be available for token revocation
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
-        //inject platform PEM Certificate to the database
-        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
-        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
-        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
-        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
-        pemWriter.writeObject(certificate);
-        pemWriter.close();
-        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
-        Platform dummyPlatform = platformRepository.findOne(platformId);
-        dummyPlatform.setPlatformAAMCertificate(new eu.h2020.symbiote.security.commons.Certificate(dummyPlatformAAMPEMCertString));
-        platformRepository.save(dummyPlatform);
-
-        // preparing request
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(SecurityConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
-
-        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
-        // adding a dummy foreign rule
-        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
-        Response response = restInterface.getForeignToken(entity.getHeaders().get("X-Auth-Token").toArray()[0].toString(), "null");
-
-        // check if returned status is ok and if there is token in header
-        assertEquals(HttpStatus.OK.value(), response.status());
-        assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toString());
-        assertEquals(Token.Type.FOREIGN, Token.Type.valueOf(claimsFromToken.getTtyp()));
-    }
-
-
-    /**
-     * Features: PAAM - 4, CAAM - 5 (tokens issueing)
-     * Interfaces: PAAM - 5, CAAM - 11;
-     * CommunicationType REST
-     */
-    @Test
-    public void getForeignTokenFromCoreUsingPlatformTokenOverRESTFailsForUndefinedForeignMapping() throws IOException, ValidationException, TimeoutException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, JWTCreationException {
-        // issuing dummy platform token
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
-                        SecurityConstants
-                                .AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
-        Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
-
-        String platformId = "platform-1";
-        // registering the platform to the Core AAM so it will be available for token revocation
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
-        //inject platform PEM Certificate to the database
-        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
-        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
-        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
-        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
-        pemWriter.writeObject(certificate);
-        pemWriter.close();
-        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
-        Platform dummyPlatform = platformRepository.findOne(platformId);
-        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
-        platformRepository.save(dummyPlatform);
-
-        // preparing request
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(SecurityConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
-
-        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
-
-        // making sure the foreignMappingRules are empty
-        tokenIssuer.foreignMappingRules.clear();
-
-        // checking issuing of foreign token using the dummy platform token
-        try {
-            Response response = restInterface.getForeignToken(entity.getHeaders().get("X-Auth-Token").toArray()[0].toString(), "null");
-        } catch (HttpServerErrorException e) {
-            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getRawStatusCode());
-        }
-    }
-
-    /**
      * Features: CAAM - 5 (Authentication & relevent token issuing)
      * Interfaces: CAAM - 7;
      * CommunicationType REST
@@ -690,5 +548,228 @@ public class TokensIssuingFunctionalTests extends
         // verify error response
         ErrorResponseContainer errorResponse = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer.class);
         assertEquals(HttpStatus.UNAUTHORIZED.value(), errorResponse.getErrorCode());
+    }
+
+    /**
+     * Features: PAAM - 4, CAAM - 5 (tokens issueing)
+     * Interfaces: PAAM - 5, CAAM - 11;
+     * CommunicationType REST
+     */
+
+    @Test
+    public void getForeignTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
+        addTestUserWithClientCertificateToRepository();
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_HOME_TOKEN,
+                loginRequest, String.class);
+        HttpHeaders loginHeaders = response.getHeaders();
+
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
+        headers.add(SecurityConstants.TOKEN_HEADER_NAME, loginHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+
+        HttpEntity<String> request = new HttpEntity<String>(null, headers);
+
+        try {
+            restTemplate.postForEntity(serverAddress + SecurityConstants
+                            .AAM_GET_FOREIGN_TOKEN, request,
+                    String.class);
+            assert false;
+        } catch (HttpClientErrorException e) {
+            assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
+        }
+
+    }
+
+    @Test
+    public void getForeignTokenUsingPlatformTokenOverRESTSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException {
+        // issuing dummy platform token
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
+                        SecurityConstants
+                                .AAM_GET_HOME_TOKEN,
+                loginRequest, String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
+
+        String platformId = "platform-1";
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        //inject platform PEM Certificate to the database
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
+        Platform dummyPlatform = platformRepository.findOne(platformId);
+        dummyPlatform.setPlatformAAMCertificate(new eu.h2020.symbiote.security.commons.Certificate(dummyPlatformAAMPEMCertString));
+        platformRepository.save(dummyPlatform);
+
+        // preparing request
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(SecurityConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
+
+        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
+
+        // adding a dummy foreign rule
+        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
+
+        // checking issuing of foreign token using the dummy platform token
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants
+                .AAM_GET_FOREIGN_TOKEN, entity, String.class);
+        HttpHeaders rspHeaders = response.getHeaders();
+
+        // check if returned status is ok and if there is token in header
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(rspHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(rspHeaders.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        assertEquals(Token.Type.FOREIGN, Token.Type.valueOf(claimsFromToken.getTtyp()));
+    }
+
+    @Test
+    public void getForeignTokenUsingPlatformTokenOverRESTFailPlatformNotRegistered() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException {
+        // issuing dummy platform token
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
+                        SecurityConstants
+                                .AAM_GET_HOME_TOKEN,
+                loginRequest, String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
+
+        String platformId = "platform-1";
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        // preparing request
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(SecurityConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
+
+        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
+
+        // adding a dummy foreign rule
+        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
+
+        // checking issuing of foreign token using the dummy platform token
+        try {
+            restTemplate.postForEntity(serverAddress + SecurityConstants
+                    .AAM_GET_FOREIGN_TOKEN, entity, String.class);
+            assert false;
+        } catch (HttpClientErrorException e) {
+            assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
+        }
+    }
+
+    @Test
+    public void getForeignTokenUsingPlatformTokenOverRESTFailPlatformHasNotCertificate() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException {
+        // issuing dummy platform token
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
+                        SecurityConstants
+                                .AAM_GET_HOME_TOKEN,
+                loginRequest, String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
+
+        // preparing request
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(SecurityConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
+
+        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
+
+        // adding a dummy foreign rule
+        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
+
+        // checking issuing of foreign token using the dummy platform token
+        try {
+            restTemplate.postForEntity(serverAddress + SecurityConstants
+                    .AAM_GET_FOREIGN_TOKEN, entity, String.class);
+            assert false;
+        } catch (HttpClientErrorException e) {
+            assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
+        }
+    }
+
+    /**
+     * Features: PAAM - 4, CAAM - 5 (tokens issueing)
+     * Interfaces: PAAM - 5, CAAM - 11;
+     * CommunicationType REST
+     */
+
+    @Test
+    public void getForeignTokenFromCoreUsingPlatformTokenOverRESTFailsForUndefinedForeignMapping() throws IOException, ValidationException, TimeoutException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, JWTCreationException {
+        // issuing dummy platform token
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
+                        SecurityConstants
+                                .AAM_GET_HOME_TOKEN,
+                loginRequest, String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
+
+        String platformId = "platform-1";
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        //inject platform PEM Certificate to the database
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
+        Platform dummyPlatform = platformRepository.findOne(platformId);
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
+        platformRepository.save(dummyPlatform);
+
+        // preparing request
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add(SecurityConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
+
+        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
+
+        // making sure the foreignMappingRules are empty
+        tokenIssuer.foreignMappingRules.clear();
+
+        // checking issuing of foreign token using the dummy platform token
+        try {
+            restTemplate.postForEntity(serverAddress + SecurityConstants
+                    .AAM_GET_FOREIGN_TOKEN, entity, String.class);
+            assert false;
+        } catch (HttpServerErrorException e) {
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getRawStatusCode());
+        }
+    }
+
+    @Test
+    public void getGuestTokenOverRESTSuccess() throws MalformedJWTException {
+        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_GUEST_TOKEN,
+                null,
+                String.class);
+        HttpHeaders headers = response.getHeaders();
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(headers.getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));
+        assertTrue(claimsFromToken.getAtt().isEmpty());
     }
 }

@@ -96,11 +96,6 @@ public class PlatformsManagementService {
             platformId = platformManagementRequest.getPlatformInstanceId();
         }
 
-        // register platform owner in user repository
-        //usersManagementService.authRegister(new UserManagementRequest(platformManagementRequest
-        //        .getAAMOwnerCredentials(),
-        //                platformOwnerCredentials));
-
         // register platform in repository
         // TODO R3 set the certificate from the received CSR.
         Platform platform = new Platform(platformId, platformManagementRequest
