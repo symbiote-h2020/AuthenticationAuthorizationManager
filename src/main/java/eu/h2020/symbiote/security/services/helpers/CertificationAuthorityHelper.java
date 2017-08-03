@@ -46,6 +46,8 @@ public class CertificationAuthorityHelper {
 
     @Value("${aam.security.KEY_STORE_FILE_NAME}")
     private String KEY_STORE_FILE_NAME;
+    @Value("${aam.security.ROOT_CA_CERTIFICATE_ALIAS}")
+    private String ROOT_CA_CERTIFICATE_ALIAS;
     @Value("${aam.security.CERTIFICATE_ALIAS}")
     private String CERTIFICATE_ALIAS;
 
@@ -113,6 +115,34 @@ public class CertificationAuthorityHelper {
     }
 
     /**
+     * @return Retrieves RootCA's certificate in PEM format
+     * @throws NoSuchProviderException
+     * @throws KeyStoreException
+     * @throws IOException
+     * @throws CertificateException
+     * @throws NoSuchAlgorithmException
+     */
+    public String getRootCACert() throws NoSuchProviderException, KeyStoreException, IOException,
+            CertificateException, NoSuchAlgorithmException {
+        return CryptoHelper.convertX509ToPEM(getAAMCertificate());
+    }
+
+    /**
+     * @return RootCA certificate in X509 format
+     * @throws KeyStoreException
+     * @throws NoSuchProviderException
+     * @throws IOException
+     * @throws NoSuchAlgorithmException
+     * @throws CertificateException
+     */
+    public X509Certificate getRootCACertificate() throws KeyStoreException, NoSuchProviderException, IOException,
+            NoSuchAlgorithmException, CertificateException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        return (X509Certificate) pkcs12Store.getCertificate(ROOT_CA_CERTIFICATE_ALIAS);
+    }
+
+    /**
      * @return AAM certificate in X509 format
      * @throws KeyStoreException
      * @throws NoSuchProviderException
@@ -126,7 +156,6 @@ public class CertificationAuthorityHelper {
         pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         return (X509Certificate) pkcs12Store.getCertificate(CERTIFICATE_ALIAS);
     }
-
 
     /**
      * @return Retrieves AAM's public key from provisioned JavaKeyStore
