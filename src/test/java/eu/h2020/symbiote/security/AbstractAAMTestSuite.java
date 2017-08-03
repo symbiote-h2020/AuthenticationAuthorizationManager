@@ -67,6 +67,7 @@ public abstract class AbstractAAMTestSuite {
     protected final String registrationUri = "/register";
     protected final String unregistrationUri = "/unregister";
     protected final String usernameWithAt = "test@";
+    protected final String appUsername = "NewApplication";
     protected final String clientId = "clientId";
     protected final String wrongClientId = "wrongClientId";
     protected final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -157,13 +158,26 @@ public abstract class AbstractAAMTestSuite {
 
     }
 
-    protected void savePlatformOwner() {
+    protected User savePlatformOwner() {
         User user = new User();
         user.setUsername(platformOwnerUsername);
         user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(user);
+
+        return user;
+    }
+
+    protected User saveUser() {
+        User user = new User();
+        user.setUsername(appUsername);
+        user.setPasswordEncrypted(passwordEncoder.encode(password));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.USER);
+        userRepository.save(user);
+
+        return user;
     }
 
     protected void addTestUserWithClientCertificateToRepository() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
@@ -185,7 +199,7 @@ public abstract class AbstractAAMTestSuite {
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
         byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
-        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
         Certificate cert = new Certificate(pem);
 

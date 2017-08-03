@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.utils.AAMClients;
 import feign.Response;
@@ -70,8 +71,32 @@ public class ClientCertificatesIssuingFunctionalTests extends
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
         Response response = aamservices.getClientCertificate(certRequest);
 
-        //assertEquals(,response.getBody());
         assertNotNull(CryptoHelper.convertPEMToX509(response.body().toString()));
         assertEquals("CN=" + username + "@" + clientId + "@" + homeAAM.getAamInstanceId(), CryptoHelper.convertPEMToX509(response.body().toString()).getSubjectDN().getName());
+        // TODO check in unit tests that CA is false
+    }
+
+    @Test
+    public void getPlatformAAMCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
+            NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException {
+
+        User platformOwner = savePlatformOwner();
+
+        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, null);
+        platformRepository.save(platform);
+
+        AvailableAAMsCollection aamResponse = restTemplate.getForObject(serverAddress + SecurityConstants
+                .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class);
+        KeyPair pair = CryptoHelper.createKeyPair();
+        AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
+        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+
+        Response response = aamservices.getClientCertificate(certRequest);
+
+        assertNotNull(CryptoHelper.convertPEMToX509(response.body().toString()));
+        assertEquals("CN=" + platform.getPlatformInstanceId(), CryptoHelper.convertPEMToX509(response.body().toString()).getSubjectDN().getName());
+        // TODO check CA true & length in unit tests
     }
 }
