@@ -2,7 +2,6 @@ package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
@@ -135,14 +134,7 @@ public class ClientCertificatesIssuingUnitTests extends
     @Test(expected = WrongCredentialsException.class)
     public void getCertificateWrongCredentialsFailure() throws OperatorCreationException, IOException, NoSuchAlgorithmException,
             CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException, WrongCredentialsException, NotExistingUserException {
-        String appUsername = "NewApplication";
-
-        User user = new User();
-        user.setUsername(appUsername);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
-        userRepository.save(user);
+        User user = saveUser();
 
         KeyPair pair = CryptoHelper.createKeyPair();
 
@@ -154,14 +146,7 @@ public class ClientCertificatesIssuingUnitTests extends
 
     @Test(expected = CertificateException.class)
     public void getCertificateWrongSubjectInCSR() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException, WrongCredentialsException, NotExistingUserException {
-        String appUsername = "NewApplication";
-
-        User user = new User();
-        user.setUsername(appUsername);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
-        userRepository.save(user);
+        User user = saveUser();
 
         KeyPair pair = CryptoHelper.createKeyPair();
 
@@ -177,22 +162,17 @@ public class ClientCertificatesIssuingUnitTests extends
 
     @Test
     public void getCertificateSuccess() throws OperatorCreationException, IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException, WrongCredentialsException, NotExistingUserException {
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
-        userRepository.save(user);
+        User user = saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), username, clientId, pair);
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
         String certificate = getClientCertificateService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + username + "@" + clientId + "@" + certificationAuthorityHelper.getAAMInstanceIdentifier(), x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + appUsername + "@" + clientId + "@" + certificationAuthorityHelper.getAAMInstanceIdentifier(), x509Certificate.getSubjectDN().getName());
     }
 
     // test for revoke function

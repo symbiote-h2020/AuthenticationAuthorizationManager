@@ -66,6 +66,7 @@ public abstract class AbstractAAMTestSuite {
     protected final String registrationUri = "/register";
     protected final String unregistrationUri = "/unregister";
     protected final String usernameWithAt = "test@";
+    protected final String appUsername = "NewApplication";
     protected final String clientId = "clientId";
     protected final String wrongClientId = "wrongClientId";
     protected final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -155,13 +156,26 @@ public abstract class AbstractAAMTestSuite {
         platformRepository.deleteAll();
     }
 
-    protected void savePlatformOwner() {
+    protected User savePlatformOwner() {
         User user = new User();
         user.setUsername(platformOwnerUsername);
         user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(user);
+
+        return user;
+    }
+
+    protected User saveUser() {
+        User user = new User();
+        user.setUsername(appUsername);
+        user.setPasswordEncrypted(passwordEncoder.encode(password));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.USER);
+        userRepository.save(user);
+
+        return user;
     }
 
     protected void addTestUserWithClientCertificateToRepository() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
