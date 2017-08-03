@@ -159,7 +159,7 @@ public class CertificationAuthorityHelper {
         return (PrivateKey) pkcs12Store.getKey(CERTIFICATE_ALIAS, PV_KEY_PASSWORD.toCharArray());
     }
 
-    public X509Certificate generateCertificateFromCSR(PKCS10CertificationRequest request) throws NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, KeyStoreException, IOException, CertificateException, UnrecoverableKeyException, OperatorCreationException {
+    public X509Certificate generateCertificateFromCSR(PKCS10CertificationRequest request, boolean flagCA) throws NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, KeyStoreException, IOException, CertificateException, UnrecoverableKeyException, OperatorCreationException {
 
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
@@ -182,7 +182,7 @@ public class CertificationAuthorityHelper {
                 .addExtension(
                         new ASN1ObjectIdentifier("2.5.29.19"),
                         false,
-                        new BasicConstraints(false));
+                        new BasicConstraints(flagCA));
 
         X509Certificate cert = new JcaX509CertificateConverter().setProvider(CryptoHelper.PROVIDER_NAME)
                 .getCertificate(certGen

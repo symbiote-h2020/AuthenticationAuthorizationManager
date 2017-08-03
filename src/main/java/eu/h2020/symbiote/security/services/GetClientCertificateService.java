@@ -1,11 +1,13 @@
 package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -37,6 +39,7 @@ public class GetClientCertificateService {
     private static Log log = LogFactory.getLog(GetClientCertificateService.class);
     public static final String illegalSign = "@";
     private final UserRepository userRepository;
+    private final PlatformRepository platformRepository;
     private final RevokedKeysRepository revokedKeysRepository;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PasswordEncoder passwordEncoder;
@@ -47,11 +50,13 @@ public class GetClientCertificateService {
     private String AAMOwnerPassword;
 
     @Autowired
-    public GetClientCertificateService(UserRepository userRepository, RevokedKeysRepository revokedKeysRepository,
+    public GetClientCertificateService(UserRepository userRepository, PlatformRepository platformRepository,
+                                       RevokedKeysRepository revokedKeysRepository,
                                        CertificationAuthorityHelper certificationAuthorityHelper,
                                        PasswordEncoder passwordEncoder,
                                        RevocationHelper revocationHelper) {
         this.userRepository = userRepository;
+        this.platformRepository = platformRepository;
         this.revokedKeysRepository = revokedKeysRepository;
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.passwordEncoder = passwordEncoder;
@@ -61,6 +66,8 @@ public class GetClientCertificateService {
     public String getCertificate(CertificateRequest certificateRequest) throws WrongCredentialsException, IOException,
             CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, UnrecoverableKeyException,
             OperatorCreationException, NotExistingUserException, InvalidKeyException {
+
+        X509Certificate certFromCSR;
 
         if (certificateRequest.getUsername().contains(illegalSign) || certificateRequest.getClientId().contains(illegalSign))
             throw new IllegalArgumentException("Credentials contain illegal sign");
@@ -79,16 +86,31 @@ public class GetClientCertificateService {
 
         X509Certificate caCert = certificationAuthorityHelper.getAAMCertificate();
 
-        if (!req.getSubject().toString().split("CN=")[1].split("@")[2].equals
-                (caCert.getSubjectDN().getName().split("CN=")[1]))
-            throw new CertificateException("Subject name doesn't match");
+        log.info("*************");
+        log.info(req.getSubject().toString().split("CN=")[1]);
+        log.info("*************");
 
-        Certificate userCert = user.getClientCertificates().get(certificateRequest.getClientId());
 
-        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        if (!req.getSubject().toString().split("CN=")[1].contains(illegalSign)) {
+            if (userRepository.findOne(certificateRequest.getUsername()).getRole() != UserRole.PLATFORM_OWNER) {
+                throw new SecurityException("User is not a Platform Owner");
+            }
+
+            if (!platformRepository.exists(req.getSubject().toString().split("CN=")[1])) {
+                throw new SecurityException("Platform doesn't exist");
+            }
+            certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, true);
+
+        } else {
+            if (!req.getSubject().toString().split("CN=")[1].split("@")[2].equals
+                    (caCert.getSubjectDN().getName().split("CN=")[1]))
+                throw new CertificateException("Subject name doesn't match");
+            certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
+        }
 
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
 
+        Certificate userCert = user.getClientCertificates().get(certificateRequest.getClientId());
         if (userCert != null) {
             if (userCert.getX509().getPublicKey().equals(certFromCSR.getPublicKey())) {
                 Certificate cert = new Certificate(pem);

@@ -88,7 +88,7 @@ public class ClientCertificatesIssuingUnitTests extends
         ContentSigner signer = csBuilder.build(keyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
-        X509Certificate cert = certificationAuthorityHelper.generateCertificateFromCSR(csr);
+        X509Certificate cert = certificationAuthorityHelper.generateCertificateFromCSR(csr, false);
         assertNotNull(cert);
     }
 
@@ -107,7 +107,7 @@ public class ClientCertificatesIssuingUnitTests extends
         ContentSigner signer = csBuilder.build(keyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
-        X509Certificate cert = certificationAuthorityHelper.generateCertificateFromCSR(csr);
+        X509Certificate cert = certificationAuthorityHelper.generateCertificateFromCSR(csr, false);
         assertEquals(new X500Name(cert.getSubjectDN().getName()), csr.getSubject());
     }
 
@@ -126,7 +126,7 @@ public class ClientCertificatesIssuingUnitTests extends
         ContentSigner signer = csBuilder.build(keyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
-        X509Certificate cert = certificationAuthorityHelper.generateCertificateFromCSR(csr);
+        X509Certificate cert = certificationAuthorityHelper.generateCertificateFromCSR(csr, false);
         assertEquals(keyPair.getPublic(), cert.getPublicKey());
     }
 
@@ -143,7 +143,7 @@ public class ClientCertificatesIssuingUnitTests extends
         ContentSigner signer = csBuilder.build(keyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
 
-        X509Certificate cert = certificationAuthorityHelper.generateCertificateFromCSR(csr);
+        X509Certificate cert = certificationAuthorityHelper.generateCertificateFromCSR(csr, false);
         cert.verify(certificationAuthorityHelper.getAAMPublicKey());
 
         cert.checkValidity(new Date());

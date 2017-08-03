@@ -183,7 +183,7 @@ public abstract class AbstractAAMTestSuite {
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
         byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
-        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
         Certificate cert = new Certificate(pem);
 

@@ -147,7 +147,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, preferredPlatformId, Base64.getEncoder().encodeToString(csr.getEncoded()));
         byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
-        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
         eu.h2020.symbiote.security.commons.Certificate cert = new eu.h2020.symbiote.security.commons.Certificate(pem);
 
@@ -241,7 +241,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, Base64.getEncoder().encodeToString(csr.getEncoded()));
         byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
-        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
         eu.h2020.symbiote.security.commons.Certificate cert = new eu.h2020.symbiote.security.commons.Certificate(pem);
         user.getClientCertificates().put(federatedOAuthId, cert);
@@ -283,7 +283,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, Base64.getEncoder().encodeToString(csr.getEncoded()));
         byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
-        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
         eu.h2020.symbiote.security.commons.Certificate cert = new Certificate(pem);
         user.getClientCertificates().put(federatedOAuthId, cert);
