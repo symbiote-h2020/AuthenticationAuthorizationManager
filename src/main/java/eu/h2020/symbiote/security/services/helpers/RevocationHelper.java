@@ -13,8 +13,6 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -42,7 +40,6 @@ import java.util.Set;
 @Component
 public class RevocationHelper {
 
-    private static Log log = LogFactory.getLog(RevocationHelper.class);
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
     private PlatformRepository platformRepository;
@@ -62,7 +59,6 @@ public class RevocationHelper {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
-
 
     // certificate revoke function - not finished
     //TODO getting certificate

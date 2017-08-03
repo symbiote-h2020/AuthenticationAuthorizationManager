@@ -4,10 +4,13 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.GetClientCertificateService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
@@ -55,29 +58,15 @@ import static org.junit.Assert.*;
 public class ClientCertificatesIssuingUnitTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(ClientCertificatesIssuingUnitTests.class);
     private final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
     private final String recoveryMail = "null@dev.null";
-    @Value("${rabbit.queue.ownedplatformdetails.request}")
-    protected String ownedPlatformDetailsRequestQueue;
-    @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
-    String platformAAMSuffixAtInterWorkingInterface;
-    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
-    String coreInterfaceAddress;
+
     @Autowired
     private RevocationHelper revocationHelper;
     @Autowired
-    protected CertificationAuthorityHelper certificationAuthorityHelper;
-
-    @Bean
-    DummyPlatformAAM getDummyPlatformAAM() {
-        return new DummyPlatformAAM();
-    }
-
-    @Bean
-    DummyPlatformAAMConnectionProblem getDummyPlatformAAMConnectionProblem() {
-        return new DummyPlatformAAMConnectionProblem();
-    }
+    private CertificationAuthorityHelper certificationAuthorityHelper;
+    @Autowired
+    private GetClientCertificateService getClientCertificateService;
 
     @Before
     public void setup() {
@@ -164,9 +153,9 @@ public class ClientCertificatesIssuingUnitTests extends
     }
 
 
-    @Test
+    @Test(expected = WrongCredentialsException.class)
     public void getCertificateWrongCredentialsFailure() throws OperatorCreationException, IOException, NoSuchAlgorithmException,
-            CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
+            CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException, WrongCredentialsException, NotExistingUserException {
         String appUsername = "NewApplication";
 
         User user = new User();
@@ -183,10 +172,11 @@ public class ClientCertificatesIssuingUnitTests extends
         CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, csr);
         Response response = restInterface.getClientCertificate(certRequest);
         assertEquals("Wrong credentials", response.body().toString());
+        getClientCertificateService.getCertificate(certRequest);
     }
 
-    @Test
-    public void getCertificateCheckCSR() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
+    @Test(expected = CertificateException.class)
+    public void getCertificateWrongSubjectInCSR() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException, WrongCredentialsException, NotExistingUserException {
         String appUsername = "NewApplication";
 
         User user = new User();
@@ -207,35 +197,27 @@ public class ClientCertificatesIssuingUnitTests extends
 
         Response response = restInterface.getClientCertificate(certRequest);
         assertEquals("Subject name doesn't match", response.body().toString());
+        getClientCertificateService.getCertificate(certRequest);
     }
 
     @Test
-    public void getCertificateSuccess() throws OperatorCreationException, IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
-        String appUsername = "NewApplication";
-
+    public void getCertificateSuccess() throws OperatorCreationException, IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException, WrongCredentialsException, NotExistingUserException {
         User user = new User();
-        user.setUsername(appUsername);
+        user.setUsername(username);
         user.setPasswordEncrypted(passwordEncoder.encode(password));
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.USER);
         userRepository.save(user);
-
         KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), username, clientId, pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        String certificate = getClientCertificateService.getCertificate(certRequest);
 
-
-        String cn = "CN=" + appUsername + "@" + clientId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
-
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), pair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(pair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
-
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        Response response = restInterface.getClientCertificate(certRequest);
-
-        assertTrue(response.body().toString().contains("BEGIN CERTIFICATE"));
-        assertNotNull(CryptoHelper.convertPEMToX509(response.body().toString()));
-        assertEquals(cn, CryptoHelper.convertPEMToX509(response.body().toString()).getSubjectDN().getName());
+        assertTrue(certificate.contains("BEGIN CERTIFICATE"));
+        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + username + "@" + clientId + "@" + certificationAuthorityHelper.getAAMInstanceIdentifier(), x509Certificate.getSubjectDN().getName());
     }
 
     // test for revoke function

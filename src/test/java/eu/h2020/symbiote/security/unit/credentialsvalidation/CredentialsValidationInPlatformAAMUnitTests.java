@@ -12,6 +12,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
@@ -54,6 +55,9 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     private ValidationHelper validationHelper;
     @Autowired
     private TokenIssuer tokenIssuer;
+    @Autowired
+    private AAMServices aamServices;
+
 
     @Bean
     DummyPlatformAAMRevokedIPK getDummyPlatformAAMRevokedIPK() {
@@ -71,7 +75,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         super.setUp();
 
         // fixing the core AAM url to point to the dummyCoreAAM
-        ReflectionTestUtils.setField(validationHelper, "coreAAMAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/caam");
     }
 
     @Test

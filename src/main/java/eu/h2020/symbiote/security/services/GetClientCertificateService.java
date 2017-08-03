@@ -11,8 +11,6 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,8 +31,6 @@ import java.security.cert.X509Certificate;
 
 @Service
 public class GetClientCertificateService {
-    // todo use log for logging errors
-    private static Log log = LogFactory.getLog(GetClientCertificateService.class);
     public static final String illegalSign = "@";
     private final UserRepository userRepository;
     private final RevokedKeysRepository revokedKeysRepository;
@@ -103,7 +99,6 @@ public class GetClientCertificateService {
             Certificate cert = new Certificate(pem);
             user.getClientCertificates().put(certificateRequest.getClientId(), cert);
         }
-
         return pem;
     }
 }
