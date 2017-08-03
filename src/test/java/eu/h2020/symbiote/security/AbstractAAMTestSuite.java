@@ -35,7 +35,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.RestTemplate;
@@ -57,7 +56,6 @@ import java.util.Base64;
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration
-@DirtiesContext
 public abstract class AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(AbstractAAMTestSuite.class);
@@ -89,6 +87,9 @@ public abstract class AbstractAAMTestSuite {
     protected RestTemplate restTemplate = new RestTemplate();
     protected ObjectMapper mapper = new ObjectMapper();
     protected String serverAddress;
+    protected final String platformOwnerUsername = "testPlatformOwnerUsername";
+    protected final String platformOwnerPassword = "testPlatormOwnerPassword";
+    protected final String recoveryMail = "null@dev.null";
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     protected String coreInterfaceAddress;
     @Value("${rabbit.queue.getHomeToken.request}")
@@ -120,8 +121,7 @@ public abstract class AbstractAAMTestSuite {
     @Before
     public void setUp() throws Exception {
         // Catch the random port
-        serverAddress = "https://localhost:" + port + SecurityConstants.AAM_PUBLIC_PATH;
-
+        serverAddress = "https://localhost:" + port;
 
         // Create a trust manager that does not validate certificate chains
         TrustManager[] trustAllCerts = new TrustManager[]{
@@ -155,6 +155,15 @@ public abstract class AbstractAAMTestSuite {
         platformRepository.deleteAll();
     }
 
+    protected void savePlatformOwner() {
+        User user = new User();
+        user.setUsername(platformOwnerUsername);
+        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.PLATFORM_OWNER);
+        userRepository.save(user);
+    }
+
     protected void addTestUserWithClientCertificateToRepository() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
@@ -171,8 +180,8 @@ public abstract class AbstractAAMTestSuite {
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(userKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csr);
-        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
+        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);

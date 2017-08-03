@@ -4,9 +4,10 @@ package eu.h2020.symbiote.security.utils;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,7 +40,7 @@ public class DummyPlatformAAMRevokedIPK {
     private static final String CERTIFICATE_ALIAS = "platform-1-2-c1";
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
-    private static final String PATH = SecurityConstants.AAM_PUBLIC_PATH + "/test/rev_ipk/paam";
+    private static final String PATH = "/test/rev_ipk/paam";
 
     public DummyPlatformAAMRevokedIPK() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -50,9 +51,9 @@ public class DummyPlatformAAMRevokedIPK {
      */
     @PostMapping(path = PATH + SecurityConstants.AAM_GET_HOME_TOKEN, produces = "application/json", consumes =
             "text/plain")
-    public ResponseEntity<?> doLogin(@RequestBody String stringCredential) throws IOException, ClassNotFoundException {
-        SignedObject credential = CryptoHelper.stringToSignedObject(stringCredential);
-        log.info("User trying to getHomeToken " + credential.getObject().toString().split("@")[0] + " - " + credential.getObject().toString().split("@")[1]);
+    public ResponseEntity<?> doLogin(@RequestBody String loginRequest) throws IOException, ClassNotFoundException, MalformedJWTException {
+        JWTClaims claims = JWTEngine.getClaimsFromToken(loginRequest);
+        log.info("User trying to getHomeToken " + claims.getIss() + " - " + claims.getSub());
         try {
             KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
             ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
@@ -60,7 +61,7 @@ public class DummyPlatformAAMRevokedIPK {
 
             HashMap<String, String> attributes = new HashMap<>();
             attributes.put("name", "test2");
-            String tokenString = TokenIssuer.generateJWTToken(credential.getObject().toString().split("@")[0], attributes, ks.getCertificate
+            String tokenString = TokenIssuer.buildAuthorizationToken(claims.getIss(), attributes, ks.getCertificate
                             (CERTIFICATE_ALIAS).getPublicKey().getEncoded(), Token.Type.HOME, new Date().getTime()
                             + 60000
                     , "platform-1", ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
@@ -74,7 +75,7 @@ public class DummyPlatformAAMRevokedIPK {
             /* Finally issues and return foreign_token */
             return new ResponseEntity<>(headers, HttpStatus.OK);
         } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException |
-                UnrecoverableKeyException | JWTCreationException | NoSuchProviderException | ValidationException
+                UnrecoverableKeyException | NoSuchProviderException | ValidationException
                 e) {
             log.error(e);
         }

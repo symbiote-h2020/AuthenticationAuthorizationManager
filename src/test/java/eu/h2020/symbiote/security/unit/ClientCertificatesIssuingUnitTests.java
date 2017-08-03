@@ -1,24 +1,18 @@
 package eu.h2020.symbiote.security.unit;
 
-import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.listeners.rest.AAMServices;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.GetTokenService;
+import eu.h2020.symbiote.security.services.GetClientCertificateService;
+import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
-import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
-import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
@@ -27,15 +21,12 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.security.auth.x500.X500Principal;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
@@ -54,60 +45,15 @@ import static org.junit.Assert.*;
 public class ClientCertificatesIssuingUnitTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(ClientCertificatesIssuingUnitTests.class);
     private final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
     private final String recoveryMail = "null@dev.null";
-    private final String federatedOAuthId = "federatedOAuthId";
-    private final String preferredPlatformId = "preferredPlatformId";
-    private final String platformInstanceFriendlyName = "friendlyPlatformName";
-    private final String platformInterworkingInterfaceAddress =
-            "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
-    private final String platformOwnerUsername = "testPlatformOwnerUsername";
-    private final String platformOwnerPassword = "testPlatormOwnerPassword";
-    @Value("${rabbit.queue.ownedplatformdetails.request}")
-    protected String ownedPlatformDetailsRequestQueue;
-    @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
-    String platformAAMSuffixAtInterWorkingInterface;
-    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
-    String coreInterfaceAddress;
-    @Autowired
-    private ValidationHelper validationHelper;
-    @Autowired
-    private TokenIssuer tokenIssuer;
-    @Autowired
-    private GetTokenService getTokenService;
+
     @Autowired
     private RevocationHelper revocationHelper;
-    private RpcClient platformRegistrationOverAMQPClient;
-    private Credentials platformOwnerUserCredentials;
-    private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-    private AAMServices coreServicesController;
-
-    @Bean
-    DummyPlatformAAM getDummyPlatformAAM() {
-        return new DummyPlatformAAM();
-    }
-
-    @Bean
-    DummyPlatformAAMConnectionProblem getDummyPlatformAAMConnectionProblem() {
-        return new DummyPlatformAAMConnectionProblem();
-    }
-
-    @Override
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-
-        // platform registration useful
-        platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                platformRegistrationRequestQueue, 5000);
-        platformOwnerUserCredentials = new Credentials(platformOwnerUsername, platformOwnerPassword);
-        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
-                platformInstanceFriendlyName,
-                preferredPlatformId);
-    }
-
+    @Autowired
+    private CertificationAuthorityHelper certificationAuthorityHelper;
+    @Autowired
+    private GetClientCertificateService getClientCertificateService;
 
     @Test
     public void generateCertificateFromCSRSuccess() throws OperatorCreationException, CertificateException,
@@ -186,9 +132,9 @@ public class ClientCertificatesIssuingUnitTests extends
     }
 
 
-    @Test
+    @Test(expected = WrongCredentialsException.class)
     public void getCertificateWrongCredentialsFailure() throws OperatorCreationException, IOException, NoSuchAlgorithmException,
-            CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
+            CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException, WrongCredentialsException, NotExistingUserException {
         String appUsername = "NewApplication";
 
         User user = new User();
@@ -199,45 +145,15 @@ public class ClientCertificatesIssuingUnitTests extends
         userRepository.save(user);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal(certificationAuthorityHelper.getAAMCertificate().getSubjectX500Principal().getName
-                        ()), pair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(pair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
 
+        String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(),
+                user.getUsername(), clientId, pair);
         CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, csr);
-        ResponseEntity<String> response2 = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
-                certRequest, String.class);
-        assertEquals("Wrong credentials", response2.getBody());
+        getClientCertificateService.getCertificate(certRequest);
     }
 
-    @Test
-    public void getCertificateCheckCSR() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
-        String appUsername = "NewApplication";
-
-        User user = new User();
-        user.setUsername(appUsername);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
-        userRepository.save(user);
-
-        KeyPair pair = CryptoHelper.createKeyPair();
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                new X500Principal("CN=WrongName@WrongClientId@WrongPlatformInstanceId"), pair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(pair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
-
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csr);
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
-                certRequest, String.class);
-        assertEquals("Subject name doesn't match", response.getBody());
-    }
-
-    @Test
-    public void getCertificateSuccess() throws OperatorCreationException, IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException {
+    @Test(expected = CertificateException.class)
+    public void getCertificateWrongSubjectInCSR() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException, WrongCredentialsException, NotExistingUserException {
         String appUsername = "NewApplication";
 
         User user = new User();
@@ -249,21 +165,34 @@ public class ClientCertificatesIssuingUnitTests extends
 
         KeyPair pair = CryptoHelper.createKeyPair();
 
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
 
-        String cn = "CN=" + appUsername + "@" + clientId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
-
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), pair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(pair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
-
+        String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificate, username, clientId, pair);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csr);
-        ResponseEntity<String> response = restTemplate.postForEntity(serverAddress + SecurityConstants.AAM_GET_CLIENT_CERTIFICATE,
-                certRequest, String.class);
 
-        assertTrue(response.getBody().contains("BEGIN CERTIFICATE"));
-        assertNotNull(CryptoHelper.convertPEMToX509(response.getBody()));
-        assertEquals(cn, CryptoHelper.convertPEMToX509(response.getBody()).getSubjectDN().getName());
+        getClientCertificateService.getCertificate(certRequest);
+    }
+
+    @Test
+    public void getCertificateSuccess() throws OperatorCreationException, IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException, WrongCredentialsException, NotExistingUserException {
+        User user = new User();
+        user.setUsername(username);
+        user.setPasswordEncrypted(passwordEncoder.encode(password));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.USER);
+        userRepository.save(user);
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), username, clientId, pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        String certificate = getClientCertificateService.getCertificate(certRequest);
+
+        assertTrue(certificate.contains("BEGIN CERTIFICATE"));
+        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + username + "@" + clientId + "@" + certificationAuthorityHelper.getAAMInstanceIdentifier(), x509Certificate.getSubjectDN().getName());
     }
 
     // test for revoke function

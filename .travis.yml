@@ -9,6 +9,7 @@ jdk:
 - oraclejdk8
 before_install:
 - gradle -b wrapper.gradle wrapper
+- gradle assemble --refresh-dependencies
 services:
 - rabbitmq
 sudo: true

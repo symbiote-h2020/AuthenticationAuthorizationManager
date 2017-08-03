@@ -5,9 +5,7 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.UserRegistrationException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.services.UsersManagementService;
@@ -73,9 +71,7 @@ public class UserRegistrationRequestConsumerService extends DefaultConsumer {
                 log.debug("[x] Received User Registration Request for: " + request.getUserDetails()
                         .getCredentials().getUsername() + " on behalf of " + request.getAdministratorCredentials()
                         .getUsername());
-                // this endpoint should only allow registering Users
-                if (request.getUserDetails().getRole() != UserRole.USER)
-                    throw new UserRegistrationException();
+
 
                 response = om.writeValueAsString(usersManagementService.authRegister
                         (request));

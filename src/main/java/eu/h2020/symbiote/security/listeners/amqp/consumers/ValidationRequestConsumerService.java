@@ -7,7 +7,7 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ValidationRequest;
-import eu.h2020.symbiote.security.services.GetTokenService;
+import eu.h2020.symbiote.security.services.CredentialsValidationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -19,7 +19,7 @@ import java.io.IOException;
 public class ValidationRequestConsumerService extends DefaultConsumer {
 
     private static Log log = LogFactory.getLog(ValidationRequestConsumerService.class);
-    private GetTokenService getTokenService;
+    private CredentialsValidationService credentialsValidationService;
 
 
     /**
@@ -29,9 +29,9 @@ public class ValidationRequestConsumerService extends DefaultConsumer {
      * @param channel the channel to which this consumer is attached
      */
     public ValidationRequestConsumerService(Channel channel,
-                                            GetTokenService getTokenService) {
+                                            CredentialsValidationService credentialsValidationService) {
         super(channel);
-        this.getTokenService = getTokenService;
+        this.credentialsValidationService = credentialsValidationService;
     }
 
     /**
@@ -65,7 +65,7 @@ public class ValidationRequestConsumerService extends DefaultConsumer {
             try {
                 validationRequest = om.readValue(message, ValidationRequest.class);
 
-                ValidationStatus validationResponse = getTokenService.validate
+                ValidationStatus validationResponse = credentialsValidationService.validate
                         (validationRequest.getTokenString(), validationRequest.getCertificateString());
                 response = om.writeValueAsString(validationResponse);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());

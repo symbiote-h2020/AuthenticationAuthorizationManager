@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ExistingPlatformException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MissingArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UnauthorizedRegistrationException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
@@ -76,10 +77,10 @@ public class PlatformsManagementService {
         if (platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
             throw new MissingArgumentsException("Missing Platform Instance Friendly Name");
 
-        // check if platform owner already in repository
-        //if (userRepository.exists(platformOwnerCredentials.getUsername())) {
-        //    throw new ExistingUserException();
-        //}
+        // check if platform owner not in repository
+        if (!userRepository.exists(platformOwnerCredentials.getUsername())) {
+            throw new NotExistingUserException();
+        }
 
         String platformId;
         // verify if platform owner provided a preferred platform identifier
@@ -94,11 +95,6 @@ public class PlatformsManagementService {
             // use PO preferred platform identifier
             platformId = platformManagementRequest.getPlatformInstanceId();
         }
-
-        // register platform owner in user repository
-        //usersManagementService.authRegister(new UserManagementRequest(platformManagementRequest
-        //        .getAAMOwnerCredentials(),
-        //                platformOwnerCredentials));
 
         // register platform in repository
         // TODO R3 set the certificate from the received CSR.

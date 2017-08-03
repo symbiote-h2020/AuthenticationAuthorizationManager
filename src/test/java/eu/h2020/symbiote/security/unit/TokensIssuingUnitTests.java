@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
@@ -15,15 +16,12 @@ import eu.h2020.symbiote.security.communication.interfaces.payloads.CertificateR
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.listeners.rest.AAMServices;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
-import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -62,22 +60,19 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(ClientCertificatesIssuingUnitTests.class);
     protected final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
-    private final String recoveryMail = "null@dev.null";
+
     private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
-    private final String platformOwnerUsername = "testPlatformOwnerUsername";
-    private final String platformOwnerPassword = "testPlatormOwnerPassword";
+
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
-    @Autowired
-    private ValidationHelper validationHelper;
     @Autowired
     private TokenIssuer tokenIssuer;
     @Autowired
@@ -87,16 +82,10 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-    private AAMServices coreServicesController;
 
     @Bean
     DummyPlatformAAM dummyPlatformAAM() {
         return new DummyPlatformAAM();
-    }
-
-    @Bean
-    DummyPlatformAAMConnectionProblem dummyPlatformAAMWithConnectionProblem() {
-        return new DummyPlatformAAMConnectionProblem();
     }
 
     @Override
@@ -138,7 +127,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
     // test for revoke function
     @Test
-    public void revokeUserTokenByPlatform() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException, OperatorCreationException, UnrecoverableKeyException {    // issuing dummy platform token
+    public void revokeUserTokenByPlatform() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException, OperatorCreationException, UnrecoverableKeyException, JWTCreationException {    // issuing dummy platform token
         User user = new User();
         user.setUsername(platformOwnerUsername);
         user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
@@ -149,8 +138,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(userKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, preferredPlatformId, csr);
-        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, preferredPlatformId, Base64.getEncoder().encodeToString(csr.getEncoded()));
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
@@ -160,11 +149,11 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
         userRepository.save(user);
 
-
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + SecurityConstants
                         .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -200,9 +189,9 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
     @Test
     public void getGuestTokenSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException {
-        Token token = getTokenService.login();
+        Token token = getTokenService.getGuestToken();
         assertNotNull(token);
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken().toString());
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.toString());
         assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));
         assertTrue(claimsFromToken.getAtt().isEmpty());
     }
@@ -214,7 +203,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         assertNotNull(user);
         Token token = tokenIssuer.getHomeToken(user, clientId);
         assertNotNull(token);
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken().toString());
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.toString());
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
 
         Map<String, String> attributes = claimsFromToken.getAtt();
@@ -243,8 +232,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(platformKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, csr);
-        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, Base64.getEncoder().encodeToString(csr.getEncoded()));
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
@@ -257,7 +246,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
         Token token = tokenIssuer.getHomeToken(user, federatedOAuthId);
         assertNotNull(token);
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken().toString());
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.toString());
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
 
         Map<String, String> attributes = claimsFromToken.getAtt();
@@ -285,8 +274,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
         ContentSigner signer = csBuilder.build(platformKeyPair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, csr);
-        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSR());
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, federatedOAuthId, Base64.getEncoder().encodeToString(csr.getEncoded()));
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
@@ -298,19 +287,59 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getForeignTokenSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+    public void getHomeTokenSuccess() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
+        addTestUserWithClientCertificateToRepository();
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        Token token = null;
+        try {
+            token = getTokenService.getHomeToken(loginRequest);
+        } catch (Exception e) {
+            fail("Exception thrown");
+        }
+        assertNotNull(token);
+        assertEquals(Token.Type.HOME, token.getType());
+    }
+
+    @Test(expected = WrongCredentialsException.class)
+    public void getHomeTokenWrongSign() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, MalformedJWTException, ValidationException {
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        getTokenService.getHomeToken(loginRequest);
+    }
+
+    @Test(expected = WrongCredentialsException.class)
+    public void getHomeTokenWrongCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, MalformedJWTException, ValidationException {
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        getTokenService.getHomeToken(loginRequest);
+    }
+
+    @Test(expected = MissingArgumentsException.class)
+    public void getHomeTokenMissingCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, MalformedJWTException, ValidationException {
+        HomeCredentials homeCredentials = new HomeCredentials(null, null, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        getTokenService.getHomeToken(loginRequest);
+    }
+
+    @Test
+    public void getForeignTokenSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException, JWTCreationException {
 
         addTestUserWithClientCertificateToRepository();
         assertNotNull(userRepository.findOne(username));
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         try {
-            token = getTokenService.login(signObject);
+            token = new Token(dummyPlatformAAM().doLogin(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         } catch (Exception e) {
             fail("Exception thrown");
         }
         assertNotNull(token);
         String platformId = "platform-1";
+
+        savePlatformOwner();
+
         // registering the platform to the Core AAM so it will be available for token revocation
         platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
         platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
@@ -327,15 +356,16 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         pemWriter.close();
         String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
         Platform dummyPlatform = platformRepository.findOne(platformId);
-        dummyPlatform.setPlatformAAMCertificate(new eu.h2020.symbiote.security.commons.Certificate(dummyPlatformAAMPEMCertString));
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
         platformRepository.save(dummyPlatform);
 
         // adding a dummy foreign rule
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
         Token foreignToken = null;
         try {
-            foreignToken = getTokenService.createForeignHomeTokenForForeignToken(token.toString());
+            foreignToken = getTokenService.getForeignToken(token, "");
         } catch (Exception e) {
+            log.error(e.getMessage(), e.getCause());
             fail("Exception thrown");
         }
         assertNotNull(foreignToken);
@@ -345,74 +375,75 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     @Test(expected = JWTCreationException.class)
     public void getForeignTokenFailForUndefinedForeignMapping() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
 
-        addTestUserWithClientCertificateToRepository();
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
-        assertNotNull(userRepository.findOne(username));
         try {
-            token = getTokenService.login(signObject);
+            token = new Token(dummyPlatformAAM().doLogin(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        } catch (Exception e) {
+            fail("Exception thrown");
+        }
+        tokenIssuer.foreignMappingRules.clear();
+        tokenIssuer.getForeignToken(token);
+    }
+
+    @Test(expected = ValidationException.class)
+    public void getForeignTokenFailsForHomeTokenUsedAsRequest() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+
+        addTestUserWithClientCertificateToRepository();
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+        Token token = null;
+        try {
+            token = tokenIssuer.getHomeToken(user, clientId);
+        } catch (Exception e) {
+            fail("Exception thrown");
+        }
+        assertNotNull(token);
+        getTokenService.getForeignToken(token, "");
+    }
+
+    @Test(expected = ValidationException.class)
+    public void getForeignTokenFailsPlatformNotRegistered() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+
+        addTestUserWithClientCertificateToRepository();
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        Token token = null;
+        try {
+            token = new Token(dummyPlatformAAM().doLogin(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        } catch (Exception e) {
+            fail("Exception thrown");
+        }
+        assertNotNull(token);
+        getTokenService.getForeignToken(token, "");
+    }
+
+    @Test(expected = ValidationException.class)
+    public void getForeignTokenFailsPlatformHasNotCertificate() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+
+        addTestUserWithClientCertificateToRepository();
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        Token token = null;
+        try {
+            token = new Token(dummyPlatformAAM().doLogin(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         } catch (Exception e) {
             fail("Exception thrown");
         }
         assertNotNull(token);
         String platformId = "platform-1";
+
+        savePlatformOwner();
+
         // registering the platform to the Core AAM so it will be available for token revocation
         platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
         platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
-        //inject platform PEM Certificate to the database
-        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
-        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
-        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
-        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
-        pemWriter.writeObject(certificate);
-        pemWriter.close();
-        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
-        Platform dummyPlatform = platformRepository.findOne(platformId);
-        dummyPlatform.setPlatformAAMCertificate(new eu.h2020.symbiote.security.commons.Certificate(dummyPlatformAAMPEMCertString));
-        platformRepository.save(dummyPlatform);
-        //no dummy maping rule
-        tokenIssuer.foreignMappingRules.clear();
-
-        getTokenService.createForeignHomeTokenForForeignToken(token.toString());
+        getTokenService.getForeignToken(token, "");
     }
-
-
-    @Test
-    public void getHomeTokenSuccess() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException {
-        addTestUserWithClientCertificateToRepository();
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
-        Token token = null;
-        try {
-            token = getTokenService.login(signObject);
-        } catch (Exception e) {
-            fail("Exception thrown");
-        }
-        assertNotNull(token);
-        assertEquals(Token.Type.HOME, token.getType());
-    }
-
-    @Test(expected = WrongCredentialsException.class)
-    public void getHomeTokenWrongSign() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, CryptoHelper.createKeyPair().getPrivate());
-        getTokenService.login(signObject);
-    }
-
-    @Test(expected = WrongCredentialsException.class)
-    public void getHomeTokenWrongCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException {
-        SignedObject signObject = CryptoHelper.objectToSignedObject(wrongusername + "@" + clientId, userKeyPair.getPrivate());
-        getTokenService.login(signObject);
-    }
-
-    @Test(expected = MissingArgumentsException.class)
-    public void getHomeTokenMissingCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException {
-        SignedObject signObject = CryptoHelper.objectToSignedObject("@" + clientId, userKeyPair.getPrivate());
-        getTokenService.login(signObject);
-    }
-
 
     @Test
     @Ignore("Not R2 crucial, at R2 we will issue attributes from properties")

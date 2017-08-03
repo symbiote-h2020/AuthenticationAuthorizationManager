@@ -1,12 +1,16 @@
 package eu.h2020.symbiote.security.utils;
 
 
+import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -38,10 +42,25 @@ public class DummyCoreAAM {
     private static final String CERTIFICATE_ALIAS = "core-2";
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/core.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
-    private static final String PATH = SecurityConstants.AAM_PUBLIC_PATH + "/test/caam";
+    private static final String PATH = "/test/caam";
+    private AvailableAAMsCollection aams = new AvailableAAMsCollection();
 
-    public DummyCoreAAM() {
+    public DummyCoreAAM() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("core-1");
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        Certificate revokedCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
+
+        aams.getAvailableAAMs().put(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, new AAM("irrelevant",
+                SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME,
+                SecurityConstants.AAM_CORE_AAM_INSTANCE_ID,
+                revokedCert));
     }
 
     /**
@@ -49,8 +68,9 @@ public class DummyCoreAAM {
      */
     @PostMapping(path = PATH + SecurityConstants.AAM_GET_HOME_TOKEN, produces = "application/json", consumes =
             "text/plain")
-    public ResponseEntity<?> doLogin(@RequestBody String stringCredential) throws IOException, ClassNotFoundException {
-        SignedObject credential = CryptoHelper.stringToSignedObject(stringCredential);
+    public ResponseEntity<?> doLogin(@RequestBody String loginRequest) throws IOException, ClassNotFoundException, MalformedJWTException {
+
+        JWTClaims claims = JWTEngine.getClaimsFromToken(loginRequest);
         //log.info("User trying to getHomeToken " + credential.getObject().toString().split("@")[0] + " - " + credential.getObject().toString().split("@")[1]);
         try {
             KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
@@ -59,7 +79,7 @@ public class DummyCoreAAM {
 
             HashMap<String, String> attributes = new HashMap<>();
             attributes.put("name", "test2");
-            String tokenString = TokenIssuer.generateJWTToken(credential.getObject().toString().split("@")[0], attributes, ks.getCertificate
+            String tokenString = TokenIssuer.buildAuthorizationToken(claims.getIss(), attributes, ks.getCertificate
                             (CERTIFICATE_ALIAS).getPublicKey().getEncoded(), Token.Type.HOME, new Date().getTime()
                             + 60000
                     , SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
@@ -73,7 +93,7 @@ public class DummyCoreAAM {
             /* Finally issues and return foreign_token */
             return new ResponseEntity<>(headers, HttpStatus.OK);
         } catch (KeyStoreException | NoSuchAlgorithmException | CertificateException | IOException |
-                UnrecoverableKeyException | JWTCreationException | NoSuchProviderException | ValidationException
+                UnrecoverableKeyException | NoSuchProviderException | ValidationException
                 e) {
             log.error(e);
         }
@@ -98,6 +118,11 @@ public class DummyCoreAAM {
         pemWriter.writeObject(certificate);
         pemWriter.close();
         return signedCertificatePEMDataStringWriter.toString();
+    }
+
+    @GetMapping(path = PATH + SecurityConstants.AAM_GET_AVAILABLE_AAMS)
+    public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {
+        return new ResponseEntity<>(aams, HttpStatus.OK);
     }
 }
 

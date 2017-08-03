@@ -4,14 +4,18 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
+import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMRevokedIPK;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -21,7 +25,9 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -40,6 +46,7 @@ import static org.junit.Assert.*;
  * @author Piotr Kicki (PSNC)
  */
 @TestPropertySource("/platform.properties")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class CredentialsValidationInPlatformAAMUnitTests extends
         AbstractAAMTestSuite {
 
@@ -48,16 +55,27 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     private ValidationHelper validationHelper;
     @Autowired
     private TokenIssuer tokenIssuer;
+    @Autowired
+    private AAMServices aamServices;
+
 
     @Bean
     DummyPlatformAAMRevokedIPK getDummyPlatformAAMRevokedIPK() {
         return new DummyPlatformAAMRevokedIPK();
     }
 
+    @Bean
+    DummyCoreAAM getDummyCoreAAM() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException {
+        return new DummyCoreAAM();
+    }
+
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
+
+        // fixing the core AAM url to point to the dummyCoreAAM
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/caam");
     }
 
     @Test
@@ -81,13 +99,14 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     }
 
     @Test
-    public void validateRevokedIPK() throws IOException, ValidationException {
+    public void validateRevokedIPK() throws IOException, ValidationException, JWTCreationException {
         // issuing dummy platform token from platform with revoked certificate
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/rev_ipk/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -97,13 +116,14 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws IOException, ValidationException {
+    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws IOException, ValidationException, JWTCreationException {
         // issuing dummy platform token from unregistered platform
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/second/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -140,14 +160,15 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMsButRevoked() throws IOException, ValidationException {
+    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMsButRevoked() throws IOException, ValidationException, JWTCreationException {
         // issuing dummy platform token
         // acquiring valid token
-        SignedObject signObject = CryptoHelper.objectToSignedObject(username + "@" + clientId, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
-                CryptoHelper.signedObjectToString(signObject), String.class);
+                loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 

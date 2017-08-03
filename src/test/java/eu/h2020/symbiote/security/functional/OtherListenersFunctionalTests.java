@@ -5,28 +5,23 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.*;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.AvailableAAMsCollection;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
-import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
-import java.security.KeyPair;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -44,8 +39,6 @@ public class OtherListenersFunctionalTests extends
         AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(OtherListenersFunctionalTests.class);
-    private final String coreAppUsername = "testCoreAppUsername";
-    private final String coreAppPassword = "testCoreAppPassword";
     private final String recoveryMail = "null@dev.null";
     private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
@@ -54,27 +47,15 @@ public class OtherListenersFunctionalTests extends
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
     private final String platformOwnerUsername = "testPlatformOwnerUsername";
     private final String platformOwnerPassword = "testPlatormOwnerPassword";
-    private final String platformId = "testPlatformId";
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
-    private KeyPair platformOwnerKeyPair;
-    private UserManagementRequest appUserManagementRequest;
-    private RpcClient appRegistrationClient;
-    private UserDetails appUserDetails;
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-    @Autowired
-    private PlatformRepository platformRepository;
-
-    @Autowired
-    private ValidationHelper validationHelper;
-    @Autowired
-    private TokenIssuer tokenIssuer;
 
     @Bean
     DummyPlatformAAM dummyPlatformAAM() {
@@ -85,19 +66,6 @@ public class OtherListenersFunctionalTests extends
     @Before
     public void setUp() throws Exception {
         super.setUp();
-
-        // db cleanup
-        platformRepository.deleteAll();
-        userRepository.deleteAll();
-
-        // user registration useful
-        appRegistrationClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                userRegistrationRequestQueue, 5000);
-        appUserDetails = new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER);
-        appUserManagementRequest = new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), appUserDetails);
 
         //user registration useful
         User user = new User();
@@ -115,7 +83,6 @@ public class OtherListenersFunctionalTests extends
                 AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
                 preferredPlatformId);
-        platformOwnerKeyPair = CryptoHelper.createKeyPair();
     }
 
     /**
@@ -125,13 +92,11 @@ public class OtherListenersFunctionalTests extends
     @Test
     public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
             CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        ResponseEntity<Map<String, AAM>> response = restTemplate.exchange(serverAddress + SecurityConstants
-                .AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<Map<String, AAM>>() {
-        });
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        AvailableAAMsCollection response = restTemplate.getForObject(serverAddress + SecurityConstants
+                .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class);
 
         // verify the body
-        Map<String, AAM> aams = response.getBody();
+        Map<String, AAM> aams = response.getAvailableAAMs();
         // there should be only core AAM in the list
         // verifying the contents
         AAM aam = aams.get(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID);
@@ -154,13 +119,11 @@ public class OtherListenersFunctionalTests extends
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
-        ResponseEntity<Map<String, AAM>> response = restTemplate.exchange(serverAddress + SecurityConstants
-                .AAM_GET_AVAILABLE_AAMS, HttpMethod.GET, null, new ParameterizedTypeReference<Map<String, AAM>>() {
-        });
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        AvailableAAMsCollection response = restTemplate.getForObject(serverAddress + SecurityConstants
+                .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class);
 
         // verify the body
-        Map<String, AAM> aams = response.getBody();
+        Map<String, AAM> aams = response.getAvailableAAMs();
 
         // there should be only core AAM in the list
         assertEquals(2, aams.size());

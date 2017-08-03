@@ -6,17 +6,13 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import eu.h2020.symbiote.security.commons.Token;
-import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.MissingArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
-import java.security.SignedObject;
 import java.security.cert.CertificateException;
 
 /**
@@ -69,17 +65,15 @@ public class HomeLoginRequestConsumerService extends DefaultConsumer {
                 .build();
             try {
                 loginReq = om.readValue(message, String.class);
-                SignedObject signedReq = CryptoHelper.stringToSignedObject(loginReq);
-                try {
-                    Token token = getTokenService.login(signedReq);
+
+                Token token = getTokenService.getHomeToken(loginReq);
                     response = om.writeValueAsString(token);
                     this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-                } catch (MissingArgumentsException | WrongCredentialsException | JWTCreationException e) {
+            } catch (MissingArgumentsException | WrongCredentialsException | JWTCreationException e) {
                     log.error(e);
                     response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
                     this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-                }
-            } catch (CertificateException | ClassNotFoundException e) {
+            } catch (CertificateException | MalformedJWTException | ValidationException e) {
                 log.error(e);
                 throw new SecurityException(e.getMessage(), e.getCause());
             }

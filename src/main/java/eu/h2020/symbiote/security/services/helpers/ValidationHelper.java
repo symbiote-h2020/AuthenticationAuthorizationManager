@@ -5,12 +5,12 @@ import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.interfaces.IAAMServices;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.AAM;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
+import eu.h2020.symbiote.security.services.AAMServices;
 import io.jsonwebtoken.Claims;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -26,9 +26,17 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.*;
 import java.util.*;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PublicKey;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
+import java.security.cert.X509Certificate;
 
 /**
- * Used to validate given credentials againts data in the AAMs
+ * Used to validate given credentials against data in the AAMs
  * <p>
  * TODO @Mikołaj review and refactor
  *
@@ -47,25 +55,26 @@ public class ValidationHelper {
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
+
     // dependencies
     private RestTemplate restTemplate = new RestTemplate();
-    private IAAMServices coreServices;
     private CertificationAuthorityHelper certificationAuthorityHelper;
     private RevokedKeysRepository revokedKeysRepository;
     private RevokedTokensRepository revokedTokensRepository;
     private UserRepository userRepository;
+    private AAMServices aamServices;
 
     @Autowired
-    public ValidationHelper(IAAMServices coreServices, CertificationAuthorityHelper certificationAuthorityHelper,
+    public ValidationHelper(CertificationAuthorityHelper certificationAuthorityHelper,
                             RevokedKeysRepository revokedKeysRepository,
-                            RevokedTokensRepository revokedTokensRepository, UserRepository userRepository) {
-        this.coreServices = coreServices;
+                            RevokedTokensRepository revokedTokensRepository, UserRepository userRepository, AAMServices aamServices) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
         this.revokedKeysRepository = revokedKeysRepository;
         this.revokedTokensRepository = revokedTokensRepository;
         this.userRepository = userRepository;
+        this.aamServices = aamServices;
     }
 
     //TODO getting certificates
@@ -156,15 +165,14 @@ public class ValidationHelper {
             return ValidationStatus.INVALID_TRUST_CHAIN;
         // TODO check if AAM is online or is configured to allow 'offline' trust chain only validation
 
-        Map<String, AAM> aams = new HashMap<>();
-        for (AAM aam : coreServices.getAvailableAAMs().values())
-            aams.put(aam.getAamInstanceId(), aam);
+        // resolving available AAMs in search of the token issuer
+        Map<String, AAM> availableAAMs = aamServices.getAvailableAAMs();
         Claims claims = JWTEngine.getClaims(tokenString);
         String issuer = claims.getIssuer();
         // Core does not know such an issuer and therefore this might be a forfeit
-        if (!aams.containsKey(issuer))
+        if (!availableAAMs.containsKey(issuer))
             return ValidationStatus.INVALID_TRUST_CHAIN;
-        AAM issuerAAM = aams.get(issuer);
+        AAM issuerAAM = availableAAMs.get(issuer);
         String aamAddress = issuerAAM.getAamAddress();
         PublicKey publicKey = issuerAAM.getCertificate().getX509().getPublicKey();
 
@@ -201,10 +209,6 @@ public class ValidationHelper {
         return false;
     }
 
-    /**
-     * TODO R3 @Daniele
-     * implement method to validate trust chain
-     */
     public boolean isTrusted(X509Certificate signingAAMCertificate, String applicationCertificateString) throws
             NoSuchAlgorithmException,
             CertificateException,

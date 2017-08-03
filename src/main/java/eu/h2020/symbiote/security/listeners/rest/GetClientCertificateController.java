@@ -35,7 +35,6 @@ public class GetClientCertificateController implements IGetClientCertificate {
     @Override
     public ResponseEntity<String> getClientCertificate(@RequestBody CertificateRequest certificateRequest) {
         try {
-            // TODO review that the CSR is in PEM format and document so in the CertificateRequest
             String certificate = getClientCertificateService.getCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
         } catch (WrongCredentialsException | IOException | CertificateException | NoSuchAlgorithmException |

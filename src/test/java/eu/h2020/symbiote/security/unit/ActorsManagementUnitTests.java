@@ -1,30 +1,21 @@
 package eu.h2020.symbiote.security.unit;
 
-import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.interfaces.payloads.UserManagementRequest;
-import eu.h2020.symbiote.security.listeners.rest.AAMServices;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.GetTokenService;
-import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
-import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
-import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.TestPropertySource;
@@ -54,27 +45,10 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
-    @Autowired
-    private ValidationHelper validationHelper;
-    @Autowired
-    private TokenIssuer tokenIssuer;
-    @Autowired
-    private GetTokenService getTokenService;
-    @Autowired
-    private RevocationHelper revocationHelper;
-    private RpcClient platformRegistrationOverAMQPClient;
-    private Credentials platformOwnerUserCredentials;
-    private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-    private AAMServices coreServicesController;
 
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
         return new DummyPlatformAAM();
-    }
-
-    @Bean
-    DummyPlatformAAMConnectionProblem getDummyPlatformAAMConnectionProblem() {
-        return new DummyPlatformAAMConnectionProblem();
     }
 
     @Override
@@ -83,13 +57,6 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         super.setUp();
 
         // platform registration useful
-        platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                platformRegistrationRequestQueue, 5000);
-        platformOwnerUserCredentials = new Credentials(platformOwnerUsername, platformOwnerPassword);
-        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
-                platformInstanceFriendlyName,
-                preferredPlatformId);
     }
 
     @Test

@@ -6,13 +6,13 @@ import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ExistingPlatformException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MissingArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UnauthorizedRegistrationException;
-import eu.h2020.symbiote.security.communication.interfaces.payloads.*;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementRequest;
+import eu.h2020.symbiote.security.communication.interfaces.payloads.PlatformManagementResponse;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
-import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -24,7 +24,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
-import java.security.KeyPair;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
@@ -51,20 +50,11 @@ public class PlatformsManagementFunctionalTests extends
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
-    private KeyPair platformOwnerKeyPair;
-    private UserManagementRequest appUserManagementRequest;
-    private RpcClient appRegistrationClient;
-    private UserDetails appUserDetails;
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
     @Autowired
     private PlatformRepository platformRepository;
-
-    @Autowired
-    private ValidationHelper validationHelper;
-    @Autowired
-    private TokenIssuer tokenIssuer;
 
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
@@ -81,13 +71,6 @@ public class PlatformsManagementFunctionalTests extends
         userRepository.deleteAll();
 
         // user registration useful
-        appRegistrationClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                userRegistrationRequestQueue, 5000);
-        appUserDetails = new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER);
-        appUserManagementRequest = new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), appUserDetails);
 
         //user registration useful
         User user = new User();
@@ -105,7 +88,6 @@ public class PlatformsManagementFunctionalTests extends
                 AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
                 preferredPlatformId);
-        platformOwnerKeyPair = CryptoHelper.createKeyPair();
 
     }
 
@@ -283,9 +265,16 @@ public class PlatformsManagementFunctionalTests extends
         assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
         assertNotNull(platformRepository.findOne(preferredPlatformId));
 
+        User user = new User();
+        user.setUsername(platformOwnerUsername + "differentOne");
+        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.PLATFORM_OWNER);
+        userRepository.save(user);
         // issue registration request with the same preferred platform identifier but different PO
         platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setUsername
                 (platformOwnerUsername + "differentOne");
+
         response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
