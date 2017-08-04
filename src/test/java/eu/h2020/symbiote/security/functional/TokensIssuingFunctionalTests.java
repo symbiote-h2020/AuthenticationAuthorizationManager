@@ -128,7 +128,7 @@ public class TokensIssuingFunctionalTests extends
                 platformInstanceFriendlyName,
                 preferredPlatformId);
         platformOwnerKeyPair = CryptoHelper.createKeyPair();
-        aamClient = RESTAAMClient.getJsonClient(serverAddress);
+        restaamClient = new RESTAAMClient(serverAddress);
     }
 
     /**
@@ -615,12 +615,11 @@ public class TokensIssuingFunctionalTests extends
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
 
         // checking issuing of foreign token using the dummy platform token
-        Response response = aamClient.getForeignToken(entity.getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString(), "");
-
+        String token = restaamClient.getForeignToken(entity, "");
         // check if returned status is ok and if there is token in header
-        assertEquals(HttpStatus.OK.value(), response.status());
-        assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString());
+        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
+        assertNotNull(token);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token);
         assertEquals(Token.Type.FOREIGN, Token.Type.valueOf(claimsFromToken.getTtyp()));
     }
 
@@ -752,11 +751,10 @@ public class TokensIssuingFunctionalTests extends
 
     @Test
     public void getGuestTokenOverRESTSuccess() throws MalformedJWTException {
-        Response response = aamClient.getGuestToken();
-        //HttpHeaders headers = response.getHeaders();
-        assertEquals(HttpStatus.OK.value(), response.status());
-        assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toString());
+        String acquired_token = restaamClient.getGuestToken();
+        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
+        assertNotNull(acquired_token);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(acquired_token);
         assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));
         assertTrue(claimsFromToken.getAtt().isEmpty());
     }

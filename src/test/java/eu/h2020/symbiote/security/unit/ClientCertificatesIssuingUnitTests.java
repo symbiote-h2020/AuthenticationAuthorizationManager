@@ -59,7 +59,7 @@ public class ClientCertificatesIssuingUnitTests extends
 
     @Before
     public void setup() {
-        aamClient = RESTAAMClient.getJsonClient(serverAddress);
+        restaamClient = new RESTAAMClient(serverAddress);
     }
 
     @Test
