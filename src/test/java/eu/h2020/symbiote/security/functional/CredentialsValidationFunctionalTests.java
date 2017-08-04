@@ -5,13 +5,13 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -44,8 +44,12 @@ public class CredentialsValidationFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String token = restaamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
+        String token = null;
+        try {
+            token = restaamClient.getHomeToken(loginRequest);
+        } catch (WrongCredentialsException e) {
+            log.error(e);
+        }
         assertNotNull(token);
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
@@ -67,13 +71,18 @@ public class CredentialsValidationFunctionalTests extends
      * Interfaces: PAAM - 4, CAAM - 10;
      * CommunicationType REST
      */
-    @Test
+    @Test(expected = WrongCredentialsException.class)
     public void validationOverRESTValid() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = restaamClient.getHomeToken(loginRequest);
+        String homeToken = null;
+        try {
+            homeToken = restaamClient.getHomeToken(loginRequest);
+        } catch (WrongCredentialsException e) {
+            log.error(e);
+        }
         ValidationStatus status = restaamClient.validate(homeToken, "null");
         assertEquals(ValidationStatus.VALID, status);
     }
@@ -85,12 +94,17 @@ public class CredentialsValidationFunctionalTests extends
      * Interfaces: PAAM - 4, CAAM - 10;
      * CommunicationType REST
      */
-    @Test
+    @Test(expected = WrongCredentialsException.class)
     public void validationOverRESTExpired() throws IOException, InterruptedException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        String homeToken = restaamClient.getHomeToken(loginRequest);
+        String homeToken = null;
+        try {
+            homeToken = restaamClient.getHomeToken(loginRequest);
+        } catch (WrongCredentialsException e) {
+            log.error(e);
+        }
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 10);
 

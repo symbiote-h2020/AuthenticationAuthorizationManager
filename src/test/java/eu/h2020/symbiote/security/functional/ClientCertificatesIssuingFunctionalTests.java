@@ -43,8 +43,8 @@ public class ClientCertificatesIssuingFunctionalTests extends
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(usernameWithAt, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        String response = restaamClient.getClientCertificate(certRequest);
-        assertEquals("Credentials contain illegal sign", response);
+        String clientCertificate = restaamClient.getClientCertificate(certRequest);
+        assertEquals("Credentials contain illegal sign", clientCertificate);
     }
 
     @Test
@@ -64,8 +64,8 @@ public class ClientCertificatesIssuingFunctionalTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String response = restaamClient.getClientCertificate(certRequest);
-        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(response);
+        String clientCertificate = restaamClient.getClientCertificate(certRequest);
+        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
         assertNotNull(x509Certificate);
         assertEquals("CN=" + username + "@" + clientId + "@" + homeAAM.getAamInstanceId(), x509Certificate.getSubjectDN().getName());
         // TODO check in unit tests that CA is false
@@ -87,8 +87,8 @@ public class ClientCertificatesIssuingFunctionalTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
 
-        String response = restaamClient.getClientCertificate(certRequest);
-        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(response);
+        String clientCertificate = restaamClient.getClientCertificate(certRequest);
+        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
         assertNotNull(x509Certificate);
         assertEquals("CN=" + platform.getPlatformInstanceId(), x509Certificate.getSubjectDN().getName());
         // TODO check CA true & length in unit tests

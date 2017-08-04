@@ -270,8 +270,12 @@ public class TokensIssuingFunctionalTests extends
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        String response = restaamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.UNAUTHORIZED.value(), restaamClient.getStatus());
+        try {
+            String homeToken = restaamClient.getHomeToken(loginRequest);
+            assertNotNull(homeToken);
+        } catch (WrongCredentialsException ex) {
+            assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+        }
     }
 
     @Test
@@ -279,9 +283,11 @@ public class TokensIssuingFunctionalTests extends
 
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-
-        String response = restaamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.UNAUTHORIZED.value(), restaamClient.getStatus());
+        try {
+            restaamClient.getHomeToken(loginRequest);
+        } catch (WrongCredentialsException ex) {
+            assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+        }
     }
 
     /**
@@ -294,8 +300,11 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, wrongClientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String response = restaamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.UNAUTHORIZED.value(), restaamClient.getStatus());
+        try {
+            restaamClient.getHomeToken(loginRequest);
+        } catch (WrongCredentialsException e) {
+            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+        }
     }
 
     /**
@@ -319,10 +328,13 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String response = restaamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
-        assertNotNull(response);
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(response);
+        String homeToken = null;
+        try {
+            homeToken = restaamClient.getHomeToken(loginRequest);
+        } catch (WrongCredentialsException e) {
+            log.error(e.getMessage());
+        }
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(homeToken);
         // As the AAM is now configured as core we confirm that relevant token type was issued.
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
 
@@ -383,12 +395,16 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, platformOwnerKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String response = restaamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
+        String homeToken = null;
+        try {
+            homeToken = restaamClient.getHomeToken(loginRequest);
+        } catch (WrongCredentialsException e) {
+            log.error(e.getMessage());
+        }
         //verify that JWT was issued for user
-        assertNotNull(response);
+        assertNotNull(homeToken);
 
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(response);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(homeToken);
 
         //verify that JWT is of type Core as was released by a CoreAAM
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
@@ -458,16 +474,20 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, preferredPlatformId, null, platformOwnerKeyPair.getPrivate());
 
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        String response = restaamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
+        String homeToken = null;
+        try {
+            homeToken = restaamClient.getHomeToken(loginRequest);
+        } catch (WrongCredentialsException e) {
+            log.error(e.getMessage());
+        }
         //verify that JWT was issued for user
-        assertNotNull(response);
+        assertNotNull(homeToken);
 
         // issue owned platform details request with the given token
         RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (response).getBytes());
+                (homeToken).getBytes());
         OwnedPlatformDetails ownedPlatformDetails = mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails.class);
 
         Platform ownedPlatformInDB = platformRepository.findOne(preferredPlatformId);
@@ -529,10 +549,14 @@ public class TokensIssuingFunctionalTests extends
         // getHomeToken the platform owner
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, platformOwnerKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        String response = restaamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
+        String homeToken = null;
+        try {
+            homeToken = restaamClient.getHomeToken(loginRequest);
+        } catch (WrongCredentialsException e) {
+            log.error(e.getMessage());
+        }
         //verify that JWT was issued for user
-        assertNotNull(response);
+        assertNotNull(homeToken);
 
         // waiting for the token to expire
         Thread.sleep(tokenValidityPeriod + 10);
@@ -541,7 +565,7 @@ public class TokensIssuingFunctionalTests extends
         RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (response).getBytes());
+                (homeToken).getBytes());
 
         try {
             mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails.class);
@@ -608,8 +632,12 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, coreAppUsername, platformId, null, keyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = restaamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
+        String homeToken = null;
+        try {
+            homeToken = restaamClient.getHomeToken(loginRequest);
+        } catch (WrongCredentialsException e) {
+            log.error(e.getMessage());
+        }
         //verify that JWT was issued for user
         assertNotNull(homeToken);
 
@@ -646,9 +674,14 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String response = restaamClient.getHomeToken(loginRequest);
+        String homeToken = null;
         try {
-            restaamClient.getForeignToken(response, "");
+            homeToken = restaamClient.getHomeToken(loginRequest);
+        } catch (WrongCredentialsException e) {
+            log.error(e.getMessage());
+        }
+        try {
+            restaamClient.getForeignToken(homeToken, "");
             assert false;
         } catch (ValidationException e) {
             assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
@@ -702,7 +735,6 @@ public class TokensIssuingFunctionalTests extends
         // checking issuing of foreign token using the dummy platform token
         String token = restaamClient.getForeignToken(dummyHomeToken.getToken(), "");
         // check if returned status is ok and if there is token in header
-        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
         assertNotNull(token);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token);
         assertEquals(Token.Type.FOREIGN, Token.Type.valueOf(claimsFromToken.getTtyp()));
@@ -842,7 +874,6 @@ public class TokensIssuingFunctionalTests extends
     @Test
     public void getGuestTokenOverRESTSuccess() throws MalformedJWTException {
         String acquired_token = restaamClient.getGuestToken();
-        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
         assertNotNull(acquired_token);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(acquired_token);
         assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));

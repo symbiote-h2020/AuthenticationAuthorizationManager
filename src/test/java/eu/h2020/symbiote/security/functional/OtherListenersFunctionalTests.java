@@ -18,7 +18,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -150,7 +149,6 @@ public class OtherListenersFunctionalTests extends
     public void getComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException {
         String componentCertificate = restaamClient.getComponentCertificate();
-        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
         assertEquals(certificationAuthorityHelper.getAAMCert(), componentCertificate);
     }
 }
