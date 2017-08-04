@@ -2,22 +2,17 @@ package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.communication.RESTAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
-import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 
 import java.io.IOException;
 import java.security.*;
@@ -43,11 +38,6 @@ public class CredentialsValidationFunctionalTests extends
      * @throws IOException
      * @throws TimeoutException
      */
-
-    @Before
-    public void setup() {
-        restaamClient = new RESTAAMClient(serverAddress);
-    }
     @Test
     public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
         addTestUserWithClientCertificateToRepository();
@@ -57,7 +47,6 @@ public class CredentialsValidationFunctionalTests extends
         String token = restaamClient.getHomeToken(loginRequest);
         assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
         assertNotNull(token);
-        //String token = response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString();
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 validateRequestQueue,
@@ -84,12 +73,8 @@ public class CredentialsValidationFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String response = restaamClient.getHomeToken(loginRequest);
-
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(SecurityConstants.TOKEN_HEADER_NAME, response);
-
-        ValidationStatus status = restaamClient.validate(headers.getFirst("X-Auth-Token").toString(), "null");
+        String homeToken = restaamClient.getHomeToken(loginRequest);
+        ValidationStatus status = restaamClient.validate(homeToken, "null");
         assertEquals(ValidationStatus.VALID, status);
     }
 
@@ -105,13 +90,11 @@ public class CredentialsValidationFunctionalTests extends
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        String response = restaamClient.getHomeToken(loginRequest);
+        String homeToken = restaamClient.getHomeToken(loginRequest);
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 10);
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(SecurityConstants.TOKEN_HEADER_NAME, response);
 
-        ValidationStatus status = restaamClient.validate(headers.getFirst("X-Auth-Token").toString(), "null");
+        ValidationStatus status = restaamClient.validate(homeToken, "null");
         // TODO cover other situations (bad key, on purpose revocation)
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status);
     }

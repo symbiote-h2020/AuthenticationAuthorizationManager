@@ -149,8 +149,8 @@ public class OtherListenersFunctionalTests extends
     @Test
     public void getComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException {
-        String response = restaamClient.getComponentCertificate();
+        String componentCertificate = restaamClient.getComponentCertificate();
         assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
-        assertEquals(certificationAuthorityHelper.getAAMCert(), response);
+        assertEquals(certificationAuthorityHelper.getAAMCert(), componentCertificate);
     }
 }
