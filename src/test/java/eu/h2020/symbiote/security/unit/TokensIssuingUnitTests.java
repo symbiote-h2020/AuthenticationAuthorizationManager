@@ -302,21 +302,48 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = WrongCredentialsException.class)
-    public void getHomeTokenWrongSign() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, MalformedJWTException, ValidationException {
+    public void getHomeTokenWrongSign() throws
+            IOException,
+            ClassNotFoundException,
+            CertificateException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            JWTCreationException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            MalformedJWTException,
+            ValidationException {
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         getTokenService.getHomeToken(loginRequest);
     }
 
     @Test(expected = WrongCredentialsException.class)
-    public void getHomeTokenWrongCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, MalformedJWTException, ValidationException {
+    public void getHomeTokenWrongCredentials() throws
+            IOException,
+            ClassNotFoundException,
+            CertificateException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            JWTCreationException,
+            MalformedJWTException,
+            ValidationException {
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         getTokenService.getHomeToken(loginRequest);
     }
 
-    @Test(expected = MissingArgumentsException.class)
-    public void getHomeTokenMissingCredentials() throws IOException, ClassNotFoundException, CertificateException, MissingArgumentsException, WrongCredentialsException, JWTCreationException, MalformedJWTException, ValidationException {
+    @Test(expected = InvalidArgumentsException.class)
+    public void getHomeTokenMissingCredentials() throws
+            IOException,
+            ClassNotFoundException,
+            CertificateException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            JWTCreationException,
+            MalformedJWTException,
+            ValidationException {
         HomeCredentials homeCredentials = new HomeCredentials(null, null, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         getTokenService.getHomeToken(loginRequest);

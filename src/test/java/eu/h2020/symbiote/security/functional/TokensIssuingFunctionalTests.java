@@ -34,15 +34,9 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.HttpServerErrorException;
 
 import javax.security.auth.x500.X500Principal;
 import java.io.FileInputStream;
@@ -140,7 +134,18 @@ public class TokensIssuingFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void getHomeTokenForUserOverAMQPSuccessAndIssuesCoreTokenType() throws IOException, TimeoutException, MalformedJWTException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
+    public void getHomeTokenForUserOverAMQPSuccessAndIssuesCoreTokenType() throws
+            IOException,
+            TimeoutException,
+            MalformedJWTException,
+            CertificateException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            OperatorCreationException,
+            NoSuchProviderException,
+            InvalidKeyException,
+            JWTCreationException {
         addTestUserWithClientCertificateToRepository();
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -168,7 +173,10 @@ public class TokensIssuingFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void getHomeTokenForUserOverAMQPWrongCredentialsFailure() throws IOException, TimeoutException, JWTCreationException {
+    public void getHomeTokenForUserOverAMQPWrongCredentialsFailure() throws
+            IOException,
+            TimeoutException,
+            JWTCreationException {
 
         // test combinations of wrong credentials
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
@@ -210,7 +218,10 @@ public class TokensIssuingFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void getHomeTokenForUserOverAMQPMissingArgumentsFailure() throws IOException, TimeoutException, JWTCreationException {
+    public void getHomeTokenForUserOverAMQPMissingArgumentsFailure() throws
+            IOException,
+            TimeoutException,
+            JWTCreationException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
         HomeCredentials homeCredentials = new HomeCredentials(null, "", "", null, userKeyPair.getPrivate());
@@ -220,7 +231,7 @@ public class TokensIssuingFunctionalTests extends
 
         log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
 
-        assertEquals(new MissingArgumentsException().getErrorMessage(), noToken.getErrorMessage());
+        assertEquals(new InvalidArgumentsException().getErrorMessage(), noToken.getErrorMessage());
     }
 
     /**
@@ -232,7 +243,13 @@ public class TokensIssuingFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void getHomeTokenForUserOverAMQPWrongSignFailure() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException {
+    public void getHomeTokenForUserOverAMQPWrongSignFailure() throws
+            IOException,
+            TimeoutException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            JWTCreationException {
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
         KeyPair keyPair = CryptoHelper.createKeyPair();
@@ -246,7 +263,13 @@ public class TokensIssuingFunctionalTests extends
     }
 
     @Test
-    public void getHomeTokenForUserOverRESTWrongSignFailure() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException {
+    public void getHomeTokenForUserOverRESTWrongSignFailure() throws
+            IOException,
+            TimeoutException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            JWTCreationException {
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -284,7 +307,17 @@ public class TokensIssuingFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getHomeTokenForUserOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws IOException, MalformedJWTException, CertificateException, OperatorCreationException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
+    public void getHomeTokenForUserOverRESTSuccessAndIssuesCoreTokenWithoutPOAttributes() throws
+            IOException,
+            MalformedJWTException,
+            CertificateException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            InvalidKeyException,
+            JWTCreationException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -315,7 +348,18 @@ public class TokensIssuingFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getHomeTokenForPlatformOwnerOverRESTSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws IOException, TimeoutException, MalformedJWTException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException, JWTCreationException {
+    public void getHomeTokenForPlatformOwnerOverRESTSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws
+            IOException,
+            TimeoutException,
+            MalformedJWTException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            InvalidKeyException,
+            JWTCreationException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -373,9 +417,21 @@ public class TokensIssuingFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void getHomeTokenForPlatformOwnerOverRESTAndReceivesInAdministrationDetailsOfHisOwnedPlatform() throws IOException,
-            TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException,
-            InterruptedException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException, JWTCreationException {
+    public void getHomeTokenForPlatformOwnerOverRESTAndReceivesInAdministrationDetailsOfHisOwnedPlatform() throws
+            IOException,
+            TimeoutException,
+            MalformedJWTException,
+            JSONException,
+            CertificateException,
+            ValidationException,
+            InterruptedException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            InvalidKeyException,
+            JWTCreationException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -435,9 +491,22 @@ public class TokensIssuingFunctionalTests extends
      */
     @Test
     public void getHomeTokenForPlatformOwnerOverRESTAndUsesExpiredTokenToReceivesInAdministrationDetailsOfHisOwnedPlatform()
-            throws IOException,
-            TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException,
-            InterruptedException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException, JWTCreationException {
+            throws
+            IOException,
+            TimeoutException,
+            MalformedJWTException,
+            JSONException,
+            CertificateException,
+            ValidationException,
+            InterruptedException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            InvalidKeyException,
+            JWTCreationException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -492,8 +561,21 @@ public class TokensIssuingFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void getHomeTokenForPlatformOwnerOverRESTAndIsDeclinedOwnedPlatformDetailsRequestNoPlatform() throws IOException,
-            TimeoutException, MalformedJWTException, JSONException, CertificateException, ValidationException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidAlgorithmParameterException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException, JWTCreationException {
+    public void getHomeTokenForPlatformOwnerOverRESTAndIsDeclinedOwnedPlatformDetailsRequestNoPlatform() throws
+            IOException,
+            TimeoutException,
+            MalformedJWTException,
+            JSONException,
+            CertificateException,
+            ValidationException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            InvalidAlgorithmParameterException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            InvalidKeyException,
+            JWTCreationException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -552,27 +634,41 @@ public class TokensIssuingFunctionalTests extends
      */
 
     @Test
-    public void getForeignTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
+    public void getForeignTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() throws
+            IOException,
+            CertificateException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            OperatorCreationException,
+            NoSuchProviderException,
+            InvalidKeyException,
+            JWTCreationException,
+            ValidationException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
         String response = restaamClient.getHomeToken(loginRequest);
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(SecurityConstants.TOKEN_HEADER_NAME, response);
-
-        HttpEntity<String> request = new HttpEntity<String>(null, headers);
-
         try {
-            restaamClient.getForeignToken(request, "");
+            restaamClient.getForeignToken(response, "");
             assert false;
-        } catch (HttpClientErrorException e) {
-            assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
+        } catch (ValidationException e) {
+            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         }
     }
 
     @Test
-    public void getForeignTokenUsingPlatformTokenOverRESTSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException {
+    public void getForeignTokenUsingPlatformTokenOverRESTSuccess() throws
+            IOException,
+            ValidationException,
+            TimeoutException,
+            NoSuchProviderException,
+            KeyStoreException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            MalformedJWTException,
+            JWTCreationException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -603,17 +699,11 @@ public class TokensIssuingFunctionalTests extends
         dummyPlatform.setPlatformAAMCertificate(new eu.h2020.symbiote.security.commons.Certificate(dummyPlatformAAMPEMCertString));
         platformRepository.save(dummyPlatform);
 
-        // preparing request
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(SecurityConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
-
-        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
-
         // adding a dummy foreign rule
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
 
         // checking issuing of foreign token using the dummy platform token
-        String token = restaamClient.getForeignToken(entity, "");
+        String token = restaamClient.getForeignToken(dummyHomeToken.getToken(), "");
         // check if returned status is ok and if there is token in header
         assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
         assertNotNull(token);
@@ -622,7 +712,16 @@ public class TokensIssuingFunctionalTests extends
     }
 
     @Test
-    public void getForeignTokenUsingPlatformTokenOverRESTFailPlatformNotRegistered() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException {
+    public void getForeignTokenUsingPlatformTokenOverRESTFailPlatformNotRegistered() throws
+            IOException,
+            ValidationException,
+            TimeoutException,
+            NoSuchProviderException,
+            KeyStoreException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            MalformedJWTException,
+            JWTCreationException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -640,26 +739,29 @@ public class TokensIssuingFunctionalTests extends
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
-        // preparing request
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(SecurityConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
-
-        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
-
         // adding a dummy foreign rule
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
 
         // checking issuing of foreign token using the dummy platform token
         try {
-            restaamClient.getForeignToken(entity, "");
+            restaamClient.getForeignToken(dummyHomeToken.getToken(), "");
             assert false;
-        } catch (HttpClientErrorException e) {
-            assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
+        } catch (ValidationException e) {
+            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         }
     }
 
     @Test
-    public void getForeignTokenUsingPlatformTokenOverRESTFailPlatformHasNotCertificate() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException {
+    public void getForeignTokenUsingPlatformTokenOverRESTFailPlatformHasNotCertificate() throws
+            IOException,
+            ValidationException,
+            TimeoutException,
+            NoSuchProviderException,
+            KeyStoreException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            MalformedJWTException,
+            JWTCreationException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -670,21 +772,15 @@ public class TokensIssuingFunctionalTests extends
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
-        // preparing request
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(SecurityConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
-
-        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
-
         // adding a dummy foreign rule
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
 
         // checking issuing of foreign token using the dummy platform token
         try {
-            restaamClient.getForeignToken(entity, "");
+            restaamClient.getForeignToken(dummyHomeToken.getToken(), "");
             assert false;
-        } catch (HttpClientErrorException e) {
-            assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
+        } catch (ValidationException e) {
+            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         }
     }
 
@@ -695,7 +791,15 @@ public class TokensIssuingFunctionalTests extends
      */
 
     @Test
-    public void getForeignTokenFromCoreUsingPlatformTokenOverRESTFailsForUndefinedForeignMapping() throws IOException, ValidationException, TimeoutException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, JWTCreationException {
+    public void getForeignTokenFromCoreUsingPlatformTokenOverRESTFailsForUndefinedForeignMapping() throws
+            IOException,
+            ValidationException,
+            TimeoutException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            JWTCreationException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -726,21 +830,15 @@ public class TokensIssuingFunctionalTests extends
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
         platformRepository.save(dummyPlatform);
 
-        // preparing request
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(SecurityConstants.TOKEN_HEADER_NAME, dummyHomeToken.getToken());
-
-        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
-
         // making sure the foreignMappingRules are empty
         tokenIssuer.foreignMappingRules.clear();
 
         // checking issuing of foreign token using the dummy platform token
         try {
-            restaamClient.getForeignToken(entity, "");
+            restaamClient.getForeignToken(dummyHomeToken.getToken(), "");
             assert false;
-        } catch (HttpServerErrorException e) {
-            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getRawStatusCode());
+        } catch (JWTCreationException e) {
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatusCode());
         }
     }
 

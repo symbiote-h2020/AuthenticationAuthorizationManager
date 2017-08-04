@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
@@ -59,9 +60,16 @@ public class GetClientCertificateService {
         this.revocationHelper = revocationHelper;
     }
 
-    public String getCertificate(CertificateRequest certificateRequest) throws WrongCredentialsException, IOException,
-            CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, UnrecoverableKeyException,
-            OperatorCreationException, NotExistingUserException, InvalidKeyException {
+    public String getCertificate(CertificateRequest certificateRequest) throws
+            WrongCredentialsException,
+            IOException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            UnrecoverableKeyException,
+            OperatorCreationException,
+            NotExistingUserException,
+            InvalidKeyException, InvalidArgumentsException, CertificateException {
 
         X509Certificate certFromCSR;
 
@@ -95,7 +103,7 @@ public class GetClientCertificateService {
         } else {
             if (!req.getSubject().toString().split("CN=")[1].split("@")[2].equals
                     (caCert.getSubjectDN().getName().split("CN=")[1]))
-                throw new CertificateException("Subject name doesn't match");
+                throw new InvalidArgumentsException("Subject name doesn't match");
             certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
         }
 

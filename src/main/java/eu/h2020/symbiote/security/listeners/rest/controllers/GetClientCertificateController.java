@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
@@ -37,11 +38,51 @@ public class GetClientCertificateController implements IGetClientCertificate {
         try {
             String certificate = getClientCertificateService.getCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
-        } catch (WrongCredentialsException | IOException | CertificateException | NoSuchAlgorithmException |
-                NoSuchProviderException | KeyStoreException | UnrecoverableKeyException | OperatorCreationException |
-                NotExistingUserException | InvalidKeyException | IllegalArgumentException e) {
+        } catch (WrongCredentialsException e) {
+            return new ResponseEntity<>(e.getErrorMessage(), e.getStatusCode());
+        } catch (IOException e) {
             log.error(e);
-            // is it really ok? HttpStatus.OK, use properly exceptions
+            // TODO use properly exceptions
+            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
+        } catch (NoSuchAlgorithmException e) {
+            log.error(e);
+            // TODO use properly exceptions
+            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
+        } catch (NoSuchProviderException e) {
+            log.error(e);
+            // TODO use properly exceptions
+            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
+        } catch (KeyStoreException e) {
+            log.error(e);
+            // TODO use properly exceptions
+            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
+        } catch (UnrecoverableKeyException e) {
+            log.error(e);
+            // TODO use properly exceptions
+            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
+        } catch (OperatorCreationException e) {
+            log.error(e);
+            // TODO use properly exceptions
+            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
+        } catch (NotExistingUserException e) {
+            log.error(e);
+            // TODO use properly exceptions
+            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
+        } catch (InvalidKeyException e) {
+            log.error(e);
+            // TODO use properly exceptions
+            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error(e);
+            // TODO use properly exceptions
+            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
+        } catch (InvalidArgumentsException e) {
+            log.error(e);
+            // TODO use properly exceptions
+            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
+        } catch (CertificateException e) {
+            log.error(e);
+            // TODO use properly exceptions
             return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
         }
     }

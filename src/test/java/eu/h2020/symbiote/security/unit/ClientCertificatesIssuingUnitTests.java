@@ -3,9 +3,9 @@ package eu.h2020.symbiote.security.unit;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
-import eu.h2020.symbiote.security.communication.RESTAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -21,7 +21,6 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
@@ -47,7 +46,6 @@ public class ClientCertificatesIssuingUnitTests extends
         AbstractAAMTestSuite {
 
     private final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
-    private final String recoveryMail = "null@dev.null";
 
     @Autowired
     private RevocationHelper revocationHelper;
@@ -55,11 +53,6 @@ public class ClientCertificatesIssuingUnitTests extends
     private CertificationAuthorityHelper certificationAuthorityHelper;
     @Autowired
     private GetClientCertificateService getClientCertificateService;
-
-    @Before
-    public void setup() {
-        restaamClient = new RESTAAMClient(serverAddress);
-    }
 
     @Test
     public void generateCertificateFromCSRSuccess() throws OperatorCreationException, CertificateException,
@@ -139,8 +132,19 @@ public class ClientCertificatesIssuingUnitTests extends
 
 
     @Test(expected = WrongCredentialsException.class)
-    public void getCertificateWrongCredentialsFailure() throws OperatorCreationException, IOException, NoSuchAlgorithmException,
-            CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException, WrongCredentialsException, NotExistingUserException {
+    public void getCertificateWrongCredentialsFailure() throws
+            OperatorCreationException,
+            IOException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            InvalidAlgorithmParameterException,
+            UnrecoverableKeyException,
+            InvalidKeyException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            InvalidArgumentsException {
         User user = saveUser();
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -148,13 +152,24 @@ public class ClientCertificatesIssuingUnitTests extends
         String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(),
                 user.getUsername(), clientId, pair);
         CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, csr);
-        String response = restaamClient.getClientCertificate(certRequest);
-        assertEquals("Wrong credentials", response);
         getClientCertificateService.getCertificate(certRequest);
     }
 
-    @Test(expected = CertificateException.class)
-    public void getCertificateWrongSubjectInCSR() throws OperatorCreationException, IOException, InterruptedException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException, WrongCredentialsException, NotExistingUserException {
+    @Test(expected = InvalidArgumentsException.class)
+    public void getCertificateWrongSubjectInCSR() throws
+            OperatorCreationException,
+            IOException,
+            InterruptedException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            InvalidAlgorithmParameterException,
+            UnrecoverableKeyException,
+            InvalidKeyException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            InvalidArgumentsException {
         User user = saveUser();
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -170,8 +185,20 @@ public class ClientCertificatesIssuingUnitTests extends
     }
 
     @Test
-    public void getCertificateSuccess() throws OperatorCreationException, IOException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException, WrongCredentialsException, NotExistingUserException {
-        User user = saveUser();
+    public void getCertificateSuccess() throws
+            OperatorCreationException,
+            IOException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            InvalidAlgorithmParameterException,
+            UnrecoverableKeyException,
+            InvalidKeyException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            InvalidArgumentsException {
+        saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
@@ -187,8 +214,16 @@ public class ClientCertificatesIssuingUnitTests extends
     // test for revoke function
     //TODO getting certificate
     @Test
-    public void revokeUserPublicKey() throws SecurityException, CertificateException,
-            NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+    public void revokeUserPublicKey() throws
+            SecurityException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            UnrecoverableKeyException,
+            OperatorCreationException,
+            InvalidKeyException {
 
         // prepare the user in db
         addTestUserWithClientCertificateToRepository();

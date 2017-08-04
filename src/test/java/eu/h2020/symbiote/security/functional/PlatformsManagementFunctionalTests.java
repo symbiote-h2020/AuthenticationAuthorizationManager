@@ -4,7 +4,7 @@ import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ExistingPlatformException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.MissingArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UnauthorizedRegistrationException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
@@ -220,7 +220,7 @@ public class PlatformsManagementFunctionalTests extends
                 (platformRegistrationOverAMQPRequest).getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
     }
 
     /**
@@ -240,7 +240,7 @@ public class PlatformsManagementFunctionalTests extends
                 (platformRegistrationOverAMQPRequest).getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
     }
 
     /**

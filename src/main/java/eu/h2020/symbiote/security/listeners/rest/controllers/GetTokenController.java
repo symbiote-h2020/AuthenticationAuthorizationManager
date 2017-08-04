@@ -46,10 +46,10 @@ public class GetTokenController implements IGetToken {
             foreignToken = getTokenService.getForeignToken(new Token(remoteHomeToken), certificate);
         } catch (ValidationException e) {
             log.error(e);
-            return new ResponseEntity<>(headers, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(headers, e.getStatusCode());
         } catch (JWTCreationException e) {
             log.error(e);
-            return new ResponseEntity<>(headers, HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(headers, e.getStatusCode());
         }
         headers.add(SecurityConstants.TOKEN_HEADER_NAME, foreignToken.getToken());
         return new ResponseEntity<>(headers, HttpStatus.OK);

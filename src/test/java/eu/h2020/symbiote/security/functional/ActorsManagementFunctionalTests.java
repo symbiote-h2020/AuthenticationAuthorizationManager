@@ -176,7 +176,7 @@ public class ActorsManagementFunctionalTests extends
                 .getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
     }
 
 
@@ -196,7 +196,7 @@ public class ActorsManagementFunctionalTests extends
                 .getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
     }
 
     /**
@@ -216,7 +216,7 @@ public class ActorsManagementFunctionalTests extends
                 .getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
     }
 
     /**
@@ -235,7 +235,7 @@ public class ActorsManagementFunctionalTests extends
                 .getBytes());
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(MissingArgumentsException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
     }
 
 
@@ -246,7 +246,7 @@ public class ActorsManagementFunctionalTests extends
      */
     @Test
     public void userRegistrationOverAMQPSuccess() throws IOException, TimeoutException, CertificateException,
-            NoSuchAlgorithmException, UnrecoverableKeyException, MissingArgumentsException, KeyStoreException,
+            NoSuchAlgorithmException, UnrecoverableKeyException, InvalidArgumentsException, KeyStoreException,
             InvalidAlgorithmParameterException, NoSuchProviderException, OperatorCreationException,
             WrongCredentialsException, ExistingUserException {
 
@@ -280,7 +280,7 @@ public class ActorsManagementFunctionalTests extends
      */
     @Test
     public void platformOwnerRegistrationOverAMQPSuccess() throws IOException, TimeoutException, CertificateException,
-            NoSuchAlgorithmException, UnrecoverableKeyException, MissingArgumentsException, KeyStoreException,
+            NoSuchAlgorithmException, UnrecoverableKeyException, InvalidArgumentsException, KeyStoreException,
             InvalidAlgorithmParameterException, NoSuchProviderException, OperatorCreationException,
             WrongCredentialsException, ExistingUserException {
 

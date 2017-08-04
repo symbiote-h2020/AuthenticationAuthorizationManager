@@ -69,7 +69,7 @@ public class HomeLoginRequestConsumerService extends DefaultConsumer {
                 Token token = getTokenService.getHomeToken(loginReq);
                     response = om.writeValueAsString(token);
                     this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-            } catch (MissingArgumentsException | WrongCredentialsException | JWTCreationException e) {
+            } catch (InvalidArgumentsException | WrongCredentialsException | JWTCreationException e) {
                     log.error(e);
                     response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
                     this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());

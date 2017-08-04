@@ -4,7 +4,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ExistingPlatformException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.MissingArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UnauthorizedRegistrationException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
@@ -49,7 +49,7 @@ public class PlatformsManagementService {
 
         // check if we received required credentials
         if (request.getAAMOwnerCredentials() == null || request.getPlatformOwnerCredentials() == null)
-            throw new MissingArgumentsException("Missing credentials");
+            throw new InvalidArgumentsException("Missing credentials");
         // check if this operation is authorized
         if (!request.getAAMOwnerCredentials().getUsername().equals(AAMOwnerUsername)
                 || !request.getAAMOwnerCredentials().getPassword().equals(AAMOwnerPassword))
@@ -63,11 +63,11 @@ public class PlatformsManagementService {
         Credentials platformOwnerCredentials = platformManagementRequest.getPlatformOwnerCredentials();
 
         if (platformOwnerCredentials.getUsername().isEmpty() || platformOwnerCredentials.getPassword().isEmpty())
-            throw new MissingArgumentsException("Missing username or password");
+            throw new InvalidArgumentsException("Missing username or password");
         if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
-            throw new MissingArgumentsException("Missing Platform AAM URL");
+            throw new InvalidArgumentsException("Missing Platform AAM URL");
         if (platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
-            throw new MissingArgumentsException("Missing Platform Instance Friendly Name");
+            throw new InvalidArgumentsException("Missing Platform Instance Friendly Name");
 
         // check if platform owner not in repository
         if (!userRepository.exists(platformOwnerCredentials.getUsername())) {
@@ -101,10 +101,10 @@ public class PlatformsManagementService {
 
 /*
 
-    public void unregister(String username) throws NotExistingUserException, MissingArgumentsException {
+    public void unregister(String username) throws NotExistingUserException, InvalidArgumentsException {
         // validate request
         if (username.isEmpty())
-            throw new MissingArgumentsException();
+            throw new InvalidArgumentsException();
         // try-find user
         if (!userRepository.exists(username))
             throw new NotExistingUserException();
@@ -112,12 +112,12 @@ public class PlatformsManagementService {
         userRepository.delete(username);
     }
 
-    public void authUnregister(UserManagementRequest request) throws MissingArgumentsException,
+    public void authUnregister(UserManagementRequest request) throws InvalidArgumentsException,
             NotExistingUserException, UnauthorizedUnregistrationException {
 
         // validate request
         if (request.getAdministratorCredentials() == null || request.getApplicationCredentials() == null)
-            throw new MissingArgumentsException();
+            throw new InvalidArgumentsException();
         // authorize
         if (!request.getAdministratorCredentials().getUsername().equals(AAMOwnerUsername)
                 || !request.getAdministratorCredentials().getPassword().equals(AAMOwnerPassword))

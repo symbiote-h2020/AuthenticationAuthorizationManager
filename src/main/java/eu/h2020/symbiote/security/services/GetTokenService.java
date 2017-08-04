@@ -52,12 +52,18 @@ public class GetTokenService {
         return tokenIssuer.getGuestToken();
     }
 
-    public Token getHomeToken(String loginRequest) throws MalformedJWTException, MissingArgumentsException, JWTCreationException, WrongCredentialsException, CertificateException, ValidationException {
+    public Token getHomeToken(String loginRequest) throws
+            MalformedJWTException,
+            InvalidArgumentsException,
+            JWTCreationException,
+            WrongCredentialsException,
+            CertificateException,
+            ValidationException {
         // validate request
         JWTClaims claims = JWTEngine.getClaimsFromToken(loginRequest);
 
         if (claims.getIss() == null || claims.getSub() == null || claims.getIss().isEmpty() || claims.getSub().isEmpty()) {
-            throw new MissingArgumentsException();
+            throw new InvalidArgumentsException();
         }
         // try to find user
         User userInDB = userRepository.findOne(claims.getIss());

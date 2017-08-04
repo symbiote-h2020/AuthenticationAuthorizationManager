@@ -65,10 +65,10 @@ public class UsersManagementService {
         if (deploymentType == IssuingAuthorityType.CORE &&
                 (userRegistrationDetails.getRecoveryMail()
                         .isEmpty() || userRegistrationDetails.getFederatedId().isEmpty()))
-            throw new MissingArgumentsException("Missing recovery e-mail or foreign identity");
+            throw new InvalidArgumentsException("Missing recovery e-mail or foreign identity");
         if (userRegistrationDetails.getCredentials().getUsername().isEmpty() || userRegistrationDetails
                 .getCredentials().getPassword().isEmpty()) {
-            throw new MissingArgumentsException("Missing username or password");
+            throw new InvalidArgumentsException("Missing username or password");
         }
         // Platform AAM does not support registering platform owners
         if (deploymentType == IssuingAuthorityType.PLATFORM && userRegistrationDetails.getRole() != UserRole.USER)
@@ -99,7 +99,7 @@ public class UsersManagementService {
 
         // check if we received required credentials
         if (request.getAdministratorCredentials() == null || request.getUserDetails().getCredentials() == null)
-            throw new MissingArgumentsException();
+            throw new InvalidArgumentsException();
         // check if this operation is authorized
         if (!request.getAdministratorCredentials().getUsername().equals(adminUsername)
                 || !request.getAdministratorCredentials().getPassword().equals(adminPassword))
@@ -110,7 +110,7 @@ public class UsersManagementService {
     public void unregister(String username) throws SecurityException {
         // validate request
         if (username.isEmpty())
-            throw new MissingArgumentsException();
+            throw new InvalidArgumentsException();
         // try-find user
         if (!userRepository.exists(username))
             throw new NotExistingUserException();
@@ -136,7 +136,7 @@ public class UsersManagementService {
 
         // validate request
         if (request.getAdministratorCredentials() == null || request.getUserDetails().getCredentials() == null)
-            throw new MissingArgumentsException();
+            throw new InvalidArgumentsException();
         // authorize
         if (!request.getAdministratorCredentials().getUsername().equals(adminUsername)
                 || !request.getAdministratorCredentials().getPassword().equals(adminPassword))
