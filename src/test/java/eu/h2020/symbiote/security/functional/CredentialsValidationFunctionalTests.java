@@ -9,7 +9,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException
 import eu.h2020.symbiote.security.communication.RESTAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import feign.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -47,7 +46,7 @@ public class CredentialsValidationFunctionalTests extends
 
     @Before
     public void setup() {
-        aamClient = RESTAAMClient.getJsonClient(serverAddress);
+        restaamClient = new RESTAAMClient(serverAddress);
     }
     @Test
     public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
@@ -55,10 +54,10 @@ public class CredentialsValidationFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.OK.value(), response.status());
-        assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
-        String token = response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString();
+        String token = restaamClient.getHomeToken(loginRequest);
+        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
+        assertNotNull(token);
+        //String token = response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString();
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 validateRequestQueue,
@@ -85,12 +84,12 @@ public class CredentialsValidationFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamClient.getHomeToken(loginRequest);
+        String response = restaamClient.getHomeToken(loginRequest);
 
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(SecurityConstants.TOKEN_HEADER_NAME, response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString());
+        headers.add(SecurityConstants.TOKEN_HEADER_NAME, response);
 
-        ValidationStatus status = aamClient.validate(headers.getFirst("X-Auth-Token").toString(), "null");
+        ValidationStatus status = restaamClient.validate(headers.getFirst("X-Auth-Token").toString(), "null");
         assertEquals(ValidationStatus.VALID, status);
     }
 
@@ -106,13 +105,13 @@ public class CredentialsValidationFunctionalTests extends
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        Response response = aamClient.getHomeToken(loginRequest);
+        String response = restaamClient.getHomeToken(loginRequest);
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 10);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(SecurityConstants.TOKEN_HEADER_NAME, response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString());
+        headers.add(SecurityConstants.TOKEN_HEADER_NAME, response);
 
-        ValidationStatus status = aamClient.validate(headers.getFirst("X-Auth-Token").toString(), "null");
+        ValidationStatus status = restaamClient.validate(headers.getFirst("X-Auth-Token").toString(), "null");
         // TODO cover other situations (bad key, on purpose revocation)
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status);
     }

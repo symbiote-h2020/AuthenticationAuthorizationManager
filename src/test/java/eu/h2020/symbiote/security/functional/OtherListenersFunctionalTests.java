@@ -12,7 +12,6 @@ import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import feign.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
@@ -84,8 +83,7 @@ public class OtherListenersFunctionalTests extends
                 AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
                 preferredPlatformId);
-
-        aamClient = RESTAAMClient.getJsonClient(serverAddress);
+        restaamClient = new RESTAAMClient(serverAddress);
 
     }
 
@@ -97,7 +95,7 @@ public class OtherListenersFunctionalTests extends
     @Test
     public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
             CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        AvailableAAMsCollection response = aamClient.getAvailableAAMs();
+        AvailableAAMsCollection response = restaamClient.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
         // there should be only core AAM in the list
@@ -121,7 +119,7 @@ public class OtherListenersFunctionalTests extends
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
-        AvailableAAMsCollection response = aamClient.getAvailableAAMs();
+        AvailableAAMsCollection response = restaamClient.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
         // there should be only core AAM in the list
@@ -151,8 +149,8 @@ public class OtherListenersFunctionalTests extends
     @Test
     public void getComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException {
-        Response response = aamClient.getComponentCertificate();
-        assertEquals(HttpStatus.OK.value(), response.status());
-        assertEquals(certificationAuthorityHelper.getAAMCert(), response.body().toString());
+        String response = restaamClient.getComponentCertificate();
+        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
+        assertEquals(certificationAuthorityHelper.getAAMCert(), response);
     }
 }

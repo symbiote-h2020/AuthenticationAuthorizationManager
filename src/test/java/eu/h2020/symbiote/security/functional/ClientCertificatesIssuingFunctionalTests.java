@@ -11,7 +11,6 @@ import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import feign.Response;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -36,7 +35,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
         AbstractAAMTestSuite {
     @Before
     public void setup() {
-        aamClient = RESTAAMClient.getJsonClient(serverAddress);
+        restaamClient = new RESTAAMClient(serverAddress);
     }
     @Test
     public void getClientCertificateOverRESTInvalidArguments() throws NoSuchAlgorithmException, CertificateException,
@@ -48,8 +47,8 @@ public class ClientCertificatesIssuingFunctionalTests extends
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(usernameWithAt, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        Response response = aamClient.getClientCertificate(certRequest);
-        assertEquals("Credentials contain illegal sign", response.body().toString());
+        String response = restaamClient.getClientCertificate(certRequest);
+        assertEquals("Credentials contain illegal sign", response);
     }
 
     @Test
@@ -63,16 +62,16 @@ public class ClientCertificatesIssuingFunctionalTests extends
         user.setRole(UserRole.USER);
         userRepository.save(user);
 
-        AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
+        AvailableAAMsCollection aamResponse = restaamClient.getAvailableAAMs();
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        Response response = aamClient.getClientCertificate(certRequest);
+        String response = restaamClient.getClientCertificate(certRequest);
 
-        assertNotNull(CryptoHelper.convertPEMToX509(response.body().toString()));
-        assertEquals("CN=" + username + "@" + clientId + "@" + homeAAM.getAamInstanceId(), CryptoHelper.convertPEMToX509(response.body().toString()).getSubjectDN().getName());
+        assertNotNull(CryptoHelper.convertPEMToX509(response));
+        assertEquals("CN=" + username + "@" + clientId + "@" + homeAAM.getAamInstanceId(), CryptoHelper.convertPEMToX509(restaamClient.getBody().toString()).getSubjectDN().getName());
         // TODO check in unit tests that CA is false
     }
 
@@ -85,18 +84,17 @@ public class ClientCertificatesIssuingFunctionalTests extends
         Platform platform = new Platform("platformInstanceId", null, null, platformOwner, null);
         platformRepository.save(platform);
 
-        AvailableAAMsCollection aamResponse = restTemplate.getForObject(serverAddress + SecurityConstants
-                .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class);
+        AvailableAAMsCollection aamResponse = restaamClient.getAvailableAAMs();
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
         String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
 
-        Response response = aamClient.getClientCertificate(certRequest);
+        String response = restaamClient.getClientCertificate(certRequest);
 
-        assertNotNull(CryptoHelper.convertPEMToX509(response.body().toString()));
-        assertEquals("CN=" + platform.getPlatformInstanceId(), CryptoHelper.convertPEMToX509(response.body().toString()).getSubjectDN().getName());
+        assertNotNull(CryptoHelper.convertPEMToX509(restaamClient.getBody().toString()));
+        assertEquals("CN=" + platform.getPlatformInstanceId(), CryptoHelper.convertPEMToX509(restaamClient.getBody().toString()).getSubjectDN().getName());
         // TODO check CA true & length in unit tests
     }
 }

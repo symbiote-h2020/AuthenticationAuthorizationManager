@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.communication.RESTAAMClient;
 import eu.h2020.symbiote.security.communication.interfaces.FeignAAMRESTInterface;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
@@ -120,6 +121,7 @@ public abstract class AbstractAAMTestSuite {
     private int port;
 
     protected FeignAAMRESTInterface aamClient;
+    protected RESTAAMClient restaamClient;
     @Before
     public void setUp() throws Exception {
         // Catch the random port
