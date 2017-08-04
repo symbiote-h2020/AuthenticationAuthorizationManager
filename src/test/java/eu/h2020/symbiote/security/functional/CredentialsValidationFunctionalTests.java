@@ -108,7 +108,7 @@ public class CredentialsValidationFunctionalTests extends
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Response response = aamClient.getHomeToken(loginRequest);
         //Introduce latency so that JWT expires
-        Thread.sleep(tokenValidityPeriod + 1000);
+        Thread.sleep(tokenValidityPeriod + 10);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
         headers.add(SecurityConstants.TOKEN_HEADER_NAME, response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0].toString());
 

@@ -469,7 +469,7 @@ public class TokensIssuingFunctionalTests extends
         assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
 
         // waiting for the token to expire
-        Thread.sleep(tokenValidityPeriod + 1000);
+        Thread.sleep(tokenValidityPeriod + 10);
 
         // issue owned platform details request with the given token
         RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",

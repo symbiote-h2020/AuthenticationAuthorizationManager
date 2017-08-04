@@ -72,7 +72,7 @@ dependencies {
     // tests only
     testCompile('junit:junit:4.+')
     testCompile('org.springframework.boot:spring-boot-starter-test')
-    testCompile ('com.github.fakemongo:fongo:2.1.0')
+    testCompile ('com.github.fakemongo:fongo:2.1+')
 }
 
 // code quality below

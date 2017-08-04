@@ -229,7 +229,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         Token homeToken = tokenIssuer.getHomeToken(user, clientId);
 
         //Introduce latency so that JWT expires
-        Thread.sleep(tokenValidityPeriod + 1000);
+        Thread.sleep(tokenValidityPeriod + 10);
 
         //check if home token is valid
         ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
