@@ -19,7 +19,6 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import feign.Response;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
@@ -128,6 +127,7 @@ public class TokensIssuingFunctionalTests extends
                 platformInstanceFriendlyName,
                 preferredPlatformId);
         platformOwnerKeyPair = CryptoHelper.createKeyPair();
+        restaamClient = new RESTAAMClient(serverAddress);
         restaamClient = new RESTAAMClient(serverAddress);
     }
 
@@ -250,8 +250,8 @@ public class TokensIssuingFunctionalTests extends
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        Response response = aamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.UNAUTHORIZED.value(), response.status());
+        String response = restaamClient.getHomeToken(loginRequest);
+        assertEquals(HttpStatus.UNAUTHORIZED.value(), restaamClient.getStatus());
     }
 
     @Test
@@ -260,8 +260,8 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.UNAUTHORIZED.value(), response.status());
+        String response = restaamClient.getHomeToken(loginRequest);
+        assertEquals(HttpStatus.UNAUTHORIZED.value(), restaamClient.getStatus());
     }
 
     /**
@@ -274,8 +274,8 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, wrongClientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.UNAUTHORIZED.value(), response.status());
+        String response = restaamClient.getHomeToken(loginRequest);
+        assertEquals(HttpStatus.UNAUTHORIZED.value(), restaamClient.getStatus());
     }
 
     /**
@@ -289,10 +289,10 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.OK.value(), response.status());
-        assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toString());
+        String response = restaamClient.getHomeToken(loginRequest);
+        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
+        assertNotNull(response);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(response);
         // As the AAM is now configured as core we confirm that relevant token type was issued.
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
 
@@ -342,12 +342,12 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, platformOwnerKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.OK.value(), response.status());
+        String response = restaamClient.getHomeToken(loginRequest);
+        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
         //verify that JWT was issued for user
-        assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
+        assertNotNull(response);
 
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toString());
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(response);
 
         //verify that JWT is of type Core as was released by a CoreAAM
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
@@ -405,16 +405,16 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, preferredPlatformId, null, platformOwnerKeyPair.getPrivate());
 
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        Response response = aamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.OK.value(), response.status());
+        String response = restaamClient.getHomeToken(loginRequest);
+        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
         //verify that JWT was issued for user
-        assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
+        assertNotNull(response);
 
         // issue owned platform details request with the given token
         RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0]).getBytes());
+                (response).getBytes());
         OwnedPlatformDetails ownedPlatformDetails = mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails.class);
 
         Platform ownedPlatformInDB = platformRepository.findOne(preferredPlatformId);
@@ -463,10 +463,10 @@ public class TokensIssuingFunctionalTests extends
         // getHomeToken the platform owner
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, platformOwnerKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        Response response = aamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.OK.value(), response.status());
+        String response = restaamClient.getHomeToken(loginRequest);
+        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
         //verify that JWT was issued for user
-        assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
+        assertNotNull(response);
 
         // waiting for the token to expire
         Thread.sleep(tokenValidityPeriod + 1000);
@@ -475,7 +475,7 @@ public class TokensIssuingFunctionalTests extends
         RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0]).getBytes());
+                (response).getBytes());
 
         try {
             mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails.class);
@@ -529,16 +529,16 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, coreAppUsername, platformId, null, keyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamClient.getHomeToken(loginRequest);
-        assertEquals(HttpStatus.OK.value(), response.status());
+        String response = restaamClient.getHomeToken(loginRequest);
+        assertEquals(HttpStatus.OK.value(), restaamClient.getStatus());
         //verify that JWT was issued for user
-        assertNotNull(response.headers().get(SecurityConstants.TOKEN_HEADER_NAME));
+        assertNotNull(response);
 
         // issue owned platform details request with the given token
         RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toArray()[0]).getBytes());
+                (response).getBytes());
 
         // verify error response
         ErrorResponseContainer errorResponse = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer.class);
@@ -557,16 +557,14 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Response response = aamClient.getHomeToken(loginRequest);
+        String response = restaamClient.getHomeToken(loginRequest);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<String, String>();
-        headers.add(SecurityConstants.TOKEN_HEADER_NAME, response.headers().get(SecurityConstants.TOKEN_HEADER_NAME).toString());
+        headers.add(SecurityConstants.TOKEN_HEADER_NAME, response);
 
         HttpEntity<String> request = new HttpEntity<String>(null, headers);
 
         try {
-            restTemplate.postForEntity(serverAddress + SecurityConstants
-                            .AAM_GET_FOREIGN_TOKEN, request,
-                    String.class);
+            restaamClient.getForeignToken(request, "");
             assert false;
         } catch (HttpClientErrorException e) {
             assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
@@ -653,8 +651,7 @@ public class TokensIssuingFunctionalTests extends
 
         // checking issuing of foreign token using the dummy platform token
         try {
-            restTemplate.postForEntity(serverAddress + SecurityConstants
-                    .AAM_GET_FOREIGN_TOKEN, entity, String.class);
+            restaamClient.getForeignToken(entity, "");
             assert false;
         } catch (HttpClientErrorException e) {
             assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
@@ -684,8 +681,7 @@ public class TokensIssuingFunctionalTests extends
 
         // checking issuing of foreign token using the dummy platform token
         try {
-            restTemplate.postForEntity(serverAddress + SecurityConstants
-                    .AAM_GET_FOREIGN_TOKEN, entity, String.class);
+            restaamClient.getForeignToken(entity, "");
             assert false;
         } catch (HttpClientErrorException e) {
             assertEquals(HttpStatus.BAD_REQUEST.value(), e.getRawStatusCode());
@@ -741,8 +737,7 @@ public class TokensIssuingFunctionalTests extends
 
         // checking issuing of foreign token using the dummy platform token
         try {
-            restTemplate.postForEntity(serverAddress + SecurityConstants
-                    .AAM_GET_FOREIGN_TOKEN, entity, String.class);
+            restaamClient.getForeignToken(entity, "");
             assert false;
         } catch (HttpServerErrorException e) {
             assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), e.getRawStatusCode());

@@ -13,7 +13,6 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.GetClientCertificateService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
-import feign.Response;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
@@ -149,8 +148,8 @@ public class ClientCertificatesIssuingUnitTests extends
         String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(),
                 user.getUsername(), clientId, pair);
         CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, csr);
-        Response response = aamClient.getClientCertificate(certRequest);
-        assertEquals("Wrong credentials", response.body().toString());
+        String response = restaamClient.getClientCertificate(certRequest);
+        assertEquals("Wrong credentials", response);
         getClientCertificateService.getCertificate(certRequest);
     }
 
