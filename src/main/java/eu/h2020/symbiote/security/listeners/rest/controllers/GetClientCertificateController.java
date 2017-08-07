@@ -75,7 +75,7 @@ public class GetClientCertificateController implements IGetClientCertificate {
         } catch (IllegalArgumentException e) {
             log.error(e);
             // TODO use properly exceptions
-            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (InvalidArgumentsException e) {
             log.error(e);
             // TODO use properly exceptions
