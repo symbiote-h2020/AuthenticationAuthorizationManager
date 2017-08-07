@@ -3,10 +3,10 @@ package eu.h2020.symbiote.security.services;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ExistingPlatformException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.UnauthorizedRegistrationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.PlatformManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementResponse;
@@ -21,7 +21,7 @@ import java.util.Date;
 
 /**
  * Spring service used to register platforms and their owners in the AAM repository.
- *
+ * <p>
  * TODO update to support full CRUD on platforms
  *
  * @author Mikołaj Dobski (PSNC)
@@ -53,7 +53,7 @@ public class PlatformsManagementService {
         // check if this operation is authorized
         if (!request.getAAMOwnerCredentials().getUsername().equals(AAMOwnerUsername)
                 || !request.getAAMOwnerCredentials().getPassword().equals(AAMOwnerPassword))
-            throw new UnauthorizedRegistrationException();
+            throw new WrongCredentialsException();
         return this.register(request);
     }
 
@@ -82,7 +82,7 @@ public class PlatformsManagementService {
         else if (platformRepository.exists(platformManagementRequest.getPlatformInstanceId())) // check if platform
             // already
             // in repository
-            throw new ExistingPlatformException();
+            throw new PlatformManagementException();
         else {
             // use PO preferred platform identifier
             platformId = platformManagementRequest.getPlatformInstanceId();

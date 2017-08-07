@@ -4,7 +4,9 @@ import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
@@ -74,7 +76,7 @@ public class ActorsManagementFunctionalTests extends
 
         // verify error response
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(UnauthorizedRegistrationException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
 
         // issue the same app registration over AMQP expecting with wrong AAMOwnerPassword
         response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
@@ -87,7 +89,7 @@ public class ActorsManagementFunctionalTests extends
 
         // verify error response
         errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(UnauthorizedRegistrationException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
     }
 
     /**
@@ -113,7 +115,7 @@ public class ActorsManagementFunctionalTests extends
 
         // verify error response
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(UserRegistrationException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
 
         // issue the same app registration over AMQP expecting with wrong Null UserRole
         response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
@@ -126,7 +128,7 @@ public class ActorsManagementFunctionalTests extends
 
         // verify error response
         errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(UserRegistrationException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
     }
 
 
@@ -248,7 +250,7 @@ public class ActorsManagementFunctionalTests extends
     public void userRegistrationOverAMQPSuccess() throws IOException, TimeoutException, CertificateException,
             NoSuchAlgorithmException, UnrecoverableKeyException, InvalidArgumentsException, KeyStoreException,
             InvalidAlgorithmParameterException, NoSuchProviderException, OperatorCreationException,
-            WrongCredentialsException, ExistingUserException {
+            WrongCredentialsException {
 
         // verify that our app is not in repository
         assertNull(userRepository.findOne(username));
@@ -282,7 +284,7 @@ public class ActorsManagementFunctionalTests extends
     public void platformOwnerRegistrationOverAMQPSuccess() throws IOException, TimeoutException, CertificateException,
             NoSuchAlgorithmException, UnrecoverableKeyException, InvalidArgumentsException, KeyStoreException,
             InvalidAlgorithmParameterException, NoSuchProviderException, OperatorCreationException,
-            WrongCredentialsException, ExistingUserException {
+            WrongCredentialsException {
 
         // verify that our app is not in repository
         assertNull(userRepository.findOne(username));
