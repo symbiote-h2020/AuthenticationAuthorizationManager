@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
@@ -14,7 +15,8 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
-import org.bouncycastle.operator.OperatorCreationException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +24,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.security.*;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
@@ -45,6 +49,8 @@ public class GetClientCertificateService {
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
+    private static final Log log = LogFactory.getLog(GetClientCertificateService.class);
+
 
     @Autowired
     public GetClientCertificateService(UserRepository userRepository, PlatformRepository platformRepository,
@@ -60,63 +66,116 @@ public class GetClientCertificateService {
         this.revocationHelper = revocationHelper;
     }
 
-    public String getCertificate(CertificateRequest certificateRequest) throws
+    private void platformRequestCheck(CertificateRequest certificateRequest) {
+        PKCS10CertificationRequest req = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
+        if (userRepository.findOne(certificateRequest.getUsername()).getRole() != UserRole.PLATFORM_OWNER) {
+            throw new SecurityException("User is not a Platform Owner");
+        }
+        if (!platformRepository.exists(req.getSubject().toString().split("CN=")[1])) {
+            throw new SecurityException("Platform doesn't exist");
+        }
+    }
+
+    private User userRequestValidationCheck(CertificateRequest certificateRequest) throws
+            ValidationException,
             WrongCredentialsException,
-            IOException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            KeyStoreException,
-            UnrecoverableKeyException,
-            OperatorCreationException,
-            NotExistingUserException,
-            InvalidKeyException, InvalidArgumentsException, CertificateException {
-
-        X509Certificate certFromCSR;
-
-        if (certificateRequest.getUsername().contains(illegalSign) || certificateRequest.getClientId().contains(illegalSign))
-            throw new IllegalArgumentException("Credentials contain illegal sign");
+            NotExistingUserException {
 
         User user = userRepository.findOne(certificateRequest.getUsername());
         if (user == null)
-            throw new NotExistingUserException("User doesn't exists");
+            throw new NotExistingUserException();
 
         if (!passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
-            throw new WrongCredentialsException("Wrong credentials");
+            throw new WrongCredentialsException();
 
         if (revokedKeysRepository.exists(certificateRequest.getClientId()))
-            throw new InvalidKeyException("Key revoked");
+            throw new ValidationException("Key revoked");
+
+        return user;
+    }
+
+    private X509Certificate certFromCSRCreation(CertificateRequest certificateRequest) throws
+            InvalidArgumentsException {
+        X509Certificate certFromCSR;
+        X509Certificate caCert;
 
         PKCS10CertificationRequest req = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
 
-        X509Certificate caCert = certificationAuthorityHelper.getAAMCertificate();
+        try {
+            caCert = certificationAuthorityHelper.getAAMCertificate();
+        } catch (NoSuchAlgorithmException | CertificateException | NoSuchProviderException
+                | KeyStoreException | IOException e) {
+            log.error(e);
+            throw new SecurityException(e.getMessage(), e.getCause());
+        }
 
         if (!req.getSubject().toString().split("CN=")[1].contains(illegalSign)) {
-            if (userRepository.findOne(certificateRequest.getUsername()).getRole() != UserRole.PLATFORM_OWNER) {
-                throw new SecurityException("User is not a Platform Owner");
-            }
+            platformRequestCheck(certificateRequest);
 
-            if (!platformRepository.exists(req.getSubject().toString().split("CN=")[1])) {
-                throw new SecurityException("Platform doesn't exist");
+            try {
+                certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, true);
+            } catch (CertificateException e) {
+                log.error(e);
+                throw new SecurityException(e.getMessage(), e.getCause());
             }
-            certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, true);
 
         } else {
             if (!req.getSubject().toString().split("CN=")[1].split("@")[2].equals
                     (caCert.getSubjectDN().getName().split("CN=")[1]))
                 throw new InvalidArgumentsException("Subject name doesn't match");
-            certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
-        }
 
-        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
+            try {
+                certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
+            } catch (CertificateException e) {
+                log.error(e);
+                throw new SecurityException(e.getMessage(), e.getCause());
+            }
+        }
+        return certFromCSR;
+    }
+
+    public String getCertificate(CertificateRequest certificateRequest) throws
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            InvalidArgumentsException {
+
+
+        if (certificateRequest.getUsername().contains(illegalSign) || certificateRequest.getClientId().contains(illegalSign))
+            throw new InvalidArgumentsException();
+
+        User user = userRequestValidationCheck(certificateRequest);
+
+        X509Certificate certFromCSR = certFromCSRCreation(certificateRequest);
+
+        String pem;
+        try {
+            pem = CryptoHelper.convertX509ToPEM(certFromCSR);
+        } catch (IOException e) {
+            log.error(e);
+            throw new SecurityException(e.getMessage(), e.getCause());
+        }
 
         Certificate userCert = user.getClientCertificates().get(certificateRequest.getClientId());
         if (userCert != null) {
-            if (userCert.getX509().getPublicKey().equals(certFromCSR.getPublicKey())) {
+            X509Certificate x509Certificate;
+            try {
+                x509Certificate = userCert.getX509();
+            } catch (CertificateException e) {
+                log.error(e);
+                throw new SecurityException(e.getMessage(), e.getCause());
+            }
+            if (x509Certificate.getPublicKey().equals(certFromCSR.getPublicKey())) {
                 Certificate cert = new Certificate(pem);
                 user.getClientCertificates().clear();
                 user.getClientCertificates().replace(certificateRequest.getClientId(), cert);
             } else {
-                revocationHelper.revoke(new Credentials(user.getUsername(), user.getPasswordEncrypted()), userCert);
+                try {
+                    revocationHelper.revoke(new Credentials(user.getUsername(), user.getPasswordEncrypted()), userCert);
+                } catch (CertificateException e) {
+                    log.error(e);
+                    throw new SecurityException(e.getMessage(), e.getCause());
+                }
                 Certificate cert = new Certificate(pem);
                 user.getClientCertificates().put(certificateRequest.getClientId(), cert);
             }

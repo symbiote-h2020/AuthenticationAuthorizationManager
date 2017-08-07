@@ -2,22 +2,18 @@ package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IGetClientCertificate;
 import eu.h2020.symbiote.security.services.GetClientCertificateService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.io.IOException;
-import java.security.*;
-import java.security.cert.CertificateException;
 
 /**
  * @author Maks Marcinowski (PSNC)
@@ -38,52 +34,8 @@ public class GetClientCertificateController implements IGetClientCertificate {
         try {
             String certificate = getClientCertificateService.getCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
-        } catch (WrongCredentialsException e) {
+        } catch (WrongCredentialsException | NotExistingUserException | InvalidArgumentsException | ValidationException e) {
             return new ResponseEntity<>(e.getErrorMessage(), e.getStatusCode());
-        } catch (IOException e) {
-            log.error(e);
-            // TODO use properly exceptions
-            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
-        } catch (NoSuchAlgorithmException e) {
-            log.error(e);
-            // TODO use properly exceptions
-            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
-        } catch (NoSuchProviderException e) {
-            log.error(e);
-            // TODO use properly exceptions
-            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
-        } catch (KeyStoreException e) {
-            log.error(e);
-            // TODO use properly exceptions
-            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
-        } catch (UnrecoverableKeyException e) {
-            log.error(e);
-            // TODO use properly exceptions
-            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
-        } catch (OperatorCreationException e) {
-            log.error(e);
-            // TODO use properly exceptions
-            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
-        } catch (NotExistingUserException e) {
-            log.error(e);
-            // TODO use properly exceptions
-            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
-        } catch (InvalidKeyException e) {
-            log.error(e);
-            // TODO use properly exceptions
-            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
-        } catch (IllegalArgumentException e) {
-            log.error(e);
-            // TODO use properly exceptions
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        } catch (InvalidArgumentsException e) {
-            log.error(e);
-            // TODO use properly exceptions
-            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
-        } catch (CertificateException e) {
-            log.error(e);
-            // TODO use properly exceptions
-            return ResponseEntity.status(HttpStatus.OK).body(e.getMessage());
         }
     }
 }

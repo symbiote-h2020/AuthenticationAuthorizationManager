@@ -59,7 +59,6 @@ public class TokensIssuingFunctionalTests extends
     private final String coreAppPassword = "testCoreAppPassword";
     private final String recoveryMail = "null@dev.null";
     private final String federatedOAuthId = "federatedOAuthId";
-    private final String platformId = "testPlatformId";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =

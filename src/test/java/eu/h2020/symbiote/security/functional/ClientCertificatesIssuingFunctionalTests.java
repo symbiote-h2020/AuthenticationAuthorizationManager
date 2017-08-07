@@ -3,7 +3,10 @@ package eu.h2020.symbiote.security.functional;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
@@ -17,7 +20,6 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Test;
-import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.security.auth.x500.X500Principal;
@@ -35,8 +37,14 @@ public class ClientCertificatesIssuingFunctionalTests extends
         AbstractAAMTestSuite {
 
     @Test
-    public void getClientCertificateOverRESTInvalidArguments() throws NoSuchAlgorithmException, CertificateException,
-            NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException, InvalidAlgorithmParameterException {
+    public void getClientCertificateOverRESTInvalidArguments() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            KeyStoreException,
+            IOException,
+            OperatorCreationException {
         KeyPair pair = CryptoHelper.createKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
                 new X500Principal(certificationAuthorityHelper.getAAMCertificate().getSubjectX500Principal().getName()), pair.getPublic());
@@ -45,16 +53,24 @@ public class ClientCertificatesIssuingFunctionalTests extends
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(usernameWithAt, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
         try {
-            restaamClient.getClientCertificate(certRequest);
-        } catch (InvalidArgumentsException | NotExistingUserException | WrongCredentialsException | ValidationException e) {
-            assertEquals(HttpStatus.BAD_REQUEST, e.getStatusCode());
-            assertEquals("Credentials contain illegal sign", e.getMessage());
+            String clientCertificate = restaamClient.getClientCertificate(certRequest);
+        } catch (Exception e) {
+            assertEquals(InvalidArgumentsException.class, e.getClass());
         }
+
     }
 
     @Test
-    public void getClientCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
-            NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException {
+    public void getClientCertificateOverRESTSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException {
 
         User user = new User();
         user.setUsername(username);
@@ -69,12 +85,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String clientCertificate = "";
-        try {
-            clientCertificate = restaamClient.getClientCertificate(certRequest);
-
-        } catch (InvalidArgumentsException | NotExistingUserException | WrongCredentialsException | ValidationException e) {
-        }
+        String clientCertificate = restaamClient.getClientCertificate(certRequest);
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
         assertNotNull(x509Certificate);
         assertEquals("CN=" + username + "@" + clientId + "@" + homeAAM.getAamInstanceId(), x509Certificate.getSubjectDN().getName());
@@ -82,8 +93,16 @@ public class ClientCertificatesIssuingFunctionalTests extends
     }
 
     @Test
-    public void getPlatformAAMCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
-            NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, SecurityHandlerException, InvalidAlgorithmParameterException, UnrecoverableKeyException, InvalidKeyException {
+    public void getPlatformAAMCertificateOverRESTSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            CertificateException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException {
 
         User platformOwner = savePlatformOwner();
 
@@ -96,11 +115,8 @@ public class ClientCertificatesIssuingFunctionalTests extends
         String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String clientCertificate = "";
-        try {
-            clientCertificate = restaamClient.getClientCertificate(certRequest);
-        } catch (InvalidArgumentsException | NotExistingUserException | WrongCredentialsException | ValidationException e) {
-        }
+
+        String clientCertificate = restaamClient.getClientCertificate(certRequest);
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
         assertNotNull(x509Certificate);
         assertEquals("CN=" + platform.getPlatformInstanceId(), x509Certificate.getSubjectDN().getName());

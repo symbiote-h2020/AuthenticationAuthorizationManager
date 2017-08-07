@@ -8,6 +8,7 @@ import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
+import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
@@ -171,36 +172,78 @@ public class CertificationAuthorityHelper {
         return (PrivateKey) pkcs12Store.getKey(CERTIFICATE_ALIAS, PV_KEY_PASSWORD.toCharArray());
     }
 
-    public X509Certificate generateCertificateFromCSR(PKCS10CertificationRequest request, boolean flagCA) throws NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, KeyStoreException, IOException, CertificateException, UnrecoverableKeyException, OperatorCreationException {
+
+    private ContentSigner contentSignerPreparation() {
+        PrivateKey privKey;
+        try {
+            privKey = this.getAAMPrivateKey();
+        } catch (NoSuchAlgorithmException | CertificateException | NoSuchProviderException
+                | KeyStoreException | UnrecoverableKeyException | IOException e) {
+            log.error(e);
+            throw new SecurityException(e.getMessage(), e.getCause());
+        }
+
+        ContentSigner sigGen;
+        try {
+            sigGen = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM).setProvider
+                    (CryptoHelper.PROVIDER_NAME).build
+                    (privKey);
+        } catch (OperatorCreationException e) {
+            log.error(e);
+            throw new SecurityException(e.getMessage(), e.getCause());
+        }
+
+        return sigGen;
+    }
+
+    public X509Certificate generateCertificateFromCSR(PKCS10CertificationRequest request, boolean flagCA) throws
+            CertificateException {
 
         BasicConstraints basicConstraints;
-        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        X509Certificate caCert = (X509Certificate) pkcs12Store.getCertificate(CERTIFICATE_ALIAS);
-        X500Name issuer = new X500Name(caCert.getSubjectX500Principal().getName());
-        PrivateKey privKey = this.getAAMPrivateKey();
+
+        X509Certificate caCert;
+        try {
+            caCert = this.getRootCACertificate();
+        } catch (KeyStoreException | NoSuchProviderException | IOException | NoSuchAlgorithmException e) {
+            log.error(e);
+            throw new SecurityException(e.getMessage(), e.getCause());
+        }
+
         JcaPKCS10CertificationRequest jcaRequest = new JcaPKCS10CertificationRequest(request);
 
+        PublicKey publicKey;
+        try {
+            publicKey = jcaRequest.getPublicKey();
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            log.error(e);
+            throw new SecurityException(e.getMessage(), e.getCause());
+        }
+
+        X500Name issuer = new X500Name(caCert.getSubjectX500Principal().getName());
         if (flagCA)
             basicConstraints = new BasicConstraints(0);
         else
             basicConstraints = new BasicConstraints(false);
 
-        ContentSigner sigGen = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM).setProvider
-                (CryptoHelper.PROVIDER_NAME).build
-                (privKey);
+        X509v3CertificateBuilder certGen;
+        try {
+            certGen = new JcaX509v3CertificateBuilder(
+                    issuer,
+                    BigInteger.valueOf(1),
+                    new Date(System.currentTimeMillis()),
+                    new Date(System.currentTimeMillis() + tokenValidityPeriod),
+                    jcaRequest.getSubject(),
+                    publicKey)
+                    .addExtension(
+                            new ASN1ObjectIdentifier("2.5.29.19"),
+                            false,
+                            basicConstraints);
+        } catch (CertIOException e) {
+            log.error(e);
+            throw new SecurityException(e.getMessage(), e.getCause());
+        }
 
-        X509v3CertificateBuilder certGen = new JcaX509v3CertificateBuilder(
-                issuer,
-                BigInteger.valueOf(1),
-                new Date(System.currentTimeMillis()),
-                new Date(System.currentTimeMillis() + tokenValidityPeriod),
-                jcaRequest.getSubject(),
-                jcaRequest.getPublicKey())
-                .addExtension(
-                        new ASN1ObjectIdentifier("2.5.29.19"),
-                        false,
-                        basicConstraints);
+        ContentSigner sigGen = contentSignerPreparation();
 
         return new JcaX509CertificateConverter()
                 .setProvider(CryptoHelper.PROVIDER_NAME)
