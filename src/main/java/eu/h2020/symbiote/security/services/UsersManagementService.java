@@ -5,7 +5,9 @@ import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
@@ -17,6 +19,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -72,7 +75,7 @@ public class UsersManagementService {
         }
         // Platform AAM does not support registering platform owners
         if (deploymentType == IssuingAuthorityType.PLATFORM && userRegistrationDetails.getRole() != UserRole.USER)
-            throw new UserRegistrationException();
+            throw new UserManagementException();
 
         // check if user already in repository
         if (userRepository.exists(userRegistrationDetails.getCredentials().getUsername())) {
@@ -81,7 +84,7 @@ public class UsersManagementService {
 
         // verify proper user role
         if (userRegistrationDetails.getRole() == UserRole.NULL)
-            throw new UserRegistrationException();
+            throw new UserManagementException();
 
         // Register the user
         User user = new User();
@@ -103,7 +106,7 @@ public class UsersManagementService {
         // check if this operation is authorized
         if (!request.getAdministratorCredentials().getUsername().equals(adminUsername)
                 || !request.getAdministratorCredentials().getPassword().equals(adminPassword))
-            throw new UnauthorizedRegistrationException();
+            throw new UserManagementException(HttpStatus.UNAUTHORIZED);
         return this.register(request);
     }
 
@@ -126,7 +129,7 @@ public class UsersManagementService {
             revokedKeysRepository.save(new SubjectsRevokedKeys(username, keys));
         } catch (CertificateException e) {
             log.error(e);
-            throw new UserRegistrationException(e);
+            throw new UserManagementException(e);
         }
         // do it
         userRepository.delete(username);
@@ -140,7 +143,7 @@ public class UsersManagementService {
         // authorize
         if (!request.getAdministratorCredentials().getUsername().equals(adminUsername)
                 || !request.getAdministratorCredentials().getPassword().equals(adminPassword))
-            throw new UnauthorizedUnregistrationException();
+            throw new UserManagementException(HttpStatus.UNAUTHORIZED);
         // do it
         this.unregister(request.getUserDetails().getCredentials().getUsername());
     }
