@@ -2,10 +2,7 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -20,6 +17,7 @@ import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -38,7 +36,6 @@ import java.security.cert.X509Certificate;
 
 @Service
 public class GetClientCertificateService {
-    public static final String illegalSign = "@";
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
     private final RevokedKeysRepository revokedKeysRepository;
@@ -66,17 +63,18 @@ public class GetClientCertificateService {
         this.revocationHelper = revocationHelper;
     }
 
-    private void platformRequestCheck(CertificateRequest certificateRequest) {
+    private void platformRequestCheck(CertificateRequest certificateRequest) throws
+            PlatformManagementException {
         PKCS10CertificationRequest req = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
         if (userRepository.findOne(certificateRequest.getUsername()).getRole() != UserRole.PLATFORM_OWNER) {
-            throw new SecurityException("User is not a Platform Owner");
+            throw new PlatformManagementException("User is not a Platform Owner", HttpStatus.UNAUTHORIZED);
         }
         if (!platformRepository.exists(req.getSubject().toString().split("CN=")[1])) {
-            throw new SecurityException("Platform doesn't exist");
+            throw new PlatformManagementException("Platform doesn't exist", HttpStatus.UNAUTHORIZED);
         }
     }
 
-    private User userRequestValidationCheck(CertificateRequest certificateRequest) throws
+    private User requestValidationCheck(CertificateRequest certificateRequest) throws
             ValidationException,
             WrongCredentialsException,
             NotExistingUserException {
@@ -88,14 +86,14 @@ public class GetClientCertificateService {
         if (!passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
             throw new WrongCredentialsException();
 
-        if (revokedKeysRepository.exists(certificateRequest.getClientId()))
+        if (revokedKeysRepository.exists(certificateRequest.getUsername()))
             throw new ValidationException("Key revoked");
 
         return user;
     }
 
     private X509Certificate certFromCSRCreation(CertificateRequest certificateRequest) throws
-            InvalidArgumentsException {
+            InvalidArgumentsException, UserManagementException, PlatformManagementException {
         X509Certificate certFromCSR;
         X509Certificate caCert;
 
@@ -109,17 +107,20 @@ public class GetClientCertificateService {
             throw new SecurityException(e.getMessage(), e.getCause());
         }
 
-        if (!req.getSubject().toString().split("CN=")[1].contains(illegalSign)) {
+        if (!req.getSubject().toString().split("CN=")[1].contains(CryptoHelper.illegalSign)) {
             platformRequestCheck(certificateRequest);
 
             try {
                 certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, true);
             } catch (CertificateException e) {
                 log.error(e);
-                throw new SecurityException(e.getMessage(), e.getCause());
+                throw new PlatformManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             }
+        }
+        //else if(req.getSubject().toString().split("CN=")[1].split("illegalSign")[2]==null){
 
-        } else {
+        //}
+        else {
             if (!req.getSubject().toString().split("CN=")[1].split("@")[2].equals
                     (caCert.getSubjectDN().getName().split("CN=")[1]))
                 throw new InvalidArgumentsException("Subject name doesn't match");
@@ -128,7 +129,7 @@ public class GetClientCertificateService {
                 certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
             } catch (CertificateException e) {
                 log.error(e);
-                throw new SecurityException(e.getMessage(), e.getCause());
+                throw new UserManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }
         return certFromCSR;
@@ -138,13 +139,15 @@ public class GetClientCertificateService {
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            InvalidArgumentsException {
+            InvalidArgumentsException,
+            UserManagementException,
+            PlatformManagementException {
 
 
-        if (certificateRequest.getUsername().contains(illegalSign) || certificateRequest.getClientId().contains(illegalSign))
+        if (certificateRequest.getUsername().contains(CryptoHelper.illegalSign) || certificateRequest.getClientId().contains(CryptoHelper.illegalSign))
             throw new InvalidArgumentsException();
 
-        User user = userRequestValidationCheck(certificateRequest);
+        User user = requestValidationCheck(certificateRequest);
 
         X509Certificate certFromCSR = certFromCSRCreation(certificateRequest);
 
