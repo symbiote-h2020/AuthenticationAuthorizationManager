@@ -71,7 +71,7 @@ public class CredentialsValidationFunctionalTests extends
      * Interfaces: PAAM - 4, CAAM - 10;
      * CommunicationType REST
      */
-    @Test(expected = WrongCredentialsException.class)
+    @Test
     public void validationOverRESTValid() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -94,7 +94,7 @@ public class CredentialsValidationFunctionalTests extends
      * Interfaces: PAAM - 4, CAAM - 10;
      * CommunicationType REST
      */
-    @Test(expected = WrongCredentialsException.class)
+    @Test
     public void validationOverRESTExpired() throws IOException, InterruptedException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -109,6 +109,7 @@ public class CredentialsValidationFunctionalTests extends
         Thread.sleep(tokenValidityPeriod + 10);
 
         ValidationStatus status = restaamClient.validate(homeToken, "null");
+
         // TODO cover other situations (bad key, on purpose revocation)
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status);
     }
