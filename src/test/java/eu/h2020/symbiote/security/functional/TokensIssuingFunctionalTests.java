@@ -271,8 +271,18 @@ public class TokensIssuingFunctionalTests extends
         try {
             String homeToken = restaamClient.getHomeToken(loginRequest);
             assertNotNull(homeToken);
-        } catch (WrongCredentialsException ex) {
+        } catch (WrongCredentialsException | MalformedJWTException ex) {
             assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
+        }
+    }
+
+    @Test
+    public void getHomeTokenForUserOverRESTIncorrectTokenFormat() throws JWTCreationException {
+        try {
+            String homeToken = restaamClient.getHomeToken("IncorrectlyFormattedToken");
+            assertNotNull(homeToken);
+        } catch (WrongCredentialsException | MalformedJWTException ex) {
+            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         }
     }
 
@@ -283,7 +293,7 @@ public class TokensIssuingFunctionalTests extends
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         try {
             restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException ex) {
+        } catch (WrongCredentialsException | MalformedJWTException ex) {
             assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
         }
     }
@@ -300,7 +310,7 @@ public class TokensIssuingFunctionalTests extends
 
         try {
             restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException e) {
+        } catch (WrongCredentialsException | MalformedJWTException e) {
             assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         }
     }
@@ -675,7 +685,7 @@ public class TokensIssuingFunctionalTests extends
         String homeToken = null;
         try {
             homeToken = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException e) {
+        } catch (WrongCredentialsException | MalformedJWTException e) {
             log.error(e.getMessage());
         }
         try {
