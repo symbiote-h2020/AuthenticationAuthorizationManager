@@ -257,45 +257,33 @@ public class TokensIssuingFunctionalTests extends
         assertEquals(new WrongCredentialsException().getErrorMessage(), noToken.getErrorMessage());
     }
 
-    @Test
+    @Test(expected = WrongCredentialsException.class)
     public void getHomeTokenForUserOverRESTWrongSignFailure() throws
             IOException,
             TimeoutException,
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
-            JWTCreationException {
+            JWTCreationException, MalformedJWTException, WrongCredentialsException {
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        try {
-            String homeToken = restaamClient.getHomeToken(loginRequest);
-            assertNotNull(homeToken);
-        } catch (WrongCredentialsException | MalformedJWTException ex) {
-            assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
-        }
+        String homeToken = restaamClient.getHomeToken(loginRequest);
+        assertNotNull(homeToken);
     }
 
-    @Test
-    public void getHomeTokenForUserOverRESTIncorrectTokenFormat() throws JWTCreationException {
-        try {
-            String homeToken = restaamClient.getHomeToken("IncorrectlyFormattedToken");
-            assertNotNull(homeToken);
-        } catch (WrongCredentialsException | MalformedJWTException ex) {
-            assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
-        }
+    @Test(expected = MalformedJWTException.class)
+    public void getHomeTokenForUserOverRESTIncorrectTokenFormat() throws JWTCreationException, MalformedJWTException, WrongCredentialsException {
+        String homeToken = restaamClient.getHomeToken("IncorrectlyFormattedToken");
+        assertNotNull(homeToken);
     }
 
-    @Test
-    public void getHomeTokenForUserOverRESTWrongUsernameFailure() throws IOException, JWTCreationException {
+    @Test(expected = WrongCredentialsException.class)
+    public void getHomeTokenForUserOverRESTWrongUsernameFailure() throws IOException, JWTCreationException, MalformedJWTException, WrongCredentialsException {
 
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        try {
-            restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException | MalformedJWTException ex) {
-            assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatusCode());
-        }
+        restaamClient.getHomeToken(loginRequest);
     }
 
     /**
@@ -303,16 +291,11 @@ public class TokensIssuingFunctionalTests extends
      * Interfaces: PAAM - 3, CAAM - 7;
      * CommunicationType REST
      */
-    @Test
-    public void getHomeTokenForUserOverRESTWrongClientIdFailure() throws IOException, JWTCreationException {
+    @Test(expected = WrongCredentialsException.class)
+    public void getHomeTokenForUserOverRESTWrongClientIdFailure() throws IOException, JWTCreationException, MalformedJWTException, WrongCredentialsException {
         HomeCredentials homeCredentials = new HomeCredentials(null, username, wrongClientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-
-        try {
-            restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException | MalformedJWTException e) {
-            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
-        }
+        restaamClient.getHomeToken(loginRequest);
     }
 
     /**
@@ -331,17 +314,12 @@ public class TokensIssuingFunctionalTests extends
             KeyStoreException,
             NoSuchProviderException,
             InvalidKeyException,
-            JWTCreationException {
+            JWTCreationException, WrongCredentialsException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = null;
-        try {
-            homeToken = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException e) {
-            log.error(e.getMessage());
-        }
+        String homeToken = restaamClient.getHomeToken(loginRequest);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(homeToken);
         // As the AAM is now configured as core we confirm that relevant token type was issued.
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
@@ -376,7 +354,7 @@ public class TokensIssuingFunctionalTests extends
             OperatorCreationException,
             UnrecoverableKeyException,
             InvalidKeyException,
-            JWTCreationException {
+            JWTCreationException, WrongCredentialsException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -403,12 +381,7 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, platformOwnerKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = null;
-        try {
-            homeToken = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException e) {
-            log.error(e.getMessage());
-        }
+        String homeToken = restaamClient.getHomeToken(loginRequest);
         //verify that JWT was issued for user
         assertNotNull(homeToken);
 
@@ -452,7 +425,7 @@ public class TokensIssuingFunctionalTests extends
             OperatorCreationException,
             UnrecoverableKeyException,
             InvalidKeyException,
-            JWTCreationException {
+            JWTCreationException, WrongCredentialsException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -482,12 +455,7 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, preferredPlatformId, null, platformOwnerKeyPair.getPrivate());
 
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        String homeToken = null;
-        try {
-            homeToken = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException e) {
-            log.error(e.getMessage());
-        }
+        String homeToken = restaamClient.getHomeToken(loginRequest);
         //verify that JWT was issued for user
         assertNotNull(homeToken);
 
@@ -531,7 +499,7 @@ public class TokensIssuingFunctionalTests extends
             OperatorCreationException,
             UnrecoverableKeyException,
             InvalidKeyException,
-            JWTCreationException {
+            JWTCreationException, WrongCredentialsException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -557,12 +525,7 @@ public class TokensIssuingFunctionalTests extends
         // getHomeToken the platform owner
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, platformOwnerKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        String homeToken = null;
-        try {
-            homeToken = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException e) {
-            log.error(e.getMessage());
-        }
+        String homeToken = restaamClient.getHomeToken(loginRequest);
         //verify that JWT was issued for user
         assertNotNull(homeToken);
 
@@ -604,7 +567,7 @@ public class TokensIssuingFunctionalTests extends
             OperatorCreationException,
             UnrecoverableKeyException,
             InvalidKeyException,
-            JWTCreationException {
+            JWTCreationException, WrongCredentialsException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -640,12 +603,7 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, coreAppUsername, platformId, null, keyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = null;
-        try {
-            homeToken = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException e) {
-            log.error(e.getMessage());
-        }
+        String homeToken = restaamClient.getHomeToken(loginRequest);
         //verify that JWT was issued for user
         assertNotNull(homeToken);
 
@@ -666,7 +624,7 @@ public class TokensIssuingFunctionalTests extends
      * CommunicationType REST
      */
 
-    @Test
+    @Test(expected = ValidationException.class)
     public void getForeignTokenRequestOverRESTFailsForHomeTokenUsedAsRequest() throws
             IOException,
             CertificateException,
@@ -677,23 +635,13 @@ public class TokensIssuingFunctionalTests extends
             NoSuchProviderException,
             InvalidKeyException,
             JWTCreationException,
-            ValidationException {
+            ValidationException, MalformedJWTException, WrongCredentialsException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = null;
-        try {
-            homeToken = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException | MalformedJWTException e) {
-            log.error(e.getMessage());
-        }
-        try {
-            restaamClient.getForeignToken(homeToken, "");
-            assert false;
-        } catch (ValidationException e) {
-            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
-        }
+        String homeToken = restaamClient.getHomeToken(loginRequest);
+        restaamClient.getForeignToken(homeToken, "");
     }
 
     @Test
@@ -748,7 +696,7 @@ public class TokensIssuingFunctionalTests extends
         assertEquals(Token.Type.FOREIGN, Token.Type.valueOf(claimsFromToken.getTtyp()));
     }
 
-    @Test
+    @Test(expected = ValidationException.class)
     public void getForeignTokenUsingPlatformTokenOverRESTFailPlatformNotRegistered() throws
             IOException,
             ValidationException,
@@ -780,15 +728,10 @@ public class TokensIssuingFunctionalTests extends
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
 
         // checking issuing of foreign token using the dummy platform token
-        try {
-            restaamClient.getForeignToken(dummyHomeToken.getToken(), "");
-            assert false;
-        } catch (ValidationException e) {
-            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
-        }
+        restaamClient.getForeignToken(dummyHomeToken.getToken(), "");
     }
 
-    @Test
+    @Test(expected = ValidationException.class)
     public void getForeignTokenUsingPlatformTokenOverRESTFailPlatformHasNotCertificate() throws
             IOException,
             ValidationException,
@@ -813,12 +756,7 @@ public class TokensIssuingFunctionalTests extends
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
 
         // checking issuing of foreign token using the dummy platform token
-        try {
-            restaamClient.getForeignToken(dummyHomeToken.getToken(), "");
-            assert false;
-        } catch (ValidationException e) {
-            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
-        }
+        restaamClient.getForeignToken(dummyHomeToken.getToken(), "");
     }
 
     /**
@@ -827,7 +765,7 @@ public class TokensIssuingFunctionalTests extends
      * CommunicationType REST
      */
 
-    @Test
+    @Test(expected = JWTCreationException.class)
     public void getForeignTokenFromCoreUsingPlatformTokenOverRESTFailsForUndefinedForeignMapping() throws
             IOException,
             ValidationException,
@@ -871,24 +809,15 @@ public class TokensIssuingFunctionalTests extends
         tokenIssuer.foreignMappingRules.clear();
 
         // checking issuing of foreign token using the dummy platform token
-        try {
-            restaamClient.getForeignToken(dummyHomeToken.getToken(), "");
-            assert false;
-        } catch (JWTCreationException e) {
-            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatusCode());
-        }
+        restaamClient.getForeignToken(dummyHomeToken.getToken(), "");
     }
 
     @Test
-    public void getGuestTokenOverRESTSuccess() throws MalformedJWTException {
-        try {
+    public void getGuestTokenOverRESTSuccess() throws MalformedJWTException, JWTCreationException {
             String acquired_token = restaamClient.getGuestToken();
             assertNotNull(acquired_token);
             JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(acquired_token);
             assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));
             assertTrue(claimsFromToken.getAtt().isEmpty());
-        } catch (JWTCreationException e) {
-            log.error(e.getErrorMessage());
-        }
     }
 }

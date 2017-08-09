@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
@@ -143,12 +144,8 @@ public class OtherListenersFunctionalTests extends
      */
     @Test
     public void getComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
-            NoSuchProviderException, KeyStoreException, IOException {
-        try {
+            NoSuchProviderException, KeyStoreException, IOException, AAMException {
             String componentCertificate = restaamClient.getComponentCertificate();
             assertEquals(certificationAuthorityHelper.getAAMCert(), componentCertificate);
-        } catch (Exception e) {
-            log.error(e.getMessage());
-        }
     }
 }

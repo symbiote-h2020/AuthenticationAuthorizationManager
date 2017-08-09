@@ -36,7 +36,7 @@ import static org.junit.Assert.assertNotNull;
 public class ClientCertificatesIssuingFunctionalTests extends
         AbstractAAMTestSuite {
 
-    @Test
+    @Test(expected = InvalidArgumentsException.class)
     public void getClientCertificateOverRESTInvalidArguments() throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
@@ -44,7 +44,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
             CertificateException,
             KeyStoreException,
             IOException,
-            OperatorCreationException {
+            OperatorCreationException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException {
         KeyPair pair = CryptoHelper.createKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
                 new X500Principal(certificationAuthorityHelper.getAAMCertificate().getSubjectX500Principal().getName()), pair.getPublic());
@@ -52,16 +52,12 @@ public class ClientCertificatesIssuingFunctionalTests extends
         ContentSigner signer = csBuilder.build(pair.getPrivate());
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(usernameWithAt, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        try {
-            restaamClient.getClientCertificate(certRequest);
-        } catch (Exception e) {
-            assertEquals(InvalidArgumentsException.class, e.getClass());
-        }
-
+        restaamClient.getClientCertificate(certRequest);
     }
 
-    @Test
+    @Test(expected = NotExistingUserException.class)
     public void getClientCertificateOverRESTNotExistingUser() throws
+            InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException,
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
@@ -77,11 +73,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         //  User not yet in database
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        try {
-            restaamClient.getClientCertificate(certRequest);
-        } catch (Exception e) {
-            assertEquals(NotExistingUserException.class, e.getClass());
-        }
+        restaamClient.getClientCertificate(certRequest);
 
     }
     @Test
@@ -116,12 +108,12 @@ public class ClientCertificatesIssuingFunctionalTests extends
         // TODO check in unit tests that CA is false
     }
 
-    @Test
+    @Test(expected = ValidationException.class)
     public void getClientCertificateFailsForIncorrectCredentials()
             throws InvalidArgumentsException, NoSuchAlgorithmException,
             NoSuchProviderException, InvalidAlgorithmParameterException,
             WrongCredentialsException, NotExistingUserException,
-            CertificateException, IOException {
+            CertificateException, IOException, ValidationException {
 
         User user = new User();
         user.setUsername(username);
@@ -136,12 +128,8 @@ public class ClientCertificatesIssuingFunctionalTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
         assertNotNull(csrString);
         //  Attempt login with incorrect password
-        try {
-            restaamClient.getClientCertificate(new CertificateRequest
-                    (username, wrongpassword, clientId, csrString));
-        } catch (ValidationException e) {
-            assertEquals(ValidationException.class, e.getClass());
-        }
+        restaamClient.getClientCertificate(new CertificateRequest
+                (username, wrongpassword, clientId, csrString));
     }
 
     @Test
