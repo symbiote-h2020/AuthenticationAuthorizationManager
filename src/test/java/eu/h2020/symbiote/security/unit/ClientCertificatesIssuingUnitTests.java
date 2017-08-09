@@ -37,6 +37,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 import static org.junit.Assert.*;
 
 /**
@@ -327,7 +328,8 @@ public class ClientCertificatesIssuingUnitTests extends
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + appUsername + "@" + clientId + "@" + certificationAuthorityHelper.getAAMInstanceIdentifier(), x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + appUsername + illegalSign + clientId + illegalSign + certificationAuthorityHelper.getAAMInstanceIdentifier(), x509Certificate.getSubjectDN().getName());
+        // -1 for end certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
     }
 
@@ -359,9 +361,10 @@ public class ClientCertificatesIssuingUnitTests extends
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
         assertEquals("CN=" + platformId, x509Certificate.getSubjectDN().getName());
+        // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
     }
-
+    //TODO tests covering getting platform component certificate
 
     // test for revoke function
     //TODO getting certificate
