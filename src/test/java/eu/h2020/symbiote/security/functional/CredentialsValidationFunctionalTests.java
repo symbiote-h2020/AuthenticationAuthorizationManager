@@ -18,6 +18,7 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertEquals;
@@ -84,7 +85,7 @@ public class CredentialsValidationFunctionalTests extends
         } catch (WrongCredentialsException | MalformedJWTException e) {
             log.error(e);
         }
-        ValidationStatus status = restaamClient.validate(homeToken, "null");
+        ValidationStatus status = restaamClient.validate(homeToken, Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.VALID, status);
     }
 
@@ -109,7 +110,7 @@ public class CredentialsValidationFunctionalTests extends
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 10);
 
-        ValidationStatus status = restaamClient.validate(homeToken, "null");
+        ValidationStatus status = restaamClient.validate(homeToken, Optional.empty(), Optional.empty());
 
         // TODO cover other situations (bad key, on purpose revocation)
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status);

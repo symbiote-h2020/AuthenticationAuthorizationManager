@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 /**
  * Access to other services that AAMs offer.
  *
+ * @author Piotr Kicki (PSNC)
  * @author Mikołaj Dobski (PSNC)
  */
 public interface IAAMServices {

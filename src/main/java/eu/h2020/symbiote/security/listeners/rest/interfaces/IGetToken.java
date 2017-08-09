@@ -8,10 +8,13 @@ import org.springframework.web.bind.annotation.RequestHeader;
 
 /**
  * Exposes services allowing SymbIoTe actors (users) to acquire authorization tokens
- * <p>
  *
- * @author Piotr Kicki (PSNC)
  * @author Mikołaj Dobski (PSNC)
+ * @author Piotr Kicki (PSNC)
+ * @author Jakub Toczek (PSNC)
+ * @author Daniele Caldarola (CNIT)
+ * @author Pietro Tedeschi (CNIT)
+ * @author Nemanja Ignjatov (UNIVIE)
  */
 public interface IGetToken {
     /**
@@ -29,12 +32,13 @@ public interface IGetToken {
     ResponseEntity<String> getHomeToken(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String loginRequest);
 
     /**
-     * @param remoteHomeToken that an actor wants to exchange in this AAM for a FOREIGN token
-     * @param certificate     matching the SPK claim in the provided token in 'offline' (intranet) scenarios
+     * @param remoteHomeToken   that an actor wants to exchange in this AAM for a FOREIGN token
+     * @param clientCertificate in PEM with key matching the SPK claim in the provided token in 'offline' (intranet) scenarios
+     * @param aamCertificate    in PEM with key matching the IPK claim in the provided token in 'offline' (intranet) scenarios
      * @return FOREIGN token used to access restricted resources offered in SymbIoTe federations
      */
     @PostMapping(value = SecurityConstants.AAM_GET_FOREIGN_TOKEN)
     ResponseEntity<String> getForeignToken(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String remoteHomeToken,
-                                           @RequestHeader(name = SecurityConstants.CERTIFICATE_HEADER_NAME,
-                                                   defaultValue = "") String certificate);
+                                           @RequestHeader(name = SecurityConstants.CLIENT_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificate,
+                                           @RequestHeader(name = SecurityConstants.AAM_CERTIFICATE_HEADER_NAME, defaultValue = "") String aamCertificate);
 }
