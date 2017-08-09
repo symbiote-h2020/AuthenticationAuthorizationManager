@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.GetMapping;
  * Interface exposing the SymbIoTe Component's certificate required for challenge response procedure
  *
  * @author Mikołaj Dobski (PSNC)
- * <p>
  */
 public interface IGetComponentCertificate {
     /**

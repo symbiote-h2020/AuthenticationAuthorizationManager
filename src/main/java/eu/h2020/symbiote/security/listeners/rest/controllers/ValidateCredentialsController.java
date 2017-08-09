@@ -15,8 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Spring controller to handle HTTPS requests related to the RESTful web services associated to credentials validation.
- * *
  *
+ * @author Mikolaj Dobski (PSNC)
  * @author Piotr Kicki (PSNC)
  * @see CredentialsValidationService
  */
@@ -33,13 +33,14 @@ public class ValidateCredentialsController implements IValidateCredentials {
 
     @Override
     public ValidationStatus validate(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String token,
-                                     @RequestHeader(name = SecurityConstants.CERTIFICATE_HEADER_NAME, defaultValue = "")
-                                             String certificate) {
+                                     @RequestHeader(name = SecurityConstants.CLIENT_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificate,
+                                     @RequestHeader(name = SecurityConstants.AAM_CERTIFICATE_HEADER_NAME, defaultValue = "") String aamCertificate) {
         try {
             // input sanity check
             JWTEngine.validateTokenString(token);
             // real validation
-            return credentialsValidationService.validate(token, certificate);
+            // todo handle the aamCertificate
+            return credentialsValidationService.validate(token, clientCertificate);
         } catch (ValidationException e) {
             log.error(e);
             return ValidationStatus.UNKNOWN;
