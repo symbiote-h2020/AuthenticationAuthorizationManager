@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -17,6 +18,7 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertEquals;
@@ -47,7 +49,7 @@ public class CredentialsValidationFunctionalTests extends
         String token = null;
         try {
             token = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException e) {
+        } catch (WrongCredentialsException | MalformedJWTException e) {
             log.error(e);
         }
         assertNotNull(token);
@@ -80,10 +82,10 @@ public class CredentialsValidationFunctionalTests extends
         String homeToken = null;
         try {
             homeToken = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException e) {
+        } catch (WrongCredentialsException | MalformedJWTException e) {
             log.error(e);
         }
-        ValidationStatus status = restaamClient.validate(homeToken, "null");
+        ValidationStatus status = restaamClient.validate(homeToken, Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.VALID, status);
     }
 
@@ -102,13 +104,13 @@ public class CredentialsValidationFunctionalTests extends
         String homeToken = null;
         try {
             homeToken = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException e) {
+        } catch (WrongCredentialsException | MalformedJWTException e) {
             log.error(e);
         }
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 10);
 
-        ValidationStatus status = restaamClient.validate(homeToken, "null");
+        ValidationStatus status = restaamClient.validate(homeToken, Optional.empty(), Optional.empty());
 
         // TODO cover other situations (bad key, on purpose revocation)
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status);

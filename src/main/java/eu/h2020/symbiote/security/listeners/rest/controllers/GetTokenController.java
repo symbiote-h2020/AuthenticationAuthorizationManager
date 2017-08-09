@@ -20,10 +20,10 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Spring controller to handle HTTPS requests related to the RESTful web services associated with acquiring tokens.
  *
- * TODO return token as body
- *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
+ * @author Mikolaj Dobski (PSNC)
+ * @author Jakub Toczek (PSNC)
  * @see GetTokenService
  */
 @RestController
@@ -38,16 +38,18 @@ public class GetTokenController implements IGetToken {
     }
 
     public ResponseEntity<String> getForeignToken(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String remoteHomeToken,
-                                                  @RequestHeader(name = SecurityConstants.CERTIFICATE_HEADER_NAME,
-                                                          defaultValue = "") String certificate) {
+                                                  @RequestHeader(name = SecurityConstants.CLIENT_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificate,
+                                                  @RequestHeader(name = SecurityConstants.AAM_CERTIFICATE_HEADER_NAME, defaultValue = "") String aamCertificate) {
         HttpHeaders headers = new HttpHeaders();
         Token foreignToken;
         try {
-            foreignToken = getTokenService.getForeignToken(new Token(remoteHomeToken), certificate);
+            // todo handle the aamCertificate
+            foreignToken = getTokenService.getForeignToken(new Token(remoteHomeToken), clientCertificate);
         } catch (ValidationException e) {
             log.error(e);
             return new ResponseEntity<>(headers, e.getStatusCode());
         } catch (JWTCreationException e) {
+            // todo have a different code here
             log.error(e);
             return new ResponseEntity<>(headers, e.getStatusCode());
         }
