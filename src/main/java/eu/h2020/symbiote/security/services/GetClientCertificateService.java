@@ -108,7 +108,7 @@ public class GetClientCertificateService {
             log.error(e);
             throw new SecurityException(e.getMessage(), e.getCause());
         }
-
+        //platform
         if (!req.getSubject().toString().split("CN=")[1].contains(illegalSign)) {
             platformRequestCheck(certificateRequest);
             try {
@@ -117,6 +117,7 @@ public class GetClientCertificateService {
                 log.error(e);
                 throw new PlatformManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             }
+            //platform component
         } else if (req.getSubject().toString().matches("CN=[a-zA-Z_0-9]@[a-zA-Z_0-9]")) {
             platformRequestCheck(certificateRequest);
             try {
@@ -126,7 +127,7 @@ public class GetClientCertificateService {
                 throw new PlatformManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }
-
+        //user-
         else {
             if (!req.getSubject().toString().split("CN=")[1].split("@")[2].equals
                     (caCert.getSubjectDN().getName().split("CN=")[1]))
