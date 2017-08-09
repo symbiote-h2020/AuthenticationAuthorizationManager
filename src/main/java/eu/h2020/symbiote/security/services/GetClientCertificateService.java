@@ -1,7 +1,6 @@
 package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
@@ -15,23 +14,14 @@ import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
-import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
-import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
-import java.io.StringWriter;
-import java.security.KeyPair;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -102,29 +92,6 @@ public class GetClientCertificateService {
             throw new ValidationException("Key revoked");
 
         return user;
-    }
-
-    public static String buildComponentCertificateSigningRequestPEM(String componentId, String platformId, KeyPair keyPair) throws
-            InvalidArgumentsException,
-            IOException {
-        if (platformId.contains(illegalSign) || componentId.contains(illegalSign))
-            throw new InvalidArgumentsException();
-
-        try {
-            String cn = "CN=" + componentId + "@" + platformId;
-            PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
-                    new X500Principal(cn), keyPair.getPublic());
-            JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-            ContentSigner signer = csBuilder.build(keyPair.getPrivate());
-            PKCS10CertificationRequest csr = p10Builder.build(signer);
-            StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
-            JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
-            pemWriter.writeObject(csr);
-            pemWriter.close();
-            return signedCertificatePEMDataStringWriter.toString();
-        } catch (OperatorCreationException e) {
-            throw new SecurityException(e.getMessage(), e.getCause());
-        }
     }
 
     private X509Certificate certFromCSRCreation(CertificateRequest certificateRequest) throws
