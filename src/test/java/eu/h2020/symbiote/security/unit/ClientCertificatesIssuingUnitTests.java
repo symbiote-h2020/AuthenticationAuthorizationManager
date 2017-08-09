@@ -257,7 +257,7 @@ public class ClientCertificatesIssuingUnitTests extends
             ValidationException {
         User platformOwner = savePlatformOwner();
         User user = saveUser();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null);
+        Platform platform = new Platform(platformId, null, null, platformOwner, null, null);
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -346,7 +346,7 @@ public class ClientCertificatesIssuingUnitTests extends
             PlatformManagementException {
 
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null);
+        Platform platform = new Platform(platformId, null, null, platformOwner, null, null);
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();

@@ -241,7 +241,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         user.getClientCertificates().put(federatedOAuthId, cert);
         userRepository.save(user);
 
-        Platform platform = new Platform("platformInstanceId", null, null, user, null);
+        Platform platform = new Platform("platformInstanceId", null, null, user, null, null);
         platformRepository.save(platform);
 
         Token token = tokenIssuer.getHomeToken(user, federatedOAuthId);

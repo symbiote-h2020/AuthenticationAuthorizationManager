@@ -49,6 +49,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException {
+
         KeyPair pair = CryptoHelper.createKeyPair();
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(
                 new X500Principal(certificationAuthorityHelper.getAAMCertificate().getSubjectX500Principal().getName()), pair.getPublic());
@@ -57,7 +58,6 @@ public class ClientCertificatesIssuingFunctionalTests extends
         PKCS10CertificationRequest csr = p10Builder.build(signer);
         CertificateRequest certRequest = new CertificateRequest(usernameWithAt, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
         restaamClient.getClientCertificate(certRequest);
-
     }
 
     @Test
@@ -105,7 +105,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
 
         User platformOwner = savePlatformOwner();
 
-        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, null);
+        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, null, null);
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();

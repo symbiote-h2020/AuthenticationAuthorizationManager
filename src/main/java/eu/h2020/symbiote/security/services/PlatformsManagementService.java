@@ -93,7 +93,7 @@ public class PlatformsManagementService {
         Platform platform = new Platform(platformId, platformManagementRequest
                 .getPlatformInterworkingInterfaceAddress(),
                 platformManagementRequest.getPlatformInstanceFriendlyName(), userRepository
-                .findOne(platformOwnerCredentials.getUsername()), new Certificate());
+                .findOne(platformOwnerCredentials.getUsername()), new Certificate(), null);
         platformRepository.save(platform);
 
         return new PlatformManagementResponse(platform.getPlatformInstanceId(), RegistrationStatus.OK);
