@@ -39,9 +39,7 @@ import java.util.Date;
 @Component
 public class CertificationAuthorityHelper {
     private static Log log = LogFactory.getLog(CertificationAuthorityHelper.class);
-    @Value("${aam.deployment.token.validityMillis}")
-    protected Long tokenValidityPeriod;
-
+    private static final Long certificateValidityPeriod = 1L * 365L * 24L * 60L * 60L * 1000L;
 
     @Value("${aam.security.KEY_STORE_FILE_NAME}")
     private String KEY_STORE_FILE_NAME;
@@ -231,7 +229,7 @@ public class CertificationAuthorityHelper {
                     issuer,
                     BigInteger.valueOf(1),
                     new Date(System.currentTimeMillis()),
-                    new Date(System.currentTimeMillis() + tokenValidityPeriod),
+                    new Date(System.currentTimeMillis() + certificateValidityPeriod),
                     jcaRequest.getSubject(),
                     publicKey)
                     .addExtension(

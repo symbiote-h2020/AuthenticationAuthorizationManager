@@ -1,9 +1,6 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IGetClientCertificate;
 import eu.h2020.symbiote.security.services.GetClientCertificateService;
@@ -34,7 +31,8 @@ public class GetClientCertificateController implements IGetClientCertificate {
         try {
             String certificate = getClientCertificateService.getCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
-        } catch (WrongCredentialsException | NotExistingUserException | InvalidArgumentsException | ValidationException e) {
+        } catch (WrongCredentialsException | NotExistingUserException | InvalidArgumentsException
+                | ValidationException | UserManagementException | PlatformManagementException e) {
             return new ResponseEntity<>(e.getErrorMessage(), e.getStatusCode());
         }
     }

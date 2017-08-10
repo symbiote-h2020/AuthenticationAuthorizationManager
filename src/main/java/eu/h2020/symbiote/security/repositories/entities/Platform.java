@@ -4,6 +4,9 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * SymbIoTe-enabled IoT platform instance registered in the Core AAM.
  *
@@ -16,6 +19,7 @@ public class Platform {
     private String platformInterworkingInterfaceAddress = "";
     private String platformInstanceFriendlyName = "";
     private Certificate platformAAMCertificate = new Certificate();
+    private Map<String, Certificate> componentCertificates = new HashMap<String, Certificate>();
     @DBRef
     private User platformOwner;
 
@@ -30,12 +34,14 @@ public class Platform {
                     String platformInterworkingInterfaceAddress,
                     String platformInstanceFriendlyName,
                     User platformOwner,
-                    Certificate platformAAMCertificate) {
+                    Certificate platformAAMCertificate,
+                    HashMap<String, Certificate> componentCertificates) {
         this.platformInstanceId = platformInstanceId;
         this.platformInterworkingInterfaceAddress = platformInterworkingInterfaceAddress;
         this.platformInstanceFriendlyName = platformInstanceFriendlyName;
         this.platformOwner = platformOwner;
         this.platformAAMCertificate = platformAAMCertificate;
+        this.componentCertificates = componentCertificates;
     }
 
     /**
@@ -85,5 +91,13 @@ public class Platform {
 
     public void setPlatformAAMCertificate(Certificate platformAAMCertificate) {
         this.platformAAMCertificate = platformAAMCertificate;
+    }
+
+    public Map<String, Certificate> getComponentCertificates() {
+        return componentCertificates;
+    }
+
+    public void setComponentCertificates(Map<String, Certificate> componentCertificates) {
+        this.componentCertificates = componentCertificates;
     }
 }
