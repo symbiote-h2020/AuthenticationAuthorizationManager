@@ -46,8 +46,7 @@ public class CredentialsValidationFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String token = null;
-        token = restaamClient.getHomeToken(loginRequest);
+        String token = restaamClient.getHomeToken(loginRequest);
         assertNotNull(token);
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
@@ -78,7 +77,7 @@ public class CredentialsValidationFunctionalTests extends
 
         String homeToken = restaamClient.getHomeToken(loginRequest);
 
-        ValidationStatus status = restaamClient.validate(homeToken, "null");
+        ValidationStatus status = restaamClient.validate(homeToken, Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.VALID, status);
     }
 

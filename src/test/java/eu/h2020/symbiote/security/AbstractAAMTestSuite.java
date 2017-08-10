@@ -64,8 +64,6 @@ public abstract class AbstractAAMTestSuite {
     protected final String password = "testApplicationPassword";
     protected final String wrongusername = "veryWrongTestApplicationUsername";
     protected final String wrongpassword = "veryWrongTestApplicationPassword";
-    protected final String registrationUri = "/register";
-    protected final String unregistrationUri = "/unregister";
     protected final String usernameWithAt = "test@";
     protected final String appUsername = "NewApplication";
     protected final String clientId = "clientId";

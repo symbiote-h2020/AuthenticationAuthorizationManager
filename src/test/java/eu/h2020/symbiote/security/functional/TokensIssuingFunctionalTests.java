@@ -641,18 +641,8 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = null;
-        try {
-            homeToken = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException | MalformedJWTException e) {
-            log.error(e.getMessage());
-        }
-        try {
-            restaamClient.getForeignToken(homeToken, Optional.empty(), Optional.empty());
-            assert false;
-        } catch (ValidationException e) {
-            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
-        }
+        String homeToken = restaamClient.getHomeToken(loginRequest);
+        restaamClient.getForeignToken(homeToken, Optional.empty(), Optional.empty());
     }
 
     @Test
@@ -739,12 +729,7 @@ public class TokensIssuingFunctionalTests extends
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
 
         // checking issuing of foreign token using the dummy platform token
-        try {
-            restaamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
-            assert false;
-        } catch (ValidationException e) {
-            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
-        }
+        restaamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
     }
 
     @Test(expected = ValidationException.class)
@@ -772,12 +757,7 @@ public class TokensIssuingFunctionalTests extends
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
 
         // checking issuing of foreign token using the dummy platform token
-        try {
-            restaamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
-            assert false;
-        } catch (ValidationException e) {
-            assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
-        }
+        restaamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
     }
 
     /**
@@ -830,20 +810,15 @@ public class TokensIssuingFunctionalTests extends
         tokenIssuer.foreignMappingRules.clear();
 
         // checking issuing of foreign token using the dummy platform token
-        try {
-            restaamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
-            assert false;
-        } catch (JWTCreationException e) {
-            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatusCode());
-        }
+        restaamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
     }
 
     @Test
     public void getGuestTokenOverRESTSuccess() throws MalformedJWTException, JWTCreationException {
-            String acquired_token = restaamClient.getGuestToken();
-            assertNotNull(acquired_token);
-            JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(acquired_token);
-            assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));
-            assertTrue(claimsFromToken.getAtt().isEmpty());
+        String acquired_token = restaamClient.getGuestToken();
+        assertNotNull(acquired_token);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(acquired_token);
+        assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));
+        assertTrue(claimsFromToken.getAtt().isEmpty());
     }
 }
