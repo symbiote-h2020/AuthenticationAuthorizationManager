@@ -76,12 +76,24 @@ public class GetClientCertificateService {
         }
     }
 
+    private void platformComponentRequestCheck(CertificateRequest certificateRequest) throws
+            PlatformManagementException {
+        PKCS10CertificationRequest req = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
+        if (userRepository.findOne(certificateRequest.getUsername()).getRole() != UserRole.PLATFORM_OWNER) {
+            throw new PlatformManagementException("User is not a Platform Owner", HttpStatus.UNAUTHORIZED);
+        }
+        if (!platformRepository.exists(req.getSubject().toString().split("CN=")[1].split(illegalSign)[1])) {
+            throw new PlatformManagementException("Platform doesn't exist", HttpStatus.UNAUTHORIZED);
+        }
+    }
+
     private User requestValidationCheck(CertificateRequest certificateRequest) throws
             ValidationException,
             WrongCredentialsException,
             NotExistingUserException {
 
         User user = userRepository.findOne(certificateRequest.getUsername());
+
         if (user == null)
             throw new NotExistingUserException();
 
@@ -118,8 +130,8 @@ public class GetClientCertificateService {
                 throw new PlatformManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             }
             //platform component
-        } else if (req.getSubject().toString().matches("CN=[a-zA-Z_0-9]@[a-zA-Z_0-9]")) {
-            platformRequestCheck(certificateRequest);
+        } else if (req.getSubject().toString().matches("(CN=)(\\w+)(@)(\\w+)")) {
+            platformComponentRequestCheck(certificateRequest);
             try {
                 certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
             } catch (CertificateException e) {
@@ -127,7 +139,7 @@ public class GetClientCertificateService {
                 throw new PlatformManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }
-        //user-
+        //user
         else {
             if (!req.getSubject().toString().split("CN=")[1].split("@")[2].equals
                     (caCert.getSubjectDN().getName().split("CN=")[1]))
@@ -155,6 +167,7 @@ public class GetClientCertificateService {
         User user = requestValidationCheck(certificateRequest);
         X509Certificate certFromCSR = certFromCSRCreation(certificateRequest);
 
+
         String pem;
         try {
             pem = CryptoHelper.convertX509ToPEM(certFromCSR);
@@ -162,7 +175,6 @@ public class GetClientCertificateService {
             log.error(e);
             throw new SecurityException(e.getMessage(), e.getCause());
         }
-
         Certificate userCert = user.getClientCertificates().get(certificateRequest.getClientId());
         if (userCert != null) {
             X509Certificate x509Certificate;
@@ -174,15 +186,15 @@ public class GetClientCertificateService {
             }
             if (x509Certificate.getPublicKey().equals(certFromCSR.getPublicKey())) {
                 Certificate cert = new Certificate(pem);
-                user.getClientCertificates().clear();
                 user.getClientCertificates().replace(certificateRequest.getClientId(), cert);
             } else {
                 try {
-                    revocationHelper.revoke(new Credentials(user.getUsername(), user.getPasswordEncrypted()), userCert);
+                    revocationHelper.revoke(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()), userCert);
                 } catch (CertificateException e) {
                     log.error(e);
                     throw new SecurityException(e.getMessage(), e.getCause());
                 }
+                user.getClientCertificates().clear();
                 Certificate cert = new Certificate(pem);
                 user.getClientCertificates().put(certificateRequest.getClientId(), cert);
             }
@@ -190,7 +202,7 @@ public class GetClientCertificateService {
             Certificate cert = new Certificate(pem);
             user.getClientCertificates().put(certificateRequest.getClientId(), cert);
         }
-
+        userRepository.save(user);
         return pem;
     }
 }
