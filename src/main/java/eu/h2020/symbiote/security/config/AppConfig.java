@@ -21,7 +21,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @EnableMongoRepositories("eu.h2020.symbiote.security.repositories")
 class AppConfig extends AbstractMongoConfiguration {
 
+    private final Object syncObject = new Object();
     private String databaseName;
+    private MongoClient mongoClient = null;
 
     AppConfig(@Value("${aam.database.name}") String databaseName) {
         this.databaseName = databaseName;
@@ -34,7 +36,12 @@ class AppConfig extends AbstractMongoConfiguration {
 
     @Override
     public Mongo mongo() throws Exception {
-        return new MongoClient();
+        synchronized (syncObject) {
+            if (mongoClient == null) {
+                mongoClient = new MongoClient();
+            }
+        }
+        return mongoClient;
     }
 
     @Bean
