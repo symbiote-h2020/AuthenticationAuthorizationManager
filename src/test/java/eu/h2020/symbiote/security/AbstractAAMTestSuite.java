@@ -64,8 +64,6 @@ public abstract class AbstractAAMTestSuite {
     protected final String password = "testApplicationPassword";
     protected final String wrongusername = "veryWrongTestApplicationUsername";
     protected final String wrongpassword = "veryWrongTestApplicationPassword";
-    protected final String registrationUri = "/register";
-    protected final String unregistrationUri = "/unregister";
     protected final String usernameWithAt = "test@";
     protected final String appUsername = "NewApplication";
     protected final String clientId = "clientId";
@@ -73,6 +71,9 @@ public abstract class AbstractAAMTestSuite {
     protected final String platformId = "testPlatformId";
     protected final String componentId = "componentId";
     protected final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    protected final String platformOwnerUsername = "testPlatformOwnerUsername";
+    protected final String platformOwnerPassword = "testPlatormOwnerPassword";
+    protected final String recoveryMail = "null@dev.null";
     protected KeyPair userKeyPair;
     @Autowired
     protected UserRepository userRepository;
@@ -91,9 +92,6 @@ public abstract class AbstractAAMTestSuite {
     protected RestTemplate restTemplate = new RestTemplate();
     protected ObjectMapper mapper = new ObjectMapper();
     protected String serverAddress;
-    protected final String platformOwnerUsername = "testPlatformOwnerUsername";
-    protected final String platformOwnerPassword = "testPlatormOwnerPassword";
-    protected final String recoveryMail = "null@dev.null";
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     protected String coreInterfaceAddress;
     @Value("${rabbit.queue.getHomeToken.request}")
@@ -118,10 +116,10 @@ public abstract class AbstractAAMTestSuite {
     protected String CERTIFICATE_ALIAS;
     @Value("${aam.deployment.token.validityMillis}")
     protected Long tokenValidityPeriod;
+    protected RESTAAMClient restaamClient;
     @LocalServerPort
     private int port;
 
-    protected RESTAAMClient restaamClient;
     @Before
     public void setUp() throws Exception {
         // Catch the random port

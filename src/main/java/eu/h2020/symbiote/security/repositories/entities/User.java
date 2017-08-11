@@ -30,7 +30,7 @@ public class User {
     // TODO R3 add ownedPlatform set
 
     // TODO R3  @Mikołaj, change to Set<String,Certificate> clientCertificates
-    private Map<String,Certificate> clientCertificates = new HashMap<String,Certificate>();
+    private Map<String, Certificate> clientCertificates = new HashMap<String, Certificate>();
     // TODO Release 4 - add OAuth federated ID support
 
     /**
@@ -46,20 +46,20 @@ public class User {
     /**
      * Used to create a new user entity
      *
-     * @param username              selected username
-     * @param passwordEncrypted     encrypted password for authentication
-     * @param recoveryMail          for password reset/recovery purposes
-     * @param clientCertificates    user's public certificates
-     * @param role                  user's role in symbIoTe ecosystem, see @{@link UserRole}
-     * @param attributes            used to assign in registration phase user-unique attributes
+     * @param username           selected username
+     * @param passwordEncrypted  encrypted password for authentication
+     * @param recoveryMail       for password reset/recovery purposes
+     * @param clientCertificates user's public certificates
+     * @param role               user's role in symbIoTe ecosystem, see @{@link UserRole}
+     * @param attributes         used to assign in registration phase user-unique attributes
      */
-    public User(String username, String passwordEncrypted, String recoveryMail, HashMap<String,Certificate> clientCertificates,
+    public User(String username, String passwordEncrypted, String recoveryMail, HashMap<String, Certificate> clientCertificates,
                 UserRole role,
                 List<String> attributes) {
         this.username = username;
         this.passwordEncrypted = passwordEncrypted;
         this.recoveryMail = recoveryMail;
-        this.clientCertificates =  clientCertificates;
+        this.clientCertificates = clientCertificates;
         this.role = role;
         this.attributes = attributes;
     }

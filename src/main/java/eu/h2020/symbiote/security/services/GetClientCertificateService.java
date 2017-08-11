@@ -38,6 +38,7 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 
 @Service
 public class GetClientCertificateService {
+    private static final Log log = LogFactory.getLog(GetClientCertificateService.class);
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
     private final RevokedKeysRepository revokedKeysRepository;
@@ -48,7 +49,6 @@ public class GetClientCertificateService {
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
-    private static final Log log = LogFactory.getLog(GetClientCertificateService.class);
 
 
     @Autowired

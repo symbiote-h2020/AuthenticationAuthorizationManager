@@ -18,7 +18,7 @@ import java.io.IOException;
  * RabbitMQ Consumer implementation used for Users' Registration actions
  *
  * @author Mikołaj Dobski (PSNC)
- *
+ * <p>
  * TODO R3 @Mikołaj, @Tilemachos update to support users managment (both PO and USER) with operation Type
  */
 public class UserRegistrationRequestConsumerService extends DefaultConsumer {

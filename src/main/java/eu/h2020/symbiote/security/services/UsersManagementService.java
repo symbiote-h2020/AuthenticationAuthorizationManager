@@ -30,7 +30,7 @@ import java.util.Set;
 
 /**
  * Spring service used to register users in the AAM repository.
- *
+ * <p>
  * TODO @Mikołaj update to support full CRUD on users repo
  *
  * @author Daniele Caldarola (CNIT)
@@ -121,7 +121,7 @@ public class UsersManagementService {
         // add user certificated to revoked repository
         Set<String> keys = new HashSet<>();
         try {
-            for(Certificate c: userRepository.findOne(username).getClientCertificates().values()){
+            for (Certificate c : userRepository.findOne(username).getClientCertificates().values()) {
                 keys.add(Base64.getEncoder().encodeToString(
                         c.getX509().getPublicKey().getEncoded()));
             }

@@ -41,17 +41,12 @@ public class CredentialsValidationFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
+    public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException, MalformedJWTException, WrongCredentialsException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String token = null;
-        try {
-            token = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException | MalformedJWTException e) {
-            log.error(e);
-        }
+        String token = restaamClient.getHomeToken(loginRequest);
         assertNotNull(token);
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
@@ -74,17 +69,14 @@ public class CredentialsValidationFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void validationOverRESTValid() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
+    public void validationOverRESTValid() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException, MalformedJWTException, WrongCredentialsException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = null;
-        try {
-            homeToken = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException | MalformedJWTException e) {
-            log.error(e);
-        }
+
+        String homeToken = restaamClient.getHomeToken(loginRequest);
+
         ValidationStatus status = restaamClient.validate(homeToken, Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.VALID, status);
     }
@@ -97,16 +89,12 @@ public class CredentialsValidationFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void validationOverRESTExpired() throws IOException, InterruptedException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
+    public void validationOverRESTExpired() throws IOException, InterruptedException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException,
+            InvalidKeyException, JWTCreationException, MalformedJWTException, WrongCredentialsException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        String homeToken = null;
-        try {
-            homeToken = restaamClient.getHomeToken(loginRequest);
-        } catch (WrongCredentialsException | MalformedJWTException e) {
-            log.error(e);
-        }
+        String homeToken = restaamClient.getHomeToken(loginRequest);
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 10);
 

@@ -33,10 +33,10 @@ import java.util.Map;
 /**
  * RabbitMQ Consumer implementation used for providing owned platform instances details for the platform owners
  * through Administration module
- *
+ * <p>
  * TODO R3 @Mikołaj, @Tilemachos support multiple platforms per PO
  */
-public class    OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer {
+public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer {
 
     private static Log log = LogFactory.getLog(OwnedPlatformDetailsRequestConsumerService.class);
     private UserRepository userRepository;
@@ -80,7 +80,6 @@ public class    OwnedPlatformDetailsRequestConsumerService extends DefaultConsum
         String response;
 
 
-
         if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
 
             AMQP.BasicProperties replyProps = new AMQP.BasicProperties
@@ -97,8 +96,8 @@ public class    OwnedPlatformDetailsRequestConsumerService extends DefaultConsum
 
                 // verify that the token contains the platform owner public key
 
-                for(Certificate c: userRepository.findOne
-                        (token.getClaims().getSubject()).getClientCertificates().values()){
+                for (Certificate c : userRepository.findOne
+                        (token.getClaims().getSubject()).getClientCertificates().values()) {
                     byte[] platformOwnersPublicKeyInRepository = c.getX509().getPublicKey().getEncoded();
                     byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
                     if (!Arrays.equals(platformOwnersPublicKeyInRepository, publicKeyFromToken))

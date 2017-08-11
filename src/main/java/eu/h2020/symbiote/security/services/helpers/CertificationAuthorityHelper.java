@@ -38,9 +38,8 @@ import java.util.Date;
  */
 @Component
 public class CertificationAuthorityHelper {
-    private static Log log = LogFactory.getLog(CertificationAuthorityHelper.class);
     private static final Long certificateValidityPeriod = 1L * 365L * 24L * 60L * 60L * 1000L;
-
+    private static Log log = LogFactory.getLog(CertificationAuthorityHelper.class);
     @Value("${aam.security.KEY_STORE_FILE_NAME}")
     private String KEY_STORE_FILE_NAME;
     @Value("${aam.security.ROOT_CA_CERTIFICATE_ALIAS}")
