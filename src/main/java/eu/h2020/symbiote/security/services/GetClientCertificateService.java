@@ -189,12 +189,11 @@ public class GetClientCertificateService {
                 user.getClientCertificates().replace(certificateRequest.getClientId(), cert);
             } else {
                 try {
-                    revocationHelper.revoke(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()), userCert, certificateRequest.getClientId());
+                    revocationHelper.revokeCertificate(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()), userCert, certificateRequest.getClientId());
                 } catch (CertificateException e) {
                     log.error(e);
                     throw new SecurityException(e.getMessage(), e.getCause());
                 }
-                user.getClientCertificates().clear();
                 Certificate cert = new Certificate(pem);
                 user.getClientCertificates().put(certificateRequest.getClientId(), cert);
             }

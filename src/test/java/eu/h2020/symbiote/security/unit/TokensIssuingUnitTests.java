@@ -104,7 +104,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
 
-    // test for revoke function
+    // test for revokeHomeToken function
     @Test
     public void revokeUserToken() throws SecurityException, CertificateException, InvalidKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException, UnrecoverableKeyException, OperatorCreationException {
         addTestUserWithClientCertificateToRepository();
@@ -119,13 +119,13 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         // verify the user token is not yet revoked
         assertFalse(revokedTokensRepository.exists(homeToken.getClaims().getId()));
         // revocation
-        revocationHelper.revoke(new Credentials(username, password), homeToken);
+        revocationHelper.revokeHomeToken(new Credentials(username, password), homeToken);
 
         // verify the user token is revoked
         assertTrue(revokedTokensRepository.exists(homeToken.getClaims().getId()));
     }
 
-    // test for revoke function
+    // test for revokeHomeToken function
     @Test
     public void revokeUserTokenByPlatform() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException, OperatorCreationException, UnrecoverableKeyException, JWTCreationException {    // issuing dummy platform token
         User user = new User();
@@ -182,7 +182,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         // ensure that token is not in revoked token repository
         assertFalse(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
         // revocation
-        revocationHelper.revoke(new Credentials(platformOwnerUsername, platformOwnerPassword), dummyHomeToken);
+        revocationHelper.revokeHomeToken(new Credentials(platformOwnerUsername, platformOwnerPassword), dummyHomeToken);
         // check if token is in revoked tokens repository
         assertTrue(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
     }

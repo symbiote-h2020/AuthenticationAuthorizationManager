@@ -17,12 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
  */
 
 @RestController
-public class GetClientCertificateController implements IGetClientCertificate {
-    private static final Log log = LogFactory.getLog(GetClientCertificateController.class);
+public class GetController implements IGetClientCertificate {
+    private static final Log log = LogFactory.getLog(GetController.class);
     private GetClientCertificateService getClientCertificateService;
 
     @Autowired
-    public GetClientCertificateController(GetClientCertificateService getClientCertificateService) {
+    public GetController(GetClientCertificateService getClientCertificateService) {
         this.getClientCertificateService = getClientCertificateService;
     }
 
