@@ -18,11 +18,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.util.Base64;
 import java.util.HashSet;
@@ -61,15 +56,14 @@ public class RevocationHelper {
     }
 
     // certificate revoke function - not finished
-    //TODO getting certificate
-    public void revoke(Credentials credentials, Certificate certificate)
+    public void revoke(Credentials credentials, Certificate certificate, String clientId)
             throws CertificateException, WrongCredentialsException, NotExistingUserException {
         // user public key revocation
+        //TODO AAMadmin credentials check
         User user = userRepository.findOne(credentials.getUsername());
         if (user == null) {
             throw new NotExistingUserException();
         }
-        String clientId = certificate.getX509().getSubjectDN().getName().split("CN=")[1].split("@")[1];
         if (passwordEncoder.matches(credentials.getPassword(), user.getPasswordEncrypted())) {
             if (user.getClientCertificates().get(clientId).getCertificateString().equals(certificate.getCertificateString())) {
                 SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(user.getUsername());
@@ -89,8 +83,7 @@ public class RevocationHelper {
 
     // token revoke function - not finished
     public void revoke(Credentials credentials, Token token) throws CertificateException, WrongCredentialsException,
-            NotExistingUserException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException,
-            KeyStoreException, IOException, ValidationException {
+            NotExistingUserException, ValidationException {
         /* not sure that this needs to be here
         if (validate(token.getToken(), "") != ValidationStatus.VALID)
             throw new ValidationException("Invalid token");

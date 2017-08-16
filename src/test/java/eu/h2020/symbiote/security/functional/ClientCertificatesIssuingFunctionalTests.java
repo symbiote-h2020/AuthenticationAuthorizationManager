@@ -21,8 +21,7 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
 public class ClientCertificatesIssuingFunctionalTests extends
@@ -98,6 +97,45 @@ public class ClientCertificatesIssuingFunctionalTests extends
         assertEquals("CN=" + username + "@" + clientId + "@" + homeAAM.getAamInstanceId(), x509Certificate.getSubjectDN().getName());
     }
 
+    @Test
+    public void revokeClientCertificateOverREST() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException {
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPasswordEncrypted(passwordEncoder.encode(password));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.USER);
+        userRepository.save(user);
+
+        AvailableAAMsCollection aamResponse = restaamClient.getAvailableAAMs();
+        KeyPair pair = CryptoHelper.createKeyPair();
+        AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        String clientCertificate = restaamClient.getClientCertificate(certRequest);
+        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + username + "@" + clientId + "@" + homeAAM.getAamInstanceId(), x509Certificate.getSubjectDN().getName());
+
+        csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
+        assertNotNull(csrString);
+        certRequest = new CertificateRequest(username, password, clientId, csrString);
+        clientCertificate = restaamClient.getClientCertificate(certRequest);
+        x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + username + "@" + clientId + "@" + homeAAM.getAamInstanceId(), x509Certificate.getSubjectDN().getName());
+    }
+
     @Test(expected = ValidationException.class)
     public void getClientCertificateFailsForIncorrectCredentials()
             throws InvalidArgumentsException, NoSuchAlgorithmException,
@@ -148,5 +186,46 @@ public class ClientCertificatesIssuingFunctionalTests extends
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
         assertNotNull(x509Certificate);
         assertEquals("CN=" + platform.getPlatformInstanceId(), x509Certificate.getSubjectDN().getName());
+    }
+
+    @Test
+    public void replacePlatformAAMCertificateOverRESTSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            CertificateException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException {
+
+        User platformOwner = savePlatformOwner();
+
+        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, null, null);
+        platformRepository.save(platform);
+
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+
+        String clientCertificate = restaamClient.getClientCertificate(certRequest);
+        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + platform.getPlatformInstanceId(), x509Certificate.getSubjectDN().getName());
+
+        pair = CryptoHelper.createKeyPair();
+        csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
+        assertNotNull(csrString);
+        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        clientCertificate = restaamClient.getClientCertificate(certRequest);
+
+        X509Certificate x509CertificateNew = CryptoHelper.convertPEMToX509(clientCertificate);
+        assertNotNull(x509CertificateNew);
+        assertEquals("CN=" + platform.getPlatformInstanceId(), x509CertificateNew.getSubjectDN().getName());
+        System.out.println(x509Certificate);
+        assertNotEquals(x509Certificate, x509CertificateNew);
+
     }
 }

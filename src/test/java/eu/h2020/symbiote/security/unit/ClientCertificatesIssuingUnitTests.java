@@ -550,6 +550,51 @@ public class ClientCertificatesIssuingUnitTests extends
         }
     }
 
+    @Test
+    public void replacePlatformCertificateSuccess() throws
+            IOException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            InvalidAlgorithmParameterException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            InvalidArgumentsException,
+            ValidationException,
+            UserManagementException,
+            PlatformManagementException {
+
+        User platformOwner = savePlatformOwner();
+        Platform platform = new Platform(platformId, null, null, platformOwner, null, null);
+        platformRepository.save(platform);
+
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        String certificate = getClientCertificateService.getCertificate(certRequest);
+
+        assertTrue(certificate.contains("BEGIN CERTIFICATE"));
+        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + platformId, x509Certificate.getSubjectDN().getName());
+        // 0 for intermediate CA certificate
+        assertEquals(0, x509Certificate.getBasicConstraints());
+
+        pair = CryptoHelper.createKeyPair();
+        csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        assertNotNull(csrString);
+        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        certificate = getClientCertificateService.getCertificate(certRequest);
+
+        assertTrue(certificate.contains("BEGIN CERTIFICATE"));
+        x509Certificate = CryptoHelper.convertPEMToX509(certificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + platformId, x509Certificate.getSubjectDN().getName());
+        // 0 for intermediate CA certificate
+        assertEquals(0, x509Certificate.getBasicConstraints());
+    }
+
     // test for revoke function
     //TODO getting certificate
     @Test
@@ -574,10 +619,9 @@ public class ClientCertificatesIssuingUnitTests extends
 
         // verify the user keys are not yet revoked
         assertFalse(revokedKeysRepository.exists(username));
-
         // revocation
         revocationHelper.revoke(new Credentials(username, password), user.getClientCertificates().entrySet().iterator()
-                .next().getValue());
+                .next().getValue(), user.getClientCertificates().keySet().iterator().next().toString());
 
         // verify the user keys are revoked
         assertTrue(revokedKeysRepository.exists(username));

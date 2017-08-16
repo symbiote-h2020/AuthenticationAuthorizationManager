@@ -189,7 +189,7 @@ public class GetClientCertificateService {
                 user.getClientCertificates().replace(certificateRequest.getClientId(), cert);
             } else {
                 try {
-                    revocationHelper.revoke(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()), userCert);
+                    revocationHelper.revoke(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()), userCert, certificateRequest.getClientId());
                 } catch (CertificateException e) {
                     log.error(e);
                     throw new SecurityException(e.getMessage(), e.getCause());
