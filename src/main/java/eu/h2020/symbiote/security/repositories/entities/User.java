@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,9 +28,8 @@ public class User {
     private String passwordEncrypted = "";
     private String recoveryMail = "";
 
-    // TODO R3 add ownedPlatform set
-
-    // TODO R3  @Mikołaj, change to Set<String,Certificate> clientCertificates
+    @DBRef
+    private Map<String, Platform> ownedPlatformSet = new HashMap<String, Platform>();
     private Map<String, Certificate> clientCertificates = new HashMap<String, Certificate>();
     // TODO Release 4 - add OAuth federated ID support
 
@@ -111,5 +111,13 @@ public class User {
 
     public void setClientCertificates(Map<String, Certificate> clientCertificates) {
         this.clientCertificates = clientCertificates;
+    }
+
+    public Map<String, Platform> getOwnedPlatformSet() {
+        return ownedPlatformSet;
+    }
+
+    public void setOwnedPlatformSet(Map<String, Platform> ownedPlatformSet) {
+        this.ownedPlatformSet = ownedPlatformSet;
     }
 }
