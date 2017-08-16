@@ -4,8 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.communication.AAMClient;
-import eu.h2020.symbiote.security.communication.IAAMClient;
+import eu.h2020.symbiote.security.communication.RESTAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
@@ -117,7 +116,7 @@ public abstract class AbstractAAMTestSuite {
     protected String CERTIFICATE_ALIAS;
     @Value("${aam.deployment.token.validityMillis}")
     protected Long tokenValidityPeriod;
-    protected IAAMClient AAMClient;
+    protected RESTAAMClient AAMClient;
     @LocalServerPort
     private int port;
 
@@ -125,7 +124,7 @@ public abstract class AbstractAAMTestSuite {
     public void setUp() throws Exception {
         // Catch the random port
         serverAddress = "https://localhost:" + port;
-        AAMClient = new AAMClient(serverAddress);
+        AAMClient = new RESTAAMClient(serverAddress);
 
         // Create a trust manager that does not validate certificate chains
         TrustManager[] trustAllCerts = new TrustManager[]{

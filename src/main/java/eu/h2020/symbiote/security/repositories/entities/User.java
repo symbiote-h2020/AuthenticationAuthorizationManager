@@ -27,10 +27,11 @@ public class User {
     private String username = "";
     private String passwordEncrypted = "";
     private String recoveryMail = "";
+    private Map<String, Certificate> clientCertificates = new HashMap<>();
 
     @DBRef
-    private Map<String, Platform> ownedPlatformSet = new HashMap<String, Platform>();
-    private Map<String, Certificate> clientCertificates = new HashMap<String, Certificate>();
+    private Map<String, Platform> ownedPlatforms = new HashMap<>();
+
     // TODO Release 4 - add OAuth federated ID support
 
     /**
@@ -113,11 +114,11 @@ public class User {
         this.clientCertificates = clientCertificates;
     }
 
-    public Map<String, Platform> getOwnedPlatformSet() {
-        return ownedPlatformSet;
+    public Map<String, Platform> getOwnedPlatforms() {
+        return ownedPlatforms;
     }
 
-    public void setOwnedPlatformSet(Map<String, Platform> ownedPlatformSet) {
-        this.ownedPlatformSet = ownedPlatformSet;
+    public void setOwnedPlatforms(Map<String, Platform> ownedPlatforms) {
+        this.ownedPlatforms = ownedPlatforms;
     }
 }

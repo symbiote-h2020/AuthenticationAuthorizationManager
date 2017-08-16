@@ -147,4 +147,23 @@ public class UsersManagementService {
         // do it
         this.unregister(request.getUserDetails().getCredentials().getUsername());
     }
+
+    public void update(UserManagementRequest request) throws SecurityException {
+        // validate request
+        if (request.getAdministratorCredentials() == null || request.getUserDetails().getCredentials() == null)
+            throw new InvalidArgumentsException();
+        // authorize
+        if (!request.getAdministratorCredentials().getUsername().equals(adminUsername)
+                || !request.getAdministratorCredentials().getPassword().equals(adminPassword))
+            throw new UserManagementException(HttpStatus.UNAUTHORIZED);
+
+        User user = userRepository.findOne(request.getUserDetails().getCredentials().getUsername());
+
+        user.setUsername(request.getUserDetails().getCredentials().getUsername());
+        user.setPasswordEncrypted(passwordEncoder.encode(request.getUserDetails().getCredentials().getPassword()));
+        user.setRecoveryMail(request.getUserDetails().getRecoveryMail());
+        user.setRole(request.getUserDetails().getRole());
+
+        userRepository.save(user);
+    }
 }
