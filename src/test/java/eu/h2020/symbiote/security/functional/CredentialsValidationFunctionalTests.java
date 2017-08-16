@@ -46,7 +46,7 @@ public class CredentialsValidationFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String token = restaamClient.getHomeToken(loginRequest);
+        String token = AAMClient.getHomeToken(loginRequest);
         assertNotNull(token);
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
@@ -75,9 +75,9 @@ public class CredentialsValidationFunctionalTests extends
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
 
-        String homeToken = restaamClient.getHomeToken(loginRequest);
+        String homeToken = AAMClient.getHomeToken(loginRequest);
 
-        ValidationStatus status = restaamClient.validate(homeToken, Optional.empty(), Optional.empty());
+        ValidationStatus status = AAMClient.validate(homeToken, Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.VALID, status);
     }
 
@@ -94,11 +94,11 @@ public class CredentialsValidationFunctionalTests extends
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        String homeToken = restaamClient.getHomeToken(loginRequest);
+        String homeToken = AAMClient.getHomeToken(loginRequest);
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 10);
 
-        ValidationStatus status = restaamClient.validate(homeToken, Optional.empty(), Optional.empty());
+        ValidationStatus status = AAMClient.validate(homeToken, Optional.empty(), Optional.empty());
 
         // TODO cover other situations (bad key, on purpose revocation)
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status);
