@@ -1,7 +1,7 @@
 package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
+import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
@@ -20,7 +20,7 @@ import org.springframework.stereotype.Service;
 import java.util.Date;
 
 /**
- * Spring service used to register platforms and their owners in the AAM repository.
+ * Spring service used to manage platforms and their owners in the AAM repository.
  * <p>
  * TODO update to support full CRUD on platforms
  *
@@ -88,7 +88,7 @@ public class PlatformsManagementService {
             platformId = platformManagementRequest.getPlatformInstanceId();
         }
 
-        // register platform in repository
+        // manage platform in repository
         // TODO R3 set the certificate from the received CSR.
         Platform platform = new Platform(platformId, platformManagementRequest
                 .getPlatformInterworkingInterfaceAddress(),
@@ -96,7 +96,7 @@ public class PlatformsManagementService {
                 .findOne(platformOwnerCredentials.getUsername()), new Certificate(), null);
         platformRepository.save(platform);
 
-        return new PlatformManagementResponse(platform.getPlatformInstanceId(), RegistrationStatus.OK);
+        return new PlatformManagementResponse(platform.getPlatformInstanceId(), ManagementStatus.OK);
     }
 
 /*

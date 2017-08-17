@@ -2,7 +2,7 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
+import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
@@ -29,7 +29,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Spring service used to register users in the AAM repository.
+ * Spring service used to manage users in the AAM repository.
  * <p>
  * TODO @Mikołaj update to support full CRUD on users repo
  *
@@ -59,9 +59,8 @@ public class UsersManagementService {
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
     }
 
-    public RegistrationStatus register(UserManagementRequest userManagementRequest)
+    public ManagementStatus manage(UserManagementRequest userManagementRequest)
             throws SecurityException {
-
         UserDetails userRegistrationDetails = userManagementRequest.getUserDetails();
 
         // validate request
@@ -79,25 +78,32 @@ public class UsersManagementService {
 
         // check if user already in repository
         if (userRepository.exists(userRegistrationDetails.getCredentials().getUsername())) {
-            return RegistrationStatus.USERNAME_EXISTS;
+            return ManagementStatus.USERNAME_EXISTS;
         }
 
         // verify proper user role
         if (userRegistrationDetails.getRole() == UserRole.NULL)
             throw new UserManagementException();
 
-        // Register the user
-        User user = new User();
-        user.setRole(userRegistrationDetails.getRole());
-        user.setUsername(userRegistrationDetails.getCredentials().getUsername());
-        user.setPasswordEncrypted(passwordEncoder.encode(userRegistrationDetails.getCredentials().getPassword()));
-        user.setRecoveryMail(userRegistrationDetails.getRecoveryMail());
-        userRepository.save(user);
 
-        return RegistrationStatus.OK;
+        switch (userManagementRequest.getOperationType()) {
+            case CREATE:
+                User user = new User();
+                user.setRole(userRegistrationDetails.getRole());
+                user.setUsername(userRegistrationDetails.getCredentials().getUsername());
+                user.setPasswordEncrypted(passwordEncoder.encode(userRegistrationDetails.getCredentials().getPassword()));
+                user.setRecoveryMail(userRegistrationDetails.getRecoveryMail());
+                userRepository.save(user);
+                break;
+        }
+
+        // Register the user
+
+
+        return ManagementStatus.OK;
     }
 
-    public RegistrationStatus authRegister(UserManagementRequest request) throws
+    public ManagementStatus authRegister(UserManagementRequest request) throws
             SecurityException {
 
         // check if we received required credentials
@@ -107,7 +113,7 @@ public class UsersManagementService {
         if (!request.getAdministratorCredentials().getUsername().equals(adminUsername)
                 || !request.getAdministratorCredentials().getPassword().equals(adminPassword))
             throw new UserManagementException(HttpStatus.UNAUTHORIZED);
-        return this.register(request);
+        return this.manage(request);
     }
 
     public void unregister(String username) throws SecurityException {

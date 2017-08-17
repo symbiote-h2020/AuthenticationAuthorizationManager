@@ -71,14 +71,14 @@ public class RabbitManager {
     @Value("${rabbit.routingKey.getHomeToken.request}")
     private String getHomeTokenRequestRoutingKey;
 
-    @Value("${rabbit.routingKey.register.user.request}")
+    @Value("${rabbit.routingKey.manage.user.request}")
     private String userRegistrationRequestRoutingKey;
-    @Value("${rabbit.queue.register.user.request}")
+    @Value("${rabbit.queue.manage.user.request}")
     private String userRegistrationRequestQueue;
 
-    @Value("${rabbit.routingKey.register.platform.request}")
+    @Value("${rabbit.routingKey.manage.platform.request}")
     private String platformRegistrationRequestRoutingKey;
-    @Value("${rabbit.queue.register.platform.request}")
+    @Value("${rabbit.queue.manage.platform.request}")
     private String platformRegistrationRequestQueue;
 
     @Value("${rabbit.routingKey.ownedplatformdetails.request:defaultOverridenBySpringConfigInCoreEnvironment}")
