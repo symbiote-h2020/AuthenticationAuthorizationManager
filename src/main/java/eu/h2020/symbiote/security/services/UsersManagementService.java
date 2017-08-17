@@ -85,21 +85,27 @@ public class UsersManagementService {
         if (userRegistrationDetails.getRole() == UserRole.NULL)
             throw new UserManagementException();
 
+        User user = new User();
 
         switch (userManagementRequest.getOperationType()) {
             case CREATE:
-                User user = new User();
                 user.setRole(userRegistrationDetails.getRole());
                 user.setUsername(userRegistrationDetails.getCredentials().getUsername());
                 user.setPasswordEncrypted(passwordEncoder.encode(userRegistrationDetails.getCredentials().getPassword()));
                 user.setRecoveryMail(userRegistrationDetails.getRecoveryMail());
                 userRepository.save(user);
                 break;
+
+            case UPDATE:
+                user = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
+
+                user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
+                user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
+                user.setRole(userManagementRequest.getUserDetails().getRole());
+
+                userRepository.save(user);
+                break;
         }
-
-        // Register the user
-
-
         return ManagementStatus.OK;
     }
 
@@ -163,13 +169,6 @@ public class UsersManagementService {
                 || !request.getAdministratorCredentials().getPassword().equals(adminPassword))
             throw new UserManagementException(HttpStatus.UNAUTHORIZED);
 
-        User user = userRepository.findOne(request.getUserDetails().getCredentials().getUsername());
 
-        user.setUsername(request.getUserDetails().getCredentials().getUsername());
-        user.setPasswordEncrypted(passwordEncoder.encode(request.getUserDetails().getCredentials().getPassword()));
-        user.setRecoveryMail(request.getUserDetails().getRecoveryMail());
-        user.setRole(request.getUserDetails().getRole());
-
-        userRepository.save(user);
     }
 }

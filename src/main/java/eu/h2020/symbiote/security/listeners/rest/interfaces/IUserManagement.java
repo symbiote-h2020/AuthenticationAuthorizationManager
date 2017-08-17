@@ -14,6 +14,6 @@ public interface IUserManagement {
      * @param userManagementRequest required to initial.
      * @return the certificate issued using the provided CSR in PEM format
      */
-    @PostMapping(value = SecurityConstants.AAM_MANAGE, consumes = "application/json")
+    @PostMapping(value = SecurityConstants.AAM_MANAGE_USERS, consumes = "application/json")
     ResponseEntity<ManagementStatus> manage(@RequestBody UserManagementRequest userManagementRequest);
 }
