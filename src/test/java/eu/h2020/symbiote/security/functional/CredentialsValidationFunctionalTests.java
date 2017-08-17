@@ -41,7 +41,19 @@ public class CredentialsValidationFunctionalTests extends
      * @throws TimeoutException
      */
     @Test
-    public void validationOverAMQPRequestReplyValid() throws IOException, TimeoutException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException, MalformedJWTException, WrongCredentialsException {
+    public void validationOverAMQPRequestReplyValid() throws
+            IOException,
+            TimeoutException,
+            CertificateException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            OperatorCreationException,
+            NoSuchProviderException,
+            InvalidKeyException,
+            JWTCreationException,
+            MalformedJWTException,
+            WrongCredentialsException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -52,7 +64,7 @@ public class CredentialsValidationFunctionalTests extends
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 validateRequestQueue,
                 10000);
-        byte[] amqpResponse = client.primitiveCall(mapper.writeValueAsString(new ValidationRequest(token, "")).getBytes());
+        byte[] amqpResponse = client.primitiveCall(mapper.writeValueAsString(new ValidationRequest(token, "", "", "")).getBytes());
         ValidationStatus validationStatus = mapper.readValue(amqpResponse,
                 ValidationStatus.class);
 
@@ -69,7 +81,18 @@ public class CredentialsValidationFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void validationOverRESTValid() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException, MalformedJWTException, WrongCredentialsException {
+    public void validationOverRESTValid() throws
+            IOException,
+            CertificateException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            OperatorCreationException,
+            NoSuchProviderException,
+            InvalidKeyException,
+            JWTCreationException,
+            MalformedJWTException,
+            WrongCredentialsException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -77,7 +100,7 @@ public class CredentialsValidationFunctionalTests extends
 
         String homeToken = AAMClient.getHomeToken(loginRequest);
 
-        ValidationStatus status = AAMClient.validate(homeToken, Optional.empty(), Optional.empty());
+        ValidationStatus status = AAMClient.validate(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.VALID, status);
     }
 
@@ -89,8 +112,19 @@ public class CredentialsValidationFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void validationOverRESTExpired() throws IOException, InterruptedException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException,
-            InvalidKeyException, JWTCreationException, MalformedJWTException, WrongCredentialsException {
+    public void validationOverRESTExpired() throws
+            IOException,
+            InterruptedException,
+            CertificateException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            OperatorCreationException,
+            NoSuchProviderException,
+            InvalidKeyException,
+            JWTCreationException,
+            MalformedJWTException,
+            WrongCredentialsException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -98,7 +132,7 @@ public class CredentialsValidationFunctionalTests extends
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 10);
 
-        ValidationStatus status = AAMClient.validate(homeToken, Optional.empty(), Optional.empty());
+        ValidationStatus status = AAMClient.validate(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
 
         // TODO cover other situations (bad key, on purpose revocation)
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status);

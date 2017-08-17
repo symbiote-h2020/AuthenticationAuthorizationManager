@@ -390,7 +390,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
         Token foreignToken = null;
         try {
-            foreignToken = getTokenService.getForeignToken(token, "");
+            foreignToken = getTokenService.getForeignToken(token, "", "");
         } catch (Exception e) {
             log.error(e.getMessage(), e.getCause());
             fail("Exception thrown");
@@ -427,7 +427,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             fail("Exception thrown");
         }
         assertNotNull(token);
-        getTokenService.getForeignToken(token, "");
+        getTokenService.getForeignToken(token, "", "");
     }
 
     @Test(expected = ValidationException.class)
@@ -443,7 +443,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             fail("Exception thrown");
         }
         assertNotNull(token);
-        getTokenService.getForeignToken(token, "");
+        getTokenService.getForeignToken(token, "", "");
     }
 
     @Test(expected = ValidationException.class)
@@ -469,7 +469,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
-        getTokenService.getForeignToken(token, "");
+        getTokenService.getForeignToken(token, "", "");
     }
 
     @Test

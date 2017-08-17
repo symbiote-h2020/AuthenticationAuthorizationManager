@@ -62,7 +62,7 @@ public class CredentialsValidationInPlatformAAMWithExpiredCertificateUnitTests e
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if platform token is valid
-        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.EXPIRED_ISSUER_CERTIFICATE, response);
     }
 }
