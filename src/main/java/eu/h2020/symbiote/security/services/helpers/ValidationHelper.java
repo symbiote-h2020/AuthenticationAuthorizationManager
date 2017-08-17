@@ -4,7 +4,6 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
@@ -159,8 +158,7 @@ public class ValidationHelper {
         if (!clientCertificate.isEmpty() && !clientCertificateSigningAAMCertificate.isEmpty()) {
             try {
                 // reject on certificate not matching the token
-                // TODO handle HOME tokens and FOREIGN tokens respectively
-                if (!doCertificatesMatchTokenFields(tokenString, clientCertificate, foreignTokenIssuingAAMCertificate))
+                if (!doCertificatesMatchTokenFields(tokenString, clientCertificate, clientCertificateSigningAAMCertificate, foreignTokenIssuingAAMCertificate))
                     return ValidationStatus.INVALID_TRUST_CHAIN;
                 // reject on failed trust chain
                 if (!isTrusted(clientCertificateSigningAAMCertificate, clientCertificate))
@@ -171,9 +169,6 @@ public class ValidationHelper {
             } catch (NullPointerException npe) {
                 log.error("Problem with parsing the given PEMs string");
                 return ValidationStatus.INVALID_TRUST_CHAIN;
-            } catch (MalformedJWTException e) {
-                log.error("Problem with parsing the given token's string");
-                return ValidationStatus.UNKNOWN;
             }
         }
 
@@ -214,22 +209,76 @@ public class ValidationHelper {
     /**
      * TODO WIP by MD
      */
-    private boolean doCertificatesMatchTokenFields(String tokenString, String tokenIssuingAAMCertificateString, String clientCertificateString) throws
-            IOException, ValidationException, MalformedJWTException, CertificateException {
-        X509Certificate clientCertificate = CryptoHelper.convertPEMToX509(clientCertificateString);
-        /* TODO unlock once foreign token is properly issued
-        // getting CN=username@clientId@platformId (or SymbIoTe_Core_AAM for core user)
-        String[] commonNameFields = clientCertificate.getSubjectDN().getName().split("CN=")[1].split("@");
-        if (commonNameFields.length != 3)
-            return false;
-        */
+    private boolean doCertificatesMatchTokenFields(String tokenString, String clientCertificateString, String clientCertificateSigningAAMCertificate, String foreignTokenIssuingAAMCertificate) throws
+            IOException, ValidationException, CertificateException {
         Token token = new Token(tokenString);
-        // TODO ISS & IPK using tokenIssuingAAMCertificateString
-        // TODO SUB & SPK using clientCertificateString
-        String publicKeyFromCertificate = Base64.getEncoder().encodeToString(clientCertificate.getPublicKey().getEncoded());
-        String subjectPublicKeyFromToken = JWTEngine.getClaimsFromToken(tokenString).getSpk();
-        if (!publicKeyFromCertificate.equals(subjectPublicKeyFromToken))
+
+        X509Certificate clientCertificate = CryptoHelper.convertPEMToX509(clientCertificateString);
+        // ref client certificate CN=username@clientId@platformId (or SymbIoTe_Core_AAM for core user)
+        String[] clientCommonNameFields = clientCertificate.getSubjectDN().getName().split("CN=")[1].split("@");
+        if (clientCommonNameFields.length != 3)
             return false;
+
+        X509Certificate tokenIssuerCertificate = null;
+        switch (token.getType()) {
+            case HOME:
+                tokenIssuerCertificate = CryptoHelper.convertPEMToX509(clientCertificateSigningAAMCertificate);
+                break;
+            case FOREIGN:
+                tokenIssuerCertificate = CryptoHelper.convertPEMToX509(foreignTokenIssuingAAMCertificate);
+                break;
+            case GUEST:
+                return true;
+            case NULL:
+                // shouldn't really get here ever
+                return false;
+        }
+        String tokenIssuer = tokenIssuerCertificate.getSubjectDN().getName().split("CN=")[1];
+        PublicKey tokenIssuerKey = tokenIssuerCertificate.getPublicKey();
+
+        // ISS check
+        if (!token.getClaims().getIssuer().equals(tokenIssuer))
+            return false;
+
+        // IPK check
+        if (!token.getClaims().get("ipk").equals(Base64.getEncoder().encodeToString(tokenIssuerKey.getEncoded())))
+            return false;
+
+        // signature check
+        if (JWTEngine.validateTokenString(tokenString, tokenIssuerKey) != ValidationStatus.VALID)
+            return false;
+
+        // SPK check
+        if (!token.getClaims().get("spk").equals(Base64.getEncoder().encodeToString(clientCertificate.getPublicKey().getEncoded())))
+            return false;
+
+        // last SUB & CN check
+        switch (token.getType()) {
+            case HOME:
+                // ref client certificate CN=username@clientId@platformId (or SymbIoTe_Core_AAM for core user)
+                if (!token.getClaims().getIssuer().equals(clientCommonNameFields[2]))
+                    return false;
+                // ref SUB: username@clientIdentifier
+                if (!token.getClaims().getSubject().equals(clientCommonNameFields[0] + "@" + clientCommonNameFields[1]))
+                    return false;
+                break;
+            case FOREIGN:
+                // ref SUB: username@clientIdentifier@homeAAMInstanceIdentifier
+                if (!token.getClaims().getSubject().equals(
+                        clientCommonNameFields[0]
+                                + "@"
+                                + clientCommonNameFields[1]
+                                + "@"
+                                + CryptoHelper.convertPEMToX509(clientCertificateSigningAAMCertificate).getSubjectDN().getName().split("CN=")[1]))
+                    return false;
+                break;
+            case GUEST:
+                return true;
+            case NULL:
+                // shouldn't really get here ever
+                return false;
+        }
+
         // passed matching
         return true;
     }
