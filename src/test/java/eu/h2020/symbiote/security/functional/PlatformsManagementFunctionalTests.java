@@ -17,6 +17,7 @@ import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -281,5 +282,23 @@ public class PlatformsManagementFunctionalTests extends
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
         assertEquals(new PlatformManagementException().getErrorMessage(), errorResponse.getErrorMessage());
     }
+
+    @Ignore
+    @Test
+    public void ownedPlatformTest() {
+
+        User platformOwner = savePlatformOwner();
+        assertNotNull(platformOwner);
+        assertTrue(platformOwner.getOwnedPlatforms().size() == 0);
+        Platform platform = new Platform(platformId, null, null, platformOwner, null, null);
+        platformRepository.save(platform);
+        userRepository.save(platformOwner);
+        User user = userRepository.findOne(platformOwner.getUsername());
+        assertNotNull(user);
+        assertTrue(!user.getOwnedPlatforms().isEmpty());
+        assertTrue(user.getOwnedPlatforms().containsKey(platformId));
+
+    }
+
 
 }

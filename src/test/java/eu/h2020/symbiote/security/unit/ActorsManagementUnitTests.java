@@ -73,8 +73,8 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
              */
         // manage new user to db
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
-                (appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER),
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
+                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER),
                 OperationType.CREATE);
         ManagementStatus userRegistrationResponse = usersManagementService.manage
                 (userManagementRequest);
@@ -123,5 +123,4 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
 
         assertTrue(revokedKeys.getRevokedKeysSet().containsAll(certs));
     }
-
 }

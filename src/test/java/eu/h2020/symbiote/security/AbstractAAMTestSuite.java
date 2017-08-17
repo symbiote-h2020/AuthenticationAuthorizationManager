@@ -184,9 +184,9 @@ public abstract class AbstractAAMTestSuite {
 
     protected void addTestUserWithClientCertificateToRepository() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
-                (username, password), "federatedId", "nullMail", UserRole.USER),
-                OperationType.CREATE);
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
+                new UserDetails(new Credentials(username, password), "federatedId",
+                        "nullMail", UserRole.USER), OperationType.CREATE);
 
         User user = new User();
         user.setRole(userManagementRequest.getUserDetails().getRole());

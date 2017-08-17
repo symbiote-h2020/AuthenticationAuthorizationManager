@@ -101,7 +101,6 @@ public class UsersManagementService {
 
                 user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
                 user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
-                user.setRole(userManagementRequest.getUserDetails().getRole());
 
                 userRepository.save(user);
                 break;
