@@ -1,8 +1,10 @@
 package eu.h2020.symbiote.security.services.helpers;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
@@ -72,16 +74,15 @@ public class ValidationHelper {
         this.aamServices = aamServices;
     }
 
-    //TODO getting certificates
-    public ValidationStatus validate(String tokenString, String certificateString) {
+    public ValidationStatus validate(String token, String clientCertificate, String clientCertificateSigningAAMCertificate, String foreignTokenIssuingAAMCertificate) {
         try {
             // basic validation (signature and exp)
-            ValidationStatus validationStatus = JWTEngine.validateTokenString(tokenString);
+            ValidationStatus validationStatus = JWTEngine.validateTokenString(token);
             if (validationStatus != ValidationStatus.VALID) {
                 return validationStatus;
             }
 
-            Claims claims = JWTEngine.getClaims(tokenString);
+            Claims claims = JWTEngine.getClaims(token);
             String spk = claims.get("spk").toString();
             String ipk = claims.get("ipk").toString();
 
@@ -89,7 +90,7 @@ public class ValidationHelper {
             if (deploymentType != IssuingAuthorityType.CORE) {
                 if (!deploymentId.equals(claims.getIssuer())) {
                     // relay validation to issuer
-                    return validateForeignToken(tokenString, certificateString);
+                    return validateRemotelyIssuedToken(token, clientCertificate, clientCertificateSigningAAMCertificate, foreignTokenIssuingAAMCertificate);
                 }
 
                 // check IPK is not equal to current AAM PK
@@ -112,7 +113,7 @@ public class ValidationHelper {
                 // check if core is not an issuer
                 if (!deploymentId.equals(claims.getIssuer())) {
                     // relay validation to issuer
-                    return validateForeignToken(tokenString, certificateString);
+                    return validateRemotelyIssuedToken(token, clientCertificate, clientCertificateSigningAAMCertificate, foreignTokenIssuingAAMCertificate);
                 }
 
                 // check if issuer certificate is not expired
@@ -150,21 +151,19 @@ public class ValidationHelper {
         return ValidationStatus.VALID;
     }
 
-    public ValidationStatus validateForeignToken(String tokenString, String clientCertificateChainPEMsString) throws
+    public ValidationStatus validateRemotelyIssuedToken(String tokenString, String clientCertificate, String clientCertificateSigningAAMCertificate, String foreignTokenIssuingAAMCertificate) throws
             CertificateException,
             ValidationException, NoSuchAlgorithmException, NoSuchProviderException,
             KeyStoreException, IOException {
         // if the certificate is not empty, then check the trust chain
-        if (!clientCertificateChainPEMsString.isEmpty()) {
+        if (!clientCertificate.isEmpty() && !clientCertificateSigningAAMCertificate.isEmpty()) {
             try {
-                // TODO Daniele please refactor this awful code by Mikołaj :)
-                // split it into intermediate cert and app cert
-                String certEnd = "-----END CERTIFICATE-----\n";
-                int splitIndex = clientCertificateChainPEMsString.indexOf(certEnd) + certEnd.length();
-                String signingAAMCert = clientCertificateChainPEMsString.substring(0, splitIndex);
-                String appCert = clientCertificateChainPEMsString.substring(splitIndex);
+                // reject on certificate not matching the token
+                // TODO handle HOME tokens and FOREIGN tokens respectively
+                if (!doCertificatesMatchTokenFields(tokenString, clientCertificate, foreignTokenIssuingAAMCertificate))
+                    return ValidationStatus.INVALID_TRUST_CHAIN;
                 // reject on failed trust chain
-                if (!isTrusted(CryptoHelper.convertPEMToX509(signingAAMCert), appCert))
+                if (!isTrusted(clientCertificateSigningAAMCertificate, clientCertificate))
                     return ValidationStatus.INVALID_TRUST_CHAIN;
                 // end procedure if offline validation is enough
                 if (isOfflineEnough)
@@ -172,6 +171,9 @@ public class ValidationHelper {
             } catch (NullPointerException npe) {
                 log.error("Problem with parsing the given PEMs string");
                 return ValidationStatus.INVALID_TRUST_CHAIN;
+            } catch (MalformedJWTException e) {
+                log.error("Problem with parsing the given token's string");
+                return ValidationStatus.UNKNOWN;
             }
         }
 
@@ -209,6 +211,29 @@ public class ValidationHelper {
         }
     }
 
+    /**
+     * TODO WIP by MD
+     */
+    private boolean doCertificatesMatchTokenFields(String tokenString, String tokenIssuingAAMCertificateString, String clientCertificateString) throws
+            IOException, ValidationException, MalformedJWTException, CertificateException {
+        X509Certificate clientCertificate = CryptoHelper.convertPEMToX509(clientCertificateString);
+        /* TODO unlock once foreign token is properly issued
+        // getting CN=username@clientId@platformId (or SymbIoTe_Core_AAM for core user)
+        String[] commonNameFields = clientCertificate.getSubjectDN().getName().split("CN=")[1].split("@");
+        if (commonNameFields.length != 3)
+            return false;
+        */
+        Token token = new Token(tokenString);
+        // TODO ISS & IPK using tokenIssuingAAMCertificateString
+        // TODO SUB & SPK using clientCertificateString
+        String publicKeyFromCertificate = Base64.getEncoder().encodeToString(clientCertificate.getPublicKey().getEncoded());
+        String subjectPublicKeyFromToken = JWTEngine.getClaimsFromToken(tokenString).getSpk();
+        if (!publicKeyFromCertificate.equals(subjectPublicKeyFromToken))
+            return false;
+        // passed matching
+        return true;
+    }
+
     private boolean isExpired(X509Certificate certificate) {
         try {
             certificate.checkValidity(new Date());
@@ -219,7 +244,7 @@ public class ValidationHelper {
         return false;
     }
 
-    public boolean isTrusted(X509Certificate signingAAMCertificate, String applicationCertificateString) throws
+    public boolean isTrusted(String signingAAMCertificateString, String clientCertificateString) throws
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
@@ -228,22 +253,23 @@ public class ValidationHelper {
 
         X509Certificate rootCertificate = certificationAuthorityHelper.getRootCACertificate();
 
-        // convert application certificate to X509
-        X509Certificate applicationCertificate = CryptoHelper.convertPEMToX509(applicationCertificateString);
+        // convert certificates to X509
+        X509Certificate clientCertificate = CryptoHelper.convertPEMToX509(clientCertificateString);
+        X509Certificate signingAAMCertificate = CryptoHelper.convertPEMToX509(signingAAMCertificateString);
 
         // Create the selector that specifies the starting certificate
         X509CertSelector target = new X509CertSelector();
-        target.setCertificate(applicationCertificate);
+        target.setCertificate(clientCertificate);
 
         // Create the trust anchors (set of root CA certificates)
-        Set<TrustAnchor> trustAnchors = new HashSet<TrustAnchor>();
+        Set<TrustAnchor> trustAnchors = new HashSet<>();
         TrustAnchor trustAnchor = new TrustAnchor(rootCertificate, null);
         trustAnchors.add(trustAnchor);
 
         // List of intermediate certificates
-        List<X509Certificate> intermediateCertificates = new ArrayList<X509Certificate>();
+        List<X509Certificate> intermediateCertificates = new ArrayList<>();
         intermediateCertificates.add(signingAAMCertificate);
-        intermediateCertificates.add(applicationCertificate);
+        intermediateCertificates.add(clientCertificate);
 
         /*
          * If build() returns successfully, the certificate is valid. More details
@@ -264,11 +290,8 @@ public class ValidationHelper {
             // Build and verify the certification chain
             CertPathBuilder builder = CertPathBuilder.getInstance("PKIX", "BC");
             PKIXCertPathBuilderResult result = (PKIXCertPathBuilderResult) builder.build(params);
-
-            // log.info(result.getCertPath().toString());
-
-            return true;
-
+            // path should have 2 certs in symbIoTe architecture
+            return result.getCertPath().getCertificates().size() == 2;
         } catch (CertPathBuilderException | InvalidAlgorithmParameterException e) {
             log.info(e);
             return false;

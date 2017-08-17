@@ -39,13 +39,15 @@ public class GetTokenService {
 
     }
 
-    public Token getForeignToken(Token receivedToken, String certificate) throws JWTCreationException, ValidationException {
-        ValidationStatus validationStatus = validationHelper.validate(receivedToken.toString(), certificate);
+    public Token getForeignToken(Token receivedRemoteHomeToken, String clientCertificate, String aamCertificate) throws
+            JWTCreationException,
+            ValidationException {
+        ValidationStatus validationStatus = validationHelper.validate(receivedRemoteHomeToken.toString(), clientCertificate, aamCertificate, aamCertificate);
         if (validationStatus != ValidationStatus.VALID) {
-            log.error("Validation error occured: " + validationStatus.name());
-            throw new ValidationException("Validation error occured");
+            log.error("Validation error occurred: " + validationStatus.name());
+            throw new ValidationException("Validation error occurred");
         }
-        return tokenIssuer.getForeignToken(receivedToken);
+        return tokenIssuer.getForeignToken(receivedRemoteHomeToken);
     }
 
     public Token getGuestToken() throws JWTCreationException {

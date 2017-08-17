@@ -91,7 +91,7 @@ public class OtherListenersFunctionalTests extends
     @Test
     public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
             CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        AvailableAAMsCollection response = restaamClient.getAvailableAAMs();
+        AvailableAAMsCollection response = AAMClient.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
         // there should be only core AAM in the list
@@ -115,7 +115,7 @@ public class OtherListenersFunctionalTests extends
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
-        AvailableAAMsCollection response = restaamClient.getAvailableAAMs();
+        AvailableAAMsCollection response = AAMClient.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
         // there should be only core AAM in the list
@@ -145,7 +145,7 @@ public class OtherListenersFunctionalTests extends
     @Test
     public void getComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException, AAMException {
-        String componentCertificate = restaamClient.getComponentCertificate();
+        String componentCertificate = AAMClient.getComponentCertificate();
         assertEquals(certificationAuthorityHelper.getAAMCert(), componentCertificate);
     }
 }

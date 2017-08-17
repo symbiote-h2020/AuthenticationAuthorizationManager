@@ -43,8 +43,7 @@ public class GetTokenController implements IGetToken {
         HttpHeaders headers = new HttpHeaders();
         Token foreignToken;
         try {
-            // todo handle the aamCertificate
-            foreignToken = getTokenService.getForeignToken(new Token(remoteHomeToken), clientCertificate);
+            foreignToken = getTokenService.getForeignToken(new Token(remoteHomeToken), clientCertificate, aamCertificate);
         } catch (ValidationException e) {
             log.error(e);
             return new ResponseEntity<>(headers, e.getStatusCode());
@@ -63,7 +62,7 @@ public class GetTokenController implements IGetToken {
             HttpHeaders headers = new HttpHeaders();
             headers.add(SecurityConstants.TOKEN_HEADER_NAME, token.getToken());
             return new ResponseEntity<>(headers, HttpStatus.OK);
-        } catch (SecurityException e) {
+        } catch (JWTCreationException e) {
             log.error(e);
             return new ResponseEntity<>(e.getErrorMessage(), e.getStatusCode());
         }

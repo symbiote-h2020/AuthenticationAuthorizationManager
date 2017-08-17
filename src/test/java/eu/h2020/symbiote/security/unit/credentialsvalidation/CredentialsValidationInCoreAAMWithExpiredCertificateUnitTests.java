@@ -116,7 +116,7 @@ public class CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests exten
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
 
-        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
         // check if platform token is not revoked
         assertEquals(ValidationStatus.EXPIRED_ISSUER_CERTIFICATE, response);
     }

@@ -19,7 +19,7 @@ public class CredentialsValidationService {
         this.validationHelper = validationHelper;
     }
 
-    public ValidationStatus validate(String tokenString, String certificateString) {
-        return validationHelper.validate(tokenString, certificateString);
+    public ValidationStatus validate(String tokenString, String clientCertificate, String clientCertificateSigningAAMCertificate, String foreignTokenIssuingAAMCertificate) {
+        return validationHelper.validate(tokenString, clientCertificate, clientCertificateSigningAAMCertificate, foreignTokenIssuingAAMCertificate);
     }
 }

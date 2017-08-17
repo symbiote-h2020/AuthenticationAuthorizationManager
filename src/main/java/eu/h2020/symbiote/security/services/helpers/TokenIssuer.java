@@ -36,6 +36,7 @@ import java.util.Map;
  * Used to issue tokens.
  *
  * @author Mikołaj Dobski (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 @Component
 public class TokenIssuer {
@@ -130,6 +131,7 @@ public class TokenIssuer {
                 case NULL:
                     throw new JWTCreationException("Misconfigured AAM deployment type");
             }
+            // TODO set proper subject
             return new Token(buildAuthorizationToken(user.getUsername(), attributes, user.getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded(), Token.Type.HOME, tokenValidity, deploymentId,
                     certificationAuthorityHelper
                             .getAAMPublicKey(), certificationAuthorityHelper.getAAMPrivateKey()));
@@ -163,6 +165,7 @@ public class TokenIssuer {
             if (foreignMappingRules.isEmpty())
                 throw new SecurityMisconfigurationException("AAM has no foreign rules defined");
             return new Token(
+                    // TODO set proper subject
                     buildAuthorizationToken(claims.getIss(), foreignAttributes, Base64.getDecoder().decode(claims
                                     .getIpk()), Token.Type.FOREIGN, tokenValidity, deploymentId,
                             certificationAuthorityHelper
