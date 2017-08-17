@@ -104,8 +104,8 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         // verify the user keys are not yet revoked
         assertFalse(revokedKeysRepository.exists(username));
 
-        // unregister the user
-        usersManagementService.unregister(username);
+        // delete the user
+        usersManagementService.delete(username);
         log.debug("User successfully unregistered!");
 
         // verify that app is not anymore in the repository

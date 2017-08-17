@@ -66,7 +66,7 @@ public class ValidationRequestConsumerService extends DefaultConsumer {
                 validationRequest = om.readValue(message, ValidationRequest.class);
 
                 ValidationStatus validationResponse = credentialsValidationService.validate
-                        (validationRequest.getTokenString(), validationRequest.getCertificateString());
+                        (validationRequest.getToken(), validationRequest.getClientCertificate());
                 response = om.writeValueAsString(validationResponse);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
 

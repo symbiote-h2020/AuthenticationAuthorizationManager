@@ -101,7 +101,7 @@ public class PlatformsManagementService {
 
 /*
 
-    public void unregister(String username) throws NotExistingUserException, InvalidArgumentsException {
+    public void delete(String username) throws NotExistingUserException, InvalidArgumentsException {
         // validate request
         if (username.isEmpty())
             throw new InvalidArgumentsException();
@@ -123,7 +123,7 @@ public class PlatformsManagementService {
                 || !request.getAdministratorCredentials().getPassword().equals(AAMOwnerPassword))
             throw new UnauthorizedUnregistrationException();
         // do it
-        this.unregister(request.getApplicationCredentials().getUsername());
+        this.delete(request.getApplicationCredentials().getUsername());
     }
     */
 }

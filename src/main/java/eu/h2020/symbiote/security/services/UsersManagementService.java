@@ -105,6 +105,10 @@ public class UsersManagementService {
 
                 userRepository.save(user);
                 break;
+
+            case DELETE:
+                delete(userManagementRequest.getUserDetails().getCredentials().getUsername());
+                break;
         }
         return ManagementStatus.OK;
     }
@@ -122,13 +126,16 @@ public class UsersManagementService {
         return this.manage(request);
     }
 
-    public void unregister(String username) throws SecurityException {
+    public void delete(String username) throws SecurityException {
         // validate request
         if (username.isEmpty())
             throw new InvalidArgumentsException();
         // try-find user
         if (!userRepository.exists(username))
             throw new NotExistingUserException();
+
+        if (userRepository.findOne(username).getRole() == UserRole.PLATFORM_OWNER)
+            throw new UserManagementException("Cannot remove platform owner", HttpStatus.UNAUTHORIZED);
 
         // add user certificated to revoked repository
         Set<String> keys = new HashSet<>();
@@ -157,18 +164,6 @@ public class UsersManagementService {
                 || !request.getAdministratorCredentials().getPassword().equals(adminPassword))
             throw new UserManagementException(HttpStatus.UNAUTHORIZED);
         // do it
-        this.unregister(request.getUserDetails().getCredentials().getUsername());
-    }
-
-    public void update(UserManagementRequest request) throws SecurityException {
-        // validate request
-        if (request.getAdministratorCredentials() == null || request.getUserDetails().getCredentials() == null)
-            throw new InvalidArgumentsException();
-        // authorize
-        if (!request.getAdministratorCredentials().getUsername().equals(adminUsername)
-                || !request.getAdministratorCredentials().getPassword().equals(adminPassword))
-            throw new UserManagementException(HttpStatus.UNAUTHORIZED);
-
-
+        this.delete(request.getUserDetails().getCredentials().getUsername());
     }
 }
