@@ -25,6 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -186,7 +187,14 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     }
 
     @Test
-    public void validateValidToken() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException {
+    public void validateValidToken() throws
+            SecurityException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            TimeoutException {
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -198,7 +206,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         Token homeToken = tokenIssuer.getHomeToken(user, clientId);
 
         // check if home token is valid
-        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.VALID, response);
     }
 
@@ -212,7 +220,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         //check if home token is valid
-        ValidationStatus response = validationHelper.validate("tokenString", "");
+        ValidationStatus response = validationHelper.validate("tokenString", "", "", "");
         assertEquals(ValidationStatus.UNKNOWN, response);
     }
 
@@ -232,7 +240,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         Thread.sleep(tokenValidityPeriod + 10);
 
         //check if home token is valid
-        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.EXPIRED_TOKEN, response);
     }
 
@@ -252,7 +260,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         usersManagementService.unregister(username);
 
         //check if home token is valid
-        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.REVOKED_SPK, response);
     }
 
@@ -272,7 +280,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         revokedTokensRepository.save(homeToken);
 
         // check if home token is valid
-        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.REVOKED_TOKEN, response);
     }
 
@@ -303,12 +311,20 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         revokedKeysRepository.save(subjectsRevokedKeys);
 
         // check if home token is valid
-        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndRelayValidation() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, JWTCreationException {
+    public void validateIssuerDiffersDeploymentIdAndRelayValidation() throws
+            IOException,
+            ValidationException,
+            TimeoutException,
+            NoSuchProviderException,
+            KeyStoreException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            JWTCreationException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -347,12 +363,19 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         platformRepository.save(dummyPlatform);
 
         // check if validation will be relayed to appropriate issuer
-        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.VALID, response);
     }
 
     @Test
-    public void validateRevokedDummyCorePK() throws IOException, ValidationException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, JWTCreationException {
+    public void validateRevokedDummyCorePK() throws
+            IOException,
+            ValidationException,
+            NoSuchProviderException,
+            KeyStoreException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            JWTCreationException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -389,12 +412,19 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         revokedKeysRepository.save(subjectsRevokedKeys);
 
         // check if platform token is is valid
-        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
 
     @Test
-    public void validateTokenFromDummyCoreByCore() throws IOException, ValidationException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, JWTCreationException {
+    public void validateTokenFromDummyCoreByCore() throws
+            IOException,
+            ValidationException,
+            NoSuchProviderException,
+            KeyStoreException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            JWTCreationException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -416,13 +446,20 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         pemWriter.close();
 
         // check if platform token is valid
-        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
 
     // test for relay
     @Test
-    public void validateForeignTokenIssuerNotInAvailableAAMs() throws IOException, ValidationException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, JWTCreationException {
+    public void validateForeignTokenIssuerNotInAvailableAAMs() throws
+            IOException,
+            ValidationException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            JWTCreationException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -434,12 +471,20 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if home token is valid
-        ValidationStatus response = validationHelper.validateForeignToken(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validateRemotelyIssuedToken(dummyHomeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
 
     @Test
-    public void validateForeignTokenRequestFails() throws IOException, ValidationException, TimeoutException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, JWTCreationException {
+    public void validateForeignTokenRequestFails() throws
+            IOException,
+            ValidationException,
+            TimeoutException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            JWTCreationException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -476,12 +521,15 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         platformRepository.save(dummyPlatform);
 
         // check if validation will fail due to for example connection problems
-        ValidationStatus response = validationHelper.validateForeignToken(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validateRemotelyIssuedToken(dummyHomeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.WRONG_AAM, response);
     }
 
     @Test
-    public void validateForeignTokenRequestInIntranetUsingProvidedCertificate() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, JWTCreationException {
+    @Ignore("offline validation WIP")
+    public void validateRemoteHomeTokenRequestInIntranetUsingProvidedCertificate() throws
+            ValidationException {
+
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -491,28 +539,39 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
-        // registering the platform to the Core AAM so it will be available for token revocation
-        savePlatformOwner();
-        String platformId = "testaam-connerr";
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test/conn_err");
-        // issue platform registration over AMQP
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
+        // check if validation will use certificate instead of relay for offline configured aam
+        // TODO valid chain
+        // assertEquals(ValidationStatus.VALID, validationHelper.validateRemotelyIssuedToken(dummyHomeToken.getToken(), applicationCertificatePEM, rightSigningAAMCertificatePEM));
+        // wrong chain (signing cert)
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(dummyHomeToken.getToken(), applicationCertificatePEM, wrongSigningAAMCertificatePEM, ""));
+        // wrong chain (token and clientCertificate don't match)
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(dummyHomeToken.getToken(), applicationCertificatePEM, rightSigningAAMCertificatePEM, ""));
+        // missing certificate triggers remote validation attempt
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(dummyHomeToken.getToken(), applicationCertificatePEM, "", ""));
+    }
 
-        //inject platform PEM Certificate to the database
-        Platform dummyPlatform = platformRepository.findOne(platformId);
-        dummyPlatform.setPlatformAAMCertificate(new Certificate(rightSigningAAMCertificatePEM));
-        platformRepository.save(dummyPlatform);
+
+    @Test
+    @Ignore("offline validation WIP")
+    public void validateRemoteForeignTokenRequestInIntranetUsingProvidedCertificate() throws ValidationException {
+        // issuing dummy platform token
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/conn_err/paam" + SecurityConstants
+                        .AAM_GET_HOME_TOKEN,
+                loginRequest, String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if validation will use certificate instead of relay for offline configured aam
-
-        // valid chain
-        assertEquals(ValidationStatus.VALID, validationHelper.validateForeignToken(dummyHomeToken.getToken(), rightSigningAAMCertificatePEM + applicationCertificatePEM));
-        // wrong chain
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validateForeignToken(dummyHomeToken.getToken(), wrongSigningAAMCertificatePEM + applicationCertificatePEM));
-        // missing chain
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validateForeignToken(dummyHomeToken.getToken(), applicationCertificatePEM));
+        // TODO valid chain
+        // assertEquals(ValidationStatus.VALID, validationHelper.validateRemotelyIssuedToken(dummyHomeToken.getToken(), applicationCertificatePEM, rightSigningAAMCertificatePEM));
+        // wrong chain (signing cert)
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(dummyHomeToken.getToken(), applicationCertificatePEM, wrongSigningAAMCertificatePEM, "TODO"));
+        // wrong chain (token and clientCertificate don't match)
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(dummyHomeToken.getToken(), applicationCertificatePEM, rightSigningAAMCertificatePEM, "TODO"));
+        // missing certificate triggers remote validation attempt
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(dummyHomeToken.getToken(), applicationCertificatePEM, "", "TODO"));
     }
 
     @Test
@@ -522,10 +581,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             KeyStoreException,
             NoSuchProviderException,
             IOException {
-
-        X509Certificate rightSigningAAMCertificate = CryptoHelper.convertPEMToX509(rightSigningAAMCertificatePEM);
-        boolean trustChainValidationStatus = validationHelper.isTrusted(rightSigningAAMCertificate, applicationCertificatePEM);
-        assertEquals(true, trustChainValidationStatus);
+        assertTrue(validationHelper.isTrusted(rightSigningAAMCertificatePEM, applicationCertificatePEM));
     }
 
     @Test
@@ -535,10 +591,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             KeyStoreException,
             NoSuchProviderException,
             IOException {
-
-        X509Certificate signingAAMCertificate = CryptoHelper.convertPEMToX509(wrongSigningAAMCertificatePEM);
-        boolean trustChainValidationStatus = validationHelper.isTrusted(signingAAMCertificate, applicationCertificatePEM);
-
-        assertEquals(false, trustChainValidationStatus);
+        assertFalse(validationHelper.isTrusted(wrongSigningAAMCertificatePEM, applicationCertificatePEM));
     }
 }

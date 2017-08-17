@@ -34,13 +34,13 @@ public class ValidateCredentialsController implements IValidateCredentials {
     @Override
     public ValidationStatus validate(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String token,
                                      @RequestHeader(name = SecurityConstants.CLIENT_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificate,
-                                     @RequestHeader(name = SecurityConstants.AAM_CERTIFICATE_HEADER_NAME, defaultValue = "") String aamCertificate) {
+                                     @RequestHeader(name = SecurityConstants.AAM_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificateSigningAAMCertificate,
+                                     @RequestHeader(name = SecurityConstants.FOREIGN_TOKEN_ISSUING_AAM_CERTIFICATE, defaultValue = "") String foreignTokenIssuingAAMCertificate) {
         try {
             // input sanity check
             JWTEngine.validateTokenString(token);
             // real validation
-            // todo handle the aamCertificate
-            return credentialsValidationService.validate(token, clientCertificate);
+            return credentialsValidationService.validate(token, clientCertificate, clientCertificateSigningAAMCertificate, foreignTokenIssuingAAMCertificate);
         } catch (ValidationException e) {
             log.error(e);
             return ValidationStatus.UNKNOWN;

@@ -94,7 +94,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         Token homeToken = tokenIssuer.getHomeToken(user, clientId);
 
         // check if home token is valid
-        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.VALID, response);
     }
 
@@ -111,7 +111,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if home token is valid
-        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
 
@@ -128,7 +128,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if home token is valid
-        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
 
@@ -155,7 +155,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         Token homeToken = tokenIssuer.getHomeToken(user, clientId);
 
         // check if home token is valid
-        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE, response);
     }
 
@@ -173,7 +173,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         // check if home token is valid
-        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "");
+        ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.REVOKED_IPK, response);
     }
 }

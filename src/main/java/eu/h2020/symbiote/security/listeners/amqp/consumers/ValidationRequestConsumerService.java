@@ -62,17 +62,16 @@ public class ValidationRequestConsumerService extends DefaultConsumer {
                     .Builder()
                     .correlationId(properties.getCorrelationId())
                     .build();
-            try {
-                validationRequest = om.readValue(message, ValidationRequest.class);
+            validationRequest = om.readValue(message, ValidationRequest.class);
 
-                ValidationStatus validationResponse = credentialsValidationService.validate
-                        (validationRequest.getTokenString(), validationRequest.getCertificateString());
-                response = om.writeValueAsString(validationResponse);
-                this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-
-            } catch (IOException e) {
-                log.error(e);
-            }
+            ValidationStatus validationResponse = credentialsValidationService.validate(
+                    validationRequest.getToken(),
+                    validationRequest.getClientCertificate(),
+                    validationRequest.getClientCertificateSigningAAMCertificate(),
+                    validationRequest.getForeignTokenIssuingAAMCertificate()
+            );
+            response = om.writeValueAsString(validationResponse);
+            this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
 
             log.debug("Validation Status Response: sent back");
         } else {
