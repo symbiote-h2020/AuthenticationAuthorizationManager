@@ -13,6 +13,7 @@ import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRespo
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -88,13 +89,16 @@ public class PlatformsManagementService {
             platformId = platformManagementRequest.getPlatformInstanceId();
         }
 
+        User platformOwner = userRepository
+                .findOne(platformOwnerCredentials.getUsername());
         // manage platform in repository
         // TODO R3 set the certificate from the received CSR.
         Platform platform = new Platform(platformId, platformManagementRequest
                 .getPlatformInterworkingInterfaceAddress(),
-                platformManagementRequest.getPlatformInstanceFriendlyName(), userRepository
-                .findOne(platformOwnerCredentials.getUsername()), new Certificate(), null);
+                platformManagementRequest.getPlatformInstanceFriendlyName(), platformOwner, new Certificate(), null);
         platformRepository.save(platform);
+        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        userRepository.save(platformOwner);
 
         return new PlatformManagementResponse(platform.getPlatformInstanceId(), ManagementStatus.OK);
     }
