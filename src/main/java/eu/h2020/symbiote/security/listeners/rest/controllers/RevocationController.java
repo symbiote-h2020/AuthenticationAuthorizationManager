@@ -11,6 +11,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * Spring controller to handle HTTPS requests related to the RESTful web services associated with revoking certificates and tokens.
+ *
+ * @author Jakub Toczek (PSNC)
+ * @see RevocationService
+ */
+
 @RestController
 public class RevocationController implements IRevoke {
     private static final Log log = LogFactory.getLog(RevocationController.class);

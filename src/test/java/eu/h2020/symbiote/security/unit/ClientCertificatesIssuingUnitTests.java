@@ -1,12 +1,9 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
-import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
@@ -22,7 +19,6 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
@@ -46,6 +42,7 @@ import static org.junit.Assert.*;
  * Test suite for generic AAM functionality irrelevant to actual deployment type (Core or Platform)
  *
  * @author Piotr Kicki (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 @TestPropertySource("/core.properties")
 public class ClientCertificatesIssuingUnitTests extends
@@ -596,214 +593,4 @@ public class ClientCertificatesIssuingUnitTests extends
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
     }
-
-    // test for revokeHomeToken function
-    //TODO getting certificate
-    @Test
-    public void revokeUserPublicKey() throws
-            SecurityException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException,
-            UnrecoverableKeyException,
-            OperatorCreationException,
-            InvalidKeyException, NotExistingUserException, WrongCredentialsException {
-
-        // prepare the user in db
-        addTestUserWithClientCertificateToRepository();
-
-        // verify that app really is in repository
-        User user = userRepository.findOne(username);
-
-        assertNotNull(user);
-
-        // verify the user keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(username));
-        // revocation
-        String commonName = username + illegalSign + user.getClientCertificates().keySet().iterator().next().toString();
-        revocationHelper.revokeCertificate(new Credentials(username, password), user.getClientCertificates().entrySet().iterator()
-                .next().getValue(), commonName);
-
-        // verify the user keys are revoked
-        assertTrue(revokedKeysRepository.exists(username));
-    }
-    //TODO @JT revokeCertificates unit tests
-    @Test
-    public void revokeUserCertyficateUsingCommonNameSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
-        saveUser();
-        KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
-        assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        getClientCertificateService.getCertificate(certRequest);
-        User user = userRepository.findOne(appUsername);
-        assertNotNull(user.getClientCertificates().get(clientId));
-        String commonName = appUsername + illegalSign + clientId;
-
-        revocationHelper.revokeCertificate(new Credentials(appUsername, password), null, commonName);
-        user = userRepository.findOne(appUsername);
-        assertNull(user.getClientCertificates().get(clientId));
-    }
-
-    @Test
-    public void revokeUserCertyficateUsingCommonNameFail() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
-        saveUser();
-        KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
-        assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String certificate = getClientCertificateService.getCertificate(certRequest);
-        User user = userRepository.findOne(appUsername);
-        assertNotNull(user.getClientCertificates().get(clientId));
-        try {
-            String commonName = wrongusername + illegalSign + clientId;
-            revocationHelper.revokeCertificate(new Credentials(username, password), null, commonName);
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(NotExistingUserException.class, e.getClass());
-        }
-        try {
-            String commonName = appUsername + illegalSign + clientId;
-            revocationHelper.revokeCertificate(new Credentials(appUsername, wrongpassword), null, commonName);
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(WrongCredentialsException.class, e.getClass());
-        }
-    }
-
-    @Test
-    public void revokeUserCertyficateUsingCommonNameFailWrongClientId() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
-        saveUser();
-        KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
-        assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String certificate = getClientCertificateService.getCertificate(certRequest);
-        String commonName = appUsername + illegalSign + wrongClientId;
-        User user = userRepository.findOne(appUsername);
-        assertNotNull(user.getClientCertificates().get(clientId));
-        try {
-            revocationHelper.revokeCertificate(new Credentials(appUsername, password), null, commonName);
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(WrongCredentialsException.class, e.getClass());
-        }
-        try {
-            revocationHelper.revokeCertificate(new Credentials(appUsername, password), null, "");
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(CertificateException.class, e.getClass());
-        }
-    }
-
-    @Test
-    public void revokeUserCertyficateUsingCertificateFailWrongCertificate() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
-        saveUser();
-        KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
-        assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String certificateString = getClientCertificateService.getCertificate(certRequest);
-        User user = userRepository.findOne(appUsername);
-        assertNotNull(user.getClientCertificates().get(clientId));
-        //USER don't send any certificate or client id
-        try {
-            revocationHelper.revokeCertificate(new Credentials(appUsername, password), null, "");
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(CertificateException.class, e.getClass());
-        }
-        savePlatformOwner();
-        User platformOwner = userRepository.findOne(platformOwnerUsername);
-        csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), platformOwnerUsername, clientId, pair);
-        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificate = getClientCertificateService.getCertificate(certRequest);
-        //USER sends certificate generated not for him
-        try {
-            revocationHelper.revokeCertificate(new Credentials(appUsername, password), new Certificate(certificate), "");
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(SecurityException.class, e.getClass());
-        }
-
-        //USER sends certificate generated for PLATFORM
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, null);
-        platformRepository.save(platform);
-
-        csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
-        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        certificate = getClientCertificateService.getCertificate(certRequest);
-        platformOwner.setRole(UserRole.USER);
-        userRepository.save(platformOwner);
-        try {
-            revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), new Certificate(certificate), "");
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(SecurityException.class, e.getClass());
-        }
-
-        revocationHelper.revokeCertificate(new Credentials(appUsername, password), new Certificate(certificateString), "");
-        //USER sends certificate which was earlier revoked
-        try {
-            revocationHelper.revokeCertificate(new Credentials(appUsername, password), new Certificate(certificateString), "");
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(CertificateException.class, e.getClass());
-        }
-    }
-
-    @Ignore
-    @Test
-    public void revokeUserCertyficateUsingCertificateSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
-
-        saveUser();
-        KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
-        assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String certificate = getClientCertificateService.getCertificate(certRequest);
-        User user = userRepository.findOne(appUsername);
-        assertNotNull(user.getClientCertificates().get(clientId));
-
-        revocationHelper.revokeCertificate(new Credentials(appUsername, password), new Certificate(certificate), "");
-        user = userRepository.findOne(appUsername);
-        assertNull(user.getClientCertificates().get(clientId));
-    }
-
-    @Ignore
-    @Test
-    public void revokePlatformCertyficateUsingCertificateSuccess() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
-        savePlatformOwner();
-        KeyPair pair = CryptoHelper.createKeyPair();
-        User platformOwner = userRepository.findOne(platformOwnerUsername);
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, null);
-        platformRepository.save(platform);
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificate = getClientCertificateService.getCertificate(certRequest);
-        assertTrue(certificate.contains("BEGIN CERTIFICATE"));
-        assertNotNull(userRepository.findOne(platformOwnerUsername).getClientCertificates().get(clientId));
-
-        revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), new Certificate(certificate), "");
-
-        assertNull(userRepository.findOne(platformOwnerUsername).getClientCertificates().get(clientId));
-    }
-
-    @Ignore
-    @Test
-    public void revokeCertyficateUsingPlatformCommonNameSuccess() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
-
-        savePlatformOwner();
-        KeyPair pair = CryptoHelper.createKeyPair();
-        User platformOwner = userRepository.findOne(platformOwnerUsername);
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, null);
-        platformRepository.save(platform);
-
-        revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), null, platformId);
-
-        assertNull(platformRepository.findOne(platformId).getPlatformAAMCertificate());
-    }
-
 }

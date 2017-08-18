@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
@@ -37,6 +38,7 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
  * @author Nemanja Ignjatov (UNIVIE)
  * @author Mikołaj Dobski (PSNC)
  * @author Piotr Kicki (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 @Component
 public class RevocationHelper {
@@ -65,11 +67,11 @@ public class RevocationHelper {
     private void revokeCertificateUsingCommonName(User user, String commonName) throws WrongCredentialsException, CertificateException {
         if (commonName.split(illegalSign).length == 1) {
             if (user.getRole() == UserRole.PLATFORM_OWNER) {
-                Platform platform = platformRepository.findOne(commonName);
+                Platform platform = user.getOwnedPlatforms().get(commonName);
                 if (platform == null) {
                     throw new WrongCredentialsException();
                 }
-                revokeKey(commonName, platform.getPlatformAAMCertificate().getX509().getPublicKey());
+                revokeKey(commonName, platform.getPlatformAAMCertificate());
                 platform.setPlatformAAMCertificate(new Certificate());
                 platformRepository.save(platform);
             } else {
@@ -81,21 +83,20 @@ public class RevocationHelper {
                 if (user.getClientCertificates().get(clientId) == null) {
                     throw new WrongCredentialsException();
                 }
-                revokeKey(user.getUsername(), user.getClientCertificates().get(clientId).getX509().getPublicKey());
+                revokeKey(user.getUsername(), user.getClientCertificates().get(clientId));
                 user.getClientCertificates().remove(clientId);
                 userRepository.save(user);
             } else {
                 if (user.getRole() == UserRole.PLATFORM_OWNER) {
                     String platformId = commonName.split(illegalSign)[1];
                     String componentId = commonName.split(illegalSign)[0];
-                    Platform platform = platformRepository.findOne(platformId);
+                    Platform platform = user.getOwnedPlatforms().get(platformId);
                     if (platform == null || platform.getComponentCertificates().get(componentId) == null) {
                         throw new WrongCredentialsException();
                     }
-                    revokeKey(platformId, platform.getComponentCertificates().get(componentId).getX509().getPublicKey());
+                    revokeKey(platformId, platform.getComponentCertificates().get(componentId));
                     platform.getComponentCertificates().remove(componentId);
                     platformRepository.save(platform);
-
                 } else {
                     throw new SecurityException();
                 }
@@ -103,18 +104,25 @@ public class RevocationHelper {
         } else throw new WrongCredentialsException();
     }
 
-    ;
-
-    private void revokeCertificateUsingCertificate(User user, Certificate certificate) throws CertificateException, WrongCredentialsException {
-        if (certificate.getX509().getSubjectDN().getName().split("CN=").length != 2) {
+    private void revokeCertificateUsingCertificate(User user, X509Certificate certificate) throws WrongCredentialsException, CertificateException {
+        if (certificate.getSubjectDN().getName().split("CN=").length != 2) {
             throw new CertificateException();
         }
-        if (certificate.getX509().getSubjectDN().getName().split("CN=")[1].split(illegalSign).length == 1) {
+        if (certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign).length == 1) {
             if (user.getRole() == UserRole.PLATFORM_OWNER) {
-                String platformId = certificate.getX509().getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
-                if (platformRepository.findOne(platformId) != null) {
-                    Platform platform = platformRepository.findOne(platformId);
-                    revokeKey(platformId, platform.getPlatformAAMCertificate().getX509().getPublicKey());
+                String platformId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
+                Platform platform = user.getOwnedPlatforms().get(platformId);
+                if (platform != null) {
+
+                    //TODO
+                    if (platform.getPlatformAAMCertificate() == null || platform.getPlatformAAMCertificate().getCertificateString().isEmpty()) {
+                        throw new CertificateException();
+                    } else if (!isRevoked(platformId, certificate.getPublicKey())) {
+                        throw new CertificateException();
+                    }
+
+
+                    revokeKey(platformId, platform.getPlatformAAMCertificate());
                     platform.setPlatformAAMCertificate(new Certificate());
                     platformRepository.save(platform);
                 } else {
@@ -123,13 +131,22 @@ public class RevocationHelper {
             } else {
                 throw new SecurityException();
             }
-        } else if (certificate.getX509().getSubjectDN().getName().split("CN=")[1].split(illegalSign).length == 2) {
+        } else if (certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign).length == 2) {
             if (user.getRole() == UserRole.PLATFORM_OWNER) {
-                String componentId = certificate.getX509().getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
-                String platformId = certificate.getX509().getSubjectDN().getName().split("CN=")[1].split(illegalSign)[1];
-                if (platformRepository.findOne(platformId) != null && platformRepository.findOne(platformId).getComponentCertificates().get(componentId) != null) {
-                    Platform platform = platformRepository.findOne(platformId);
-                    revokeKey(platformId, platform.getComponentCertificates().get(componentId).getX509().getPublicKey());
+                String componentId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
+                String platformId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[1];
+                Platform platform = user.getOwnedPlatforms().get(platformId);
+                if (platform != null && platform.getComponentCertificates().get(componentId) != null) {
+
+                    //TODO
+                    if (platform.getPlatformAAMCertificate() == null || platform.getPlatformAAMCertificate().getCertificateString().isEmpty()) {
+                        throw new CertificateException();
+                    } else if (!isRevoked(platformId, certificate.getPublicKey())) {
+                        throw new CertificateException();
+                    }
+
+
+                    revokeKey(platformId, platform.getComponentCertificates().get(componentId));
                     platform.getComponentCertificates().remove(componentId);
                     platformRepository.save(platform);
                 } else {
@@ -138,13 +155,13 @@ public class RevocationHelper {
             } else {
                 throw new SecurityException();
             }
-        } else if (certificate.getX509().getSubjectDN().getName().split("CN=")[1].split(illegalSign).length == 3) {
-            if (certificate.getX509().getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0].equals(user.getUsername())) {
-                String clientId = certificate.getX509().getSubjectDN().getName().split("CN=")[1].split(illegalSign)[1];
+        } else if (certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign).length == 3) {
+            if (certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0].equals(user.getUsername())) {
+                String clientId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[1];
                 if (user.getClientCertificates().get(clientId) == null) {
                     throw new CertificateException();
                 }
-                revokeKey(user.getUsername(), user.getClientCertificates().get(clientId).getX509().getPublicKey());
+                revokeKey(user.getUsername(), user.getClientCertificates().get(clientId));
                 user.getClientCertificates().remove(clientId);
                 userRepository.save(user);
             } else {
@@ -155,7 +172,7 @@ public class RevocationHelper {
 
     // certificate revoke function - not finished
     //TODO exceptions to be changed, submetods to be added, still not verified and no tests
-    public void revokeCertificate(Credentials credentials, Certificate certificate, String commonName)
+    public boolean revokeCertificate(Credentials credentials, Certificate certificate, String commonName)
             throws CertificateException, WrongCredentialsException, NotExistingUserException {
         // user public key revocation
         //TODO AAMadmin credentials check
@@ -171,8 +188,13 @@ public class RevocationHelper {
             if (!commonName.isEmpty()) {
                 revokeCertificateUsingCommonName(user, commonName);
             } else if (certificate != null) {
-
-                revokeCertificateUsingCertificate(user, certificate);
+                X509Certificate x509Certificate;
+                try {
+                    x509Certificate = certificate.getX509();
+                } catch (Exception e) {
+                    throw new CertificateException();
+                }
+                revokeCertificateUsingCertificate(user, x509Certificate);
             } else {
                 throw new CertificateException();
             }
@@ -222,13 +244,26 @@ public class RevocationHelper {
     public void revokeForeignToken(Token remoteHomeToken, Token foreignToken) {
     }
 
-    private void revokeKey(String name, PublicKey publicKey) {
+    private void revokeKey(String name, Certificate cert) throws CertificateException {
         SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(name);
         Set<String> keySet = (subjectsRevokedKeys == null) ? new HashSet<>() : subjectsRevokedKeys
                 .getRevokedKeysSet();
         keySet.add(Base64.getEncoder().encodeToString(
-                publicKey.getEncoded()));
+                cert.getX509().getPublicKey().getEncoded()));
         // adding key to revoked repository
         revokedKeysRepository.save(new SubjectsRevokedKeys(name, keySet));
+    }
+
+    private boolean isRevoked(String name, PublicKey publicKey) throws CertificateException {
+        SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(name);
+        if (subjectsRevokedKeys == null) {
+            return false;
+        }
+        Set<String> keySet = subjectsRevokedKeys.getRevokedKeysSet();
+        return keySet.contains(Base64.getEncoder().encodeToString(publicKey.getEncoded()));
+    }
+
+
+    public void revokeCertificateAdmin(Credentials credentials, Certificate certificate, String certificateCommonName) {
     }
 }

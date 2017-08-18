@@ -13,6 +13,11 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.security.cert.CertificateException;
 
+/**
+ * Spring service used to revoke tokens and certificates.
+ * * @author Jakub Toczek (PSNC)
+ */
+
 @Service
 public class RevocationService {
     private RevocationHelper revocationHelper;
@@ -29,7 +34,7 @@ public class RevocationService {
             case USER:
                 if (!revocationRequest.getCertificatePEMString().isEmpty() ||
                         !revocationRequest.getCertificateCommonName().isEmpty()) {
-                    revocationHelper.revokeCertificate(revocationRequest.getCredentials(), new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificatePEMString());
+                    revocationHelper.revokeCertificate(revocationRequest.getCredentials(), new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificateCommonName());
                 } else if (!revocationRequest.getHomeTokenString().isEmpty()) {
                     revocationHelper.revokeHomeToken(revocationRequest.getCredentials(), new Token(revocationRequest.getHomeTokenString()));
                 } else {
@@ -41,7 +46,7 @@ public class RevocationService {
                     revocationHelper.revokeHomeToken(revocationRequest.getCredentials(), new Token(revocationRequest.getHomeTokenString()));
                 } else if (!revocationRequest.getCertificatePEMString().isEmpty() ||
                         !revocationRequest.getCertificateCommonName().isEmpty()) {
-                    revocationHelper.revokeCertificate(revocationRequest.getCredentials(), new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificateCommonName());
+                    revocationHelper.revokeCertificateAdmin(revocationRequest.getCredentials(), new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificateCommonName());
                 } else {
                     throw new SecurityException();
                 }
