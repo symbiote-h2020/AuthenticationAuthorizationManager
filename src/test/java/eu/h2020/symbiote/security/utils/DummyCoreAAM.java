@@ -45,7 +45,13 @@ public class DummyCoreAAM {
     private static final String PATH = "/test/caam";
     private AvailableAAMsCollection aams = new AvailableAAMsCollection();
 
-    public DummyCoreAAM() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException {
+    public DummyCoreAAM() throws
+            CertificateException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            IOException {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
@@ -68,7 +74,10 @@ public class DummyCoreAAM {
      */
     @PostMapping(path = PATH + SecurityConstants.AAM_GET_HOME_TOKEN, produces = "application/json", consumes =
             "text/plain")
-    public ResponseEntity<?> doLogin(@RequestBody String loginRequest) throws IOException, ClassNotFoundException, MalformedJWTException {
+    public ResponseEntity<?> getHomeToken(@RequestBody String loginRequest) throws
+            IOException,
+            ClassNotFoundException,
+            MalformedJWTException {
 
         JWTClaims claims = JWTEngine.getClaimsFromToken(loginRequest);
         //log.info("User trying to getHomeToken " + credential.getObject().toString().split("@")[0] + " - " + credential.getObject().toString().split("@")[1]);
@@ -79,10 +88,14 @@ public class DummyCoreAAM {
 
             HashMap<String, String> attributes = new HashMap<>();
             attributes.put("name", "test2");
-            String tokenString = TokenIssuer.buildAuthorizationToken(claims.getIss(), attributes, ks.getCertificate
-                            (CERTIFICATE_ALIAS).getPublicKey().getEncoded(), Token.Type.HOME, new Date().getTime()
-                            + 60000
-                    , SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
+            String tokenString = TokenIssuer.buildAuthorizationToken(
+                    claims.getIss() + "@" + claims.getSub(),
+                    attributes,
+                    ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey().getEncoded(),
+                    Token.Type.HOME,
+                    new Date().getTime() + 60000,
+                    SecurityConstants.AAM_CORE_AAM_INSTANCE_ID,
+                    ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
                     (PrivateKey) key);
 
             Token coreToken = new Token(tokenString);

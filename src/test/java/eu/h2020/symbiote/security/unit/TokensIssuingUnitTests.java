@@ -358,7 +358,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         try {
-            token = new Token(dummyPlatformAAM().doLogin(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+            token = new Token(dummyPlatformAAM().getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -406,7 +406,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         try {
-            token = new Token(dummyPlatformAAM().doLogin(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+            token = new Token(dummyPlatformAAM().getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -438,7 +438,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         try {
-            token = new Token(dummyPlatformAAM().doLogin(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+            token = new Token(dummyPlatformAAM().getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -454,7 +454,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         try {
-            token = new Token(dummyPlatformAAM().doLogin(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+            token = new Token(dummyPlatformAAM().getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         } catch (Exception e) {
             fail("Exception thrown");
         }
