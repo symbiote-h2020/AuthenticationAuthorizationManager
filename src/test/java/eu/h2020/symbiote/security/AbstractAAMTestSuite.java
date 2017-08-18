@@ -3,9 +3,9 @@ package eu.h2020.symbiote.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.communication.AAMClient;
-import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
@@ -97,9 +97,9 @@ public abstract class AbstractAAMTestSuite {
     protected String coreInterfaceAddress;
     @Value("${rabbit.queue.getHomeToken.request}")
     protected String loginRequestQueue;
-    @Value("${rabbit.queue.register.user.request}")
+    @Value("${rabbit.queue.manage.user.request}")
     protected String userRegistrationRequestQueue;
-    @Value("${rabbit.queue.register.platform.request}")
+    @Value("${rabbit.queue.manage.platform.request}")
     protected String platformRegistrationRequestQueue;
     @Value("${rabbit.queue.validate.request}")
     protected String validateRequestQueue;
@@ -117,7 +117,7 @@ public abstract class AbstractAAMTestSuite {
     protected String CERTIFICATE_ALIAS;
     @Value("${aam.deployment.token.validityMillis}")
     protected Long tokenValidityPeriod;
-    protected IAAMClient AAMClient;
+    protected AAMClient AAMClient;
     @LocalServerPort
     private int port;
 
@@ -184,8 +184,9 @@ public abstract class AbstractAAMTestSuite {
 
     protected void addTestUserWithClientCertificateToRepository() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
-                (username, password), "federatedId", "nullMail", UserRole.USER));
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
+                new UserDetails(new Credentials(username, password), "federatedId",
+                        "nullMail", UserRole.USER), OperationType.CREATE);
 
         User user = new User();
         user.setRole(userManagementRequest.getUserDetails().getRole());

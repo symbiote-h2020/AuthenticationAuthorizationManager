@@ -2,7 +2,8 @@ package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
+import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
+import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
@@ -54,9 +55,8 @@ public class ActorsManagementFunctionalTests extends
                 userRegistrationRequestQueue, 5000);
         appUserDetails = new UserDetails(new Credentials(
                 username, password), federatedOAuthId, recoveryMail, UserRole.USER);
-        appUserManagementRequest = new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), appUserDetails);
+        appUserManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(username, password), appUserDetails, OperationType.CREATE);
     }
 
     @Test
@@ -68,8 +68,9 @@ public class ActorsManagementFunctionalTests extends
         // issue the app registration over AMQP expecting with wrong AAMOwnerUsername
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
-                Credentials(AAMOwnerUsername + "wrongString", AAMOwnerPassword), new UserDetails(new Credentials(
-                username, password), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
+                Credentials(AAMOwnerUsername + "wrongString", AAMOwnerPassword), new Credentials(username, password),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER),
+                OperationType.CREATE)).getBytes());
 
         // verify that our app was not registered in the repository
         assertNull(userRepository.findOne(username));
@@ -81,8 +82,9 @@ public class ActorsManagementFunctionalTests extends
         // issue the same app registration over AMQP expecting with wrong AAMOwnerPassword
         response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword + "wrongString"), new UserDetails(new Credentials(
-                username, password), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
+                Credentials(AAMOwnerUsername, AAMOwnerPassword + "wrongString"), new Credentials(username, password),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER),
+                OperationType.CREATE)).getBytes());
 
         // verify that our app was not registered in the repository
         assertNull(userRepository.findOne(username));
@@ -106,9 +108,9 @@ public class ActorsManagementFunctionalTests extends
         // issue the same app registration over AMQP expecting with wrong UserRole
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                username, password), federatedOAuthId, recoveryMail, UserRole.NULL)))
-                .getBytes());
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.NULL),
+                OperationType.CREATE)).getBytes());
 
         // verify that our app was not registered in the repository
         assertNull(userRepository.findOne(username));
@@ -120,8 +122,9 @@ public class ActorsManagementFunctionalTests extends
         // issue the same app registration over AMQP expecting with wrong Null UserRole
         response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                username, password), federatedOAuthId, recoveryMail, UserRole.NULL))).getBytes());
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.NULL),
+                OperationType.CREATE)).getBytes());
 
         // verify that our app was not registered in the repository
         assertNull(userRepository.findOne(username));
@@ -145,8 +148,9 @@ public class ActorsManagementFunctionalTests extends
         // issue app registration over AMQP
         appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                username, password), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER),
+                OperationType.CREATE)).getBytes());
 
 
         // verify that app really is in repository
@@ -155,11 +159,12 @@ public class ActorsManagementFunctionalTests extends
         // issue the same app registration over AMQP expecting refusal
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                username, password), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER),
+                OperationType.CREATE)).getBytes());
 
-        RegistrationStatus errorResponse = mapper.readValue(response, RegistrationStatus.class);
-        assertEquals(RegistrationStatus.USERNAME_EXISTS, errorResponse);
+        ManagementStatus errorResponse = mapper.readValue(response, ManagementStatus.class);
+        assertEquals(ManagementStatus.USERNAME_EXISTS, errorResponse);
     }
 
     /**
@@ -258,12 +263,13 @@ public class ActorsManagementFunctionalTests extends
         // issue app registration over AMQP
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                username, password), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER),
+                OperationType.CREATE)).getBytes());
 
-        RegistrationStatus appRegistrationResponse = mapper.readValue(response,
-                RegistrationStatus.class);
-        assertEquals(appRegistrationResponse, RegistrationStatus.OK);
+        ManagementStatus appRegistrationResponse = mapper.readValue(response,
+                ManagementStatus.class);
+        assertEquals(appRegistrationResponse, ManagementStatus.OK);
 
         // verify that app really is in repository
         User registeredUser = userRepository.findOne(username);
@@ -292,12 +298,13 @@ public class ActorsManagementFunctionalTests extends
         // issue app registration over AMQP
         byte[] response = appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                username, password), federatedOAuthId, recoveryMail, UserRole.PLATFORM_OWNER))).getBytes());
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail,
+                        UserRole.PLATFORM_OWNER), OperationType.CREATE)).getBytes());
 
-        RegistrationStatus platformOwnerRegistrationResponse = mapper.readValue(response,
-                RegistrationStatus.class);
-        assertEquals(platformOwnerRegistrationResponse, RegistrationStatus.OK);
+        ManagementStatus platformOwnerRegistrationResponse = mapper.readValue(response,
+                ManagementStatus.class);
+        assertEquals(platformOwnerRegistrationResponse, ManagementStatus.OK);
 
         // verify that app really is in repository
         User registeredUser = userRepository.findOne(username);

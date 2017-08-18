@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
+import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
@@ -580,8 +581,9 @@ public class TokensIssuingFunctionalTests extends
         // issue app registration over AMQP
         appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER))).getBytes());
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(coreAppUsername, coreAppPassword),
+                new UserDetails(new Credentials(coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER),
+                OperationType.CREATE)).getBytes());
 
         //put certificate into database
         User user = userRepository.findOne(coreAppUsername);

@@ -2,7 +2,8 @@ package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.enums.RegistrationStatus;
+import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
+import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
@@ -70,11 +71,12 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
             /*
              XXX federated Id and recovery mail are required for Test & Core AAM but not for Platform AAM
              */
-        // register new user to db
+        // manage new user to db
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new UserDetails(new Credentials
-                (appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER));
-        RegistrationStatus userRegistrationResponse = usersManagementService.register
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
+                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER),
+                OperationType.CREATE);
+        ManagementStatus userRegistrationResponse = usersManagementService.manage
                 (userManagementRequest);
 
         // verify that app really is in repository
@@ -82,7 +84,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         assertNotNull(registeredUser);
         assertEquals(UserRole.USER, registeredUser.getRole());
 
-        assertEquals(userRegistrationResponse, RegistrationStatus.OK);
+        assertEquals(userRegistrationResponse, ManagementStatus.OK);
 
         // TODO verify that released certificate has no CA property
         //assertFalse(registeredUser.getClientCertificate().getX509().getExtensionValue(new ASN1ObjectIdentifier
@@ -102,8 +104,8 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         // verify the user keys are not yet revoked
         assertFalse(revokedKeysRepository.exists(username));
 
-        // unregister the user
-        usersManagementService.unregister(username);
+        // delete the user
+        usersManagementService.delete(username);
         log.debug("User successfully unregistered!");
 
         // verify that app is not anymore in the repository
@@ -121,5 +123,4 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
 
         assertTrue(revokedKeys.getRevokedKeysSet().containsAll(certs));
     }
-
 }
