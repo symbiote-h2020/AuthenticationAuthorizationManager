@@ -99,7 +99,9 @@ public class PlatformsManagementFunctionalTests extends
      */
     @Test
     public void platformRegistrationOverAMQPWithPreferredPlatformIdSuccess() throws IOException, TimeoutException {
-        // verify that our platform is not in repository and that our platformOwnerFromPlatformEntity is in repository
+
+
+        // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
         User platformOwner = userRepository.findOne(platformOwnerUsername);
@@ -122,24 +124,23 @@ public class PlatformsManagementFunctionalTests extends
         // verify that platform with preferred id is in repository and is tied with the given PO
         Platform registeredPlatform = platformRepository.findOne(preferredPlatformId);
         assertNotNull(registeredPlatform);
+        // verify that platform oriented fields are properly stored
+        assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress());
 
+        // verify that PO has this platform in his collection
         User platformOwnerFromPlatformEntity = registeredPlatform.getPlatformOwner();
         assertEquals(platformOwnerUsername, platformOwnerFromPlatformEntity.getUsername());
-        assertFalse(platformOwnerFromPlatformEntity.getOwnedPlatforms().isEmpty());
-        assertNotNull(platformOwnerFromPlatformEntity.getOwnedPlatforms().get(preferredPlatformId));
+        assertTrue(platformOwnerFromPlatformEntity.getOwnedPlatforms().containsKey(preferredPlatformId));
 
+        // verify that DBRef is working two-way
         Platform platformFromPlatformOwnerFromPlatformEntity = platformOwnerFromPlatformEntity.getOwnedPlatforms().get(preferredPlatformId);
         assertEquals(preferredPlatformId, platformFromPlatformOwnerFromPlatformEntity.getPlatformInstanceId());
 
+        // verify that PO was properly updated in repository with new platform ownership
         platformOwnerFromRepository = userRepository.findOne(platformOwnerUsername);
         assertEquals(platformOwnerUsername, platformOwnerFromRepository.getUsername());
         assertFalse(platformOwnerFromRepository.getOwnedPlatforms().isEmpty());
         assertNotNull(platformOwnerFromRepository.getOwnedPlatforms().get(preferredPlatformId));
-
-        // verify that platform oriented fields are properly stored
-        assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress());
-
-
     }
 
     /**

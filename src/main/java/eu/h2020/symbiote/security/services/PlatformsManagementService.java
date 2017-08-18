@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.HashMap;
 
 /**
  * Spring service used to manage platforms and their owners in the AAM repository.
@@ -92,10 +93,9 @@ public class PlatformsManagementService {
         User platformOwner = userRepository
                 .findOne(platformOwnerCredentials.getUsername());
         // manage platform in repository
-        // TODO R3 set the certificate from the received CSR.
         Platform platform = new Platform(platformId, platformManagementRequest
                 .getPlatformInterworkingInterfaceAddress(),
-                platformManagementRequest.getPlatformInstanceFriendlyName(), platformOwner, new Certificate(), null);
+                platformManagementRequest.getPlatformInstanceFriendlyName(), platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
         platformOwner.getOwnedPlatforms().put(platformId, platform);
         userRepository.save(platformOwner);
