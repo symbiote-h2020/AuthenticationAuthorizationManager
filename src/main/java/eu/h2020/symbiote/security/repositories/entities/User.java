@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,11 +27,11 @@ public class User {
     private String username = "";
     private String passwordEncrypted = "";
     private String recoveryMail = "";
+    private Map<String, Certificate> clientCertificates = new HashMap<>();
 
-    // TODO R3 add ownedPlatform set
+    @DBRef(lazy = true)
+    private Map<String, Platform> ownedPlatforms = new HashMap<>();
 
-    // TODO R3  @Mikołaj, change to Set<String,Certificate> clientCertificates
-    private Map<String, Certificate> clientCertificates = new HashMap<String, Certificate>();
     // TODO Release 4 - add OAuth federated ID support
 
     /**
@@ -53,7 +54,7 @@ public class User {
      * @param role               user's role in symbIoTe ecosystem, see @{@link UserRole}
      * @param attributes         used to assign in registration phase user-unique attributes
      */
-    public User(String username, String passwordEncrypted, String recoveryMail, HashMap<String, Certificate> clientCertificates,
+    public User(String username, String passwordEncrypted, String recoveryMail, Map<String, Certificate> clientCertificates,
                 UserRole role,
                 List<String> attributes) {
         this.username = username;
@@ -111,5 +112,13 @@ public class User {
 
     public void setClientCertificates(Map<String, Certificate> clientCertificates) {
         this.clientCertificates = clientCertificates;
+    }
+
+    public Map<String, Platform> getOwnedPlatforms() {
+        return ownedPlatforms;
+    }
+
+    public void setOwnedPlatforms(Map<String, Platform> ownedPlatforms) {
+        this.ownedPlatforms = ownedPlatforms;
     }
 }

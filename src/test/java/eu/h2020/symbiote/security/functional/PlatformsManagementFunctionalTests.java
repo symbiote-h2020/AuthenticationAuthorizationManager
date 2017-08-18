@@ -99,9 +99,11 @@ public class PlatformsManagementFunctionalTests extends
      */
     @Test
     public void platformRegistrationOverAMQPWithPreferredPlatformIdSuccess() throws IOException, TimeoutException {
-        // verify that our platform is not in repository and that our platformOwner is in repository
+        // verify that our platform is not in repository and that our platformOwnerFromPlatformEntity is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
+        User platformOwner = userRepository.findOne(platformOwnerUsername);
+        assertTrue(platformOwner.getOwnedPlatforms().isEmpty());
 
         // issue platform registration over AMQP
         byte[] response = platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
@@ -109,25 +111,35 @@ public class PlatformsManagementFunctionalTests extends
         PlatformManagementResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
                 PlatformManagementResponse.class);
 
-        // TODO verify that released PO certificate has no CA property
-
-        // TODO R3 verify that released platform certificate has CA property
-
         // verified that we received the preferred platformId
         assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
 
         // verify that PO is in repository (as PO!)
-        User registeredPlatformOwner = userRepository.findOne(platformOwnerUsername);
-        assertNotNull(registeredPlatformOwner);
-        assertEquals(UserRole.PLATFORM_OWNER, registeredPlatformOwner.getRole());
+        User platformOwnerFromRepository = userRepository.findOne(platformOwnerUsername);
+        assertNotNull(platformOwnerFromRepository);
+        assertEquals(UserRole.PLATFORM_OWNER, platformOwnerFromRepository.getRole());
 
         // verify that platform with preferred id is in repository and is tied with the given PO
         Platform registeredPlatform = platformRepository.findOne(preferredPlatformId);
         assertNotNull(registeredPlatform);
-        assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
+
+        User platformOwnerFromPlatformEntity = registeredPlatform.getPlatformOwner();
+        assertEquals(platformOwnerUsername, platformOwnerFromPlatformEntity.getUsername());
+        assertFalse(platformOwnerFromPlatformEntity.getOwnedPlatforms().isEmpty());
+        assertNotNull(platformOwnerFromPlatformEntity.getOwnedPlatforms().get(preferredPlatformId));
+
+        Platform platformFromPlatformOwnerFromPlatformEntity = platformOwnerFromPlatformEntity.getOwnedPlatforms().get(preferredPlatformId);
+        assertEquals(preferredPlatformId, platformFromPlatformOwnerFromPlatformEntity.getPlatformInstanceId());
+
+        platformOwnerFromRepository = userRepository.findOne(platformOwnerUsername);
+        assertEquals(platformOwnerUsername, platformOwnerFromRepository.getUsername());
+        assertFalse(platformOwnerFromRepository.getOwnedPlatforms().isEmpty());
+        assertNotNull(platformOwnerFromRepository.getOwnedPlatforms().get(preferredPlatformId));
 
         // verify that platform oriented fields are properly stored
         assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress());
+
+
     }
 
     /**
@@ -146,10 +158,6 @@ public class PlatformsManagementFunctionalTests extends
                 (platformRegistrationOverAMQPRequest).getBytes());
         PlatformManagementResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
                 PlatformManagementResponse.class);
-
-        // TODO verify that released PO certificate has no CA property
-
-        // TODO R3 verify that released platform certificate has CA property
 
         // verified that we received a generated platformId
         String generatedPlatformId = platformRegistrationOverAMQPResponse.getPlatformId();
@@ -281,5 +289,4 @@ public class PlatformsManagementFunctionalTests extends
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
         assertEquals(new PlatformManagementException().getErrorMessage(), errorResponse.getErrorMessage());
     }
-
 }

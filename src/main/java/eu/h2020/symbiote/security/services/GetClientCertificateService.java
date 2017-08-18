@@ -194,7 +194,6 @@ public class GetClientCertificateService {
                     log.error(e);
                     throw new SecurityException(e.getMessage(), e.getCause());
                 }
-                user.getClientCertificates().clear();
                 Certificate cert = new Certificate(pem);
                 user.getClientCertificates().put(certificateRequest.getClientId(), cert);
             }

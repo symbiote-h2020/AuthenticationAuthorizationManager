@@ -254,8 +254,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         // acquiring valid token
         Token homeToken = tokenIssuer.getHomeToken(user, clientId);
 
-        // unregister the user
-        usersManagementService.unregister(username);
+        // delete the user
+        usersManagementService.delete(username);
 
         //check if home token is valid
         ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");
