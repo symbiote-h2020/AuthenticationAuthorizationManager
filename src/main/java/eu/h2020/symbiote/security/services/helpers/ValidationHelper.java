@@ -31,6 +31,7 @@ import java.util.*;
 /**
  * Used to validate given credentials against data in the AAMs
  * <p>
+ *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
  * @author Mikołaj Dobski (PSNC)
@@ -128,15 +129,17 @@ public class ValidationHelper {
                 return ValidationStatus.REVOKED_TOKEN;
             }
 
+            String userFromToken = claims.getSubject().split("@")[0];
+            String clientId = claims.getSubject().split("@")[1];
+
             // check if SPK is is in the revoked set
-            if (revokedKeysRepository.exists(claims.getSubject()) &&
-                    revokedKeysRepository.findOne(claims.getSubject()).getRevokedKeysSet().contains(spk)) {
+            if (revokedKeysRepository.exists(userFromToken) &&
+                    revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
                 return ValidationStatus.REVOKED_SPK;
             }
 
             // check if subject certificate is valid
-            if (isExpired(userRepository.findOne(claims.getSubject()).getClientCertificates().entrySet().iterator()
-                    .next().getValue().getX509())) {
+            if (isExpired(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509())) {
                 return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
             }
 
@@ -229,7 +232,7 @@ public class ValidationHelper {
         if (clientCommonNameFields.length != 3)
             return false;
 
-        X509Certificate tokenIssuerCertificate = null;
+        X509Certificate tokenIssuerCertificate;
         switch (token.getType()) {
             case HOME:
                 tokenIssuerCertificate = CryptoHelper.convertPEMToX509(clientCertificateSigningAAMCertificate);
