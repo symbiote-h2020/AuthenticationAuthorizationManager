@@ -7,13 +7,13 @@ import com.rabbitmq.client.Consumer;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.listeners.amqp.consumers.*;
-import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.CredentialsValidationService;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.PlatformsManagementService;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,12 +24,13 @@ import javax.annotation.PreDestroy;
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
-@Component
+
 /**
  * Initiates amqp listeners
- *
+ * <p>
  * TODO R3 @Mikołaj update queues to reflect the new operations
  */
+@Component
 public class RabbitManager {
 
     private static Log log = LogFactory.getLog(RabbitManager.class);
@@ -39,7 +40,6 @@ public class RabbitManager {
     private final CredentialsValidationService credentialsValidationService;
     private final GetTokenService getTokenService;
     private final UserRepository userRepository;
-    private final PlatformRepository platformRepository;
 
     private IssuingAuthorityType deploymentType;
 
@@ -87,18 +87,22 @@ public class RabbitManager {
     private String ownedPlatformDetailsRequestQueue;
 
     private Connection connection;
+    private ValidationHelper validationHelper;
 
     @Autowired
-    public RabbitManager(UsersManagementService usersManagementService, PlatformsManagementService
-            platformsManagementService, CredentialsValidationService credentialsValidationService, GetTokenService getTokenService, UserRepository userRepository,
-                         PlatformRepository platformRepository, CertificationAuthorityHelper
-                                 certificationAuthorityHelper) {
+    public RabbitManager(UsersManagementService usersManagementService,
+                         PlatformsManagementService platformsManagementService,
+                         CredentialsValidationService credentialsValidationService,
+                         GetTokenService getTokenService,
+                         UserRepository userRepository,
+                         CertificationAuthorityHelper certificationAuthorityHelper,
+                         ValidationHelper validationHelper) {
         this.usersManagementService = usersManagementService;
         this.platformsManagementService = platformsManagementService;
         this.credentialsValidationService = credentialsValidationService;
         this.getTokenService = getTokenService;
         this.userRepository = userRepository;
-        this.platformRepository = platformRepository;
+        this.validationHelper = validationHelper;
 
         // setting the deployment type from the provisioned certificate
         deploymentType = certificationAuthorityHelper.getDeploymentType();
@@ -157,7 +161,7 @@ public class RabbitManager {
                 case NULL:
                     throw new SecurityMisconfigurationException("Wrong deployment type");
             }
-        } catch (InterruptedException | IOException e) {
+        } catch (IOException e) {
             log.error(e);
         }
     }
@@ -263,8 +267,7 @@ public class RabbitManager {
 
             log.info("Authentication and Authorization Manager waiting for owned platform details requests messages");
 
-            Consumer consumer = new OwnedPlatformDetailsRequestConsumerService(channel, userRepository,
-                    platformRepository);
+            Consumer consumer = new OwnedPlatformDetailsRequestConsumerService(channel, userRepository, validationHelper);
 
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
@@ -277,10 +280,9 @@ public class RabbitManager {
      * Method creates queue and binds it globally available exchange and adequate Routing Key.
      * It also creates a consumer for messages incoming to this queue, regarding to Platform Registration requests.
      *
-     * @throws InterruptedException
      * @throws IOException
      */
-    private void startConsumerOfPlatformRegistrationRequestMessages() throws InterruptedException, IOException {
+    private void startConsumerOfPlatformRegistrationRequestMessages() throws IOException {
 
         String queueName = this.platformRegistrationRequestQueue;
 

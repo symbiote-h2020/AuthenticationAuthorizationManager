@@ -25,12 +25,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
@@ -43,13 +43,11 @@ import javax.net.ssl.X509TrustManager;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
@@ -526,52 +524,417 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     }
 
     @Test
-    @Ignore("offline validation WIP")
-    public void validateRemoteHomeTokenRequestInIntranetUsingProvidedCertificate() throws
-            ValidationException {
+    public void validateRemoteHomeTokenRequestUsingCertificateSuccess() throws
+            ValidationException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException, UnrecoverableKeyException {
 
-        // issuing dummy platform token
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/conn_err/paam" + SecurityConstants
-                        .AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
-        Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        log.info("user: " + userCertificate.getSubjectDN());
+        log.info("user sign: " + userCertificate.getIssuerDN());
 
-        // check if validation will use certificate instead of relay for offline configured aam
-        // TODO valid chain
-        // assertEquals(ValidationStatus.VALID, validationHelper.validateRemotelyIssuedToken(dummyHomeToken.getToken(), applicationCertificatePEM, rightSigningAAMCertificatePEM));
-        // wrong chain (signing cert)
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(dummyHomeToken.getToken(), applicationCertificatePEM, wrongSigningAAMCertificatePEM, ""));
-        // wrong chain (token and clientCertificate don't match)
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(dummyHomeToken.getToken(), applicationCertificatePEM, rightSigningAAMCertificatePEM, ""));
-        // missing certificate triggers remote validation attempt
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(dummyHomeToken.getToken(), applicationCertificatePEM, "", ""));
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        log.info("proper AAM: " + properAAMCert.getSubjectDN());
+        log.info("proper AAM sign: " + properAAMCert.getIssuerDN());
+
+        X509Certificate wrongAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-2-c1");
+        log.info("wrong AAM: " + wrongAAMCert.getSubjectDN());
+        log.info("wrong AAM sign: " + wrongAAMCert.getIssuerDN());
+
+        log.info("root CA: " + certificationAuthorityHelper.getRootCACertificate().getSubjectDN());
+
+        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+                "userId@clientId",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.HOME,
+                100000l,
+                "platform-1",
+                properAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
+        );
+
+        // valid remote home token chain
+        assertEquals(
+                ValidationStatus.VALID,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        "")
+        );
     }
 
 
     @Test
-    @Ignore("offline validation WIP")
-    public void validateRemoteForeignTokenRequestInIntranetUsingProvidedCertificate() throws ValidationException {
-        // issuing dummy platform token
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/conn_err/paam" + SecurityConstants
-                        .AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
-        Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
+    public void validateRemoteHomeTokenRequestUsingCertificateISSMismatch() throws
+            ValidationException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException, UnrecoverableKeyException {
 
-        // check if validation will use certificate instead of relay for offline configured aam
-        // TODO valid chain
-        // assertEquals(ValidationStatus.VALID, validationHelper.validateRemotelyIssuedToken(dummyHomeToken.getToken(), applicationCertificatePEM, rightSigningAAMCertificatePEM));
-        // wrong chain (signing cert)
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(dummyHomeToken.getToken(), applicationCertificatePEM, wrongSigningAAMCertificatePEM, "TODO"));
-        // wrong chain (token and clientCertificate don't match)
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(dummyHomeToken.getToken(), applicationCertificatePEM, rightSigningAAMCertificatePEM, "TODO"));
-        // missing certificate triggers remote validation attempt
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(dummyHomeToken.getToken(), applicationCertificatePEM, "", "TODO"));
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+
+        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+                "userId@clientId",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.HOME,
+                100000l,
+                "bad_issuer", // mismatch token ISS
+                properAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
+        );
+
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        "")
+        );
+    }
+
+
+    @Test
+    public void validateRemoteHomeTokenRequestUsingCertificateIPKMismatch() throws
+            ValidationException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException, UnrecoverableKeyException {
+
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate wrongAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-2-c1");
+
+        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+                "userId@clientId",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.HOME,
+                100000l,
+                "platform-1",
+                wrongAAMCert.getPublicKey(), // mismatch token IPK
+                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-2-c1")
+        );
+
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        "")
+        );
+    }
+
+    @Test
+    public void validateRemoteHomeTokenRequestUsingCertificateSignatureMismatch() throws
+            ValidationException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException, UnrecoverableKeyException {
+
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+
+        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+                "userId@clientId",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.HOME,
+                100000l,
+                "platform-1",
+                properAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-2-c1") // token signature mismatch
+        );
+
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        "")
+        );
+    }
+
+    @Test
+    public void validateRemoteHomeTokenRequestUsingCertificateSPKMismatch() throws
+            ValidationException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException, UnrecoverableKeyException {
+
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+
+        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+                "userId@clientId",
+                new HashMap<>(),
+                properAAMCert.getPublicKey().getEncoded(), // mismatch token SPK
+                Token.Type.HOME,
+                100000l,
+                "platform-1",
+                properAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
+        );
+
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        "")
+        );
+    }
+
+
+    @Test
+    public void validateRemoteHomeTokenRequestUsingCertificateSUBMismatch() throws
+            ValidationException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException, UnrecoverableKeyException {
+
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+
+        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+                "bad_token_sub", // mismatch token SUB
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.HOME,
+                100000l,
+                "platform-1",
+                properAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
+        );
+
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        "")
+        );
+    }
+
+    @Test
+    public void validateRemoteHomeTokenRequestUsingCertificateChainMismatch() throws
+            ValidationException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException, UnrecoverableKeyException {
+
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate wrongAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-2-c1");
+
+        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+                "userId@clientId",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.HOME,
+                100000l,
+                "platform-1",
+                properAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
+        );
+
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(wrongAAMCert),
+                        "")
+        );
+    }
+
+
+    @Test
+    public void validateRemoteHomeTokenRequestUsingCertificateMissingChainElement() throws
+            ValidationException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException, UnrecoverableKeyException {
+
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+
+        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+                "userId@clientId",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.HOME,
+                100000l,
+                "platform-1",
+                properAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
+        );
+
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        "",
+                        "")
+        );
+
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        "",
+                        "",
+                        "")
+        );
+    }
+
+    @Test
+    public void validateRemoteForeignTokenRequestUsingCertificateSuccess() throws
+            ValidationException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException, UnrecoverableKeyException {
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("platform_2.p12", "platform-2-1-c1");
+
+        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+                "userId@clientId@platform-1",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.FOREIGN,
+                100000l,
+                "platform-2",
+                tokenIssuerAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_2.p12", "platform-2-1-c1")
+        );
+
+        // valid remote foreign token chain
+        assertEquals(
+                ValidationStatus.VALID,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        CryptoHelper.convertX509ToPEM(tokenIssuerAAMCert))
+        );
+
+        // just for foreignTokenIssuerCert check check
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        certificationAuthorityHelper.getRootCACert())
+        );
+
+    }
+
+    @Test
+    public void validateRemoteForeignTokenRequestUsingCertificateSUBMismatch() throws
+            ValidationException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException, UnrecoverableKeyException {
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("platform_2.p12", "platform-2-1-c1");
+
+        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+                "userId@clientId@wrong-platform-id",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.FOREIGN,
+                100000l,
+                "platform-2",
+                tokenIssuerAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_2.p12", "platform-2-1-c1")
+        );
+
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        CryptoHelper.convertX509ToPEM(tokenIssuerAAMCert))
+        );
+
+    }
+
+    @Test
+    public void validateRemoteForeignTokenRequestUsingCertificateMissingTokenIssuerCert() throws
+            ValidationException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException, UnrecoverableKeyException {
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("platform_2.p12", "platform-2-1-c1");
+
+        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+                "userId@clientId@platform-1",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.FOREIGN,
+                100000l,
+                "platform-2",
+                tokenIssuerAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_2.p12", "platform-2-1-c1")
+        );
+
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        "")
+        );
+    }
+
+
+    @Test
+    public void rootCAChainValidationSuccess() throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException {
+        assertTrue(validationHelper.isForeignTokenIssuerCertificateChainTrusted(certificationAuthorityHelper.getRootCACert()));
     }
 
     @Test
@@ -581,7 +944,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             KeyStoreException,
             NoSuchProviderException,
             IOException {
-        assertTrue(validationHelper.isTrusted(rightSigningAAMCertificatePEM, applicationCertificatePEM));
+        assertTrue(validationHelper.isClientCertificateChainTrusted(rightSigningAAMCertificatePEM, applicationCertificatePEM));
     }
 
     @Test
@@ -591,6 +954,28 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             KeyStoreException,
             NoSuchProviderException,
             IOException {
-        assertFalse(validationHelper.isTrusted(wrongSigningAAMCertificatePEM, applicationCertificatePEM));
+        assertFalse(validationHelper.isClientCertificateChainTrusted(wrongSigningAAMCertificatePEM, applicationCertificatePEM));
+    }
+
+
+    private X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException, CertificateException, NoSuchAlgorithmException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
+    }
+
+    public PrivateKey getPrivateKeyFromKeystore(String keyStoreName, String certificateAlias) throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            UnrecoverableKeyException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        return (PrivateKey) pkcs12Store.getKey(certificateAlias, PV_KEY_PASSWORD.toCharArray());
     }
 }

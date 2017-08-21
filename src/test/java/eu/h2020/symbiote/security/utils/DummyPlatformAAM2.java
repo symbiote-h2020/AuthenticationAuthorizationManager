@@ -50,7 +50,10 @@ public class DummyPlatformAAM2 {
      */
     @RequestMapping(method = RequestMethod.POST, path = PATH + SecurityConstants.AAM_GET_HOME_TOKEN, produces =
             "application/json", consumes = "text/plain")
-    public ResponseEntity<?> doLogin(@RequestBody String loginRequest) throws IOException, ClassNotFoundException, MalformedJWTException {
+    public ResponseEntity<?> getHomeToken(@RequestBody String loginRequest) throws
+            IOException,
+            ClassNotFoundException,
+            MalformedJWTException {
         JWTClaims claims = JWTEngine.getClaimsFromToken(loginRequest);
         log.info("User trying to getHomeToken " + claims.getIss() + " - " + claims.getSub());
         try {
@@ -60,10 +63,14 @@ public class DummyPlatformAAM2 {
 
             HashMap<String, String> attributes = new HashMap<>();
             attributes.put("name", "test2");
-            String tokenString = TokenIssuer.buildAuthorizationToken(claims.getIss(), attributes, ks.getCertificate
-                            (CERTIFICATE_ALIAS).getPublicKey().getEncoded(), Token.Type.HOME, new Date().getTime()
-                            + 60000
-                    , "platform-2", ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
+            String tokenString = TokenIssuer.buildAuthorizationToken(
+                    claims.getIss() + "@" + claims.getSub(),
+                    attributes,
+                    ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey().getEncoded(),
+                    Token.Type.HOME,
+                    new Date().getTime() + 60000,
+                    "platform-2",
+                    ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
                     (PrivateKey) key);
 
             Token coreToken = new Token(tokenString);

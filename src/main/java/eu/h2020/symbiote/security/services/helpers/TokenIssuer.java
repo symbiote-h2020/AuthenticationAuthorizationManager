@@ -65,19 +65,19 @@ public class TokenIssuer {
         this.platformRepository = platformRepository;
     }
 
-    public static String buildAuthorizationToken(String userId, Map<String, String> attributes, byte[] userPublicKey,
+    public static String buildAuthorizationToken(String subject, Map<String, String> attributes, byte[] subjectPublicKey,
                                                  Token.Type tokenType, Long tokenValidity, String
-                                                         deploymentID, PublicKey aamPublicKey, PrivateKey aamPrivateKey) {
+                                                         issuer, PublicKey issuerPublicKey, PrivateKey issuerPrivateKey) {
         ECDSAHelper.enableECDSAProvider();
 
         String jti = String.valueOf(random.nextInt());
         Map<String, Object> claimsMap = new HashMap<>();
 
         // Insert AAM Public Key
-        claimsMap.put("ipk", Base64.getEncoder().encodeToString(aamPublicKey.getEncoded()));
+        claimsMap.put("ipk", Base64.getEncoder().encodeToString(issuerPublicKey.getEncoded()));
 
         //Insert issuee Public Key
-        claimsMap.put("spk", Base64.getEncoder().encodeToString(userPublicKey));
+        claimsMap.put("spk", Base64.getEncoder().encodeToString(subjectPublicKey));
 
         //Add symbIoTe related attributes to token
         if (attributes != null && !attributes.isEmpty()) {
@@ -92,11 +92,11 @@ public class TokenIssuer {
         JwtBuilder jwtBuilder = Jwts.builder();
         jwtBuilder.setClaims(claimsMap);
         jwtBuilder.setId(jti);
-        jwtBuilder.setIssuer(deploymentID);
-        jwtBuilder.setSubject(userId);
+        jwtBuilder.setIssuer(issuer);
+        jwtBuilder.setSubject(subject);
         jwtBuilder.setIssuedAt(new Date());
         jwtBuilder.setExpiration(new Date(System.currentTimeMillis() + tokenValidity));
-        jwtBuilder.signWith(SignatureAlgorithm.ES256, aamPrivateKey);
+        jwtBuilder.signWith(SignatureAlgorithm.ES256, issuerPrivateKey);
 
         return jwtBuilder.compact();
     }
@@ -131,10 +131,17 @@ public class TokenIssuer {
                 case NULL:
                     throw new JWTCreationException("Misconfigured AAM deployment type");
             }
-            // TODO set proper subject
-            return new Token(buildAuthorizationToken(user.getUsername(), attributes, user.getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded(), Token.Type.HOME, tokenValidity, deploymentId,
-                    certificationAuthorityHelper
-                            .getAAMPublicKey(), certificationAuthorityHelper.getAAMPrivateKey()));
+            return new Token(buildAuthorizationToken(
+                    // HOME SUB: username@clientIdentifier
+                    user.getUsername() + "@" + clientId,
+                    attributes,
+                    user.getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded(),
+                    Token.Type.HOME,
+                    tokenValidity,
+                    deploymentId,
+                    certificationAuthorityHelper.getAAMPublicKey(),
+                    certificationAuthorityHelper.getAAMPrivateKey()
+            ));
         } catch (Exception e) {
             log.error(e);
             throw new JWTCreationException(e);
@@ -164,13 +171,16 @@ public class TokenIssuer {
             // disabling foreign token issuing when the mapping rule is empty
             if (foreignMappingRules.isEmpty())
                 throw new SecurityMisconfigurationException("AAM has no foreign rules defined");
-            return new Token(
-                    // TODO set proper subject
-                    buildAuthorizationToken(claims.getIss(), foreignAttributes, Base64.getDecoder().decode(claims
-                                    .getIpk()), Token.Type.FOREIGN, tokenValidity, deploymentId,
-                            certificationAuthorityHelper
-                                    .getAAMPublicKey(),
-                            certificationAuthorityHelper.getAAMPrivateKey()));
+            return new Token(buildAuthorizationToken(
+                    // FOREIGN SUB: username@clientIdentifier@homeAAMInstanceIdentifier
+                    claims.getSub() + "@" + claims.getIss(),
+                    foreignAttributes,
+                    Base64.getDecoder().decode(claims.getSpk()),
+                    Token.Type.FOREIGN,
+                    tokenValidity,
+                    deploymentId,
+                    certificationAuthorityHelper.getAAMPublicKey(),
+                    certificationAuthorityHelper.getAAMPrivateKey()));
         } catch (Exception e) {
             log.error(e);
             throw new JWTCreationException(e);
@@ -188,8 +198,13 @@ public class TokenIssuer {
             if (this.guestKeyPair == null) {
                 this.guestKeyPair = CryptoHelper.createKeyPair();
             }
-            Map<String, String> attributes = new HashMap<>();
-            return new Token(buildAuthorizationToken(SecurityConstants.GUEST_NAME, attributes, this.guestKeyPair.getPublic().getEncoded(), Token.Type.GUEST, tokenValidity, deploymentId,
+            return new Token(buildAuthorizationToken(
+                    SecurityConstants.GUEST_NAME,
+                    new HashMap<>(),
+                    this.guestKeyPair.getPublic().getEncoded(),
+                    Token.Type.GUEST,
+                    tokenValidity,
+                    deploymentId,
                     certificationAuthorityHelper.getAAMPublicKey(),
                     certificationAuthorityHelper.getAAMPrivateKey()));
         } catch (Exception e) {
