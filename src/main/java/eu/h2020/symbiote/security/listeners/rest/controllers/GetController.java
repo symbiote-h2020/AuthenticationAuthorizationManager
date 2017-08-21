@@ -32,7 +32,7 @@ public class GetController implements IGetClientCertificate {
             String certificate = getClientCertificateService.getCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
         } catch (WrongCredentialsException | NotExistingUserException | InvalidArgumentsException
-                | ValidationException | UserManagementException | PlatformManagementException e) {
+                | UserManagementException | PlatformManagementException e) {
             return new ResponseEntity<>(e.getErrorMessage(), e.getStatusCode());
         }
     }

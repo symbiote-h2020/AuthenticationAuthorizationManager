@@ -8,10 +8,7 @@ import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.listeners.amqp.consumers.*;
 import eu.h2020.symbiote.security.repositories.UserRepository;
-import eu.h2020.symbiote.security.services.CredentialsValidationService;
-import eu.h2020.symbiote.security.services.GetTokenService;
-import eu.h2020.symbiote.security.services.PlatformsManagementService;
-import eu.h2020.symbiote.security.services.UsersManagementService;
+import eu.h2020.symbiote.security.services.*;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.logging.Log;
@@ -40,6 +37,7 @@ public class RabbitManager {
     private final CredentialsValidationService credentialsValidationService;
     private final GetTokenService getTokenService;
     private final UserRepository userRepository;
+    private final RevocationService revocationService;
 
     private IssuingAuthorityType deploymentType;
 
@@ -81,6 +79,11 @@ public class RabbitManager {
     @Value("${rabbit.queue.manage.platform.request}")
     private String platformRegistrationRequestQueue;
 
+    @Value("${rabbit.routingKey.manage.revocation.request}")
+    private String revocationRequestRoutingKey;
+    @Value("${rabbit.queue.manage.revocation.request}")
+    private String revocationRequestQueue;
+
     @Value("${rabbit.routingKey.ownedplatformdetails.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     private String ownedPlatformDetailsRequestRoutingKey;
     @Value("${rabbit.queue.ownedplatformdetails.request:defaultOverridenBySpringConfigInCoreEnvironment}")
@@ -91,6 +94,7 @@ public class RabbitManager {
 
     @Autowired
     public RabbitManager(UsersManagementService usersManagementService,
+                         RevocationService revocationService,
                          PlatformsManagementService platformsManagementService,
                          CredentialsValidationService credentialsValidationService,
                          GetTokenService getTokenService,
@@ -98,6 +102,7 @@ public class RabbitManager {
                          CertificationAuthorityHelper certificationAuthorityHelper,
                          ValidationHelper validationHelper) {
         this.usersManagementService = usersManagementService;
+        this.revocationService = revocationService;
         this.platformsManagementService = platformsManagementService;
         this.credentialsValidationService = credentialsValidationService;
         this.getTokenService = getTokenService;
@@ -157,6 +162,7 @@ public class RabbitManager {
                     startConsumerOfPlatformRegistrationRequestMessages();
                     startConsumerOfLoginRequestMessages();
                     startConsumerOfOwnedPlatformDetailsRequestMessages();
+                    startConsumerOfRevocationRequestMessages();
                     break;
                 case NULL:
                     throw new SecurityMisconfigurationException("Wrong deployment type");
@@ -287,7 +293,6 @@ public class RabbitManager {
         String queueName = this.platformRegistrationRequestQueue;
 
         Channel channel;
-
         try {
             channel = this.connection.createChannel();
             channel.queueDeclare(queueName, true, false, false, null);
@@ -301,6 +306,33 @@ public class RabbitManager {
         } catch (IOException e) {
             log.error(e);
         }
+    }
+
+    /**
+     * Method creates queue and binds it globally available exchange and adequate Routing Key.
+     * It also creates a consumer for messages incoming to this queue, regarding to Revocation requests.
+     *
+     * @throws IOException
+     */
+    private void startConsumerOfRevocationRequestMessages() throws IOException {
+
+        String queueName = this.revocationRequestQueue;
+
+        Channel channel;
+        try {
+            channel = this.connection.createChannel();
+            channel.queueDeclare(queueName, true, false, false, null);
+            channel.queueBind(queueName, this.AAMExchangeName, this.revocationRequestRoutingKey);
+
+            log.info("Authentication and Authorization Manager waiting for revocation requests messages");
+
+            Consumer consumer = new RevocationRequestConsumerService(channel,
+                    revocationService);
+            channel.basicConsume(queueName, false, consumer);
+        } catch (IOException e) {
+            log.error(e);
+        }
+
     }
 
 
@@ -369,6 +401,10 @@ public class RabbitManager {
                         channel.queueUnbind(this.platformRegistrationRequestQueue, this.AAMExchangeName, this
                                 .platformRegistrationRequestRoutingKey);
                         channel.queueDelete(this.platformRegistrationRequestQueue);
+                        // revocation
+                        channel.queueUnbind(this.revocationRequestQueue, this.AAMExchangeName, this
+                                .revocationRequestRoutingKey);
+                        channel.queueDelete(this.revocationRequestQueue);
                         // getHomeToken
                         channel.queueUnbind(this.getHomeTokenRequestQueue, this.AAMExchangeName,
                                 this.getHomeTokenRequestRoutingKey);

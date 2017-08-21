@@ -88,7 +88,6 @@ public class GetClientCertificateService {
     }
 
     private User requestValidationCheck(CertificateRequest certificateRequest) throws
-            ValidationException,
             WrongCredentialsException,
             NotExistingUserException {
 
@@ -100,9 +99,7 @@ public class GetClientCertificateService {
         if (!passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
             throw new WrongCredentialsException();
 
-        if (revokedKeysRepository.exists(certificateRequest.getUsername()))
-            throw new ValidationException("Key revoked");
-
+        //TODO check if key sent in certificate is revoked
         return user;
     }
 
@@ -158,7 +155,6 @@ public class GetClientCertificateService {
     public String getCertificate(CertificateRequest certificateRequest) throws
             WrongCredentialsException,
             NotExistingUserException,
-            ValidationException,
             InvalidArgumentsException,
             UserManagementException,
             PlatformManagementException {

@@ -8,7 +8,6 @@ import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
@@ -38,7 +37,6 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.security.auth.x500.X500Principal;
@@ -105,87 +103,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
 
     // test for revokeHomeToken function
-    @Test
-    public void revokeUserToken() throws SecurityException, CertificateException, InvalidKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException, UnrecoverableKeyException, OperatorCreationException {
-        addTestUserWithClientCertificateToRepository();
-
-        // verify that app really is in repository
-        User user = userRepository.findOne(username);
-        assertNotNull(user);
-
-        // acquiring valid token
-        Token homeToken = tokenIssuer.getHomeToken(user, clientId);
-
-        // verify the user token is not yet revoked
-        assertFalse(revokedTokensRepository.exists(homeToken.getClaims().getId()));
-        // revocation
-        revocationHelper.revokeHomeToken(new Credentials(username, password), homeToken);
-
-        // verify the user token is revoked
-        assertTrue(revokedTokensRepository.exists(homeToken.getClaims().getId()));
-    }
-
-    // test for revokeHomeToken function
-    @Test
-    public void revokeUserTokenByPlatform() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException, OperatorCreationException, UnrecoverableKeyException, JWTCreationException {    // issuing dummy platform token
-        User user = new User();
-        user.setUsername(platformOwnerUsername);
-        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.PLATFORM_OWNER);
-        String cn = "CN=" + platformOwnerUsername + "@" + preferredPlatformId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), userKeyPair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(userKeyPair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, preferredPlatformId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
-        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
-        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
-        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
-        eu.h2020.symbiote.security.commons.Certificate cert = new eu.h2020.symbiote.security.commons.Certificate(pem);
-
-        user.getClientCertificates().put(federatedOAuthId, cert);
-
-        userRepository.save(user);
-
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + SecurityConstants
-                        .AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
-        Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
-
-        String platformId = "platform-1";
-        // registering the platform to the Core AAM so it will be available for token revocation
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
-
-        // issue platform registration over AMQP
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
-        //inject platform PEM Certificate to the database
-        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
-        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
-        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
-        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
-        pemWriter.writeObject(certificate);
-        pemWriter.close();
-        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
-        Platform dummyPlatform = platformRepository.findOne(platformId);
-        dummyPlatform.setPlatformAAMCertificate(new eu.h2020.symbiote.security.commons.Certificate(dummyPlatformAAMPEMCertString));
-        platformRepository.save(dummyPlatform);
-
-        // ensure that token is not in revoked token repository
-        assertFalse(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
-        // revocation
-        revocationHelper.revokeHomeToken(new Credentials(platformOwnerUsername, platformOwnerPassword), dummyHomeToken);
-        // check if token is in revoked tokens repository
-        assertTrue(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
-    }
 
     @Test
     public void getGuestTokenSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException {
