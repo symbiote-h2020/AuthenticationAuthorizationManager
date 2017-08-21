@@ -133,8 +133,8 @@ public class UsersManagementService {
         if (!userRepository.exists(username))
             throw new NotExistingUserException();
 
-        if (userRepository.findOne(username).getRole() == UserRole.PLATFORM_OWNER)
-            throw new UserManagementException("Cannot remove platform owner", HttpStatus.UNAUTHORIZED);
+        if (!userRepository.findOne(username).getOwnedPlatforms().isEmpty())
+            throw new UserManagementException("Cannot remove platform owner with platforms", HttpStatus.UNAUTHORIZED);
 
         // add user certificated to revoked repository
         Set<String> keys = new HashSet<>();
