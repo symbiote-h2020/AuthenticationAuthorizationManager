@@ -33,6 +33,7 @@ public class UserManagementController implements IUserManagement {
             ManagementStatus managementStatus = usersManagementService.manage(userManagementRequest);
             return ResponseEntity.status(HttpStatus.OK).body(managementStatus);
         } catch (SecurityException e) {
+            log.error(e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ManagementStatus.ERROR);
         }
     }

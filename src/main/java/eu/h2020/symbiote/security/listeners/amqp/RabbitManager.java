@@ -72,9 +72,9 @@ public class RabbitManager {
     private String getHomeTokenRequestRoutingKey;
 
     @Value("${rabbit.routingKey.manage.user.request}")
-    private String userRegistrationRequestRoutingKey;
+    private String userManagementRequestRoutingKey;
     @Value("${rabbit.queue.manage.user.request}")
-    private String userRegistrationRequestQueue;
+    private String userManagementRequestQueue;
 
     @Value("${rabbit.routingKey.manage.platform.request}")
     private String platformRegistrationRequestRoutingKey;
@@ -153,7 +153,7 @@ public class RabbitManager {
                     startConsumerOfLoginRequestMessages();
                     break;
                 case CORE:
-                    startConsumerOfApplicationRegistrationRequestMessages();
+                    startConsumerOfUserManagementRequestMessages();
                     startConsumerOfPlatformRegistrationRequestMessages();
                     startConsumerOfLoginRequestMessages();
                     startConsumerOfOwnedPlatformDetailsRequestMessages();
@@ -223,24 +223,24 @@ public class RabbitManager {
 
     /**
      * Method creates queue and binds it globally available exchange and adequate Routing Key.
-     * It also creates a consumer for messages incoming to this queue, regarding to Application Registration requests.
+     * It also creates a consumer for messages incoming to this queue, regarding to user management requests.
      *
      * @throws IOException
      */
-    private void startConsumerOfApplicationRegistrationRequestMessages() throws IOException {
+    private void startConsumerOfUserManagementRequestMessages() throws IOException {
 
-        String queueName = this.userRegistrationRequestQueue;
+        String queueName = this.userManagementRequestQueue;
 
         Channel channel;
 
         try {
             channel = this.connection.createChannel();
             channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.userRegistrationRequestRoutingKey);
+            channel.queueBind(queueName, this.AAMExchangeName, this.userManagementRequestRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for user registration request messages");
+            log.info("Authentication and Authorization Manager waiting for users' management request messages");
 
-            Consumer consumer = new UserRegistrationRequestConsumerService(channel,
+            Consumer consumer = new UserManagementRequestConsumerService(channel,
                     usersManagementService);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
@@ -362,9 +362,9 @@ public class RabbitManager {
                         break;
                     case CORE:
                         // user registration
-                        channel.queueUnbind(this.userRegistrationRequestQueue, this.AAMExchangeName, this
-                                .userRegistrationRequestRoutingKey);
-                        channel.queueDelete(this.userRegistrationRequestQueue);
+                        channel.queueUnbind(this.userManagementRequestQueue, this.AAMExchangeName, this
+                                .userManagementRequestRoutingKey);
+                        channel.queueDelete(this.userManagementRequestQueue);
                         // platform registration
                         channel.queueUnbind(this.platformRegistrationRequestQueue, this.AAMExchangeName, this
                                 .platformRegistrationRequestRoutingKey);

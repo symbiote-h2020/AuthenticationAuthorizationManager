@@ -143,7 +143,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
-        eu.h2020.symbiote.security.commons.Certificate cert = new eu.h2020.symbiote.security.commons.Certificate(pem);
+        Certificate cert = new Certificate(pem);
 
         user.getClientCertificates().put(federatedOAuthId, cert);
 
