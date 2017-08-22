@@ -72,14 +72,12 @@ public class UsersManagementService {
                 .getCredentials().getPassword().isEmpty()) {
             throw new InvalidArgumentsException("Missing username or password");
         }
+
+
         // Platform AAM does not support registering platform owners
         if (deploymentType == IssuingAuthorityType.PLATFORM && userRegistrationDetails.getRole() != UserRole.USER)
             throw new UserManagementException();
 
-        // check if user already in repository
-        if (userRepository.exists(userRegistrationDetails.getCredentials().getUsername())) {
-            return ManagementStatus.USERNAME_EXISTS;
-        }
 
         // verify proper user role
         if (userRegistrationDetails.getRole() == UserRole.NULL)
@@ -134,7 +132,7 @@ public class UsersManagementService {
             throw new NotExistingUserException();
 
         if (!userRepository.findOne(username).getOwnedPlatforms().isEmpty())
-            throw new UserManagementException("Cannot remove platform owner with platforms", HttpStatus.UNAUTHORIZED);
+            throw new UserManagementException("Cannot remove platform owner with platforms", HttpStatus.BAD_REQUEST);
 
         // add user certificated to revoked repository
         Set<String> keys = new HashSet<>();
