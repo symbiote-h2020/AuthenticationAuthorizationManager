@@ -13,15 +13,14 @@ import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
+import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.TestPropertySource;
 
@@ -44,7 +43,6 @@ import static org.junit.Assert.assertEquals;
 public class OtherListenersFunctionalTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(OtherListenersFunctionalTests.class);
     private final String recoveryMail = "null@dev.null";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
@@ -60,10 +58,8 @@ public class OtherListenersFunctionalTests extends
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
 
-    @Bean
-    DummyPlatformAAM dummyPlatformAAM() {
-        return new DummyPlatformAAM();
-    }
+    @Autowired
+    private ComponentCertificatesRepository componentCertificatesRepository;
 
     @Override
     @Before
@@ -96,6 +92,18 @@ public class OtherListenersFunctionalTests extends
     @Test
     public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
             CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+
+        // injecting core component certificate
+        String componentId = "componentId";
+        ComponentCertificate componentCertificate = new ComponentCertificate(
+                componentId,
+                new Certificate(
+                        CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
+                                "core.p12",
+                                "client-core-1"))));
+        componentCertificatesRepository.save(
+                componentCertificate);
+
         AvailableAAMsCollection response = AAMClient.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
@@ -108,6 +116,10 @@ public class OtherListenersFunctionalTests extends
         // maybe we could externalize it to spring config
         assertEquals(SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME, aam.getAamInstanceFriendlyName());
         assertEquals(certificationAuthorityHelper.getAAMCert(), aam.getAamCACertificate().getCertificateString());
+
+        // should contain one component certificate
+        assertEquals(1, aam.getComponentCertificates().size());
+        assertEquals(componentCertificate.getCertificate().getCertificateString(), aam.getComponentCertificates().get(componentId).getCertificateString());
     }
 
     /**
