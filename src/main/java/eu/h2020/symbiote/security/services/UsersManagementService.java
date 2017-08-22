@@ -80,7 +80,7 @@ public class UsersManagementService {
         // Platform AAM does not support registering platform owners
         if (deploymentType == IssuingAuthorityType.PLATFORM
                 && userDetails.getRole() != UserRole.USER)
-            throw new UserManagementException(HttpStatus.BAD_REQUEST);
+            throw new InvalidArgumentsException();
 
         User user = new User();
         switch (userManagementRequest.getOperationType()) {
@@ -135,6 +135,7 @@ public class UsersManagementService {
         userRepository.save(user);
     }
 
+
     public void delete(String username) throws SecurityException {
         // validate request
         if (username.isEmpty())
@@ -159,9 +160,11 @@ public class UsersManagementService {
             if (subjectsRevokedKeys == null)
                 // no keys exist yet
                 revokedKeysRepository.save(new SubjectsRevokedKeys(username, keys));
-            else
+            else {
                 // extending the existing set
                 subjectsRevokedKeys.getRevokedKeysSet().addAll(keys);
+                revokedKeysRepository.save(subjectsRevokedKeys);
+            }
         } catch (CertificateException e) {
             log.error(e);
             throw new UserManagementException(e);
