@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.functional;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
@@ -48,6 +49,7 @@ import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
@@ -463,15 +465,21 @@ public class TokensIssuingFunctionalTests extends
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
                 (homeToken).getBytes());
-        OwnedPlatformDetails ownedPlatformDetails = mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails.class);
+
+        Set<OwnedPlatformDetails> responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
+        });
+
+        // there should be a platform
+        assertFalse(responseSet.isEmpty());
+        OwnedPlatformDetails platformDetailsFromResponse = responseSet.iterator().next();
 
         Platform ownedPlatformInDB = platformRepository.findOne(preferredPlatformId);
 
         // verify the contents of the response
-        assertEquals(ownedPlatformInDB.getPlatformInstanceFriendlyName(), ownedPlatformDetails
+        assertEquals(ownedPlatformInDB.getPlatformInstanceFriendlyName(), platformDetailsFromResponse
                 .getPlatformInstanceFriendlyName());
-        assertEquals(ownedPlatformInDB.getPlatformInstanceId(), ownedPlatformDetails.getPlatformInstanceId());
-        assertEquals(ownedPlatformInDB.getPlatformInterworkingInterfaceAddress(), ownedPlatformDetails
+        assertEquals(ownedPlatformInDB.getPlatformInstanceId(), platformDetailsFromResponse.getPlatformInstanceId());
+        assertEquals(ownedPlatformInDB.getPlatformInterworkingInterfaceAddress(), platformDetailsFromResponse
                 .getPlatformInterworkingInterfaceAddress());
     }
 
