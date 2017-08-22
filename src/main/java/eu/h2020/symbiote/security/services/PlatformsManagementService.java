@@ -14,6 +14,8 @@ import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -33,11 +35,11 @@ import java.util.HashMap;
 @Service
 public class PlatformsManagementService {
 
+    private static Log log = LogFactory.getLog(PlatformsManagementService.class);
     private static final String GENERATED_PLATFORM_IDENTIFIER_PREFIX = "PLATFORM_";
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
     private final PasswordEncoder passwordEncoder;
-
 
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
@@ -66,14 +68,18 @@ public class PlatformsManagementService {
             throw new NotExistingUserException();
 
         User platformOwner = userRepository.findOne(platformOwnerCredentials.getUsername());
-        if (!passwordEncoder.matches(platformOwnerCredentials.getPassword(), platformOwner.getPasswordEncrypted()))
-            throw new PlatformManagementException(HttpStatus.UNAUTHORIZED);
+        if (!platformOwnerCredentials.getPassword().equals(platformOwner.getPasswordEncrypted())
+                && !passwordEncoder.matches(platformOwnerCredentials.getPassword(), platformOwner.getPasswordEncrypted())) {
+            log.info("*********");
+            log.info(platformOwnerCredentials.getPassword());
+            log.info(platformOwner.getPasswordEncrypted());
+            log.info("*********");
+            throw new WrongCredentialsException("DUpa panie");
+        }
+
 
         switch (platformManagementRequest.getOperationType()) {
             case CREATE:
-                if (platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
-                    throw new PlatformManagementException(HttpStatus.BAD_REQUEST);
-
                 String platformId;
                 // verify if platform owner provided a preferred platform identifier
                 if (platformManagementRequest.getPlatformInstanceId().isEmpty())
@@ -81,7 +87,7 @@ public class PlatformsManagementService {
                     platformId = GENERATED_PLATFORM_IDENTIFIER_PREFIX + new Date().getTime();
                 else if (platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
                     // check if platform already in repository
-                    throw new PlatformManagementException();
+                    throw new PlatformManagementException("Platform already exists", HttpStatus.BAD_REQUEST);
                 else {
                     // use PO preferred platform identifier
                     platformId = platformManagementRequest.getPlatformInstanceId();
@@ -106,7 +112,7 @@ public class PlatformsManagementService {
 
             case DELETE:
                 if (!platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
-                    throw new PlatformManagementException(HttpStatus.BAD_REQUEST);
+                    throw new PlatformManagementException("Platform doesn't exist", HttpStatus.BAD_REQUEST);
                 platformRepository.delete(platformManagementRequest.getPlatformInstanceId());
                 break;
         }

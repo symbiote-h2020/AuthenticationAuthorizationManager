@@ -33,7 +33,6 @@ public class ActorsManagementFunctionalTests extends
         AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(OtherListenersFunctionalTests.class);
-    private final String recoveryMail = "null@dev.null";
     private final String federatedOAuthId = "federatedOAuthId";
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;

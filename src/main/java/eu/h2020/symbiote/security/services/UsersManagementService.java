@@ -31,10 +31,10 @@ import java.util.Set;
 /**
  * Spring service used to manage users in the AAM repository.
  * <p>
- * TODO @Mikołaj update to support full CRUD on users repo
  *
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
+ * @author Maksymilian Marcinowski (PSNC)
  * @author Mikołaj Dobski (PSNC)
  */
 @Service
@@ -59,50 +59,60 @@ public class UsersManagementService {
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
     }
 
+    public ManagementStatus authManage(UserManagementRequest request) throws
+            SecurityException {
+
+        // check if we received required administrator credentials for API auth
+        if (request.getAdministratorCredentials() == null || request.getUserDetails().getCredentials() == null)
+            throw new InvalidArgumentsException();
+        // and if they match the admin credentials from properties
+        if (!request.getAdministratorCredentials().getUsername().equals(adminUsername)
+                || !request.getAdministratorCredentials().getPassword().equals(adminPassword))
+            throw new UserManagementException(HttpStatus.UNAUTHORIZED);
+        // do it
+        return this.manage(request);
+    }
+
     public ManagementStatus manage(UserManagementRequest userManagementRequest)
             throws SecurityException {
-        UserDetails userRegistrationDetails = userManagementRequest.getUserDetails();
-
-        // validate request
-        if (deploymentType == IssuingAuthorityType.CORE &&
-                (userRegistrationDetails.getRecoveryMail()
-                        .isEmpty() || userRegistrationDetails.getFederatedId().isEmpty()))
-            throw new InvalidArgumentsException("Missing recovery e-mail or foreign identity");
-        if (userRegistrationDetails.getCredentials().getUsername().isEmpty() || userRegistrationDetails
-                .getCredentials().getPassword().isEmpty()) {
-            throw new InvalidArgumentsException("Missing username or password");
-        }
-
+        UserDetails userDetails = userManagementRequest.getUserDetails();
 
         // Platform AAM does not support registering platform owners
-        if (deploymentType == IssuingAuthorityType.PLATFORM && userRegistrationDetails.getRole() != UserRole.USER)
-            throw new UserManagementException();
-
-
-        // verify proper user role
-        if (userRegistrationDetails.getRole() == UserRole.NULL)
-            throw new UserManagementException();
+        if (deploymentType == IssuingAuthorityType.PLATFORM
+                && userDetails.getRole() != UserRole.USER)
+            throw new UserManagementException(HttpStatus.BAD_REQUEST);
 
         User user = new User();
-
         switch (userManagementRequest.getOperationType()) {
             case CREATE:
-                user.setRole(userRegistrationDetails.getRole());
-                user.setUsername(userRegistrationDetails.getCredentials().getUsername());
-                user.setPasswordEncrypted(passwordEncoder.encode(userRegistrationDetails.getCredentials().getPassword()));
-                user.setRecoveryMail(userRegistrationDetails.getRecoveryMail());
+                // validate request
+                if (userDetails.getCredentials().getUsername().isEmpty()
+                        || userDetails.getCredentials().getPassword().isEmpty()) {
+                    throw new InvalidArgumentsException("Missing username or password");
+                }
+                if (deploymentType == IssuingAuthorityType.CORE
+                        && (userDetails.getRecoveryMail().isEmpty()
+                        || userDetails.getFederatedId().isEmpty()))
+                    throw new InvalidArgumentsException("Missing recovery e-mail or OAuth identity");
+
+                // verify proper user role
+                if (userDetails.getRole() == UserRole.NULL)
+                    throw new UserManagementException(HttpStatus.BAD_REQUEST);
+
+                // check if user already in repository
+                if (userRepository.exists(userDetails.getCredentials().getUsername())) {
+                    return ManagementStatus.USERNAME_EXISTS;
+                }
+
+                user.setRole(userDetails.getRole());
+                user.setUsername(userDetails.getCredentials().getUsername());
+                user.setPasswordEncrypted(passwordEncoder.encode(userDetails.getCredentials().getPassword()));
+                user.setRecoveryMail(userDetails.getRecoveryMail());
                 userRepository.save(user);
                 break;
-
             case UPDATE:
-                user = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
-
-                user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
-                user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
-
-                userRepository.save(user);
+                update(userManagementRequest);
                 break;
-
             case DELETE:
                 delete(userManagementRequest.getUserDetails().getCredentials().getUsername());
                 break;
@@ -110,17 +120,19 @@ public class UsersManagementService {
         return ManagementStatus.OK;
     }
 
-    public ManagementStatus authRegister(UserManagementRequest request) throws
-            SecurityException {
-
-        // check if we received required credentials
-        if (request.getAdministratorCredentials() == null || request.getUserDetails().getCredentials() == null)
-            throw new InvalidArgumentsException();
-        // check if this operation is authorized
-        if (!request.getAdministratorCredentials().getUsername().equals(adminUsername)
-                || !request.getAdministratorCredentials().getPassword().equals(adminPassword))
+    private void update(UserManagementRequest userManagementRequest) throws UserManagementException {
+        User user = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
+        // checking if request contains current password
+        if (passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), user.getPasswordEncrypted()))
             throw new UserManagementException(HttpStatus.UNAUTHORIZED);
-        return this.manage(request);
+
+        // update if not empty
+        if (!userManagementRequest.getUserDetails().getCredentials().getPassword().isEmpty())
+            user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
+        if (!userManagementRequest.getUserDetails().getRecoveryMail().isEmpty())
+            user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
+
+        userRepository.save(user);
     }
 
     public void delete(String username) throws SecurityException {
@@ -142,25 +154,19 @@ public class UsersManagementService {
                         c.getX509().getPublicKey().getEncoded()));
             }
 
-            revokedKeysRepository.save(new SubjectsRevokedKeys(username, keys));
+            // checking if this key contains keys already
+            SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(username);
+            if (subjectsRevokedKeys == null)
+                // no keys exist yet
+                revokedKeysRepository.save(new SubjectsRevokedKeys(username, keys));
+            else
+                // extending the existing set
+                subjectsRevokedKeys.getRevokedKeysSet().addAll(keys);
         } catch (CertificateException e) {
             log.error(e);
             throw new UserManagementException(e);
         }
         // do it
         userRepository.delete(username);
-    }
-
-    public void authUnregister(UserManagementRequest request) throws SecurityException {
-
-        // validate request
-        if (request.getAdministratorCredentials() == null || request.getUserDetails().getCredentials() == null)
-            throw new InvalidArgumentsException();
-        // authorize
-        if (!request.getAdministratorCredentials().getUsername().equals(adminUsername)
-                || !request.getAdministratorCredentials().getPassword().equals(adminPassword))
-            throw new UserManagementException(HttpStatus.UNAUTHORIZED);
-        // do it
-        this.delete(request.getUserDetails().getCredentials().getUsername());
     }
 }
