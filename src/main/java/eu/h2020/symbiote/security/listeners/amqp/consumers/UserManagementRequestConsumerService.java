@@ -15,15 +15,14 @@ import org.apache.commons.logging.LogFactory;
 import java.io.IOException;
 
 /**
- * RabbitMQ Consumer implementation used for Users' Registration actions
+ * RabbitMQ Consumer implementation used for Users' management actions
  *
  * @author Mikołaj Dobski (PSNC)
  * <p>
- * TODO R3 @Mikołaj, @Tilemachos update to support users managment (both PO and USER) with operation Type
  */
-public class UserRegistrationRequestConsumerService extends DefaultConsumer {
+public class UserManagementRequestConsumerService extends DefaultConsumer {
 
-    private static Log log = LogFactory.getLog(UserRegistrationRequestConsumerService.class);
+    private static Log log = LogFactory.getLog(UserManagementRequestConsumerService.class);
     private UsersManagementService usersManagementService;
 
 
@@ -33,8 +32,8 @@ public class UserRegistrationRequestConsumerService extends DefaultConsumer {
      *
      * @param channel the channel to which this consumer is attached
      */
-    public UserRegistrationRequestConsumerService(Channel channel,
-                                                  UsersManagementService
+    public UserManagementRequestConsumerService(Channel channel,
+                                                UsersManagementService
                                                           usersManagementService) {
         super(channel);
         this.usersManagementService = usersManagementService;
@@ -68,12 +67,12 @@ public class UserRegistrationRequestConsumerService extends DefaultConsumer {
                     .build();
             try {
                 request = om.readValue(message, UserManagementRequest.class);
-                log.debug("[x] Received User Registration Request for: " + request.getUserDetails()
+                log.debug("[x] Received User Management Request for: " + request.getUserDetails()
                         .getCredentials().getUsername() + " on behalf of " + request.getAdministratorCredentials()
                         .getUsername());
 
 
-                response = om.writeValueAsString(usersManagementService.authRegister
+                response = om.writeValueAsString(usersManagementService.authManage
                         (request));
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
             } catch (SecurityException e) {
@@ -81,7 +80,7 @@ public class UserRegistrationRequestConsumerService extends DefaultConsumer {
                 response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
             }
-            log.debug("User Registration Response: sent back");
+            log.debug("Management Status: sent back");
         } else {
             log.error("Received RPC message without ReplyTo or CorrelationId properties.");
         }
