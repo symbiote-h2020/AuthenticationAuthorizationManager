@@ -39,8 +39,6 @@ public class CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests exten
 
 
     private static Log log = LogFactory.getLog(CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests.class);
-    private final String platformOwnerUsername = "testPlatformOwnerUsername";
-    private final String platformOwnerPassword = "testPlatormOwnerPassword";
 
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;

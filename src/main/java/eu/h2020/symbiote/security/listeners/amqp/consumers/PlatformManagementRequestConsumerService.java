@@ -23,9 +23,9 @@ import java.io.IOException;
  * TODO R3 @Mikołaj, @Tilemachos rework to support full platforms CRUD <- single message with operation type, PO
  * Token, AAM admin credentials and PlatformDetails
  */
-public class PlatformRegistrationRequestConsumerService extends DefaultConsumer {
+public class PlatformManagementRequestConsumerService extends DefaultConsumer {
 
-    private static Log log = LogFactory.getLog(PlatformRegistrationRequestConsumerService.class);
+    private static Log log = LogFactory.getLog(PlatformManagementRequestConsumerService.class);
     private PlatformsManagementService platformsManagementService;
 
 
@@ -35,8 +35,8 @@ public class PlatformRegistrationRequestConsumerService extends DefaultConsumer 
      *
      * @param channel the channel to which this consumer is attached
      */
-    public PlatformRegistrationRequestConsumerService(Channel channel,
-                                                      PlatformsManagementService
+    public PlatformManagementRequestConsumerService(Channel channel,
+                                                    PlatformsManagementService
                                                               platformsManagementService) {
         super(channel);
         this.platformsManagementService = platformsManagementService;
@@ -72,7 +72,7 @@ public class PlatformRegistrationRequestConsumerService extends DefaultConsumer 
                 request = om.readValue(message, PlatformManagementRequest.class);
                 log.debug("[x] Received Platform Registration Request for: " + request.getAAMOwnerCredentials()
                         .getUsername());
-                PlatformManagementResponse registrationResponse = platformsManagementService.authRegister
+                PlatformManagementResponse registrationResponse = platformsManagementService.authManage
                         (request);
                 response = om.writeValueAsString(registrationResponse);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());

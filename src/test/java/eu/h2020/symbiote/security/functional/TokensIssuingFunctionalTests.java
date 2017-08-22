@@ -59,14 +59,11 @@ public class TokensIssuingFunctionalTests extends
     private static Log log = LogFactory.getLog(TokensIssuingFunctionalTests.class);
     private final String coreAppUsername = "testCoreAppUsername";
     private final String coreAppPassword = "testCoreAppPassword";
-    private final String recoveryMail = "null@dev.null";
     private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
-    private final String platformOwnerUsername = "testPlatformOwnerUsername";
-    private final String platformOwnerPassword = "testPlatormOwnerPassword";
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
@@ -119,7 +116,7 @@ public class TokensIssuingFunctionalTests extends
         platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
-                preferredPlatformId);
+                preferredPlatformId, OperationType.CREATE);
         platformOwnerKeyPair = CryptoHelper.createKeyPair();
     }
 

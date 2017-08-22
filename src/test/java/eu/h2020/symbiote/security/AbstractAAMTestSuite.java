@@ -73,7 +73,7 @@ public abstract class AbstractAAMTestSuite {
     protected final String componentId = "componentId";
     protected final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     protected final String platformOwnerUsername = "testPlatformOwnerUsername";
-    protected final String platformOwnerPassword = "testPlatormOwnerPassword";
+    protected final String platformOwnerPassword = "testPlatformOwnerPassword";
     protected final String recoveryMail = "null@dev.null";
     protected KeyPair userKeyPair;
     @Autowired
