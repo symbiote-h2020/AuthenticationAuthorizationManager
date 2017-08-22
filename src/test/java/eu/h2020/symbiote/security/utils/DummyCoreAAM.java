@@ -66,7 +66,7 @@ public class DummyCoreAAM {
         aams.getAvailableAAMs().put(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, new AAM("irrelevant",
                 SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME,
                 SecurityConstants.AAM_CORE_AAM_INSTANCE_ID,
-                revokedCert));
+                revokedCert, new HashMap<>()));
     }
 
     /**

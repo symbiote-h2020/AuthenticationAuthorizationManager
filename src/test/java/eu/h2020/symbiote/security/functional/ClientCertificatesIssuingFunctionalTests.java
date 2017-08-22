@@ -88,7 +88,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
         AvailableAAMsCollection aamResponse = AAMClient.getAvailableAAMs();
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
-        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
         String clientCertificate = AAMClient.getClientCertificate(certRequest);
@@ -119,7 +119,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
         AvailableAAMsCollection aamResponse = AAMClient.getAvailableAAMs();
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
-        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
         String clientCertificate = AAMClient.getClientCertificate(certRequest);
@@ -127,7 +127,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
         assertNotNull(x509Certificate);
         assertEquals("CN=" + username + "@" + clientId + "@" + homeAAM.getAamInstanceId(), x509Certificate.getSubjectDN().getName());
 
-        csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
+        csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
         assertNotNull(csrString);
         certRequest = new CertificateRequest(username, password, clientId, csrString);
         clientCertificate = AAMClient.getClientCertificate(certRequest);
@@ -153,7 +153,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
         AvailableAAMsCollection aamResponse = AAMClient.getAvailableAAMs();
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
-        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
         assertNotNull(csrString);
         //  Attempt login with incorrect password
         AAMClient.getClientCertificate(new CertificateRequest

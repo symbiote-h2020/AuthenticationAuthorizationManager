@@ -18,6 +18,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -50,17 +51,20 @@ public class AAMServices {
             // if Core AAM then we know the available AAMs
             Certificate coreCertificate = new Certificate(certificationAuthorityHelper.getAAMCert());
 
+            // TODO add handling core component certificates
+            Map<String, Certificate> coreComponentsCertificates = new HashMap<>();
+
             // adding core aam info to the response
             availableAAMs.put(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, new AAM(coreInterfaceAddress,
                     SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME,
                     SecurityConstants.AAM_CORE_AAM_INSTANCE_ID,
-                    coreCertificate));
+                    coreCertificate, coreComponentsCertificates));
 
             // registered platforms' AAMs
             for (Platform platform : platformRepository.findAll()) {
                 AAM platformAAM = new AAM(platform.getPlatformInterworkingInterfaceAddress() + platformAAMSuffixAtInterWorkingInterface, platform.getPlatformInstanceFriendlyName(), platform
-                        .getPlatformInstanceId(), platform.getPlatformAAMCertificate());
-                // add the platform AAM entrypoint to the results
+                        .getPlatformInstanceId(), platform.getPlatformAAMCertificate(), platform.getComponentCertificates());
+                // add the platform AAM entry point to the results
                 availableAAMs.put(platformAAM.getAamInstanceId(), platformAAM);
             }
         } else {
