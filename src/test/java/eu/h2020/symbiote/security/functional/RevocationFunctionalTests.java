@@ -3,6 +3,7 @@ package eu.h2020.symbiote.security.functional;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
@@ -14,6 +15,8 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.GetTokenService;
+import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Before;
@@ -47,10 +50,15 @@ public class RevocationFunctionalTests extends
     String coreInterfaceAddress;
     @Autowired
     private PlatformRepository platformRepository;
+    @Autowired
+    private TokenIssuer tokenIssuer;
     private RpcClient revocationOverAMQPClient;
+    @Autowired
+    private GetTokenService getTokenService;
+
 
     @Bean
-    DummyPlatformAAM getDummyPlatformAAM() {
+    DummyPlatformAAM dummyPlatformAAM() {
         return new DummyPlatformAAM();
     }
 
@@ -108,7 +116,7 @@ public class RevocationFunctionalTests extends
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(user);
-        Platform platform = new Platform(platformId, null, null, user, null, new HashMap<String, Certificate>());
+        Platform platform = new Platform(platformId, null, null, user, null, new HashMap<>());
         platformRepository.save(platform);
         user.getOwnedPlatforms().put(platformId, platform);
         userRepository.save(user);
@@ -141,7 +149,7 @@ public class RevocationFunctionalTests extends
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(user);
-        Platform platform = new Platform(platformId, null, null, user, null, new HashMap<String, Certificate>());
+        Platform platform = new Platform(platformId, null, null, user, null, new HashMap<>());
         platformRepository.save(platform);
         user.getOwnedPlatforms().put(platformId, platform);
         userRepository.save(user);
@@ -245,7 +253,7 @@ public class RevocationFunctionalTests extends
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(user);
-        Platform platform = new Platform(platformId, null, null, user, null, new HashMap<String, Certificate>());
+        Platform platform = new Platform(platformId, null, null, user, null, new HashMap<>());
         platformRepository.save(platform);
         user.getOwnedPlatforms().put(platformId, platform);
         userRepository.save(user);
@@ -264,8 +272,7 @@ public class RevocationFunctionalTests extends
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(username, password));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
-        String commonName = platformId;
-        revocationRequest.setCertificateCommonName(commonName);
+        revocationRequest.setCertificateCommonName(platformId);
 
         assertTrue(Boolean.parseBoolean(AAMClient.revoke(revocationRequest)));
     }
@@ -279,7 +286,7 @@ public class RevocationFunctionalTests extends
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(user);
-        Platform platform = new Platform(platformId, null, null, user, null, new HashMap<String, Certificate>());
+        Platform platform = new Platform(platformId, null, null, user, null, new HashMap<>());
         platformRepository.save(platform);
         user.getOwnedPlatforms().put(platformId, platform);
         userRepository.save(user);
@@ -322,6 +329,48 @@ public class RevocationFunctionalTests extends
 
         assertTrue(Boolean.parseBoolean(AAMClient.revoke(revocationRequest)));
         assertTrue(revokedTokensRepository.exists(new Token(homeToken).getClaims().getId()));
+    }
+
+    @Test
+    public void revokeForeignTokenOverRESTSuccess() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, IOException, TimeoutException, JWTCreationException, ValidationException, NotExistingUserException, InvalidArgumentsException, WrongCredentialsException, MalformedJWTException, ClassNotFoundException {
+        addTestUserWithClientCertificateToRepository();
+        assertNotNull(userRepository.findOne(username));
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        DummyPlatformAAM dummyPlatformAAM = dummyPlatformAAM();
+        Token token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        assertNotNull(token);
+        User platformOwner = savePlatformOwner();
+
+        String platformId = "platform-1";
+        Platform platform = new Platform(platformId, serverAddress + "/test", null, platformOwner, new Certificate(), new HashMap<>());
+        platformRepository.save(platform);
+        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        userRepository.save(platformOwner);
+
+        //inject platform PEM Certificate to the database
+        Platform dummyPlatform = platformRepository.findOne(platformId);
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
+        platformRepository.save(dummyPlatform);
+
+        // adding a dummy foreign rule
+        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
+        Token foreignToken = getTokenService.getForeignToken(token, "", "");
+        assertNotNull(foreignToken);
+
+        RevocationRequest revocationRequest = new RevocationRequest();
+
+        revocationRequest.setHomeTokenString(token.toString());
+        revocationRequest.setForeignTokenString(foreignToken.toString());
+
+        assertTrue(Boolean.parseBoolean(AAMClient.revoke(revocationRequest)));
+        assertTrue(revokedTokensRepository.exists(foreignToken.getClaims().getId()));
+    }
+
+    @Test(expected = InvalidArgumentsException.class)
+    public void revokeForeignTokenOverRESTFailNoTokens() throws WrongCredentialsException, InvalidArgumentsException {
+        RevocationRequest revocationRequest = new RevocationRequest();
+        AAMClient.revoke(revocationRequest);
     }
 
 }

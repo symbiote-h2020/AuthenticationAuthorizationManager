@@ -1,6 +1,5 @@
 package eu.h2020.symbiote.security.unit;
 
-import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
@@ -10,35 +9,28 @@ import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.GetClientCertificateService;
+import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
+import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
+import eu.h2020.symbiote.security.utils.DummyPlatformAAM2;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.bouncycastle.pkcs.PKCS10CertificationRequest;
-import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
-import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
-import javax.security.auth.x500.X500Principal;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.StringWriter;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.concurrent.TimeoutException;
@@ -74,6 +66,18 @@ public class RevocationUnitTests extends
     private RevokedKeysRepository revokedKeysRepository;
     @Autowired
     private TokenIssuer tokenIssuer;
+    @Autowired
+    private GetTokenService getTokenService;
+
+    @Bean
+    DummyPlatformAAM dummyPlatformAAM() {
+        return new DummyPlatformAAM();
+    }
+
+    @Bean
+    DummyPlatformAAM2 dummyPlatformAAM2() {
+        return new DummyPlatformAAM2();
+    }
 
     //TODO @JT revokeCertificates unit tests
     @Test
@@ -118,12 +122,11 @@ public class RevocationUnitTests extends
         platformOwner = userRepository.findOne(platformOwnerUsername);
         assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
         assertFalse(platformOwner.getOwnedPlatforms().get(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
-        String commonName = platformId;
 
         assertFalse(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
         assertNull(revokedKeysRepository.findOne(platformId));
 
-        revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), null, commonName);
+        revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), null, platformId);
 
         assertTrue(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
         assertTrue(revokedKeysRepository.findOne(platformId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
@@ -132,7 +135,7 @@ public class RevocationUnitTests extends
     @Test
     public void revokePlatformComponentCertyficateUsingCommonNameSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<String, Certificate>());
+        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
         platformRepository.save(platform);
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
@@ -231,7 +234,7 @@ public class RevocationUnitTests extends
         } catch (Exception e) {
             assertEquals(WrongCredentialsException.class, e.getClass());
         }
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<String, Certificate>());
+        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
         platformRepository.save(platform);
         try {
             revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), null, commonName);
@@ -286,7 +289,6 @@ public class RevocationUnitTests extends
         assertTrue(revocationHelper.revokeCertificate(new Credentials(appUsername, password), new Certificate(certificate), ""));
 
 
-
     }
 
     @Test
@@ -330,11 +332,39 @@ public class RevocationUnitTests extends
         assertTrue(revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), new Certificate(certificate), ""));
     }
 
+    @Test(expected = WrongCredentialsException.class)
+    public void revokePlatformCertyficateUsingCertificateFailWrongCertificate() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
+        User platformOwner = savePlatformOwner();
+        KeyPair pair = CryptoHelper.createKeyPair();
+        Platform platform = new Platform(platformId, null, null, platformOwner, null, null);
+        platformRepository.save(platform);
+        //create platform certificate
+        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        String certificate = getClientCertificateService.getCertificate(certRequest);
+        platform.setPlatformAAMCertificate(new Certificate(certificate));
+        platformRepository.save(platform);
+        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        userRepository.save(platformOwner);
+
+        //create new certificate for platform
+        pair = CryptoHelper.createKeyPair();
+        csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        String certificateNew = getClientCertificateService.getCertificate(certRequest);
+
+        //revoke certificate using revoked certificate
+        //check if there is platform certificate in database
+        assertFalse(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
+        //check if revocation ended with success using certificate with revoked key
+        revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), new Certificate(certificateNew), "");
+    }
+
     @Test
     public void revokePlatformComponentCertyficateUsingCertificateSuccess() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
         User platformOwner = savePlatformOwner();
         KeyPair pair = CryptoHelper.createKeyPair();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<String, Certificate>());
+        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
         platformRepository.save(platform);
         platformOwner.getOwnedPlatforms().put(platformId, platform);
         userRepository.save(platformOwner);
@@ -443,12 +473,10 @@ public class RevocationUnitTests extends
         } catch (Exception e) {
             assertEquals(CertificateException.class, e.getClass());
         }
-
-
     }
 
     @Test
-    public void revokeUserToken() throws SecurityException, CertificateException, InvalidKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException, UnrecoverableKeyException, OperatorCreationException, JWTCreationException, WrongCredentialsException, NotExistingUserException, ValidationException {
+    public void revokeHomeToken() throws SecurityException, CertificateException, InvalidKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException, UnrecoverableKeyException, OperatorCreationException, JWTCreationException, WrongCredentialsException, NotExistingUserException, ValidationException {
         addTestUserWithClientCertificateToRepository();
 
         // verify that app really is in repository
@@ -467,76 +495,139 @@ public class RevocationUnitTests extends
         assertTrue(revokedTokensRepository.exists(homeToken.getClaims().getId()));
     }
 
-    // test for revokeHomeToken function
     @Test
-    public void revokeUserTokenByPlatform() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException, OperatorCreationException, UnrecoverableKeyException, JWTCreationException, InvalidAlgorithmParameterException, InvalidArgumentsException, PlatformManagementException, UserManagementException {    // issuing dummy platform token
-        User user = savePlatformOwner();
-        RpcClient platformRegistrationOverAMQPClient;
-        platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                platformRegistrationRequestQueue, 5000);
+    public void revokeHomeTokenByPlatformSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException, OperatorCreationException, UnrecoverableKeyException, JWTCreationException, InvalidAlgorithmParameterException, InvalidArgumentsException, PlatformManagementException, UserManagementException, MalformedJWTException, ClassNotFoundException {    // issuing dummy platform token
+        User platformOwner = savePlatformOwner();
+        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
+        platformRepository.save(platform);
+        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        userRepository.save(platformOwner);
 
-        String preferredPlatformId = "preferredPlatformId";
-        String platformInstanceFriendlyName = "friendlyPlatformName";
-        String platformInterworkingInterfaceAddress =
-                "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
-        Credentials platformOwnerUserCredentials = new Credentials(platformOwnerUsername, platformOwnerPassword);
-        PlatformManagementRequest platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
-                platformInstanceFriendlyName,
-                preferredPlatformId);
-        String cn = "CN=" + platformOwnerUsername + "@" + preferredPlatformId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), userKeyPair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(userKeyPair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, preferredPlatformId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
-        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
-        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
-        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
-        eu.h2020.symbiote.security.commons.Certificate cert = new eu.h2020.symbiote.security.commons.Certificate(pem);
-        String federatedOAuthId = "federatedOAuthId";
-        user.getClientCertificates().put(federatedOAuthId, cert);
+        KeyPair pair2 = CryptoHelper.createKeyPair();
+        DummyPlatformAAM dummyPlatformAAM = dummyPlatformAAM();
+        platform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
+        platformRepository.save(platform);
 
-        userRepository.save(user);
-
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, platformOwnerPassword, null, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, clientId, new Certificate(), pair2.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" + SecurityConstants
-                        .AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
+
+        ResponseEntity<?> loginResponse = dummyPlatformAAM.getHomeToken(loginRequest);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
+        // ensure that token is not in revoked token repository
+        assertFalse(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
+        revocationHelper.revokeHomeToken(new Credentials(platformOwnerUsername, platformOwnerPassword), dummyHomeToken);
+        assertTrue(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
+    }
 
-        String platformId = "platform-1";
-        // registering the platform to the Core AAM so it will be available for token revocation
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+    @Test(expected = ValidationException.class)
+    public void revokeHomeTokenByPlatformFailNoRightsToToken() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException, OperatorCreationException, UnrecoverableKeyException, JWTCreationException, InvalidAlgorithmParameterException, InvalidArgumentsException, PlatformManagementException, UserManagementException, MalformedJWTException, ClassNotFoundException {    // issuing dummy platform token
+        User platformOwner = savePlatformOwner();
+        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
+        platformRepository.save(platform);
+        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        userRepository.save(platformOwner);
 
-        // issue platform registration over AMQP
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
+        String certificateString = getClientCertificateService.getCertificate(certRequest);
+        platform.setPlatformAAMCertificate(new Certificate(certificateString));
+        platformRepository.save(platform);
 
-        //inject platform PEM Certificate to the database
-        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
-        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
-        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
-        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
-        pemWriter.writeObject(certificate);
-        pemWriter.close();
-        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
-        Platform dummyPlatform = platformRepository.findOne(platformId);
-        dummyPlatform.setPlatformAAMCertificate(new eu.h2020.symbiote.security.commons.Certificate(dummyPlatformAAMPEMCertString));
-        platformRepository.save(dummyPlatform);
+        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, new Certificate(), pair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+
+        ResponseEntity<?> loginResponse = dummyPlatformAAM().getHomeToken(loginRequest);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         // ensure that token is not in revoked token repository
         assertFalse(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
         // revocation
         revocationHelper.revokeHomeToken(new Credentials(platformOwnerUsername, platformOwnerPassword), dummyHomeToken);
-        // check if token is in revoked tokens repository
-        assertTrue(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
     }
 
+    @Test(expected = ValidationException.class)
+    public void revokeHomeTokeFailWrongToken() throws CertificateException, WrongCredentialsException, NotExistingUserException, ValidationException {
+        revocationHelper.revokeHomeToken(new Credentials(platformOwnerUsername, wrongpassword), new Token());
+    }
 
+    @Test(expected = WrongCredentialsException.class)
+    public void revokeHomeTokeFailWrongCredentials() throws CertificateException, WrongCredentialsException, NotExistingUserException, ValidationException, JWTCreationException {
+        savePlatformOwner();
+        revocationHelper.revokeHomeToken(new Credentials(platformOwnerUsername, wrongpassword), tokenIssuer.getGuestToken());
+    }
+
+    @Test(expected = NotExistingUserException.class)
+    public void revokeHomeTokeFailWrongUser() throws CertificateException, WrongCredentialsException, NotExistingUserException, ValidationException, JWTCreationException {
+        revocationHelper.revokeHomeToken(new Credentials(platformOwnerUsername, wrongpassword), tokenIssuer.getGuestToken());
+    }
+
+    @Test
+    public void revokeForeignTokenSuccess() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, IOException, TimeoutException, JWTCreationException, ValidationException, NotExistingUserException, InvalidArgumentsException, WrongCredentialsException, MalformedJWTException, ClassNotFoundException {
+        addTestUserWithClientCertificateToRepository();
+        assertNotNull(userRepository.findOne(username));
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        DummyPlatformAAM dummyPlatformAAM = dummyPlatformAAM();
+        Token token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        assertNotNull(token);
+
+        User platformOwner = savePlatformOwner();
+        String platformId = "platform-1";
+        Platform platform = new Platform(platformId, serverAddress + "/test", null, platformOwner, new Certificate(), new HashMap<>());
+        platformRepository.save(platform);
+        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        userRepository.save(platformOwner);
+
+        Platform dummyPlatform = platformRepository.findOne(platformId);
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
+        platformRepository.save(dummyPlatform);
+
+        // adding a dummy foreign rule
+        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
+        Token foreignToken = getTokenService.getForeignToken(token, "", "");
+        assertNotNull(foreignToken);
+
+        assertFalse(revokedTokensRepository.exists(foreignToken.getClaims().getId()));
+        assertTrue(revocationHelper.revokeForeignToken(token, foreignToken));
+        assertTrue(revokedTokensRepository.exists(foreignToken.getClaims().getId()));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void revokeForeignTokenFailWrongHomeTokenWrongSubject() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, IOException, TimeoutException, JWTCreationException, ValidationException, NotExistingUserException, InvalidArgumentsException, WrongCredentialsException, MalformedJWTException, ClassNotFoundException {
+        addTestUserWithClientCertificateToRepository();
+        assertNotNull(userRepository.findOne(username));
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        DummyPlatformAAM dummyPlatformAAM = dummyPlatformAAM();
+        Token token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+        assertNotNull(token);
+
+        User platformOwner = savePlatformOwner();
+        String platformId = "platform-1";
+        Platform platform = new Platform(platformId, serverAddress + "/test", null, platformOwner, new Certificate(), new HashMap<>());
+        platformRepository.save(platform);
+        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        userRepository.save(platformOwner);
+
+        Platform dummyPlatform = platformRepository.findOne(platformId);
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
+        platformRepository.save(dummyPlatform);
+
+        // adding a dummy foreign rule
+        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
+        Token foreignToken = getTokenService.getForeignToken(token, "", "");
+        assertNotNull(foreignToken);
+
+        homeCredentials = new HomeCredentials(null, platformOwnerUsername, clientId, null, userKeyPair.getPrivate());
+        loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+
+
+        assertFalse(revokedTokensRepository.exists(foreignToken.getClaims().getId()));
+        revocationHelper.revokeForeignToken(token, foreignToken);
+    }
 }

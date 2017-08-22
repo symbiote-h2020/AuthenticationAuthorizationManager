@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
@@ -12,6 +13,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 
 /**
@@ -32,41 +37,48 @@ public class RevocationService {
         try {
             switch (revocationRequest.getCredentialType()) {
                 case USER:
-                    if (!revocationRequest.getCertificatePEMString().isEmpty() ||
-                            !revocationRequest.getCertificateCommonName().isEmpty()) {
-                        revocationHelper.revokeCertificate(revocationRequest.getCredentials(), new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificateCommonName());
-                        return new RevocationResponse(true, HttpStatus.OK);
-                    } else if (!revocationRequest.getHomeTokenString().isEmpty()) {
-                        revocationHelper.revokeHomeToken(revocationRequest.getCredentials(), new Token(revocationRequest.getHomeTokenString()));
-                        return new RevocationResponse(true, HttpStatus.OK);
-                    } else {
-                        throw new WrongCredentialsException();
-                    }
+                    return userRevoke(revocationRequest);
                 case ADMIN:
-                    if (!revocationRequest.getHomeTokenString().isEmpty()) {
-                        revocationHelper.revokeHomeToken(revocationRequest.getCredentials(), new Token(revocationRequest.getHomeTokenString()));
-                        return new RevocationResponse(true, HttpStatus.OK);
-                    } else if (!revocationRequest.getCertificatePEMString().isEmpty() ||
-                            !revocationRequest.getCertificateCommonName().isEmpty()) {
-                        revocationHelper.revokeCertificateAdmin(revocationRequest.getCredentials(), new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificateCommonName());
-                        return new RevocationResponse(true, HttpStatus.OK);
-                    } else {
-                        return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
-                    }
+                    return adminRevoke(revocationRequest);
                 case NULL:
-                    if (revocationRequest.getHomeTokenString().isEmpty() ||
-                            revocationRequest.getForeignTokenString().isEmpty()) {
-                        return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
-                    }
-                    revocationHelper.revokeForeignToken(new Token(revocationRequest.getHomeTokenString()), new Token(revocationRequest.getForeignTokenString()));
-                    return new RevocationResponse(true, HttpStatus.OK);
+                    return noCredentialTypeRevoke(revocationRequest);
             }
-        } catch (CertificateException e) {
+        } catch (CertificateException | NoSuchAlgorithmException | KeyStoreException | NoSuchProviderException | IOException e) {
             return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
-        } catch (WrongCredentialsException | ValidationException | NotExistingUserException e) {
+        } catch (WrongCredentialsException | ValidationException | NotExistingUserException | MalformedJWTException e) {
             return new RevocationResponse(false, e.getStatusCode());
         }
         return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
+    }
+
+    private RevocationResponse noCredentialTypeRevoke(RevocationRequest revocationRequest) throws ValidationException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, MalformedJWTException, IOException {
+        if (revocationRequest.getHomeTokenString().isEmpty() ||
+                revocationRequest.getForeignTokenString().isEmpty()) {
+            return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
+        }
+        return new RevocationResponse(revocationHelper.revokeForeignToken(new Token(revocationRequest.getHomeTokenString()), new Token(revocationRequest.getForeignTokenString())), HttpStatus.OK);
+    }
+
+    private RevocationResponse adminRevoke(RevocationRequest revocationRequest) throws ValidationException {
+        if (!revocationRequest.getHomeTokenString().isEmpty()) {
+            return new RevocationResponse(this.revocationHelper.revokeHomeTokenByAdmin(revocationRequest.getCredentials(), new Token(revocationRequest.getHomeTokenString())), HttpStatus.OK);
+        } else if (!revocationRequest.getCertificatePEMString().isEmpty() ||
+                !revocationRequest.getCertificateCommonName().isEmpty()) {
+            return new RevocationResponse(this.revocationHelper.revokeCertificateAdmin(revocationRequest.getCredentials(), new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificateCommonName()), HttpStatus.OK);
+        } else {
+            return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    private RevocationResponse userRevoke(RevocationRequest revocationRequest) throws CertificateException, NotExistingUserException, WrongCredentialsException, ValidationException {
+        if (!revocationRequest.getCertificatePEMString().isEmpty() ||
+                !revocationRequest.getCertificateCommonName().isEmpty()) {
+            return new RevocationResponse(revocationHelper.revokeCertificate(revocationRequest.getCredentials(), new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificateCommonName()), HttpStatus.OK);
+        } else if (!revocationRequest.getHomeTokenString().isEmpty()) {
+            return new RevocationResponse(revocationHelper.revokeHomeToken(revocationRequest.getCredentials(), new Token(revocationRequest.getHomeTokenString())), HttpStatus.OK);
+        } else {
+            throw new WrongCredentialsException();
+        }
     }
 
 }
