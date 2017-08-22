@@ -186,7 +186,7 @@ public class GetClientCertificateService {
             } else {
                 try {
                     revocationHelper.revokeCertificate(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()), userCert, user.getUsername() + illegalSign + certificateRequest.getClientId());
-                } catch (CertificateException e) {
+                } catch (CertificateException | IOException e) {
                     log.error(e);
                     throw new SecurityException(e.getMessage(), e.getCause());
                 }

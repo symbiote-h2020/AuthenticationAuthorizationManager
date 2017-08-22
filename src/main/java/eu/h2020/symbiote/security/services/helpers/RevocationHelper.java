@@ -11,6 +11,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsExce
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
@@ -18,6 +19,8 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -56,6 +59,12 @@ public class RevocationHelper {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
+    private final Log log = LogFactory.getLog(RevocationHelper.class);
+    @Value("${aam.deployment.owner.username}")
+    private String AAMOwnerUsername;
+    @Value("${aam.deployment.owner.password}")
+    private String AAMOwnerPassword;
+
 
     @Autowired
     public RevocationHelper(PlatformRepository platformRepository, RevokedKeysRepository revokedKeysRepository,
@@ -93,7 +102,9 @@ public class RevocationHelper {
         String platformId = commonName.split(illegalSign)[1];
         String componentId = commonName.split(illegalSign)[0];
         Platform platform = user.getOwnedPlatforms().get(platformId);
-        if (platform == null || platform.getComponentCertificates().get(componentId) == null) {
+        if (platform == null || platform.getComponentCertificates().get(componentId) == null ||
+                platform.getComponentCertificates().get(componentId).getCertificateString().isEmpty() ||
+                !isMyCertificate(platform.getComponentCertificates().get(componentId).getX509())) {
             throw new WrongCredentialsException();
         }
         revokeKey(platformId, platform.getComponentCertificates().get(componentId));
@@ -107,6 +118,10 @@ public class RevocationHelper {
         if (user.getClientCertificates().get(clientId) == null) {
             throw new WrongCredentialsException();
         }
+        if (user.getClientCertificates().get(clientId).getCertificateString().isEmpty() ||
+                !isMyCertificate(user.getClientCertificates().get(clientId).getX509())) {
+            throw new CertificateException();
+        }
         revokeKey(user.getUsername(), user.getClientCertificates().get(clientId));
         user.getClientCertificates().remove(clientId);
         userRepository.save(user);
@@ -118,13 +133,21 @@ public class RevocationHelper {
         if (platform == null) {
             throw new WrongCredentialsException();
         }
+        if (platform.getPlatformAAMCertificate() == null ||
+                platform.getPlatformAAMCertificate().getCertificateString().isEmpty() ||
+                !isMyCertificate(platform.getPlatformAAMCertificate().getX509())) {
+            throw new CertificateException();
+        }
         revokeKey(commonName, platform.getPlatformAAMCertificate());
         platform.setPlatformAAMCertificate(new Certificate());
         platformRepository.save(platform);
         return true;
     }
 
-    private boolean revokeCertificateUsingCertificate(User user, X509Certificate certificate) throws WrongCredentialsException, CertificateException {
+    private boolean revokeCertificateUsingCertificate(User user, X509Certificate certificate) throws WrongCredentialsException, CertificateException, IOException {
+        if (!isMyCertificate(certificate)) {
+            throw new CertificateException();
+        }
         if (certificate.getSubjectDN().getName().split("CN=").length != 2) {
             throw new CertificateException();
         }
@@ -149,12 +172,19 @@ public class RevocationHelper {
         } else throw new CertificateException();
     }
 
-    private boolean revokeUserCertificateUsingCertificate(User user, X509Certificate certificate) throws CertificateException, WrongCredentialsException {
+    private boolean isMyCertificate(X509Certificate certificate) {
+        if (certificate.getIssuerDN().getName().split("CN=")[1].equals(certificationAuthorityHelper.getAAMInstanceIdentifier())) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean revokeUserCertificateUsingCertificate(User user, X509Certificate certificate) throws CertificateException, WrongCredentialsException, IOException {
         String clientId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[1];
         if (user.getClientCertificates().get(clientId) == null || user.getClientCertificates().get(clientId).getCertificateString().isEmpty()) {
             throw new CertificateException();
         }
-        if (user.getClientCertificates().get(clientId).getX509().getPublicKey() == certificate.getPublicKey()) {
+        if (user.getClientCertificates().get(clientId).getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
             revokeKey(user.getUsername(), user.getClientCertificates().get(clientId));
             user.getClientCertificates().remove(clientId);
             userRepository.save(user);
@@ -164,7 +194,7 @@ public class RevocationHelper {
         } else throw new WrongCredentialsException();
     }
 
-    private boolean revokePlatformComponentCertificateUsingCertificate(User user, X509Certificate certificate) throws CertificateException, WrongCredentialsException {
+    private boolean revokePlatformComponentCertificateUsingCertificate(User user, X509Certificate certificate) throws CertificateException, WrongCredentialsException, IOException {
         String componentId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
         String platformId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[1];
         Platform platform = user.getOwnedPlatforms().get(platformId);
@@ -173,7 +203,7 @@ public class RevocationHelper {
             if (platform.getComponentCertificates().get(componentId).getCertificateString().isEmpty()) {
                 throw new CertificateException();
             }
-            if (platform.getComponentCertificates().get(componentId).getX509().getPublicKey() == certificate.getPublicKey()) {
+            if (platform.getComponentCertificates().get(componentId).getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
                 revokeKey(platformId, platform.getComponentCertificates().get(componentId));
                 platform.getComponentCertificates().remove(componentId);
                 platformRepository.save(platform);
@@ -188,14 +218,14 @@ public class RevocationHelper {
         }
     }
 
-    private boolean revokePlatformCertificateUsingCertificate(User user, X509Certificate certificate) throws CertificateException, WrongCredentialsException {
+    private boolean revokePlatformCertificateUsingCertificate(User user, X509Certificate certificate) throws CertificateException, WrongCredentialsException, IOException {
         String platformId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
         Platform platform = user.getOwnedPlatforms().get(platformId);
         if (platform != null) {
             if (platform.getPlatformAAMCertificate() == null || platform.getPlatformAAMCertificate().getCertificateString().isEmpty()) {
                 throw new CertificateException();
             }
-            if (platform.getPlatformAAMCertificate().getX509().getPublicKey() == certificate.getPublicKey()) {
+            if (platform.getPlatformAAMCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
                 revokeKey(platformId, platform.getPlatformAAMCertificate());
                 platform.setPlatformAAMCertificate(new Certificate());
                 platformRepository.save(platform);
@@ -210,7 +240,7 @@ public class RevocationHelper {
 
     // certificate revoke function - not finished
     public boolean revokeCertificate(Credentials credentials, Certificate certificate, String commonName)
-            throws CertificateException, WrongCredentialsException, NotExistingUserException {
+            throws CertificateException, WrongCredentialsException, NotExistingUserException, IOException {
         if (credentials.getUsername().isEmpty()) {
             throw new WrongCredentialsException();
         }
@@ -228,6 +258,7 @@ public class RevocationHelper {
                 } catch (Exception e) {
                     throw new CertificateException();
                 }
+
                 return revokeCertificateUsingCertificate(user, x509Certificate);
             } else {
                 throw new WrongCredentialsException();
@@ -328,10 +359,83 @@ public class RevocationHelper {
 
 
     public boolean revokeCertificateAdmin(Credentials credentials, Certificate certificate, String certificateCommonName) {
+
+
         throw new IllegalArgumentException();
     }
 
-    public boolean revokeHomeTokenByAdmin(Credentials credentials, Token token) {
-        throw new IllegalArgumentException();
+    public boolean revokeHomeTokenByAdmin(Credentials credentials, Token token) throws WrongCredentialsException, ValidationException {
+        if (passwordEncoder.matches(credentials.getPassword(), AAMOwnerPassword)) {
+            if (JWTEngine.validateTokenString(token.getToken()) != ValidationStatus.VALID) {
+                throw new ValidationException("Invalid token");
+            }
+            revokedTokensRepository.save(token);
+        }
+        throw new WrongCredentialsException();
     }
+
+    //TODO use it if AAM key was revoked
+    /*
+    private boolean isCertificateChainTrustedOrRevoked(String certificateString) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException {
+        if (!isCertificateChainTrusted(certificateString)){
+            if (revokedKeysRepository.findOne(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID)!=null){
+                X509Certificate certificate = CryptoHelper.convertPEMToX509(certificateString);
+                //TODO cert
+                return revokedKeysRepository.findOne(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID).getRevokedKeysSet().contains(null) ;
+            }
+        }
+        return true;
+    }
+
+    private boolean isCertificateChainTrusted(String certificateString) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+        X509Certificate rootCertificate = certificationAuthorityHelper.getAAMCertificate();
+
+        // for foreign tokens issued by Core AAM
+        if (certificateString.equals(CryptoHelper.convertX509ToPEM(rootCertificate)))
+            return true;
+
+        // convert certificates to X509
+        X509Certificate certificate = CryptoHelper.convertPEMToX509(certificateString);
+
+        // Create the selector that specifies the starting certificate
+        X509CertSelector target = new X509CertSelector();
+        target.setCertificate(certificate);
+
+        // Create the trust anchors (set of root CA certificates)
+        Set<TrustAnchor> trustAnchors = new HashSet<>();
+        TrustAnchor trustAnchor = new TrustAnchor(rootCertificate, null);
+        trustAnchors.add(trustAnchor);
+
+        // List of intermediate certificates
+        List<X509Certificate> intermediateCertificates = new ArrayList<>();
+        intermediateCertificates.add(certificate);
+
+
+     // If build() returns successfully, the certificate is valid. More details
+     // about the valid path can be obtained through the PKIXCertPathBuilderResult.
+     // If no valid path can be found, a CertPathBuilderException is thrown.
+
+        try {
+            // Create the selector that specifies the starting certificate
+            PKIXBuilderParameters params = new PKIXBuilderParameters(trustAnchors, target);
+            // Disable CRL checks (this is done manually as additional step)
+            params.setRevocationEnabled(false);
+
+            // Specify a list of intermediate certificates
+            CertStore intermediateCertStore = CertStore.getInstance("Collection",
+                    new CollectionCertStoreParameters(intermediateCertificates), "BC");
+            params.addCertStore(intermediateCertStore);
+
+            // Build and verify the certification chain
+            CertPathBuilder builder = CertPathBuilder.getInstance("PKIX", "BC");
+            PKIXCertPathBuilderResult result = (PKIXCertPathBuilderResult) builder.build(params);
+            // path should have 1 intermediate cert in symbIoTe architecture
+            return result.getCertPath().getCertificates().size() == 1;
+        } catch (CertPathBuilderException | InvalidAlgorithmParameterException e) {
+            log.info(e);
+            return false;
+
+        }
+    }
+    */
 }

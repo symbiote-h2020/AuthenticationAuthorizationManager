@@ -59,7 +59,7 @@ public class RevocationService {
         return new RevocationResponse(revocationHelper.revokeForeignToken(new Token(revocationRequest.getHomeTokenString()), new Token(revocationRequest.getForeignTokenString())), HttpStatus.OK);
     }
 
-    private RevocationResponse adminRevoke(RevocationRequest revocationRequest) throws ValidationException {
+    private RevocationResponse adminRevoke(RevocationRequest revocationRequest) throws ValidationException, WrongCredentialsException {
         if (!revocationRequest.getHomeTokenString().isEmpty()) {
             return new RevocationResponse(this.revocationHelper.revokeHomeTokenByAdmin(revocationRequest.getCredentials(), new Token(revocationRequest.getHomeTokenString())), HttpStatus.OK);
         } else if (!revocationRequest.getCertificatePEMString().isEmpty() ||
@@ -70,7 +70,7 @@ public class RevocationService {
         }
     }
 
-    private RevocationResponse userRevoke(RevocationRequest revocationRequest) throws CertificateException, NotExistingUserException, WrongCredentialsException, ValidationException {
+    private RevocationResponse userRevoke(RevocationRequest revocationRequest) throws CertificateException, NotExistingUserException, WrongCredentialsException, ValidationException, IOException {
         if (!revocationRequest.getCertificatePEMString().isEmpty() ||
                 !revocationRequest.getCertificateCommonName().isEmpty()) {
             return new RevocationResponse(revocationHelper.revokeCertificate(revocationRequest.getCredentials(), new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificateCommonName()), HttpStatus.OK);
