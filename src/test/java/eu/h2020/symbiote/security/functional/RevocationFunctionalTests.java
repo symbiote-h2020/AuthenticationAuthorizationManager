@@ -89,7 +89,7 @@ public class RevocationFunctionalTests extends
         AvailableAAMsCollection aamResponse = AAMClient.getAvailableAAMs();
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
-        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
 
         assertNotNull(csrString);
 
@@ -186,7 +186,7 @@ public class RevocationFunctionalTests extends
         AvailableAAMsCollection aamResponse = AAMClient.getAvailableAAMs();
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
-        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
 
         assertNotNull(csrString);
 
@@ -225,7 +225,7 @@ public class RevocationFunctionalTests extends
         AvailableAAMsCollection aamResponse = AAMClient.getAvailableAAMs();
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
-        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getCertificate().getX509(), username, clientId, pair);
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
 
         assertNotNull(csrString);
 

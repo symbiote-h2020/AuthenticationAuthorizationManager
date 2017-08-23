@@ -2,7 +2,9 @@ package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
+import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
@@ -10,21 +12,25 @@ import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
+import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
+import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -37,14 +43,11 @@ import static org.junit.Assert.assertEquals;
 public class OtherListenersFunctionalTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(OtherListenersFunctionalTests.class);
     private final String recoveryMail = "null@dev.null";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
-    private final String platformOwnerUsername = "testPlatformOwnerUsername";
-    private final String platformOwnerPassword = "testPlatormOwnerPassword";
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
@@ -55,10 +58,8 @@ public class OtherListenersFunctionalTests extends
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
 
-    @Bean
-    DummyPlatformAAM dummyPlatformAAM() {
-        return new DummyPlatformAAM();
-    }
+    @Autowired
+    private ComponentCertificatesRepository componentCertificatesRepository;
 
     @Override
     @Before
@@ -80,7 +81,7 @@ public class OtherListenersFunctionalTests extends
         platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
-                preferredPlatformId);
+                preferredPlatformId, OperationType.CREATE);
     }
 
     /**
@@ -91,6 +92,18 @@ public class OtherListenersFunctionalTests extends
     @Test
     public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
             CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+
+        // injecting core component certificate
+        String componentId = "componentId";
+        ComponentCertificate componentCertificate = new ComponentCertificate(
+                componentId,
+                new Certificate(
+                        CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
+                                "core.p12",
+                                "client-core-1"))));
+        componentCertificatesRepository.save(
+                componentCertificate);
+
         AvailableAAMsCollection response = AAMClient.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
@@ -102,7 +115,11 @@ public class OtherListenersFunctionalTests extends
         assertEquals(coreInterfaceAddress, aam.getAamAddress());
         // maybe we could externalize it to spring config
         assertEquals(SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME, aam.getAamInstanceFriendlyName());
-        assertEquals(certificationAuthorityHelper.getAAMCert(), aam.getCertificate().getCertificateString());
+        assertEquals(certificationAuthorityHelper.getAAMCert(), aam.getAamCACertificate().getCertificateString());
+
+        // should contain one component certificate
+        assertEquals(1, aam.getComponentCertificates().size());
+        assertEquals(componentCertificate.getCertificate().getCertificateString(), aam.getComponentCertificates().get(componentId).getCertificateString());
     }
 
     /**
@@ -111,10 +128,28 @@ public class OtherListenersFunctionalTests extends
      */
     @Test
     public void getAvailableAAMsOverRESTWithRegisteredPlatform() throws SecurityException, IOException,
-            TimeoutException {
+            TimeoutException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException {
+
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
+
+        // inject platform AAM Cert
+        Platform platform = platformRepository.findOne(preferredPlatformId);
+        Certificate platformAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1")));
+        platform.setPlatformAAMCertificate(platformAAMCertificate);
+
+        // inject a component certificate
+        Certificate platformComponentCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1")));
+        platform.getComponentCertificates().put("userId@clientId@platform-1", platformComponentCertificate);
+
+        // save the certs into the repo
+        platformRepository.save(platform);
+
         AvailableAAMsCollection response = AAMClient.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
@@ -133,8 +168,9 @@ public class OtherListenersFunctionalTests extends
         assertEquals(platformInterworkingInterfaceAddress + platformAAMSuffixAtInterWorkingInterface, platformAAM
                 .getAamAddress());
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
-        // TODO we don't know the cert... until R3 when we will know it
-        assertEquals("", platformAAM.getCertificate().getCertificateString());
+        assertEquals(platformAAMCertificate.getCertificateString(), platformAAM.getAamCACertificate().getCertificateString());
+        assertEquals(1, platformAAM.getComponentCertificates().size());
+        assertEquals(platformComponentCertificate.getCertificateString(), platformAAM.getComponentCertificates().get("userId@clientId@platform-1").getCertificateString());
     }
 
     /**
@@ -147,5 +183,15 @@ public class OtherListenersFunctionalTests extends
             NoSuchProviderException, KeyStoreException, IOException, AAMException {
         String componentCertificate = AAMClient.getComponentCertificate();
         assertEquals(certificationAuthorityHelper.getAAMCert(), componentCertificate);
+    }
+
+
+    private X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException, CertificateException, NoSuchAlgorithmException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
     }
 }

@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
+import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
@@ -108,8 +109,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
-    private final String platformOwnerUsername = "testPlatformOwnerUsername";
-    private final String platformOwnerPassword = "testPlatormOwnerPassword";
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
     @Autowired
@@ -179,7 +178,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
-                preferredPlatformId);
+                preferredPlatformId, OperationType.CREATE);
 
         addTestUserWithClientCertificateToRepository();
     }

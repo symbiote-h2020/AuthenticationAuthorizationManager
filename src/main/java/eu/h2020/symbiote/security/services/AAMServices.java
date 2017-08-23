@@ -5,7 +5,9 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
+import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,8 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -36,11 +40,13 @@ public class AAMServices {
 
     private CertificationAuthorityHelper certificationAuthorityHelper;
     private PlatformRepository platformRepository;
+    private ComponentCertificatesRepository componentCertificatesRepository;
 
     @Autowired
-    public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper, PlatformRepository platformRepository) {
+    public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper, PlatformRepository platformRepository, ComponentCertificatesRepository componentCertificatesRepository) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.platformRepository = platformRepository;
+        this.componentCertificatesRepository = componentCertificatesRepository;
     }
 
 
@@ -50,17 +56,24 @@ public class AAMServices {
             // if Core AAM then we know the available AAMs
             Certificate coreCertificate = new Certificate(certificationAuthorityHelper.getAAMCert());
 
+            // adding component certificates
+            Map<String, Certificate> componentsCertificatesMap = new HashMap<>();
+            List<ComponentCertificate> componentCertificatesFromRepository = componentCertificatesRepository.findAll();
+            for (ComponentCertificate certificate : componentCertificatesFromRepository) {
+                componentsCertificatesMap.put(certificate.getName(), certificate.getCertificate());
+            }
+
             // adding core aam info to the response
             availableAAMs.put(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, new AAM(coreInterfaceAddress,
                     SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME,
                     SecurityConstants.AAM_CORE_AAM_INSTANCE_ID,
-                    coreCertificate));
+                    coreCertificate, componentsCertificatesMap));
 
             // registered platforms' AAMs
             for (Platform platform : platformRepository.findAll()) {
                 AAM platformAAM = new AAM(platform.getPlatformInterworkingInterfaceAddress() + platformAAMSuffixAtInterWorkingInterface, platform.getPlatformInstanceFriendlyName(), platform
-                        .getPlatformInstanceId(), platform.getPlatformAAMCertificate());
-                // add the platform AAM entrypoint to the results
+                        .getPlatformInstanceId(), platform.getPlatformAAMCertificate(), platform.getComponentCertificates());
+                // add the platform AAM entry point to the results
                 availableAAMs.put(platformAAM.getAamInstanceId(), platformAAM);
             }
         } else {

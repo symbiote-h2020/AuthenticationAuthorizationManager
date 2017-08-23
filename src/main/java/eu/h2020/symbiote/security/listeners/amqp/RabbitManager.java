@@ -300,7 +300,7 @@ public class RabbitManager {
 
             log.info("Authentication and Authorization Manager waiting for platform registration requests messages");
 
-            Consumer consumer = new PlatformRegistrationRequestConsumerService(channel,
+            Consumer consumer = new PlatformManagementRequestConsumerService(channel,
                     platformsManagementService);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {

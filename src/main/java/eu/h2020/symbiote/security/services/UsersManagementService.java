@@ -111,24 +111,28 @@ public class UsersManagementService {
                 userRepository.save(user);
                 break;
             case UPDATE:
-                user = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
-                // checking if request contains current password
-                if (passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), user.getPasswordEncrypted()))
-                    throw new UserManagementException(HttpStatus.UNAUTHORIZED);
-
-                // update if not empty
-                if (!userManagementRequest.getUserDetails().getCredentials().getPassword().isEmpty())
-                    user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
-                if (!userManagementRequest.getUserDetails().getRecoveryMail().isEmpty())
-                    user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
-
-                userRepository.save(user);
+                update(userManagementRequest);
                 break;
             case DELETE:
                 delete(userManagementRequest.getUserDetails().getCredentials().getUsername());
                 break;
         }
         return ManagementStatus.OK;
+    }
+
+    private void update(UserManagementRequest userManagementRequest) throws UserManagementException {
+        User user = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
+        // checking if request contains current password
+        if (passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), user.getPasswordEncrypted()))
+            throw new UserManagementException(HttpStatus.UNAUTHORIZED);
+
+        // update if not empty
+        if (!userManagementRequest.getUserDetails().getCredentials().getPassword().isEmpty())
+            user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
+        if (!userManagementRequest.getUserDetails().getRecoveryMail().isEmpty())
+            user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
+
+        userRepository.save(user);
     }
 
 

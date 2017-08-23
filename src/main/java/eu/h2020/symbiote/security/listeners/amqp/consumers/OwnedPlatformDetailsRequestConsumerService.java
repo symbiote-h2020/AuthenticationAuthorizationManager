@@ -25,7 +25,10 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * RabbitMQ Consumer implementation used for providing owned platform instances details for the platform owners
@@ -43,7 +46,7 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
      * Constructs a new instance and records its association to the passed-in channel.
      * Managers beans passed as parameters because of lack of possibility to inject it to consumer.
      *
-     * @param channel            the channel to which this consumer is attached
+     * @param channel the channel to which this consumer is attached
      */
     public OwnedPlatformDetailsRequestConsumerService(Channel channel,
                                                       UserRepository userRepository, ValidationHelper validationHelper) {
@@ -93,7 +96,6 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
                 // verify that the token contains the platform owner public key
                 String userFromToken = token.getClaims().getSubject().split("@")[0];
 
-
                 // verify that this JWT contains attributes relevant for platform owner
                 Map<String, String> attributes = claimsFromToken.getAtt();
                 // PO role
@@ -101,20 +103,26 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
                     throw new ValidationException("Missing Platform Owner Role");
 
                 // try to retrieve platform corresponding to this platform owner
-                // TODO @Mikołaj fix to support multilple platforms
-                Platform ownedPlatform = userRepository.findOne(userFromToken).getOwnedPlatforms().values().iterator().next();
-                if (ownedPlatform == null)
-                    throw new ValidationException("Couldn't find platform bound with this Platform Owner");
-                if (!ownedPlatform.getPlatformInstanceId().equals(attributes.get(CoreAttributes.OWNED_PLATFORM
-                        .toString())))
-                    throw new ValidationException("Platform Owner doesn't own the claimed platform");
+                Collection<Platform> ownedPlatforms = userRepository.findOne(userFromToken).getOwnedPlatforms().values();
+                if (ownedPlatforms.isEmpty())
+                    throw new ValidationException("Couldn't find platforms bound with this user");
 
-                OwnedPlatformDetails ownedPlatformDetails = new OwnedPlatformDetails(ownedPlatform
-                        .getPlatformInstanceId(), ownedPlatform.getPlatformInterworkingInterfaceAddress(),
-                        ownedPlatform.getPlatformInstanceFriendlyName());
-                response = om.writeValueAsString(ownedPlatformDetails);
+                Set<OwnedPlatformDetails> ownedPlatformDetailsSet = new HashSet<>();
+                for (Platform ownedPlatform : ownedPlatforms) {
+                    OwnedPlatformDetails ownedPlatformDetails = new OwnedPlatformDetails(
+                            ownedPlatform.getPlatformInstanceId(),
+                            ownedPlatform.getPlatformInterworkingInterfaceAddress(),
+                            ownedPlatform.getPlatformInstanceFriendlyName(),
+                            ownedPlatform.getPlatformAAMCertificate(),
+                            ownedPlatform.getComponentCertificates()
+                    );
+                    ownedPlatformDetailsSet.add(ownedPlatformDetails);
+                }
+
+                // replying with the whole set
+                response = om.writeValueAsString(ownedPlatformDetailsSet);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-                log.debug("Owned Platform Details response: sent back");
+                log.debug("Owned Platforms Details response: sent back");
             } catch (ExpiredJwtException | IOException | MalformedJWTException | ValidationException e) {
                 log.error(e);
                 response = (new ErrorResponseContainer(e.getMessage(), HttpStatus.UNAUTHORIZED.value()).toJson());

@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.functional;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
@@ -48,6 +49,7 @@ import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
@@ -59,14 +61,11 @@ public class TokensIssuingFunctionalTests extends
     private static Log log = LogFactory.getLog(TokensIssuingFunctionalTests.class);
     private final String coreAppUsername = "testCoreAppUsername";
     private final String coreAppPassword = "testCoreAppPassword";
-    private final String recoveryMail = "null@dev.null";
     private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
-    private final String platformOwnerUsername = "testPlatformOwnerUsername";
-    private final String platformOwnerPassword = "testPlatormOwnerPassword";
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
@@ -119,7 +118,7 @@ public class TokensIssuingFunctionalTests extends
         platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
-                preferredPlatformId);
+                preferredPlatformId, OperationType.CREATE);
         platformOwnerKeyPair = CryptoHelper.createKeyPair();
     }
 
@@ -466,15 +465,21 @@ public class TokensIssuingFunctionalTests extends
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
                 (homeToken).getBytes());
-        OwnedPlatformDetails ownedPlatformDetails = mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails.class);
+
+        Set<OwnedPlatformDetails> responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
+        });
+
+        // there should be a platform
+        assertFalse(responseSet.isEmpty());
+        OwnedPlatformDetails platformDetailsFromResponse = responseSet.iterator().next();
 
         Platform ownedPlatformInDB = platformRepository.findOne(preferredPlatformId);
 
         // verify the contents of the response
-        assertEquals(ownedPlatformInDB.getPlatformInstanceFriendlyName(), ownedPlatformDetails
+        assertEquals(ownedPlatformInDB.getPlatformInstanceFriendlyName(), platformDetailsFromResponse
                 .getPlatformInstanceFriendlyName());
-        assertEquals(ownedPlatformInDB.getPlatformInstanceId(), ownedPlatformDetails.getPlatformInstanceId());
-        assertEquals(ownedPlatformInDB.getPlatformInterworkingInterfaceAddress(), ownedPlatformDetails
+        assertEquals(ownedPlatformInDB.getPlatformInstanceId(), platformDetailsFromResponse.getPlatformInstanceId());
+        assertEquals(ownedPlatformInDB.getPlatformInterworkingInterfaceAddress(), platformDetailsFromResponse
                 .getPlatformInterworkingInterfaceAddress());
     }
 

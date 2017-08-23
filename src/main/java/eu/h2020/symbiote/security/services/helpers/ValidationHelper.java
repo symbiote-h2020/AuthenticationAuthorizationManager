@@ -194,7 +194,7 @@ public class ValidationHelper {
             return ValidationStatus.INVALID_TRUST_CHAIN;
         AAM issuerAAM = availableAAMs.get(issuer);
         String aamAddress = issuerAAM.getAamAddress();
-        PublicKey publicKey = issuerAAM.getCertificate().getX509().getPublicKey();
+        PublicKey publicKey = issuerAAM.getAamCACertificate().getX509().getPublicKey();
 
         // check IPK
         if (!Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(claims.get("ipk"))) {

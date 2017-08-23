@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
+import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
@@ -98,7 +99,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
-                preferredPlatformId);
+                preferredPlatformId, OperationType.CREATE);
     }
 
 
@@ -301,6 +302,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
         Platform dummyPlatform = platformRepository.findOne(platformId);
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
+
         platformRepository.save(dummyPlatform);
 
         // adding a dummy foreign rule
