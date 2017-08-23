@@ -12,7 +12,6 @@ import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
-import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -52,17 +51,14 @@ public class TokenIssuer {
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
     private CertificationAuthorityHelper certificationAuthorityHelper;
-    private PlatformRepository platformRepository;
     private KeyPair guestKeyPair;
 
     @Autowired
-    public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper,
-                       PlatformRepository platformRepository) {
+    public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper) {
 
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
-        this.platformRepository = platformRepository;
     }
 
     public static String buildAuthorizationToken(String subject, Map<String, String> attributes, byte[] subjectPublicKey,
@@ -106,7 +102,7 @@ public class TokenIssuer {
      * @return home token issued for given user
      * @throws JWTCreationException on error
      */
-    public Token getHomeToken(User user, String clientId)
+    public Token getHomeToken(User user, String sub, PublicKey issuerPublicKey)
             throws JWTCreationException {
         try {
             Map<String, String> attributes = new HashMap<>();
@@ -118,11 +114,10 @@ public class TokenIssuer {
                             break;
                         case PLATFORM_OWNER:
                             attributes.put(CoreAttributes.ROLE.toString(), UserRole.PLATFORM_OWNER.toString());
-                            attributes.put(CoreAttributes.OWNED_PLATFORM.toString(), platformRepository
-                                    .findByPlatformOwner(user).getPlatformInstanceId());
                             break;
                         case NULL:
-                            throw new JWTCreationException("User Role unspecified");
+                            //TODO consider CoreComponents Atributes
+                            break;
                     }
                     break;
                 case PLATFORM:
@@ -133,9 +128,9 @@ public class TokenIssuer {
             }
             return new Token(buildAuthorizationToken(
                     // HOME SUB: username@clientIdentifier
-                    user.getUsername() + "@" + clientId,
+                    user.getUsername() + "@" + sub,
                     attributes,
-                    user.getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded(),
+                    issuerPublicKey.getEncoded(),
                     Token.Type.HOME,
                     tokenValidity,
                     deploymentId,

@@ -16,10 +16,12 @@ import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
+import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.GetClientCertificateService;
 import eu.h2020.symbiote.security.services.GetTokenService;
-import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
@@ -38,6 +40,7 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.security.auth.x500.X500Principal;
@@ -52,6 +55,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
@@ -77,11 +81,14 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     private TokenIssuer tokenIssuer;
     @Autowired
     private GetTokenService getTokenService;
-    @Autowired
-    private RevocationHelper revocationHelper;
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
+
+    @Autowired
+    ComponentCertificatesRepository componentCertificatesRepository;
+    @Autowired
+    private GetClientCertificateService getClientCertificateService;
 
     @Bean
     DummyPlatformAAM dummyPlatformAAM() {
@@ -120,7 +127,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         addTestUserWithClientCertificateToRepository();
         User user = userRepository.findOne(username);
         assertNotNull(user);
-        Token token = tokenIssuer.getHomeToken(user, clientId);
+        Token token = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
         assertNotNull(token);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.toString());
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
@@ -163,7 +170,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         Platform platform = new Platform("platformInstanceId", null, null, user, null, new HashMap<>());
         platformRepository.save(platform);
 
-        Token token = tokenIssuer.getHomeToken(user, federatedOAuthId);
+        Token token = tokenIssuer.getHomeToken(user, federatedOAuthId, user.getClientCertificates().get(federatedOAuthId).getX509().getPublicKey());
         assertNotNull(token);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.toString());
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
@@ -178,8 +185,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
     }
 
-    @Test(expected = JWTCreationException.class)
-    public void getHomeTokenByPlatformOwnerFailureNoPlatform() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException, CertificateException, KeyStoreException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
+    @Test
+    public void getHomeTokenByPlatformOwnerForComponentSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException, CertificateException, KeyStoreException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, ValidationException {
         //platformOwner registration and certificate
         User user = new User();
         user.setRole(UserRole.PLATFORM_OWNER);
@@ -198,11 +205,33 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
         X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
         String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
-        eu.h2020.symbiote.security.commons.Certificate cert = new Certificate(pem);
+        eu.h2020.symbiote.security.commons.Certificate cert = new eu.h2020.symbiote.security.commons.Certificate(pem);
         user.getClientCertificates().put(federatedOAuthId, cert);
         userRepository.save(user);
 
-        Token token = tokenIssuer.getHomeToken(user, federatedOAuthId);
+        Platform platform = new Platform(federatedOAuthId, null, null, user, null, new HashMap<>());
+        platformRepository.save(platform);
+
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, federatedOAuthId, pair);
+        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        String certificate = getClientCertificateService.getCertificate(certRequest);
+        platform.getComponentCertificates().put(componentId, new Certificate(certificate));
+        platformRepository.save(platform);
+        user.getOwnedPlatforms().put(federatedOAuthId, platform);
+        userRepository.save(user);
+
+        Token token = tokenIssuer.getHomeToken(user, componentId + illegalSign + federatedOAuthId, user.getOwnedPlatforms().get(federatedOAuthId).getComponentCertificates().get(componentId).getX509().getPublicKey());
+        assertNotNull(token);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.toString());
+        assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
+
+        Map<String, String> attributes = claimsFromToken.getAtt();
+        assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+        // verify that the token contains the user public key
+        byte[] userPublicKeyInRepository = user.getOwnedPlatforms().get(federatedOAuthId).getComponentCertificates().get(componentId).getX509().getPublicKey().getEncoded();
+        byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
+        assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
     }
 
     @Test
@@ -342,7 +371,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         assertNotNull(user);
         Token token = null;
         try {
-            token = tokenIssuer.getHomeToken(user, clientId);
+            token = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -393,6 +422,142 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
+    public void getHomeTokenForPlatformOwnerForComponentSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws
+            IOException,
+            TimeoutException,
+            MalformedJWTException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            InvalidKeyException,
+            JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException {
+        // issue platform registration over AMQP
+        User platformOwner = savePlatformOwner();
+        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
+        //platform owner adding
+        platformRepository.save(platform);
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        String certificateString = getClientCertificateService.getCertificate(certRequest);
+        platform.getComponentCertificates().put(componentId, new Certificate(certificateString));
+        platformRepository.save(platform);
+        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        userRepository.save(platformOwner);
+
+        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, componentId + illegalSign + platformId, null, pair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+
+        Token homeToken = getTokenService.getHomeToken(loginRequest);
+        //verify that JWT was issued for user
+        assertNotNull(homeToken);
+
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(homeToken.toString());
+
+        //verify that JWT is of type Core as was released by a CoreAAM
+        assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
+
+        // verify that the token contains the platform owner public key
+        byte[] userPublicKeyInRepository = userRepository.findOne
+                (platformOwnerUsername).getOwnedPlatforms().get(platformId).getComponentCertificates().get(componentId).getX509()
+                .getPublicKey().getEncoded();
+        byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
+        assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
+
+        // verify that this JWT contains attributes relevant for platform owner
+        Map<String, String> attributes = claimsFromToken.getAtt();
+        // PO role
+        assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+    }
+
+    @Test
+    public void getHomeTokenForAdminForComponentSuccess() throws
+            IOException,
+            TimeoutException,
+            MalformedJWTException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            InvalidKeyException,
+            JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException {
+        // issue platform registration over AMQP
+
+        //platform owner adding
+        ComponentCertificate componentCertificate = new ComponentCertificate(
+                componentId,
+                new Certificate(
+                        CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
+                                "core.p12",
+                                "registry-core-1"))));
+        componentCertificatesRepository.save(
+                componentCertificate);
+        HomeCredentials homeCredentials = new HomeCredentials(null, AAMOwnerUsername, componentId + illegalSign + SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, null, (PrivateKey) getPrivateKeyFromTestKeystore(
+                "core.p12",
+                "registry-core-1"));
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+
+        Token homeToken = getTokenService.getHomeToken(loginRequest);
+        //verify that JWT was issued for user
+        assertNotNull(homeToken);
+    }
+
+    @Test(expected = WrongCredentialsException.class)
+    public void getHomeTokenForAdminForComponentFailWrongSign() throws
+            IOException,
+            TimeoutException,
+            MalformedJWTException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            InvalidKeyException,
+            JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException {
+        // issue platform registration over AMQP
+
+        //platform owner adding
+        ComponentCertificate componentCertificate = new ComponentCertificate(
+                componentId,
+                new Certificate(
+                        CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
+                                "core.p12",
+                                "registry-core-1"))));
+        componentCertificatesRepository.save(
+                componentCertificate);
+        HomeCredentials homeCredentials = new HomeCredentials(null, AAMOwnerUsername, componentId + illegalSign + SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+
+        Token homeToken = getTokenService.getHomeToken(loginRequest);
+    }
+
+    @Test(expected = WrongCredentialsException.class)
+    public void getHomeTokenComponentFailWrongCredentials() throws
+            IOException,
+            TimeoutException,
+            MalformedJWTException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            InvalidKeyException,
+            JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException {
+
+        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, componentId + illegalSign + SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+
+        Token homeToken = getTokenService.getHomeToken(loginRequest);
+    }
+    @Test
     @Ignore("Not R2 crucial, at R2 we will issue attributes from properties")
     public void getHomeTokenWithAttributesProvisionedToBeIssuedForGivenUser() throws IOException, TimeoutException {
         /*
@@ -415,5 +580,22 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         */
     }
 
+    private X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException, CertificateException, NoSuchAlgorithmException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
+    }
+
+    private Key getPrivateKeyFromTestKeystore(String keyStoreName, String certificateAlias) throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        return pkcs12Store.getKey(certificateAlias, KEY_STORE_PASSWORD.toCharArray());
+    }
 
 }
