@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.HashMap;
 
 import static org.junit.Assert.*;
 
@@ -174,7 +175,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
 
         User platformOwner = savePlatformOwner();
 
-        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, null, null);
+        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, null, new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -202,7 +203,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
 
         User platformOwner = savePlatformOwner();
 
-        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, null, null);
+        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, null, new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();

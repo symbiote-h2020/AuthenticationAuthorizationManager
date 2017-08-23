@@ -19,7 +19,7 @@ public class Platform {
     private String platformInterworkingInterfaceAddress = "";
     private String platformInstanceFriendlyName = "";
     private Certificate platformAAMCertificate = new Certificate();
-    private Map<String, Certificate> componentCertificates = new HashMap<String, Certificate>();
+    private Map<String, Certificate> componentCertificates = new HashMap<>();
     @DBRef
     private User platformOwner;
 

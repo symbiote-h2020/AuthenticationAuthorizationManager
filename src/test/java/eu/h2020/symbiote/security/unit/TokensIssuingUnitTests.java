@@ -48,6 +48,7 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -159,7 +160,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         user.getClientCertificates().put(federatedOAuthId, cert);
         userRepository.save(user);
 
-        Platform platform = new Platform("platformInstanceId", null, null, user, null, null);
+        Platform platform = new Platform("platformInstanceId", null, null, user, null, new HashMap<>());
         platformRepository.save(platform);
 
         Token token = tokenIssuer.getHomeToken(user, federatedOAuthId);

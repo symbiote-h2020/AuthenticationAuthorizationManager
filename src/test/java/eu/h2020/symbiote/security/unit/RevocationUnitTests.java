@@ -104,7 +104,7 @@ public class RevocationUnitTests extends
     @Test
     public void revokePlatformCertyficateUsingCommonNameSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, null);
+        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -295,7 +295,7 @@ public class RevocationUnitTests extends
     public void revokePlatformCertyficateUsingCertificateSuccess() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
         User platformOwner = savePlatformOwner();
         KeyPair pair = CryptoHelper.createKeyPair();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, null);
+        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
         platformRepository.save(platform);
         //create platform certificate
         String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
@@ -336,7 +336,7 @@ public class RevocationUnitTests extends
     public void revokePlatformCertyficateUsingCertificateFailWrongCertificate() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
         User platformOwner = savePlatformOwner();
         KeyPair pair = CryptoHelper.createKeyPair();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, null);
+        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
         platformRepository.save(platform);
         //create platform certificate
         String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
@@ -440,7 +440,7 @@ public class RevocationUnitTests extends
     @Test
     public void revokePlatformCertyficateUsingCertificateFailNoPlatformOrWrongRole() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, null);
+        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
         platformRepository.save(platform);
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
