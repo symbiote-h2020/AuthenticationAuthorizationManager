@@ -31,9 +31,9 @@ import java.security.cert.X509Certificate;
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 
 /**
- * TODO @Maks finish it! and comment properly
+ * Spring service used to provide client certificates issuing
  *
- * @author Maks Marcinowski (PSNC)
+ * @author Maksymilian Marcinowski (PSNC)
  */
 
 @Service

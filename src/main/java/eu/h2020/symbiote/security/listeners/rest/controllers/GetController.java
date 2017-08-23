@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
+ * Spring controller to handle HTTPS requests related to the RESTful web services associated to certificates issuing.
+ *
  * @author Maks Marcinowski (PSNC)
  */
 
