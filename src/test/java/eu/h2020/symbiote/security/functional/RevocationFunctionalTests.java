@@ -77,7 +77,16 @@ public class RevocationFunctionalTests extends
     }
 
     @Test
-    public void revokeUserCertificateUsingCertificateOverRESTSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException {
+    public void revokeUserCertificateUsingCertificateOverRESTSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException {
 
         User user = new User();
         user.setUsername(username);
@@ -108,7 +117,16 @@ public class RevocationFunctionalTests extends
     }
 
     @Test
-    public void revokePlatformCertificateUsingCertificateOverRESTSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException {
+    public void revokePlatformCertificateUsingCertificateOverRESTSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException {
 
         User user = new User();
         user.setUsername(username);
@@ -116,7 +134,7 @@ public class RevocationFunctionalTests extends
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(user);
-        Platform platform = new Platform(platformId, null, null, user, null, new HashMap<>());
+        Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
         user.getOwnedPlatforms().put(platformId, platform);
         userRepository.save(user);
@@ -149,7 +167,7 @@ public class RevocationFunctionalTests extends
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(user);
-        Platform platform = new Platform(platformId, null, null, user, null, new HashMap<>());
+        Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
         user.getOwnedPlatforms().put(platformId, platform);
         userRepository.save(user);
@@ -253,7 +271,7 @@ public class RevocationFunctionalTests extends
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(user);
-        Platform platform = new Platform(platformId, null, null, user, null, new HashMap<>());
+        Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
         user.getOwnedPlatforms().put(platformId, platform);
         userRepository.save(user);
@@ -286,7 +304,7 @@ public class RevocationFunctionalTests extends
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(user);
-        Platform platform = new Platform(platformId, null, null, user, null, new HashMap<>());
+        Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
         user.getOwnedPlatforms().put(platformId, platform);
         userRepository.save(user);

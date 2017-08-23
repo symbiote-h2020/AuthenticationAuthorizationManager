@@ -251,7 +251,7 @@ public class RevocationHelper {
         if (passwordEncoder.matches(credentials.getPassword(), user.getPasswordEncrypted())) {
             if (!commonName.isEmpty()) {
                 return revokeCertificateUsingCommonName(user, commonName);
-            } else if (certificate != null) {
+            } else if (!certificate.getCertificateString().isEmpty()) {
                 X509Certificate x509Certificate;
                 try {
                     x509Certificate = certificate.getX509();

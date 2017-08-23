@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.functional;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
+import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
@@ -175,7 +176,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
 
         User platformOwner = savePlatformOwner();
 
-        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, null, new HashMap<>());
+        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -203,7 +204,7 @@ public class ClientCertificatesIssuingFunctionalTests extends
 
         User platformOwner = savePlatformOwner();
 
-        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, null, new HashMap<>());
+        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();

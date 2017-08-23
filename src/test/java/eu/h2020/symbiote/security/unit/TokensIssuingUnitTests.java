@@ -107,7 +107,14 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     // test for revokeHomeToken function
 
     @Test
-    public void getGuestTokenSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException {
+    public void getGuestTokenSuccess() throws
+            IOException,
+            TimeoutException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            JWTCreationException,
+            MalformedJWTException {
         Token token = getTokenService.getGuestToken();
         assertNotNull(token);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.toString());
@@ -116,7 +123,19 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getHomeTokenByUserSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException, CertificateException, OperatorCreationException, InvalidKeyException, KeyStoreException, UnrecoverableKeyException {
+    public void getHomeTokenByUserSuccess() throws
+            IOException,
+            TimeoutException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            JWTCreationException,
+            MalformedJWTException,
+            CertificateException,
+            OperatorCreationException,
+            InvalidKeyException,
+            KeyStoreException,
+            UnrecoverableKeyException {
         addTestUserWithClientCertificateToRepository();
         User user = userRepository.findOne(username);
         assertNotNull(user);
@@ -137,7 +156,19 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getHomeTokenByPlatformOwnerSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException, CertificateException, KeyStoreException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
+    public void getHomeTokenByPlatformOwnerSuccess() throws
+            IOException,
+            TimeoutException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            JWTCreationException,
+            MalformedJWTException,
+            CertificateException,
+            KeyStoreException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            InvalidKeyException {
         //platformOwner registration and certificate
         User user = new User();
         user.setRole(UserRole.PLATFORM_OWNER);
@@ -160,7 +191,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         user.getClientCertificates().put(federatedOAuthId, cert);
         userRepository.save(user);
 
-        Platform platform = new Platform("platformInstanceId", null, null, user, null, new HashMap<>());
+        Platform platform = new Platform("platformInstanceId", null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
 
         Token token = tokenIssuer.getHomeToken(user, federatedOAuthId);
@@ -179,7 +210,19 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = JWTCreationException.class)
-    public void getHomeTokenByPlatformOwnerFailureNoPlatform() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException, CertificateException, KeyStoreException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
+    public void getHomeTokenByPlatformOwnerFailureNoPlatform() throws
+            IOException,
+            TimeoutException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            JWTCreationException,
+            MalformedJWTException,
+            CertificateException,
+            KeyStoreException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            InvalidKeyException {
         //platformOwner registration and certificate
         User user = new User();
         user.setRole(UserRole.PLATFORM_OWNER);
@@ -206,7 +249,16 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getHomeTokenSuccess() throws IOException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException {
+    public void getHomeTokenSuccess() throws
+            IOException,
+            CertificateException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            OperatorCreationException,
+            NoSuchProviderException,
+            InvalidKeyException,
+            JWTCreationException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -269,7 +321,19 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getForeignTokenSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException, JWTCreationException {
+    public void getForeignTokenSuccess() throws
+            IOException,
+            ValidationException,
+            TimeoutException,
+            NoSuchProviderException,
+            KeyStoreException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            MalformedJWTException,
+            UnrecoverableKeyException,
+            OperatorCreationException,
+            InvalidKeyException,
+            JWTCreationException {
 
         addTestUserWithClientCertificateToRepository();
         assertNotNull(userRepository.findOne(username));
@@ -320,7 +384,19 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = JWTCreationException.class)
-    public void getForeignTokenFailForUndefinedForeignMapping() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+    public void getForeignTokenFailForUndefinedForeignMapping() throws
+            IOException,
+            ValidationException,
+            TimeoutException,
+            NoSuchProviderException,
+            KeyStoreException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            MalformedJWTException,
+            JWTCreationException,
+            UnrecoverableKeyException,
+            OperatorCreationException,
+            InvalidKeyException {
 
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -335,7 +411,19 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = ValidationException.class)
-    public void getForeignTokenFailsForHomeTokenUsedAsRequest() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+    public void getForeignTokenFailsForHomeTokenUsedAsRequest() throws
+            IOException,
+            ValidationException,
+            TimeoutException,
+            NoSuchProviderException,
+            KeyStoreException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            MalformedJWTException,
+            JWTCreationException,
+            UnrecoverableKeyException,
+            OperatorCreationException,
+            InvalidKeyException {
 
         addTestUserWithClientCertificateToRepository();
         User user = userRepository.findOne(username);
@@ -351,7 +439,19 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = ValidationException.class)
-    public void getForeignTokenFailsPlatformNotRegistered() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+    public void getForeignTokenFailsPlatformNotRegistered() throws
+            IOException,
+            ValidationException,
+            TimeoutException,
+            NoSuchProviderException,
+            KeyStoreException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            MalformedJWTException,
+            JWTCreationException,
+            UnrecoverableKeyException,
+            OperatorCreationException,
+            InvalidKeyException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -367,7 +467,19 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = ValidationException.class)
-    public void getForeignTokenFailsPlatformHasNotCertificate() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, MalformedJWTException, JWTCreationException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+    public void getForeignTokenFailsPlatformHasNotCertificate() throws
+            IOException,
+            ValidationException,
+            TimeoutException,
+            NoSuchProviderException,
+            KeyStoreException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            MalformedJWTException,
+            JWTCreationException,
+            UnrecoverableKeyException,
+            OperatorCreationException,
+            InvalidKeyException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());

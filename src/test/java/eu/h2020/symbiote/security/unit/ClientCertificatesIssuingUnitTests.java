@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
+import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
@@ -256,7 +257,7 @@ public class ClientCertificatesIssuingUnitTests extends
             ValidationException {
         User platformOwner = savePlatformOwner();
         User user = saveUser();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
+        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -437,7 +438,7 @@ public class ClientCertificatesIssuingUnitTests extends
             PlatformManagementException {
 
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
+        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -470,7 +471,7 @@ public class ClientCertificatesIssuingUnitTests extends
             PlatformManagementException {
 
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
+        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -533,7 +534,7 @@ public class ClientCertificatesIssuingUnitTests extends
             ValidationException {
         User platformOwner = savePlatformOwner();
         User user = saveUser();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
+        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -563,7 +564,7 @@ public class ClientCertificatesIssuingUnitTests extends
             PlatformManagementException {
 
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
+        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
