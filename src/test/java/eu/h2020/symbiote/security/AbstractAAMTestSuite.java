@@ -101,6 +101,8 @@ public abstract class AbstractAAMTestSuite {
     protected String userRegistrationRequestQueue;
     @Value("${rabbit.queue.manage.platform.request}")
     protected String platformRegistrationRequestQueue;
+    @Value("${rabbit.queue.manage.revocation.request}")
+    protected String revocationRequestQueue;
     @Value("${rabbit.queue.validate.request}")
     protected String validateRequestQueue;
     @Value("${aam.deployment.owner.username}")

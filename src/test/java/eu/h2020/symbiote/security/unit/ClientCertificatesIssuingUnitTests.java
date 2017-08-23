@@ -2,10 +2,8 @@ package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
-import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
@@ -21,6 +19,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
@@ -44,6 +43,7 @@ import static org.junit.Assert.*;
  * Test suite for generic AAM functionality irrelevant to actual deployment type (Core or Platform)
  *
  * @author Piotr Kicki (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 @TestPropertySource("/core.properties")
 public class ClientCertificatesIssuingUnitTests extends
@@ -211,7 +211,8 @@ public class ClientCertificatesIssuingUnitTests extends
         getClientCertificateService.getCertificate(certRequest);
     }
 
-
+    //TODO add checking, if key is in revocation database
+    @Ignore
     @Test(expected = ValidationException.class)
     public void getClientCertificateRevokedKeyFailure() throws
             InvalidArgumentsException,
@@ -594,37 +595,4 @@ public class ClientCertificatesIssuingUnitTests extends
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
     }
-
-    // test for revoke function
-    //TODO getting certificate
-    @Test
-    public void revokeUserPublicKey() throws
-            SecurityException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException,
-            UnrecoverableKeyException,
-            OperatorCreationException,
-            InvalidKeyException {
-
-        // prepare the user in db
-        addTestUserWithClientCertificateToRepository();
-
-        // verify that app really is in repository
-        User user = userRepository.findOne(username);
-
-        assertNotNull(user);
-
-        // verify the user keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(username));
-        // revocation
-        revocationHelper.revoke(new Credentials(username, password), user.getClientCertificates().entrySet().iterator()
-                .next().getValue(), user.getClientCertificates().keySet().iterator().next().toString());
-
-        // verify the user keys are revoked
-        assertTrue(revokedKeysRepository.exists(username));
-    }
-
 }
