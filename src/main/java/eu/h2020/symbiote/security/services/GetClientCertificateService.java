@@ -91,23 +91,30 @@ public class GetClientCertificateService {
             log.error(e);
             throw new SecurityException(e.getMessage(), e.getCause());
         }
-        //platformComponent
+        // symbiote components
         if (req.getSubject().toString().matches("(CN=)(\\w+)(@)(\\w+)")) {
             String componentId = req.getSubject().toString().split("CN=")[1].split("@")[0];
             String platformId = req.getSubject().toString().split("CN=")[1].split("@")[1];
-            if (componentId.equals(AAM_CORE_AAM_INSTANCE_ID)) {
+
+            if (platformId.equals(AAM_CORE_AAM_INSTANCE_ID)) {
+                // core components
                 if (certificateRequest.getUsername().equals(AAMOwnerUsername) && certificateRequest.getPassword().equals(AAMOwnerPassword)) {
-                    if (!componentCertificatesRepository.exists(componentId))
-                        componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
+                    // TODO replace/revoke if exists!
+                    // uncomment when working if (!componentCertificatesRepository.exists(componentId))
+                    componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
                 }
             } else {
+                // platform component
                 Platform platform = platformRepository.findOne(platformId);
+                if (platform == null)
+                    throw new InvalidArgumentsException();
                 Certificate cert = new Certificate(pem);
+                // todo replace/revoke if exists
                 platform.getComponentCertificates().put(componentId, cert);
                 platformRepository.save(platform);
             }
         }
-        //platform or user
+        // user / platform owner
         else {
             Certificate userCert = user.getClientCertificates().get(certificateRequest.getClientId());
             if (userCert != null) {
@@ -137,6 +144,7 @@ public class GetClientCertificateService {
             }
             userRepository.save(user);
         }
+        // todo store platform AAM cert in Platform#platformAAMCertificate
 
         return pem;
     }
