@@ -3,16 +3,15 @@ package eu.h2020.symbiote.security.services;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.PlatformManagementException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementResponse;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,8 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.HashMap;
+import java.security.cert.CertificateException;
+import java.util.*;
 
 /**
  * Spring service used to manage platforms and their owners in the AAM repository.
@@ -36,6 +35,7 @@ public class PlatformsManagementService {
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RevokedKeysRepository revokedKeysRepository;
 
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
@@ -43,10 +43,12 @@ public class PlatformsManagementService {
     private String AAMOwnerPassword;
 
     @Autowired
-    public PlatformsManagementService(UserRepository userRepository, PlatformRepository platformRepository, PasswordEncoder passwordEncoder) {
+    public PlatformsManagementService(UserRepository userRepository, PlatformRepository platformRepository,
+                                      PasswordEncoder passwordEncoder, RevokedKeysRepository revokedKeysRepository) {
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
         this.passwordEncoder = passwordEncoder;
+        this.revokedKeysRepository = revokedKeysRepository;
     }
 
     public PlatformManagementResponse manage(PlatformManagementRequest platformManagementRequest) throws SecurityException {
@@ -96,8 +98,10 @@ public class PlatformsManagementService {
             case UPDATE:
                 platform = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
 
-                platform.setPlatformInstanceFriendlyName(platformManagementRequest.getPlatformInstanceFriendlyName());
-                platform.setPlatformInterworkingInterfaceAddress(platformManagementRequest.getPlatformInterworkingInterfaceAddress());
+                if (!platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
+                    platform.setPlatformInstanceFriendlyName(platformManagementRequest.getPlatformInstanceFriendlyName());
+                if (!platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
+                    platform.setPlatformInterworkingInterfaceAddress(platformManagementRequest.getPlatformInterworkingInterfaceAddress());
 
                 platformRepository.save(platform);
                 break;
@@ -105,6 +109,30 @@ public class PlatformsManagementService {
             case DELETE:
                 if (!platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
                     throw new PlatformManagementException("Platform doesn't exist", HttpStatus.BAD_REQUEST);
+                Set<String> keys = new HashSet<>();
+                try {
+                    for (Certificate c : platformRepository.findOne(platformManagementRequest.getPlatformInstanceId())
+                            .getComponentCertificates().values()) {
+                        keys.add(Base64.getEncoder().encodeToString(
+                                c.getX509().getPublicKey().getEncoded()));
+                    }
+
+                    // checking if this key contains keys already
+                    SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(platformManagementRequest
+                            .getPlatformOwnerCredentials().getUsername());
+                    if (subjectsRevokedKeys == null)
+                        // no keys exist yet
+                        revokedKeysRepository.save(new SubjectsRevokedKeys(platformManagementRequest
+                                .getPlatformOwnerCredentials().getUsername(), keys));
+                    else {
+                        // extending the existing set
+                        subjectsRevokedKeys.getRevokedKeysSet().addAll(keys);
+                        revokedKeysRepository.save(subjectsRevokedKeys);
+                    }
+                } catch (CertificateException e) {
+                    throw new UserManagementException(e);
+                }
+
                 platformRepository.delete(platformManagementRequest.getPlatformInstanceId());
                 break;
         }

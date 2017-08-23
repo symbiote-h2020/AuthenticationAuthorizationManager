@@ -14,8 +14,6 @@ import org.springframework.web.bind.annotation.RequestBody;
  */
 public interface IGetClientCertificate {
     /**
-     * Exposes a service that allows users to acquire their client certificates.
-     *
      * @param certificateRequest required to issue a certificate for given (username, clientId) tupple.
      * @return the certificate issued using the provided CSR in PEM format
      */
