@@ -6,9 +6,11 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
+import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
@@ -28,6 +30,7 @@ import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
+import static eu.h2020.symbiote.security.commons.SecurityConstants.AAM_CORE_AAM_INSTANCE_ID;
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 
 /**
@@ -42,6 +45,7 @@ public class GetClientCertificateService {
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
     private final RevokedKeysRepository revokedKeysRepository;
+    private final ComponentCertificatesRepository componentCertificatesRepository;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PasswordEncoder passwordEncoder;
     private final RevocationHelper revocationHelper;
@@ -54,12 +58,13 @@ public class GetClientCertificateService {
     @Autowired
     public GetClientCertificateService(UserRepository userRepository, PlatformRepository platformRepository,
                                        RevokedKeysRepository revokedKeysRepository,
-                                       CertificationAuthorityHelper certificationAuthorityHelper,
+                                       ComponentCertificatesRepository componentCertificatesRepository, CertificationAuthorityHelper certificationAuthorityHelper,
                                        PasswordEncoder passwordEncoder,
                                        RevocationHelper revocationHelper) {
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
         this.revokedKeysRepository = revokedKeysRepository;
+        this.componentCertificatesRepository = componentCertificatesRepository;
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.passwordEncoder = passwordEncoder;
         this.revocationHelper = revocationHelper;
@@ -138,6 +143,7 @@ public class GetClientCertificateService {
                 log.error(e);
                 throw new PlatformManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             }
+            componentCertificateStorage(req, certificateRequest, certFromCSR);
         }
         //user
         else {
@@ -153,6 +159,23 @@ public class GetClientCertificateService {
             }
         }
         return certFromCSR;
+    }
+
+    private void componentCertificateStorage(PKCS10CertificationRequest req, CertificateRequest certificateRequest, X509Certificate x509cert) {
+        String componentId = req.getSubject().toString().split("CN=")[1].split("@")[1];
+        if (componentId.equals(AAM_CORE_AAM_INSTANCE_ID)) {
+            if (certificateRequest.getUsername().equals(AAMOwnerUsername) && certificateRequest.getPassword().equals(AAMOwnerPassword)) {
+                String pem;
+                try {
+                    pem = CryptoHelper.convertX509ToPEM(x509cert);
+                } catch (IOException e) {
+                    log.error(e);
+                    throw new SecurityException(e.getMessage(), e.getCause());
+                }
+                if (!componentCertificatesRepository.exists(componentId))
+                    componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
+            }
+        }
     }
 
     public String getCertificate(CertificateRequest certificateRequest) throws
