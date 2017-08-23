@@ -521,7 +521,7 @@ public class RevocationUnitTests extends
         assertNotNull(user);
 
         // acquiring valid token
-        Token homeToken = tokenIssuer.getHomeToken(user, clientId);
+        Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
 
         // verify the user token is not yet revoked
         assertFalse(revokedTokensRepository.exists(homeToken.getClaims().getId()));

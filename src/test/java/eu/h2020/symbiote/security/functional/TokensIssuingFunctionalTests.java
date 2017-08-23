@@ -18,6 +18,7 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.GetClientCertificateService;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
@@ -52,6 +53,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
@@ -80,7 +82,8 @@ public class TokensIssuingFunctionalTests extends
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
     @Autowired
     private PlatformRepository platformRepository;
-
+    @Autowired
+    private GetClientCertificateService getClientCertificateService;
     @Autowired
     private TokenIssuer tokenIssuer;
 
@@ -403,7 +406,65 @@ public class TokensIssuingFunctionalTests extends
         // PO role
         assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
         // owned platform identifier
-        assertEquals(preferredPlatformId, attributes.get(CoreAttributes.OWNED_PLATFORM.toString()));
+    }
+
+    @Test
+    public void getHomeTokenForPlatformOwnerForComponentOverRESTSuccessAndIssuesRelevantTokenTypeWithPOAttributes() throws
+            IOException,
+            TimeoutException,
+            MalformedJWTException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            InvalidKeyException,
+            JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException {
+        // verify that our platform is not in repository and that our platformOwner is in repository
+        assertFalse(platformRepository.exists(preferredPlatformId));
+        assertTrue(userRepository.exists(platformOwnerUsername));
+        // issue platform registration over AMQP
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        User user = userRepository.findOne(platformOwnerUsername);
+        //platform owner adding
+
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, preferredPlatformId, pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        String certificateString = getClientCertificateService.getCertificate(certRequest);
+        Platform platform = platformRepository.findOne(preferredPlatformId);
+        platform.getComponentCertificates().put(componentId, new Certificate(certificateString));
+        platformRepository.save(platform);
+        user.getOwnedPlatforms().put(preferredPlatformId, platform);
+        userRepository.save(user);
+
+        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, componentId + illegalSign + preferredPlatformId, null, pair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+
+        String homeToken = AAMClient.getHomeToken(loginRequest);
+        //verify that JWT was issued for user
+        assertNotNull(homeToken);
+
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(homeToken);
+
+        //verify that JWT is of type Core as was released by a CoreAAM
+        assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
+
+        // verify that the token contains the platform owner public key
+        byte[] userPublicKeyInRepository = userRepository.findOne
+                (platformOwnerUsername).getOwnedPlatforms().get(preferredPlatformId).getComponentCertificates().get(componentId).getX509()
+                .getPublicKey().getEncoded();
+        byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
+        assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
+
+        // verify that this JWT contains attributes relevant for platform owner
+        Map<String, String> attributes = claimsFromToken.getAtt();
+        // PO role
+        assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
     }
 
     /**

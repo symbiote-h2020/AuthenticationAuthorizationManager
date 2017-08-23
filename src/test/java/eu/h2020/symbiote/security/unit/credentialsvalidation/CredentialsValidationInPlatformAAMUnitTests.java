@@ -91,7 +91,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // acquiring valid token
-        Token homeToken = tokenIssuer.getHomeToken(user, clientId);
+        Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
 
         // check if home token is valid
         ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");
@@ -152,7 +152,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         userRepository.save(user);
 
         // acquiring valid token
-        Token homeToken = tokenIssuer.getHomeToken(user, clientId);
+        Token homeToken = tokenIssuer.getHomeToken(user, clientId, cert.getPublicKey());
 
         // check if home token is valid
         ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");

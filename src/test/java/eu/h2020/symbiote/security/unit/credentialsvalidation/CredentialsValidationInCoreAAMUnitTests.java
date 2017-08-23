@@ -200,7 +200,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // acquiring valid token
-        Token homeToken = tokenIssuer.getHomeToken(user, clientId);
+        Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
 
         // check if home token is valid
         ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");
@@ -231,7 +231,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // acquiring valid token
-        Token homeToken = tokenIssuer.getHomeToken(user, clientId);
+        Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
 
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 10);
@@ -251,7 +251,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // acquiring valid token
-        Token homeToken = tokenIssuer.getHomeToken(user, clientId);
+        Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
 
         // delete the user
         usersManagementService.delete(username);
@@ -271,7 +271,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // acquiring valid token
-        Token homeToken = tokenIssuer.getHomeToken(user, clientId);
+        Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
 
         // add token to revoked tokens repository
         revokedTokensRepository.save(homeToken);
@@ -292,7 +292,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // acquiring valid token
-        Token homeToken = tokenIssuer.getHomeToken(user, clientId);
+        Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
         String issuer = JWTEngine.getClaims(homeToken.getToken()).getIssuer();
 
         // verify the issuer keys are not yet revoked

@@ -94,13 +94,13 @@ public class OtherListenersFunctionalTests extends
             CertificateException, NoSuchProviderException, KeyStoreException, IOException {
 
         // injecting core component certificate
-        String componentId = "componentId";
+        String componentId = "registry";
         ComponentCertificate componentCertificate = new ComponentCertificate(
                 componentId,
                 new Certificate(
                         CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
                                 "core.p12",
-                                "client-core-1"))));
+                                "registry-core-1"))));
         componentCertificatesRepository.save(
                 componentCertificate);
 
@@ -144,8 +144,9 @@ public class OtherListenersFunctionalTests extends
         platform.setPlatformAAMCertificate(platformAAMCertificate);
 
         // inject a component certificate
-        Certificate platformComponentCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1")));
-        platform.getComponentCertificates().put("userId@clientId@platform-1", platformComponentCertificate);
+        Certificate platformComponentCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("core.p12",
+                "rap@platform-1-core-1")));
+        platform.getComponentCertificates().put("rap", platformComponentCertificate);
 
         // save the certs into the repo
         platformRepository.save(platform);
@@ -170,7 +171,7 @@ public class OtherListenersFunctionalTests extends
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
         assertEquals(platformAAMCertificate.getCertificateString(), platformAAM.getAamCACertificate().getCertificateString());
         assertEquals(1, platformAAM.getComponentCertificates().size());
-        assertEquals(platformComponentCertificate.getCertificateString(), platformAAM.getComponentCertificates().get("userId@clientId@platform-1").getCertificateString());
+        assertEquals(platformComponentCertificate.getCertificateString(), platformAAM.getComponentCertificates().get("rap").getCertificateString());
     }
 
     /**
