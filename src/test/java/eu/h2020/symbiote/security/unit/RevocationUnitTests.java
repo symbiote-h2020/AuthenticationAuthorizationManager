@@ -841,7 +841,7 @@ public class RevocationUnitTests extends
     public void revokePlatformCertificateUsingCommonNameByAdminSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
         //platform certificate revoking
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
+        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
