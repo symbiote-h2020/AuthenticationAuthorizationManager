@@ -56,6 +56,11 @@ public class RevocationFunctionalTests extends
     @Autowired
     private GetTokenService getTokenService;
 
+    @Value("${aam.deployment.owner.username}")
+    private String AAMOwnerUsername;
+    @Value("${aam.deployment.owner.password}")
+    private String AAMOwnerPassword;
+
 
     @Bean
     DummyPlatformAAM dummyPlatformAAM() {
@@ -391,4 +396,95 @@ public class RevocationFunctionalTests extends
         AAMClient.revoke(revocationRequest);
     }
 
+    @Test
+    public void revokeUserCertificateUsingCertificateOverAMQPByAdminSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException, TimeoutException {
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPasswordEncrypted(passwordEncoder.encode(password));
+        user.setRecoveryMail(recoveryMail);
+        user.setRole(UserRole.USER);
+        userRepository.save(user);
+
+        AvailableAAMsCollection aamResponse = AAMClient.getAvailableAAMs();
+        KeyPair pair = CryptoHelper.createKeyPair();
+        AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
+
+        assertNotNull(csrString);
+
+        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        String clientCertificate = AAMClient.getClientCertificate(certRequest);
+
+        assertNotNull(clientCertificate);
+
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
+        revocationRequest.setCertificatePEMString(clientCertificate);
+
+        assertFalse(revokedKeysRepository.exists(username));
+        byte[] response = revocationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (revocationRequest).getBytes());
+        RevocationResponse revocationResponse = mapper.readValue(response,
+                RevocationResponse.class);
+
+        assertTrue(revocationResponse.isRevoked());
+        assertEquals(HttpStatus.OK, revocationResponse.getStatus());
+        assertTrue(revokedKeysRepository.exists(username));
+    }
+
+    @Test
+    public void revokeHomeTokenOverAMQPByAdminSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException, TimeoutException, OperatorCreationException, InvalidKeyException, KeyStoreException, UnrecoverableKeyException, JWTCreationException, MalformedJWTException {
+
+        addTestUserWithClientCertificateToRepository();
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+
+        String homeToken = AAMClient.getHomeToken(loginRequest);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(homeToken);
+        // As the AAM is now configured as core we confirm that relevant token type was issued.
+        assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
+        revocationRequest.setHomeTokenString(homeToken);
+
+        assertFalse(revokedTokensRepository.exists(new Token(homeToken).getId()));
+        byte[] response = revocationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (revocationRequest).getBytes());
+        RevocationResponse revocationResponse = mapper.readValue(response,
+                RevocationResponse.class);
+
+        assertTrue(revocationResponse.isRevoked());
+        assertEquals(HttpStatus.OK, revocationResponse.getStatus());
+        assertTrue(revokedTokensRepository.exists(new Token(homeToken).getId()));
+    }
+
+    @Test
+    public void revokeOverAMQPByAdminFailEmptyRequestOrBadAdminCredentials() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException, TimeoutException, OperatorCreationException, InvalidKeyException, KeyStoreException, UnrecoverableKeyException, JWTCreationException, MalformedJWTException {
+
+
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
+
+        byte[] response = revocationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (revocationRequest).getBytes());
+        RevocationResponse revocationResponse = mapper.readValue(response,
+                RevocationResponse.class);
+
+        assertFalse(revocationResponse.isRevoked());
+        assertEquals(HttpStatus.BAD_REQUEST, revocationResponse.getStatus());
+
+        revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, password));
+        response = revocationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (revocationRequest).getBytes());
+        revocationResponse = mapper.readValue(response,
+                RevocationResponse.class);
+
+        assertFalse(revocationResponse.isRevoked());
+        assertEquals(HttpStatus.BAD_REQUEST, revocationResponse.getStatus());
+
+    }
 }

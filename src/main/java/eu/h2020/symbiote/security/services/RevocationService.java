@@ -10,7 +10,9 @@ import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
 import eu.h2020.symbiote.security.communication.payloads.RevocationResponse;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -28,8 +30,15 @@ import java.security.cert.CertificateException;
 public class RevocationService {
     private RevocationHelper revocationHelper;
 
+    private final PasswordEncoder passwordEncoder;
+    @Value("${aam.deployment.owner.username}")
+    private String AAMOwnerUsername;
+    @Value("${aam.deployment.owner.password}")
+    private String AAMOwnerPassword;
+
     @Autowired
-    public RevocationService(RevocationHelper revocationHelper) {
+    public RevocationService(RevocationHelper revocationHelper, PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
         this.revocationHelper = revocationHelper;
     }
 
@@ -42,13 +51,14 @@ public class RevocationService {
                     return adminRevoke(revocationRequest);
                 case NULL:
                     return noCredentialTypeRevoke(revocationRequest);
+                default:
+                    return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
             }
-        } catch (CertificateException | NoSuchAlgorithmException | KeyStoreException | NoSuchProviderException | IOException e) {
+        } catch (CertificateException | NoSuchAlgorithmException | KeyStoreException | NoSuchProviderException | IOException | IllegalArgumentException e) {
             return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
         } catch (WrongCredentialsException | ValidationException | NotExistingUserException | MalformedJWTException e) {
             return new RevocationResponse(false, e.getStatusCode());
         }
-        return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
     }
 
     private RevocationResponse noCredentialTypeRevoke(RevocationRequest revocationRequest) throws ValidationException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, MalformedJWTException, IOException {
@@ -59,17 +69,22 @@ public class RevocationService {
         return new RevocationResponse(revocationHelper.revokeForeignToken(new Token(revocationRequest.getHomeTokenString()), new Token(revocationRequest.getForeignTokenString())), HttpStatus.OK);
     }
 
-    private RevocationResponse adminRevoke(RevocationRequest revocationRequest) throws ValidationException, WrongCredentialsException {
-        if (!revocationRequest.getHomeTokenString().isEmpty()) {
-            return new RevocationResponse(this.revocationHelper.revokeHomeTokenByAdmin(revocationRequest.getCredentials(), new Token(revocationRequest.getHomeTokenString())), HttpStatus.OK);
-        } else if (!revocationRequest.getCertificatePEMString().isEmpty() ||
-                !revocationRequest.getCertificateCommonName().isEmpty()) {
-            return new RevocationResponse(this.revocationHelper.revokeCertificateAdmin(revocationRequest.getCredentials(), new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificateCommonName()), HttpStatus.OK);
+    private RevocationResponse adminRevoke(RevocationRequest revocationRequest) throws ValidationException, WrongCredentialsException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, MalformedJWTException, IOException, NotExistingUserException {
+        if (passwordEncoder.matches(revocationRequest.getCredentials().getPassword(), passwordEncoder.encode(AAMOwnerPassword))) {
+            if (!revocationRequest.getHomeTokenString().isEmpty()) {
+                return new RevocationResponse(this.revocationHelper.revokeHomeTokenByAdmin(revocationRequest.getHomeTokenString()), HttpStatus.OK);
+            } else if (!revocationRequest.getCertificatePEMString().isEmpty() ||
+                    !revocationRequest.getCertificateCommonName().isEmpty()) {
+                return new RevocationResponse(this.revocationHelper.revokeCertificateByAdmin(new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificateCommonName()), HttpStatus.OK);
+            } else {
+                return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
+            }
         } else {
             return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
         }
     }
 
+    //TODO check credentials here
     private RevocationResponse userRevoke(RevocationRequest revocationRequest) throws CertificateException, NotExistingUserException, WrongCredentialsException, ValidationException, IOException {
         if (!revocationRequest.getCertificatePEMString().isEmpty() ||
                 !revocationRequest.getCertificateCommonName().isEmpty()) {
