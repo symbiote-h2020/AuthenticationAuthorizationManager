@@ -420,7 +420,7 @@ public class TokensIssuingFunctionalTests extends
             OperatorCreationException,
             UnrecoverableKeyException,
             InvalidKeyException,
-            JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException {
+            JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));

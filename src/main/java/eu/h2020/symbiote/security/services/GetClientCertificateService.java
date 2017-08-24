@@ -17,6 +17,8 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,8 +30,10 @@ import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 
 import static eu.h2020.symbiote.security.commons.SecurityConstants.AAM_CORE_AAM_INSTANCE_ID;
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
@@ -76,7 +80,8 @@ public class GetClientCertificateService {
             NotExistingUserException,
             InvalidArgumentsException,
             UserManagementException,
-            PlatformManagementException {
+            PlatformManagementException,
+            ValidationException {
 
 
         User user = requestValidationCheck(certificateRequest);
@@ -298,7 +303,8 @@ public class GetClientCertificateService {
 
     private User requestValidationCheck(CertificateRequest certificateRequest) throws
             WrongCredentialsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            ValidationException {
 
         User user = userRepository.findOne(certificateRequest.getUsername());
 
@@ -307,7 +313,19 @@ public class GetClientCertificateService {
 
         if (!passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
             throw new WrongCredentialsException();
-        //TODO check if key sent in certificate is revoked
+
+        try {
+            PKCS10CertificationRequest req = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
+            SubjectPublicKeyInfo pkInfo = req.getSubjectPublicKeyInfo();
+            JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
+            PublicKey pubKey = converter.getPublicKey(pkInfo);
+            if (revokedKeysRepository.findOne(user.getUsername()) != null
+                    && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                throw new ValidationException("Key revoked");
+            }
+        } catch (IOException e) {
+            throw new SecurityException();
+        }
         return user;
     }
 

@@ -20,7 +20,6 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
@@ -209,8 +208,6 @@ public class ClientCertificatesIssuingUnitTests extends
         getClientCertificateService.getCertificate(certRequest);
     }
 
-    //TODO add checking, if key is in revocation database
-    @Ignore
     @Test(expected = ValidationException.class)
     public void getClientCertificateRevokedKeyFailure() throws
             InvalidArgumentsException,

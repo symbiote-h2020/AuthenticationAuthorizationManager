@@ -854,7 +854,7 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokePlatformComponentCertificateUsingCommonNameByAdminSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException {
+    public void revokePlatformComponentCertificateUsingCommonNameByAdminSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, ValidationException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
         platformRepository.save(platform);
@@ -909,7 +909,7 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokeAAMComponentCertificateUsingCertificateByAdminSuccessKeyIsRevoked() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException, UnrecoverableKeyException {
+    public void revokeAAMComponentCertificateUsingCertificateByAdminSuccessKeyIsRevoked() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException, UnrecoverableKeyException, ValidationException {
         String cert = CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
                 "core.p12",
                 "registry-core-1"));
