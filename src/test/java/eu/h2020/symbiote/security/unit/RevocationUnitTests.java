@@ -112,19 +112,7 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokePlatformCertificateUsingCommonNameSuccess() throws
-            InvalidAlgorithmParameterException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            CertificateException,
-            KeyStoreException,
-            IOException,
-            WrongCredentialsException,
-            UserManagementException,
-            ValidationException,
-            PlatformManagementException,
-            InvalidArgumentsException,
-            NotExistingUserException {
+    public void revokePlatformCertyficateUsingCommonNameSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -148,28 +136,21 @@ public class RevocationUnitTests extends
         assertFalse(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
         assertNull(revokedKeysRepository.findOne(platformId));
 
-        revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), null, platformId);
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificateCommonName(platformId);
+
+        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
 
         assertTrue(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
         assertTrue(revokedKeysRepository.findOne(platformId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
     }
 
     @Test
-    public void revokePlatformComponentCertificateUsingCommonNameSuccess() throws
-            InvalidAlgorithmParameterException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            CertificateException,
-            KeyStoreException,
-            IOException,
-            WrongCredentialsException,
-            UserManagementException,
-            ValidationException,
-            PlatformManagementException,
-            InvalidArgumentsException,
-            NotExistingUserException {
+    public void revokePlatformComponentCertyficateUsingCommonNameSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
+        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
         platformRepository.save(platform);
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
@@ -187,7 +168,12 @@ public class RevocationUnitTests extends
         assertNotNull(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getComponentCertificates().get(componentId));
         assertNull(revokedKeysRepository.findOne(platformId));
 
-        revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), null, commonName);
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificateCommonName(commonName);
+
+        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
 
         assertNull(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getComponentCertificates().get(componentId));
         assertTrue(revokedKeysRepository.findOne(componentId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
@@ -204,18 +190,15 @@ public class RevocationUnitTests extends
         User user = userRepository.findOne(appUsername);
         assertNotNull(user.getClientCertificates().get(clientId));
         String commonName = appUsername + illegalSign + clientId;
-        try {
-            revocationHelper.revokeCertificate(new Credentials(wrongusername, password), null, commonName);
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(NotExistingUserException.class, e.getClass());
-        }
-        try {
-            revocationHelper.revokeCertificate(new Credentials(appUsername, wrongpassword), null, commonName);
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(WrongCredentialsException.class, e.getClass());
-        }
+
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificateCommonName(commonName);
+        revocationRequest.setCredentials(new Credentials(wrongusername, password));
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
+
+        revocationRequest.setCredentials(new Credentials(appUsername, wrongpassword));
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
     }
 
     @Test
@@ -229,77 +212,54 @@ public class RevocationUnitTests extends
         User user = userRepository.findOne(appUsername);
         assertNotNull(user.getClientCertificates().get(clientId));
         String commonName = wrongusername + illegalSign + clientId;
-        try {
-            revocationHelper.revokeCertificate(new Credentials(appUsername, password), null, commonName);
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(SecurityException.class, e.getClass());
-        }
+
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificateCommonName(commonName);
+        revocationRequest.setCredentials(new Credentials(appUsername, password));
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
+
         commonName = appUsername + illegalSign + wrongClientId;
-        try {
-            revocationHelper.revokeCertificate(new Credentials(appUsername, password), null, commonName);
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(WrongCredentialsException.class, e.getClass());
-        }
+        revocationRequest.setCertificateCommonName(commonName);
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
+
         commonName = clientId;
-        try {
-            revocationHelper.revokeCertificate(new Credentials(appUsername, password), null, commonName);
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(SecurityException.class, e.getClass());
-        }
+        revocationRequest.setCertificateCommonName(commonName);
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
     }
 
     @Test
-    public void revokeCertificateFailsUsingWrongCommonNameAsPlatformOwner() throws
-            InvalidAlgorithmParameterException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            CertificateException,
-            KeyStoreException,
-            IOException,
-            WrongCredentialsException,
-            UserManagementException,
-            ValidationException,
-            PlatformManagementException,
-            InvalidArgumentsException,
-            NotExistingUserException {
+    public void revokeCertificateFailsUsingWrongCommonNameAsPlatformOwner() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
         User platformOwner = savePlatformOwner();
         String commonName = platformId;
-        try {
-            revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), null, commonName);
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(WrongCredentialsException.class, e.getClass());
-        }
+
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificateCommonName(commonName);
+        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
+
         commonName = componentId + illegalSign + platformId;
-        try {
-            revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), null, commonName);
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(WrongCredentialsException.class, e.getClass());
-        }
+
+        revocationRequest.setCertificateCommonName(commonName);
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
+
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        try {
-            revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), null, commonName);
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(WrongCredentialsException.class, e.getClass());
-        }
+
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
     }
 
     @Test
     public void revokeCertificateFailsUsingWrongCommonName() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
         saveUser();
         String commonName = clientId + illegalSign + username + illegalSign + platformId;
-        try {
-            revocationHelper.revokeCertificate(new Credentials(appUsername, password), null, commonName);
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(WrongCredentialsException.class, e.getClass());
-        }
+
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificateCommonName(commonName);
+        revocationRequest.setCredentials(new Credentials(appUsername, password));
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
     }
 
     @Test
@@ -317,7 +277,11 @@ public class RevocationUnitTests extends
         //check if there is revoked key for user
         assertNull(revokedKeysRepository.findOne(appUsername));
         //check if revocation ended with success using certificate
-        assertTrue(revocationHelper.revokeCertificate(new Credentials(appUsername, password), new Certificate(certificate), ""));
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificatePEMString(certificate);
+        revocationRequest.setCredentials(new Credentials(appUsername, password));
+        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
         //check if there is not user certificate in database
         assertNull(userRepository.findOne(appUsername).getClientCertificates().get(clientId));
         //check if there is revoked key for user
@@ -332,13 +296,12 @@ public class RevocationUnitTests extends
         //check if there is user certificate in database
         assertNotNull(userRepository.findOne(appUsername).getClientCertificates().get(clientId));
         //check if revocation ended with success using certificate with revoked key
-        assertTrue(revocationHelper.revokeCertificate(new Credentials(appUsername, password), new Certificate(certificate), ""));
 
-
+        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
     }
 
     @Test
-    public void revokePlatformCertificateUsingCertificateSuccess() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
+    public void revokePlatformCertyficateUsingCertificateSuccess() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
         User platformOwner = savePlatformOwner();
         KeyPair pair = CryptoHelper.createKeyPair();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
@@ -357,7 +320,11 @@ public class RevocationUnitTests extends
         //check if there is any revoked key for platformId
         assertNull(revokedKeysRepository.findOne(platformId));
         //check if revocation ended with success
-        assertTrue(revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), new Certificate(certificate), ""));
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificatePEMString(certificate);
+        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
+        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
         //check if there isn't platform certificate in database
         assertTrue(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
         //check if there is revoked key for platformId
@@ -375,11 +342,11 @@ public class RevocationUnitTests extends
         //check if there is platform certificate in database
         assertFalse(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
         //check if revocation ended with success using certificate with revoked key
-        assertTrue(revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), new Certificate(certificate), ""));
+        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
     }
 
-    @Test(expected = WrongCredentialsException.class)
-    public void revokePlatformCertificateUsingCertificateFailWrongCertificate() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
+    @Test
+    public void revokePlatformCertyficateUsingCertificateFailWrongCertificate() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
         User platformOwner = savePlatformOwner();
         KeyPair pair = CryptoHelper.createKeyPair();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
@@ -407,11 +374,16 @@ public class RevocationUnitTests extends
         //check if there is platform certificate in database
         assertFalse(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
         //check if revocation ended with success using certificate with revoked key
-        revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), new Certificate(certificateNew), "");
+
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificatePEMString(certificateNew);
+        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
     }
 
     @Test
-    public void revokePlatformComponentCertificateUsingCertificateSuccess() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
+    public void revokePlatformComponentCertyficateUsingCertificateSuccess() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
         User platformOwner = savePlatformOwner();
         KeyPair pair = CryptoHelper.createKeyPair();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
@@ -432,7 +404,11 @@ public class RevocationUnitTests extends
         //check if there is any revoked key for platformId
         assertNull(revokedKeysRepository.findOne(platformId));
         //check if revocation ended with success
-        assertTrue(revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), new Certificate(certificate), ""));
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificatePEMString(certificate);
+        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
+        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
         //check if there isn't component certificate in platform database
         assertNull(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getComponentCertificates().get(componentId));
         //check if there is revoked key for platformId
@@ -450,13 +426,13 @@ public class RevocationUnitTests extends
         //check if there is component certificate in database
         assertNotNull(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getComponentCertificates().get(componentId));
         //check if revocation ended with success using certificate with revoked key
-        assertTrue(revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), new Certificate(certificate), ""));
+        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
 
     }
 
 
     @Test
-    public void revokeUserCertificateUsingCertificateFailWrongCertificate() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
+    public void revokeUserCertyficateUsingCertificateFailWrongCertificate() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -468,27 +444,24 @@ public class RevocationUnitTests extends
         user.getClientCertificates().remove(clientId);
         userRepository.save(user);
 
-        try {
-            revocationHelper.revokeCertificate(new Credentials(appUsername, password), new Certificate(certificateString), "");
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(CertificateException.class, e.getClass());
-        }
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificatePEMString(certificateString);
+        revocationRequest.setCredentials(new Credentials(appUsername, password));
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
+
         pair = CryptoHelper.createKeyPair();
         csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), wrongusername, clientId, pair);
         assertNotNull(csrString);
         certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
         certificateString = getClientCertificateService.getCertificate(certRequest);
-        try {
-            revocationHelper.revokeCertificate(new Credentials(appUsername, password), new Certificate(certificateString), "");
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(WrongCredentialsException.class, e.getClass());
-        }
+        revocationRequest.setCertificatePEMString(certificateString);
+        revocationRequest.setCredentials(new Credentials(appUsername, password));
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
     }
 
     @Test
-    public void revokePlatformCertificateUsingCertificateFailNoPlatformOrWrongRole() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
+    public void revokePlatformCertyficateUsingCertificateFailNoPlatformOrWrongRole() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -497,33 +470,27 @@ public class RevocationUnitTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
         String certificateString = getClientCertificateService.getCertificate(certRequest);
-        try {
-            revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), new Certificate(certificateString), "");
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(WrongCredentialsException.class, e.getClass());
-        }
+
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificatePEMString(certificateString);
+        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
+
         platformOwner.setRole(UserRole.USER);
         userRepository.save(platformOwner);
-        try {
-            revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), new Certificate(certificateString), "");
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(SecurityException.class, e.getClass());
-        }
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
 
     }
 
     @Test
     public void revokeCertificateUsingCertificateFailEmptyCertificateSent() {
         savePlatformOwner();
-        try {
-            revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), new Certificate(), "");
-            fail("No exception detected");
-        } catch (Exception e) {
-            assertEquals(CertificateException.class, e.getClass());
-            assertEquals("Empty CN and cert", e.getMessage());
-        }
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificatePEMString("");
+        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
     }
 
     @Test
@@ -540,7 +507,11 @@ public class RevocationUnitTests extends
         // verify the user token is not yet revoked
         assertFalse(revokedTokensRepository.exists(homeToken.getClaims().getId()));
         // revocation
-        revocationHelper.revokeHomeToken(new Credentials(username, password), homeToken);
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setHomeTokenString(homeToken.toString());
+        revocationRequest.setCredentials(new Credentials(username, password));
+        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
 
         // verify the user token is revoked
         assertTrue(revokedTokensRepository.exists(homeToken.getClaims().getId()));
@@ -647,11 +618,15 @@ public class RevocationUnitTests extends
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
         // ensure that token is not in revoked token repository
         assertFalse(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
-        revocationHelper.revokeHomeToken(new Credentials(platformOwnerUsername, platformOwnerPassword), dummyHomeToken);
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setHomeTokenString(dummyHomeToken.toString());
+        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
+        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
         assertTrue(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
     }
 
-    @Test(expected = ValidationException.class)
+    @Test
     public void revokeHomeTokenByPlatformFailNoRightsToToken() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException, OperatorCreationException, UnrecoverableKeyException, JWTCreationException, InvalidAlgorithmParameterException, InvalidArgumentsException, PlatformManagementException, UserManagementException, MalformedJWTException, ClassNotFoundException {    // issuing dummy platform token
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
@@ -677,7 +652,11 @@ public class RevocationUnitTests extends
         // ensure that token is not in revoked token repository
         assertFalse(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
         // revocation
-        revocationHelper.revokeHomeToken(new Credentials(platformOwnerUsername, platformOwnerPassword), dummyHomeToken);
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setHomeTokenString(dummyHomeToken.toString());
+        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
     }
 
     @Test
