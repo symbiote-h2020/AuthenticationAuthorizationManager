@@ -547,6 +547,52 @@ public class ClientCertificatesIssuingUnitTests extends
     }
 
     @Test
+    public void replacePlatformComponentCertificateSuccess() throws
+            IOException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            InvalidAlgorithmParameterException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            InvalidArgumentsException,
+            ValidationException,
+            UserManagementException,
+            PlatformManagementException {
+
+        User platformOwner = savePlatformOwner();
+        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
+        platformRepository.save(platform);
+
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        String certificate = getClientCertificateService.getCertificate(certRequest);
+
+        assertTrue(certificate.contains("BEGIN CERTIFICATE"));
+        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + componentId + illegalSign + platformId, x509Certificate.getSubjectDN().getName());
+        // -1 for intermediate CA certificate
+        assertEquals(-1, x509Certificate.getBasicConstraints());
+
+        //pair = CryptoHelper.createKeyPair();
+        csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
+        assertNotNull(csrString);
+        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        certificate = getClientCertificateService.getCertificate(certRequest);
+
+        assertTrue(certificate.contains("BEGIN CERTIFICATE"));
+        x509Certificate = CryptoHelper.convertPEMToX509(certificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + componentId + illegalSign + platformId, x509Certificate.getSubjectDN().getName());
+        // -1 for intermediate CA certificate
+        assertEquals(-1, x509Certificate.getBasicConstraints());
+    }
+
+
+    @Test
     public void replacePlatformCertificateSuccess() throws
             IOException,
             NoSuchAlgorithmException,

@@ -122,9 +122,30 @@ public class GetClientCertificateService {
         if (platformId.equals(AAM_CORE_AAM_INSTANCE_ID)) {
             // core components
             if (certificateRequest.getUsername().equals(AAMOwnerUsername) && certificateRequest.getPassword().equals(AAMOwnerPassword)) {
-                // TODO replace/revoke if exists!
-                // uncomment when working if (!componentCertificatesRepository.exists(componentId))
-                componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
+                ComponentCertificate platformCoreComponentCert = componentCertificatesRepository.findOne(componentId);
+                if (platformCoreComponentCert != null) {
+                    X509Certificate x509Component;
+                    try {
+                        x509Component = platformCoreComponentCert.getCertificate().getX509();
+                    } catch (CertificateException e) {
+                        log.error(e);
+                        throw new SecurityException(e.getMessage(), e.getCause());
+                    }
+                    if (x509Component.getPublicKey().equals(certFromCSR.getPublicKey())) {
+                        componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
+                    } else {
+                        RevocationRequest revocationRequest = new RevocationRequest();
+                        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+                        revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
+                        revocationRequest.setCertificateCommonName(componentId + illegalSign + platformId);
+                        if (!revocationService.revoke(revocationRequest).isRevoked()) {
+                            throw new SecurityException();
+                        }
+                        componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
+                    }
+                } else {
+                    componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
+                }
             }
         } else {
             // platform component

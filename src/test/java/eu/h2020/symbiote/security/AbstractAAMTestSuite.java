@@ -12,10 +12,7 @@ import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.listeners.amqp.RabbitManager;
-import eu.h2020.symbiote.security.repositories.PlatformRepository;
-import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
-import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
-import eu.h2020.symbiote.security.repositories.UserRepository;
+import eu.h2020.symbiote.security.repositories.*;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
@@ -84,6 +81,8 @@ public abstract class AbstractAAMTestSuite {
     protected RevokedKeysRepository revokedKeysRepository;
     @Autowired
     protected PlatformRepository platformRepository;
+    @Autowired
+    protected ComponentCertificatesRepository componentCertificatesRepository;
     @Autowired
     protected RabbitManager rabbitManager;
     @Autowired
