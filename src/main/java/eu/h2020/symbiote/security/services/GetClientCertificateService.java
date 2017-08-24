@@ -175,7 +175,7 @@ public class GetClientCertificateService {
                 platform.setPlatformAAMCertificate(new Certificate(pem));
             } else {
                 try {
-                    revocationHelper.revokeCertificate(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()), platformCert, platformId);
+                    revocationHelper.revokeCertificate(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()), platform.getPlatformAAMCertificate(), platformId);
                 } catch (CertificateException | IOException e) {
                     log.error(e);
                     throw new SecurityException(e.getMessage(), e.getCause());
@@ -223,7 +223,7 @@ public class GetClientCertificateService {
     }
 
 
-    private X509Certificate certFromCSRCreation(CertificateRequest certificateRequest, PKCS10CertificationRequest req) throws
+    public X509Certificate certFromCSRCreation(CertificateRequest certificateRequest, PKCS10CertificationRequest req) throws
             InvalidArgumentsException, UserManagementException, PlatformManagementException {
         X509Certificate certFromCSR;
 

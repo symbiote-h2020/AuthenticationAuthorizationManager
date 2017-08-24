@@ -19,12 +19,12 @@ import org.springframework.web.bind.annotation.RestController;
  */
 
 @RestController
-public class GetController implements IGetClientCertificate {
-    private static final Log log = LogFactory.getLog(GetController.class);
+public class GetCertificateController implements IGetClientCertificate {
+    private static final Log log = LogFactory.getLog(GetCertificateController.class);
     private GetClientCertificateService getClientCertificateService;
 
     @Autowired
-    public GetController(GetClientCertificateService getClientCertificateService) {
+    public GetCertificateController(GetClientCertificateService getClientCertificateService) {
         this.getClientCertificateService = getClientCertificateService;
     }
 

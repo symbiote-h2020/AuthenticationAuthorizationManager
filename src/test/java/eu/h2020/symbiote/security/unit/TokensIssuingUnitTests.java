@@ -217,7 +217,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getHomeTokenByPlatformOwnerForComponentSuccess() throws IOException, TimeoutException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, JWTCreationException, MalformedJWTException, CertificateException, KeyStoreException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, ValidationException {
+    public void getHomeTokenByPlatformOwnerForComponentSuccess() throws
             IOException,
             TimeoutException,
             InvalidAlgorithmParameterException,
@@ -229,7 +229,12 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             KeyStoreException,
             OperatorCreationException,
             UnrecoverableKeyException,
-            InvalidKeyException {
+            InvalidKeyException,
+            InvalidArgumentsException,
+            UserManagementException,
+            WrongCredentialsException,
+            PlatformManagementException,
+            NotExistingUserException {
         //platformOwner registration and certificate
         User user = new User();
         user.setRole(UserRole.PLATFORM_OWNER);
@@ -252,7 +257,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         user.getClientCertificates().put(federatedOAuthId, cert);
         userRepository.save(user);
 
-        Platform platform = new Platform(federatedOAuthId, null, null, user, null, new HashMap<>());
+        Platform platform = new Platform(federatedOAuthId, null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();

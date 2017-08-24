@@ -22,6 +22,7 @@ import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM2;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -31,6 +32,7 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.concurrent.TimeoutException;
@@ -387,18 +389,21 @@ public class RevocationUnitTests extends
         pair = CryptoHelper.createKeyPair();
         csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
         certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateNew = getClientCertificateService.getCertificate(certRequest);
+
+        PKCS10CertificationRequest req = CryptoHelper.convertPemToPKCS10CertificationRequest(certRequest.getClientCSRinPEMFormat());
+        X509Certificate certFromCSR = getClientCertificateService.certFromCSRCreation(certRequest, req);
+        String certificateNew = CryptoHelper.convertX509ToPEM(certFromCSR);
+
 
         //revoke certificate using revoked certificate
         //check if there is platform certificate in database
         assertFalse(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
         //check if revocation ended with success using certificate with revoked key
         revocationHelper.revokeCertificate(new Credentials(platformOwnerUsername, platformOwnerPassword), new Certificate(certificateNew), "");
-
     }
 
     @Test
-    public void revokePlatformComponentCertyficateUsingCertificateSuccess() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
+    public void revokePlatformComponentCertificateUsingCertificateSuccess() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
         User platformOwner = savePlatformOwner();
         KeyPair pair = CryptoHelper.createKeyPair();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
@@ -509,6 +514,7 @@ public class RevocationUnitTests extends
             fail("No exception detected");
         } catch (Exception e) {
             assertEquals(CertificateException.class, e.getClass());
+            assertEquals("Empty CN and cert", e.getMessage());
         }
     }
 

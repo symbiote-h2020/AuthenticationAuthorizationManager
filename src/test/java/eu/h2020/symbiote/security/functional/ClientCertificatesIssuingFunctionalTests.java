@@ -204,8 +204,10 @@ public class ClientCertificatesIssuingFunctionalTests extends
 
         User platformOwner = savePlatformOwner();
 
-        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, new Certificate(), new HashMap<>());
+        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
+        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);

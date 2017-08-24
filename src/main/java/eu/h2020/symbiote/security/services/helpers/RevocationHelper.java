@@ -261,7 +261,7 @@ public class RevocationHelper {
 
                 return revokeCertificateUsingCertificate(user, x509Certificate);
             } else {
-                throw new WrongCredentialsException();
+                throw new CertificateException("Empty CN and cert");
             }
 
         } else {
