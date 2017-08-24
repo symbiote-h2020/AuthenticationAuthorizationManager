@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
@@ -14,9 +15,10 @@ import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,8 +30,10 @@ import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
+import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 
 import static eu.h2020.symbiote.security.commons.SecurityConstants.AAM_CORE_AAM_INSTANCE_ID;
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
@@ -49,7 +53,7 @@ public class GetClientCertificateService {
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PasswordEncoder passwordEncoder;
-    private final RevocationHelper revocationHelper;
+    private final RevocationService revocationService;
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
@@ -61,14 +65,14 @@ public class GetClientCertificateService {
                                        RevokedKeysRepository revokedKeysRepository,
                                        ComponentCertificatesRepository componentCertificatesRepository, CertificationAuthorityHelper certificationAuthorityHelper,
                                        PasswordEncoder passwordEncoder,
-                                       RevocationHelper revocationHelper) {
+                                       RevocationService revocationService) {
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
         this.revokedKeysRepository = revokedKeysRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.passwordEncoder = passwordEncoder;
-        this.revocationHelper = revocationHelper;
+        this.revocationService = revocationService;
     }
 
     public String getCertificate(CertificateRequest certificateRequest) throws
@@ -76,7 +80,8 @@ public class GetClientCertificateService {
             NotExistingUserException,
             InvalidArgumentsException,
             UserManagementException,
-            PlatformManagementException {
+            PlatformManagementException,
+            ValidationException {
 
 
         User user = requestValidationCheck(certificateRequest);
@@ -109,9 +114,7 @@ public class GetClientCertificateService {
     }
 
     private void platformComponentCertStorage(PKCS10CertificationRequest req, CertificateRequest certificateRequest,
-                                              String pem, X509Certificate certFromCSR) throws
-            NotExistingUserException,
-            WrongCredentialsException {
+                                              String pem, X509Certificate certFromCSR) {
 
         String componentId = req.getSubject().toString().split("CN=")[1].split("@")[0];
         String platformId = req.getSubject().toString().split("CN=")[1].split("@")[1];
@@ -139,11 +142,13 @@ public class GetClientCertificateService {
                 if (x509Component.getPublicKey().equals(certFromCSR.getPublicKey())) {
                     platform.getComponentCertificates().replace(componentId, new Certificate(pem));
                 } else {
-                    try {
-                        revocationHelper.revokeCertificate(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()), platformComponentCert, componentId + illegalSign + platformId);
-                    } catch (CertificateException | IOException e) {
-                        log.error(e);
-                        throw new SecurityException(e.getMessage(), e.getCause());
+
+                    RevocationRequest revocationRequest = new RevocationRequest();
+                    revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+                    revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
+                    revocationRequest.setCertificateCommonName(componentId + illegalSign + platformId);
+                    if (!revocationService.revoke(revocationRequest).isRevoked()) {
+                        throw new SecurityException();
                     }
                     platform.getComponentCertificates().put(componentId, new Certificate(pem));
                 }
@@ -155,9 +160,7 @@ public class GetClientCertificateService {
     }
 
     private void platformCertStorage(PKCS10CertificationRequest req, CertificateRequest certificateRequest,
-                                     String pem, X509Certificate certFromCSR) throws
-            NotExistingUserException,
-            WrongCredentialsException {
+                                     String pem, X509Certificate certFromCSR) {
 
         String platformId = req.getSubject().toString().split("CN=")[1];
         Platform platform = platformRepository.findOne(platformId);
@@ -174,11 +177,13 @@ public class GetClientCertificateService {
             if (x509Platform.getPublicKey().equals(certFromCSR.getPublicKey())) {
                 platform.setPlatformAAMCertificate(new Certificate(pem));
             } else {
-                try {
-                    revocationHelper.revokeCertificate(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()), platform.getPlatformAAMCertificate(), platformId);
-                } catch (CertificateException | IOException e) {
-                    log.error(e);
-                    throw new SecurityException(e.getMessage(), e.getCause());
+
+                RevocationRequest revocationRequest = new RevocationRequest();
+                revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+                revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
+                revocationRequest.setCertificateCommonName(platformId);
+                if (!revocationService.revoke(revocationRequest).isRevoked()) {
+                    throw new SecurityException();
                 }
                 platform.setPlatformAAMCertificate(new Certificate(pem));
             }
@@ -189,9 +194,7 @@ public class GetClientCertificateService {
     }
 
     private void userCertStorage(User user, CertificateRequest certificateRequest, X509Certificate certFromCSR,
-                                 String pem) throws
-            NotExistingUserException,
-            WrongCredentialsException {
+                                 String pem) {
 
         Certificate userCert = user.getClientCertificates().get(certificateRequest.getClientId());
         if (userCert != null) {
@@ -206,11 +209,13 @@ public class GetClientCertificateService {
                 Certificate cert = new Certificate(pem);
                 user.getClientCertificates().replace(certificateRequest.getClientId(), cert);
             } else {
-                try {
-                    revocationHelper.revokeCertificate(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()), userCert, user.getUsername() + illegalSign + certificateRequest.getClientId());
-                } catch (CertificateException | IOException e) {
-                    log.error(e);
-                    throw new SecurityException(e.getMessage(), e.getCause());
+
+                RevocationRequest revocationRequest = new RevocationRequest();
+                revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+                revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
+                revocationRequest.setCertificateCommonName(user.getUsername() + illegalSign + certificateRequest.getClientId());
+                if (!revocationService.revoke(revocationRequest).isRevoked()) {
+                    throw new SecurityException();
                 }
                 Certificate cert = new Certificate(pem);
                 user.getClientCertificates().put(certificateRequest.getClientId(), cert);
@@ -298,7 +303,8 @@ public class GetClientCertificateService {
 
     private User requestValidationCheck(CertificateRequest certificateRequest) throws
             WrongCredentialsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            ValidationException {
 
         User user = userRepository.findOne(certificateRequest.getUsername());
 
@@ -307,7 +313,19 @@ public class GetClientCertificateService {
 
         if (!passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
             throw new WrongCredentialsException();
-        //TODO check if key sent in certificate is revoked
+
+        try {
+            PKCS10CertificationRequest req = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
+            SubjectPublicKeyInfo pkInfo = req.getSubjectPublicKeyInfo();
+            JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
+            PublicKey pubKey = converter.getPublicKey(pkInfo);
+            if (revokedKeysRepository.findOne(user.getUsername()) != null
+                    && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                throw new ValidationException("Key revoked");
+            }
+        } catch (IOException e) {
+            throw new SecurityException();
+        }
         return user;
     }
 

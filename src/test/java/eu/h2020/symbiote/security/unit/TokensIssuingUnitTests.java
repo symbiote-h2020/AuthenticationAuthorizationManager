@@ -234,7 +234,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             UserManagementException,
             WrongCredentialsException,
             PlatformManagementException,
-            NotExistingUserException {
+            NotExistingUserException, ValidationException {
         //platformOwner registration and certificate
         User user = new User();
         user.setRole(UserRole.PLATFORM_OWNER);
