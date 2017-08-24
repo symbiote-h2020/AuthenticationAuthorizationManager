@@ -76,7 +76,7 @@ public class OtherListenersFunctionalTests extends
 
         // platform registration useful
         platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                platformRegistrationRequestQueue, 5000);
+                platformManagementRequestQueue, 5000);
         platformOwnerUserCredentials = new Credentials(user.getUsername(), user.getPasswordEncrypted());
         platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,

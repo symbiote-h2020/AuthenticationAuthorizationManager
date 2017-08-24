@@ -98,9 +98,9 @@ public abstract class AbstractAAMTestSuite {
     @Value("${rabbit.queue.getHomeToken.request}")
     protected String loginRequestQueue;
     @Value("${rabbit.queue.manage.user.request}")
-    protected String userRegistrationRequestQueue;
+    protected String userManagementRequestQueue;
     @Value("${rabbit.queue.manage.platform.request}")
-    protected String platformRegistrationRequestQueue;
+    protected String platformManagementRequestQueue;
     @Value("${rabbit.queue.manage.revocation.request}")
     protected String revocationRequestQueue;
     @Value("${rabbit.queue.validate.request}")

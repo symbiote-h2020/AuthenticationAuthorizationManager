@@ -120,10 +120,11 @@ public class UsersManagementService {
         return ManagementStatus.OK;
     }
 
-    private void update(UserManagementRequest userManagementRequest) throws UserManagementException {
+    private void update(UserManagementRequest userManagementRequest) throws UserManagementException, NotExistingUserException {
         User user = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
         // checking if request contains current password
-        if (passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), user.getPasswordEncrypted()))
+        if (!userManagementRequest.getUserCredentials().getPassword().equals(user.getPasswordEncrypted())
+                && !passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), user.getPasswordEncrypted()))
             throw new UserManagementException(HttpStatus.UNAUTHORIZED);
 
         // update if not empty

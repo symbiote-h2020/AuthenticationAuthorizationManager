@@ -102,7 +102,7 @@ public class TokensIssuingFunctionalTests extends
 
         // user registration useful
         appRegistrationClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                userRegistrationRequestQueue, 5000);
+                userManagementRequestQueue, 5000);
         appUserDetails = new UserDetails(new Credentials(
                 coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER);
 
@@ -116,7 +116,7 @@ public class TokensIssuingFunctionalTests extends
 
         // platform registration useful
         platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                platformRegistrationRequestQueue, 5000);
+                platformManagementRequestQueue, 5000);
         platformOwnerUserCredentials = new Credentials(user.getUsername(), user.getPasswordEncrypted());
         platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,

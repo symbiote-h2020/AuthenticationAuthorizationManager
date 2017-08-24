@@ -97,6 +97,8 @@ public class PlatformsManagementService {
 
             case UPDATE:
                 platform = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
+                if (platform == null)
+                    throw new PlatformManagementException("Platform doesn't exist", HttpStatus.BAD_REQUEST);
 
                 if (!platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
                     platform.setPlatformInstanceFriendlyName(platformManagementRequest.getPlatformInstanceFriendlyName());
