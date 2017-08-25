@@ -14,12 +14,10 @@ import org.apache.commons.logging.LogFactory;
 import java.io.IOException;
 
 /**
- * RabbitMQ Consumer implementation used for Platforms' Registration actions
+ * RabbitMQ Consumer implementation used for Revocation actions
  *
- * @author Mikołaj Dobski (PSNC)
+ * @author Jakub Toczek (PSNC)
  * <p>
- * TODO R3 @Mikołaj, @Tilemachos rework to support full platforms CRUD <- single message with operation type, PO
- * Token, AAM admin credentials and PlatformDetails
  */
 public class RevocationRequestConsumerService extends DefaultConsumer {
 
