@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Spring controller to handle HTTPS requests related to the RESTful web services associated to users' management.
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
  * @author Maks Marcinowski (PSNC)
  * @see PlatformsManagementService
  */
-
+@RestController
 public class PlatformManagementController implements IPlatformManagement {
     private static final Log log = LogFactory.getLog(PlatformManagementController.class);
     private PlatformsManagementService platformsManagementService;

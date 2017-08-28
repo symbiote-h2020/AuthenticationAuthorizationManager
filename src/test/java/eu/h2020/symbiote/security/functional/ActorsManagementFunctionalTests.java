@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
@@ -357,4 +358,24 @@ public class ActorsManagementFunctionalTests extends
         // verify that the user has no certs
         assertTrue(registeredUser.getClientCertificates().isEmpty());
     }
+
+    @Test
+    public void UsersManagementCreationSuccess() throws AAMException {
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
+                new UserDetails(new Credentials(username, password), "federatedId",
+                        "nullMail", UserRole.USER), OperationType.CREATE);
+        ManagementStatus managementStatus = AAMClient.manage(userManagementRequest);
+        assertNotNull(managementStatus);
+    }
+
+    @Test(expected = AAMException.class)
+    public void UsersManagementCreationFailureWithIncorrectRequest() throws AAMException {
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new
+                Credentials(AAMOwnerUsername, wrongpassword), new Credentials(username, wrongpassword),
+                new UserDetails(new Credentials(username, wrongpassword), "federatedId",
+                        "", UserRole.PLATFORM_OWNER), OperationType.CREATE);
+        AAMClient.manage(userManagementRequest);
+    }
+
 }
