@@ -25,6 +25,7 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.HashMap;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
@@ -57,9 +58,9 @@ public class ActorsManagementFunctionalTests extends
         appUserDetails = new UserDetails(new Credentials(
                 username, password), federatedOAuthId, recoveryMail, UserRole.USER);
         appUserRegistrationRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new Credentials(username, password), appUserDetails, OperationType.CREATE);
+                new Credentials(username, password), appUserDetails, new HashMap<>(), OperationType.CREATE);
         appUserUpdateRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new Credentials(username, password), appUserDetails, OperationType.UPDATE);
+                new Credentials(username, password), appUserDetails, new HashMap<>(), OperationType.UPDATE);
     }
 
     @Test
@@ -72,7 +73,7 @@ public class ActorsManagementFunctionalTests extends
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername + "wrongString", AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER), new HashMap<>(),
                 OperationType.CREATE)).getBytes());
 
         // verify that our app was not registered in the repository
@@ -86,7 +87,7 @@ public class ActorsManagementFunctionalTests extends
         response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword + "wrongString"), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER), new HashMap<>(),
                 OperationType.CREATE)).getBytes());
 
         // verify that our app was not registered in the repository
@@ -112,7 +113,7 @@ public class ActorsManagementFunctionalTests extends
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.NULL),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.NULL), new HashMap<>(),
                 OperationType.CREATE)).getBytes());
 
         // verify that our app was not registered in the repository
@@ -126,7 +127,7 @@ public class ActorsManagementFunctionalTests extends
         response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.NULL),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.NULL), new HashMap<>(),
                 OperationType.CREATE)).getBytes());
 
         // verify that our app was not registered in the repository
@@ -152,7 +153,7 @@ public class ActorsManagementFunctionalTests extends
         appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER), new HashMap<>(),
                 OperationType.CREATE)).getBytes());
 
 
@@ -163,7 +164,7 @@ public class ActorsManagementFunctionalTests extends
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER), new HashMap<>(),
                 OperationType.CREATE)).getBytes());
 
         ManagementStatus errorResponse = mapper.readValue(response, ManagementStatus.class);
@@ -267,7 +268,7 @@ public class ActorsManagementFunctionalTests extends
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER), new HashMap<>(),
                 OperationType.CREATE)).getBytes());
 
         ManagementStatus appRegistrationResponse = mapper.readValue(response,
@@ -292,7 +293,7 @@ public class ActorsManagementFunctionalTests extends
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER), new HashMap<>(),
                 OperationType.CREATE)).getBytes());
         ManagementStatus appRegistrationResponse = mapper.readValue(response, ManagementStatus.class);
         assertEquals(appRegistrationResponse, ManagementStatus.OK);
@@ -314,7 +315,7 @@ public class ActorsManagementFunctionalTests extends
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER),
+                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER), new HashMap<>(),
                 OperationType.CREATE)).getBytes());
         ManagementStatus appRegistrationResponse = mapper.readValue(response, ManagementStatus.class);
         assertEquals(appRegistrationResponse, ManagementStatus.OK);
@@ -344,7 +345,7 @@ public class ActorsManagementFunctionalTests extends
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail,
-                        UserRole.PLATFORM_OWNER), OperationType.CREATE)).getBytes());
+                        UserRole.PLATFORM_OWNER), new HashMap<>(), OperationType.CREATE)).getBytes());
 
         ManagementStatus platformOwnerRegistrationResponse = mapper.readValue(response,
                 ManagementStatus.class);
@@ -364,7 +365,7 @@ public class ActorsManagementFunctionalTests extends
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), "federatedId",
-                        "nullMail", UserRole.USER), OperationType.CREATE);
+                        "nullMail", UserRole.USER), new HashMap<>(), OperationType.CREATE);
         ManagementStatus managementStatus = AAMClient.manage(userManagementRequest);
         assertNotNull(managementStatus);
     }
@@ -374,7 +375,7 @@ public class ActorsManagementFunctionalTests extends
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, wrongpassword), new Credentials(username, wrongpassword),
                 new UserDetails(new Credentials(username, wrongpassword), "federatedId",
-                        "", UserRole.PLATFORM_OWNER), OperationType.CREATE);
+                        "", UserRole.PLATFORM_OWNER), new HashMap<>(), OperationType.CREATE);
         AAMClient.manage(userManagementRequest);
     }
 

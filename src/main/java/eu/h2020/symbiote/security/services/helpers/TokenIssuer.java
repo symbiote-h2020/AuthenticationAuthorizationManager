@@ -12,6 +12,7 @@ import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
+import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -52,13 +53,15 @@ public class TokenIssuer {
     private Long tokenValidity;
     private CertificationAuthorityHelper certificationAuthorityHelper;
     private KeyPair guestKeyPair;
+    private LocalUsersAttributesRepository localUsersAttributesRepository;
 
     @Autowired
-    public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper) {
+    public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper, LocalUsersAttributesRepository localUsersAttributesRepository) {
 
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
+        this.localUsersAttributesRepository = localUsersAttributesRepository;
     }
 
     public static String buildAuthorizationToken(String subject, Map<String, String> attributes, byte[] subjectPublicKey,
@@ -121,10 +124,20 @@ public class TokenIssuer {
                     }
                     break;
                 case PLATFORM:
+                    //2 dodatkowe repa,
                     // TODO R3 federation
                     break;
                 case NULL:
                     throw new JWTCreationException("Misconfigured AAM deployment type");
+            }
+
+            //TODO
+            for (String entry : localUsersAttributesRepository.findAll()) {
+                attributes.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "", entry);
+            }
+            //adding user attributes
+            for (Map.Entry<String, String> entry : user.getAttributes().entrySet()) {
+                attributes.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + entry.getKey(), entry.getValue());
             }
             return new Token(buildAuthorizationToken(
                     // HOME SUB: username@clientIdentifier

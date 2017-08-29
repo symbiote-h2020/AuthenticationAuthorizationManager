@@ -57,7 +57,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
                 new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER),
-                OperationType.CREATE);
+                new HashMap<>(), OperationType.CREATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
 
         // verify that app really is in repository
@@ -80,6 +80,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
                 new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.PLATFORM_OWNER),
+                new HashMap<>(),
                 OperationType.CREATE);
         try {
             // hack: make sure the AAM thinks it is a platform AAM
@@ -108,7 +109,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
         Map<String, Certificate> clientCertificates = new HashMap<>();
         clientCertificates.put("clientId", new Certificate(CryptoHelper.convertX509ToPEM(userCertificate)));
-        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, new ArrayList<>()));
+        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, new HashMap<>()));
 
         // verify that app really is in repository
         User user = userRepository.findOne(username);
@@ -121,6 +122,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
                 new UserDetails(new Credentials(username, password), "", "", UserRole.NULL),
+                new HashMap<>(),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
         log.debug("User successfully unregistered!");
@@ -159,7 +161,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
         Map<String, Certificate> clientCertificates = new HashMap<>();
         clientCertificates.put("clientId", new Certificate(CryptoHelper.convertX509ToPEM(userCertificate)));
-        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, new ArrayList<>()));
+        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, new HashMap<>()));
 
         // verify that app really is in repository
         User user = userRepository.findOne(username);
@@ -172,6 +174,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
                 new UserDetails(new Credentials(username, password), "", "", UserRole.USER),
+                new HashMap<>(),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
         log.debug("User successfully unregistered!");
@@ -195,6 +198,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, "NewPassword"),
                 new UserDetails(new Credentials(username, "NewPassword"), "nullId", "nullMail", UserRole.PLATFORM_OWNER),
+                new HashMap<>(),
                 OperationType.CREATE);
         assertEquals(ManagementStatus.OK, usersManagementService.authManage(userManagementRequest));
 
@@ -229,6 +233,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
                 new UserDetails(new Credentials("", password), "", "", UserRole.NULL),
+                new HashMap<>(),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -242,6 +247,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
                 new UserDetails(new Credentials(username, password), "", "", UserRole.NULL),
+                new HashMap<>(),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -256,7 +262,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
             IOException {
 
         // save PO
-        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new ArrayList<>());
+        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>());
         userRepository.save(platformOwner);
 
         // save platform
@@ -275,6 +281,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
                 new UserDetails(new Credentials(username, ""), "", "", UserRole.NULL),
+                new HashMap<>(),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
     }

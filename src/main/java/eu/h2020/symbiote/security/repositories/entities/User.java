@@ -6,9 +6,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 
@@ -38,7 +36,7 @@ public class User {
      * Might be used to assign in registration phase user-unique attributes
      */
     //@DBRef -- might come in useful
-    private List<String> attributes = new ArrayList<>();
+    private Map<String, String> attributes = new HashMap<>();
 
     public User() {
         // required by org.springframework.data.mapping.model.MappingInstantiationException
@@ -56,7 +54,7 @@ public class User {
      */
     public User(String username, String passwordEncrypted, String recoveryMail, Map<String, Certificate> clientCertificates,
                 UserRole role,
-                List<String> attributes) {
+                Map<String, String> attributes) {
         this.username = username;
         this.passwordEncrypted = passwordEncrypted;
         this.recoveryMail = recoveryMail;
@@ -90,11 +88,11 @@ public class User {
         this.passwordEncrypted = passwordEncrypted;
     }
 
-    public List<String> getAttributes() {
+    public Map<String, String> getAttributes() {
         return attributes;
     }
 
-    public void setAttributes(List<String> attributes) {
+    public void setAttributes(Map<String, String> attributes) {
         this.attributes = attributes;
     }
 

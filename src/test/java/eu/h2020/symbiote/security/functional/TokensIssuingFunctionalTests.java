@@ -47,10 +47,7 @@ import java.io.StringWriter;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Base64;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeoutException;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
@@ -648,7 +645,7 @@ public class TokensIssuingFunctionalTests extends
         appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(coreAppUsername, coreAppPassword),
-                new UserDetails(new Credentials(coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER),
+                new UserDetails(new Credentials(coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER), new HashMap<>(),
                 OperationType.CREATE)).getBytes());
 
         //put certificate into database

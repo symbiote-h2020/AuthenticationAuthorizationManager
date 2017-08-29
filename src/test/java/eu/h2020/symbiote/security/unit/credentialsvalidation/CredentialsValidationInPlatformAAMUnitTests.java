@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.TimeoutException;
 
@@ -135,7 +134,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     @Test
     public void validateExpiredSubjectCertificate() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException, InvalidAlgorithmParameterException, UnrecoverableKeyException, OperatorCreationException {
         // prepare the user in db
-        userRepository.save(new User(username, passwordEncoder.encode(password), "", new HashMap<>(), UserRole.USER, new ArrayList<>()));
+        userRepository.save(new User(username, passwordEncoder.encode(password), "", new HashMap<>(), UserRole.USER, new HashMap<>()));
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);

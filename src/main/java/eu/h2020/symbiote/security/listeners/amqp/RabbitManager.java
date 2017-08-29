@@ -7,6 +7,7 @@ import com.rabbitmq.client.Consumer;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.listeners.amqp.consumers.*;
+import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.*;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
@@ -38,6 +39,7 @@ public class RabbitManager {
     private final GetTokenService getTokenService;
     private final UserRepository userRepository;
     private final RevocationService revocationService;
+    private final LocalUsersAttributesRepository localUsersAttributesRepository;
 
     private IssuingAuthorityType deploymentType;
 
@@ -92,6 +94,11 @@ public class RabbitManager {
     private Connection connection;
     private ValidationHelper validationHelper;
 
+    @Value("${rabbit.routingKey.manage.attributes}")
+    private String localUsersAttributesRoutingKey;
+    @Value("${rabbit.queue.manage.attributes}")
+    private String localUsersAttributesQueue;
+
     @Autowired
     public RabbitManager(UsersManagementService usersManagementService,
                          RevocationService revocationService,
@@ -100,7 +107,7 @@ public class RabbitManager {
                          GetTokenService getTokenService,
                          UserRepository userRepository,
                          CertificationAuthorityHelper certificationAuthorityHelper,
-                         ValidationHelper validationHelper) {
+                         ValidationHelper validationHelper, LocalUsersAttributesRepository localUsersAttributesRepository) {
         this.usersManagementService = usersManagementService;
         this.revocationService = revocationService;
         this.platformsManagementService = platformsManagementService;
@@ -108,7 +115,7 @@ public class RabbitManager {
         this.getTokenService = getTokenService;
         this.userRepository = userRepository;
         this.validationHelper = validationHelper;
-
+        this.localUsersAttributesRepository = localUsersAttributesRepository;
         // setting the deployment type from the provisioned certificate
         deploymentType = certificationAuthorityHelper.getDeploymentType();
     }
@@ -156,6 +163,7 @@ public class RabbitManager {
             switch (deploymentType) {
                 case PLATFORM:
                     startConsumerOfLoginRequestMessages();
+                    startConsumerOfLocalUsersAttributesMap();
                     break;
                 case CORE:
                     startConsumerOfUserManagementRequestMessages();
@@ -163,6 +171,7 @@ public class RabbitManager {
                     startConsumerOfLoginRequestMessages();
                     startConsumerOfOwnedPlatformDetailsRequestMessages();
                     startConsumerOfRevocationRequestMessages();
+                    startConsumerOfLocalUsersAttributesMap();
                     break;
                 case NULL:
                     throw new SecurityMisconfigurationException("Wrong deployment type");
@@ -328,6 +337,33 @@ public class RabbitManager {
 
             Consumer consumer = new RevocationRequestConsumerService(channel,
                     revocationService);
+            channel.basicConsume(queueName, false, consumer);
+        } catch (IOException e) {
+            log.error(e);
+        }
+
+    }
+
+    /**
+     * Method creates queue and binds it globally available exchange and adequate Routing Key.
+     * It also creates a consumer for messages incoming to this queue, regarding to Revocation requests.
+     *
+     * @throws IOException
+     */
+    private void startConsumerOfLocalUsersAttributesMap() throws IOException {
+
+        String queueName = this.localUsersAttributesQueue;
+
+        Channel channel;
+        try {
+            channel = this.connection.createChannel();
+            channel.queueDeclare(queueName, true, false, false, null);
+            channel.queueBind(queueName, this.AAMExchangeName, this.localUsersAttributesRoutingKey);
+
+            log.info("Authentication and Authorization Manager waiting for localUsersAttributes messages");
+
+            Consumer consumer = new LocalUsersAttributesConsumerService(channel,
+                    localUsersAttributesRepository);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
             log.error(e);

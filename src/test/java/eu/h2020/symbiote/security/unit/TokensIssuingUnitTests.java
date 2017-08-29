@@ -17,6 +17,7 @@ import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
+import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -81,6 +82,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     private TokenIssuer tokenIssuer;
     @Autowired
     private GetTokenService getTokenService;
+    @Autowired
+    private LocalUsersAttributesRepository localUsersAttributesRepository;
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
@@ -675,8 +678,21 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         Token homeToken = getTokenService.getHomeToken(loginRequest);
     }
     @Test
-    @Ignore("Not R2 crucial, at R2 we will issue attributes from properties")
-    public void getHomeTokenWithAttributesProvisionedToBeIssuedForGivenUser() throws IOException, TimeoutException {
+    public void getHomeTokenWithAttributesProvisionedToBeIssuedForGivenUser() throws IOException, TimeoutException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException, MalformedJWTException {
+
+        localUsersAttributesRepository.save("attr1");
+        addTestUserWithClientCertificateToRepository();
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+        Token token = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
+        assertNotNull(token);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.toString());
+        assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
+
+        Map<String, String> attributes = claimsFromToken.getAtt();
+        assertEquals(UserRole.USER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+        assertTrue(attributes.entrySet().contains("attr1"));
+
         /*
         TODO attributes provisioning test
         2. send the attributes list

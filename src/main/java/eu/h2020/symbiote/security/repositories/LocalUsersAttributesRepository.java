@@ -7,5 +7,5 @@ import org.springframework.data.mongodb.repository.MongoRepository;
  *
  * @author Jakub Toczek (PSNC)
  */
-public interface LocalUsersAttributes extends MongoRepository<String, String> {
+public interface LocalUsersAttributesRepository extends MongoRepository<String, String> {
 }

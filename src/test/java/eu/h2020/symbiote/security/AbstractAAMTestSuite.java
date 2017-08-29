@@ -48,6 +48,7 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.HashMap;
 
 /**
  * AAM test suite stub with possibly shareable fields.
@@ -73,6 +74,8 @@ public abstract class AbstractAAMTestSuite {
     protected final String platformOwnerPassword = "testPlatformOwnerPassword";
     protected final String recoveryMail = "null@dev.null";
     protected KeyPair userKeyPair;
+    @Autowired
+    protected LocalUsersAttributesRepository localUsersAttributesRepository;
     @Autowired
     protected UserRepository userRepository;
     @Autowired
@@ -159,6 +162,7 @@ public abstract class AbstractAAMTestSuite {
         revokedTokensRepository.deleteAll();
         platformRepository.deleteAll();
         componentCertificatesRepository.deleteAll();
+        localUsersAttributesRepository.deleteAll();
     }
 
     protected User savePlatformOwner() {
@@ -187,7 +191,7 @@ public abstract class AbstractAAMTestSuite {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), "federatedId",
-                        "nullMail", UserRole.USER), OperationType.CREATE);
+                        "nullMail", UserRole.USER), new HashMap<>(), OperationType.CREATE);
 
         User user = new User();
         user.setRole(userManagementRequest.getUserDetails().getRole());
