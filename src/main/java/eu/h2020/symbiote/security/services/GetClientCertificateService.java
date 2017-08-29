@@ -332,7 +332,8 @@ public class GetClientCertificateService {
         if (user == null)
             throw new NotExistingUserException();
 
-        if (!passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
+        if (certificateRequest.getPassword() != user.getPasswordEncrypted() &&
+                !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
             throw new WrongCredentialsException();
 
         try {

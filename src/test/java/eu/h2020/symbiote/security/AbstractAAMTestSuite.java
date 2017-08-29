@@ -158,6 +158,7 @@ public abstract class AbstractAAMTestSuite {
         revokedKeysRepository.deleteAll();
         revokedTokensRepository.deleteAll();
         platformRepository.deleteAll();
+        componentCertificatesRepository.deleteAll();
     }
 
     protected User savePlatformOwner() {
