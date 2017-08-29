@@ -5,10 +5,7 @@ import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.PlatformManagementException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
@@ -422,7 +419,30 @@ public class PlatformsManagementFunctionalTests extends
         assertEquals(new PlatformManagementException().getErrorMessage(), errorResponse.getErrorMessage());
     }
 
+    @Test
+    public void platformManagementControllerSucceedsManagingRegistrationRequest() throws AAMException {
+        PlatformManagementRequest platformRegistrationRequest;
+        platformRegistrationRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInstanceFriendlyName,
+                preferredPlatformId, OperationType.CREATE);
 
+        ManagementStatus response = AAMClient.manage(platformRegistrationRequest);
+        assertEquals(ManagementStatus.OK, response);
+    }
 
+    @Test(expected = AAMException.class)
+    public void platfomManagementControllerFailsManagingIncorrectRegistrationRequest() throws AAMException {
+        PlatformManagementRequest IncorrectPlatformRegistrationRequest;
+        IncorrectPlatformRegistrationRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(wrongusername, wrongpassword),
+                platformInstanceFriendlyName,
+                preferredPlatformId, OperationType.CREATE);
+
+        ManagementStatus status = AAMClient.manage(IncorrectPlatformRegistrationRequest);
+        assertEquals(ManagementStatus.ERROR, status);
+    }
 
 }

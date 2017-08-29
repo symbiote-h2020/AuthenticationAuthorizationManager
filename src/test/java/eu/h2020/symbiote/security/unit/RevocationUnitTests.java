@@ -909,6 +909,48 @@ public class RevocationUnitTests extends
     }
 
     @Test
+    public void revokeAAMComponentCertificateUsingCommonNameByAdminFailNoComponentInDatabase() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException {
+        String commonName = componentId + illegalSign + SecurityConstants.AAM_CORE_AAM_INSTANCE_ID;
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
+        revocationRequest.setCertificateCommonName(commonName);
+
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
+    }
+
+    @Test
+    public void revokeByAdminFailWrongCommonName() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException {
+        String commonName = componentId + illegalSign + SecurityConstants.AAM_CORE_AAM_INSTANCE_ID + illegalSign + "WrongCommonNameEnding";
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
+        revocationRequest.setCertificateCommonName(commonName);
+
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
+    }
+
+    @Test
+    public void revokeCertificateByUserFailWrongCertificate() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException {
+        saveUser();
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentials(new Credentials(appUsername, password));
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificatePEMString("WrongPEM");
+
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
+    }
+
+    @Test
+    public void revokeByAdminFailNoArguments() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException {
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
+
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
+    }
+
+    @Test
     public void revokeAAMComponentCertificateUsingCertificateByAdminSuccessKeyIsRevoked() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException, UnrecoverableKeyException, ValidationException {
         String cert = CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
                 "core.p12",
@@ -1025,6 +1067,15 @@ public class RevocationUnitTests extends
 
         // verify the user token is revoked
         assertTrue(revokedTokensRepository.exists(homeToken.getClaims().getId()));
+    }
+
+    @Test
+    public void revokeFailEmptyUserCredentials() {
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentials(new Credentials());
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        assertFalse(revocationService.revoke(revocationRequest).isRevoked());
+
     }
 
     private X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
