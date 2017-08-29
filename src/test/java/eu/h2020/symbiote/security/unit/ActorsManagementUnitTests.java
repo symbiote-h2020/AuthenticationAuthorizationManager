@@ -41,7 +41,7 @@ import static org.junit.Assert.*;
 @TestPropertySource("/core.properties")
 public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(ClientCertificatesIssuingUnitTests.class);
+    private static Log log = LogFactory.getLog(ActorsManagementUnitTests.class);
     private final String recoveryMail = "null@dev.null";
 
     @Test

@@ -26,7 +26,7 @@ import java.util.HashMap;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
-public class ClientCertificatesIssuingFunctionalTests extends
+public class CertificatesIssuingFunctionalTests extends
         AbstractAAMTestSuite {
 
     @Test(expected = InvalidArgumentsException.class)

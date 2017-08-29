@@ -42,11 +42,12 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
  * Spring service used to provide client certificates issuing
  *
  * @author Maksymilian Marcinowski (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 
 @Service
-public class GetClientCertificateService {
-    private static final Log log = LogFactory.getLog(GetClientCertificateService.class);
+public class GetCertificateService {
+    private static final Log log = LogFactory.getLog(GetCertificateService.class);
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
     private final RevokedKeysRepository revokedKeysRepository;
@@ -61,11 +62,11 @@ public class GetClientCertificateService {
 
 
     @Autowired
-    public GetClientCertificateService(UserRepository userRepository, PlatformRepository platformRepository,
-                                       RevokedKeysRepository revokedKeysRepository,
-                                       ComponentCertificatesRepository componentCertificatesRepository, CertificationAuthorityHelper certificationAuthorityHelper,
-                                       PasswordEncoder passwordEncoder,
-                                       RevocationService revocationService) {
+    public GetCertificateService(UserRepository userRepository, PlatformRepository platformRepository,
+                                 RevokedKeysRepository revokedKeysRepository,
+                                 ComponentCertificatesRepository componentCertificatesRepository, CertificationAuthorityHelper certificationAuthorityHelper,
+                                 PasswordEncoder passwordEncoder,
+                                 RevocationService revocationService) {
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
         this.revokedKeysRepository = revokedKeysRepository;
@@ -85,9 +86,9 @@ public class GetClientCertificateService {
 
 
         User user = requestValidationCheck(certificateRequest);
-        PKCS10CertificationRequest req = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
+        PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
 
-        X509Certificate certFromCSR = certFromCSRCreation(certificateRequest, req);
+        X509Certificate certFromCSR = createCertificateFromCSR(certificateRequest, request);
 
         String pem;
         try {
@@ -97,23 +98,21 @@ public class GetClientCertificateService {
             throw new SecurityException(e.getMessage(), e.getCause());
         }
         // symbiote components
-        if (req.getSubject().toString().matches("(CN=)(\\w+)(@)(\\w+)")) {
-            platformComponentCertStorage(req, certificateRequest, pem, certFromCSR);
+        if (request.getSubject().toString().matches("(CN=)(\\w+)(@)(\\w+)")) {
+            putComponentCertToRepository(request, certificateRequest, pem, certFromCSR);
         }
         //platform
-        else if (!req.getSubject().toString().split("CN=")[1].contains(illegalSign)) {
-            platformCertStorage(req, certificateRequest, pem, certFromCSR);
+        else if (!request.getSubject().toString().split("CN=")[1].contains(illegalSign)) {
+            putPlatformCertToRepository(request, certificateRequest, pem, certFromCSR);
         }
-
         // user / platform owner
         else {
-            userCertStorage(user, certificateRequest, certFromCSR, pem);
+            putUserCertToRepository(user, certificateRequest, certFromCSR, pem);
         }
-
         return pem;
     }
 
-    private void platformComponentCertStorage(PKCS10CertificationRequest req, CertificateRequest certificateRequest,
+    private void putComponentCertToRepository(PKCS10CertificationRequest req, CertificateRequest certificateRequest,
                                               String pem, X509Certificate certFromCSR) {
 
         String componentId = req.getSubject().toString().split("CN=")[1].split("@")[0];
@@ -122,16 +121,16 @@ public class GetClientCertificateService {
         if (platformId.equals(AAM_CORE_AAM_INSTANCE_ID)) {
             // core components
             if (certificateRequest.getUsername().equals(AAMOwnerUsername) && certificateRequest.getPassword().equals(AAMOwnerPassword)) {
-                ComponentCertificate platformCoreComponentCert = componentCertificatesRepository.findOne(componentId);
-                if (platformCoreComponentCert != null) {
-                    X509Certificate x509Component;
+                ComponentCertificate coreComponentCert = componentCertificatesRepository.findOne(componentId);
+                if (coreComponentCert != null) {
+                    X509Certificate x509CoreComponentCert;
                     try {
-                        x509Component = platformCoreComponentCert.getCertificate().getX509();
+                        x509CoreComponentCert = coreComponentCert.getCertificate().getX509();
                     } catch (CertificateException e) {
                         log.error(e);
                         throw new SecurityException(e.getMessage(), e.getCause());
                     }
-                    if (x509Component.getPublicKey().equals(certFromCSR.getPublicKey())) {
+                    if (x509CoreComponentCert.getPublicKey().equals(certFromCSR.getPublicKey())) {
                         componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
                     } else {
                         RevocationRequest revocationRequest = new RevocationRequest();
@@ -153,14 +152,14 @@ public class GetClientCertificateService {
 
             Certificate platformComponentCert = platform.getComponentCertificates().get(componentId);
             if (platformComponentCert != null) {
-                X509Certificate x509Component;
+                X509Certificate x509PlatformComponentCert;
                 try {
-                    x509Component = platformComponentCert.getX509();
+                    x509PlatformComponentCert = platformComponentCert.getX509();
                 } catch (CertificateException e) {
                     log.error(e);
                     throw new SecurityException(e.getMessage(), e.getCause());
                 }
-                if (x509Component.getPublicKey().equals(certFromCSR.getPublicKey())) {
+                if (x509PlatformComponentCert.getPublicKey().equals(certFromCSR.getPublicKey())) {
                     platform.getComponentCertificates().replace(componentId, new Certificate(pem));
                 } else {
 
@@ -180,22 +179,22 @@ public class GetClientCertificateService {
         }
     }
 
-    private void platformCertStorage(PKCS10CertificationRequest req, CertificateRequest certificateRequest,
-                                     String pem, X509Certificate certFromCSR) {
+    private void putPlatformCertToRepository(PKCS10CertificationRequest req, CertificateRequest certificateRequest,
+                                             String pem, X509Certificate certFromCSR) {
 
         String platformId = req.getSubject().toString().split("CN=")[1];
         Platform platform = platformRepository.findOne(platformId);
 
         Certificate platformCert = platform.getPlatformAAMCertificate();
         if (!platformCert.getCertificateString().isEmpty()) {
-            X509Certificate x509Platform;
+            X509Certificate x509PlatformCert;
             try {
-                x509Platform = platformCert.getX509();
+                x509PlatformCert = platformCert.getX509();
             } catch (CertificateException e) {
                 log.error(e);
                 throw new SecurityException(e.getMessage(), e.getCause());
             }
-            if (x509Platform.getPublicKey().equals(certFromCSR.getPublicKey())) {
+            if (x509PlatformCert.getPublicKey().equals(certFromCSR.getPublicKey())) {
                 platform.setPlatformAAMCertificate(new Certificate(pem));
             } else {
 
@@ -214,23 +213,22 @@ public class GetClientCertificateService {
         platformRepository.save(platform);
     }
 
-    private void userCertStorage(User user, CertificateRequest certificateRequest, X509Certificate certFromCSR,
-                                 String pem) {
+    private void putUserCertToRepository(User user, CertificateRequest certificateRequest, X509Certificate certFromCSR,
+                                         String pem) {
 
         Certificate userCert = user.getClientCertificates().get(certificateRequest.getClientId());
         if (userCert != null) {
-            X509Certificate x509User;
+            X509Certificate x509UserCert;
             try {
-                x509User = userCert.getX509();
+                x509UserCert = userCert.getX509();
             } catch (CertificateException e) {
                 log.error(e);
                 throw new SecurityException(e.getMessage(), e.getCause());
             }
-            if (x509User.getPublicKey().equals(certFromCSR.getPublicKey())) {
-                Certificate cert = new Certificate(pem);
-                user.getClientCertificates().replace(certificateRequest.getClientId(), cert);
-            } else {
+            if (x509UserCert.getPublicKey().equals(certFromCSR.getPublicKey())) {
 
+                user.getClientCertificates().replace(certificateRequest.getClientId(), new Certificate(pem));
+            } else {
                 RevocationRequest revocationRequest = new RevocationRequest();
                 revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
                 revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
@@ -238,37 +236,35 @@ public class GetClientCertificateService {
                 if (!revocationService.revoke(revocationRequest).isRevoked()) {
                     throw new SecurityException();
                 }
-                Certificate cert = new Certificate(pem);
-                user.getClientCertificates().put(certificateRequest.getClientId(), cert);
+                user.getClientCertificates().put(certificateRequest.getClientId(), new Certificate(pem));
             }
         } else {
-            Certificate cert = new Certificate(pem);
-            user.getClientCertificates().put(certificateRequest.getClientId(), cert);
+            user.getClientCertificates().put(certificateRequest.getClientId(), new Certificate(pem));
         }
         userRepository.save(user);
     }
 
-
-    public X509Certificate certFromCSRCreation(CertificateRequest certificateRequest, PKCS10CertificationRequest req) throws
+    //TODO should be private, covered in tests from higher level
+    public X509Certificate createCertificateFromCSR(CertificateRequest certificateRequest, PKCS10CertificationRequest req) throws
             InvalidArgumentsException, UserManagementException, PlatformManagementException {
         X509Certificate certFromCSR;
 
         //platform
         if (!req.getSubject().toString().split("CN=")[1].contains(illegalSign)) {
-            certFromCSR = platformCertFromCSRCreation(certificateRequest, req);
+            certFromCSR = createPlatformCertFromCSR(certificateRequest, req);
         }
         //platform component
         else if (req.getSubject().toString().matches("(CN=)(\\w+)(@)(\\w+)")) {
-            certFromCSR = platformComponentCertFromCSRCreation(certificateRequest, req);
+            certFromCSR = createPlatformComponentCertFromCSR(certificateRequest, req);
         }
         //user
         else {
-            certFromCSR = userCertfromCSRCreation(req);
+            certFromCSR = createUserCertFromCSR(req);
         }
         return certFromCSR;
     }
 
-    private X509Certificate userCertfromCSRCreation(PKCS10CertificationRequest req)
+    private X509Certificate createUserCertFromCSR(PKCS10CertificationRequest req)
             throws InvalidArgumentsException, UserManagementException {
         X509Certificate certFromCSR;
         X509Certificate caCert;
@@ -295,7 +291,7 @@ public class GetClientCertificateService {
     }
 
 
-    private X509Certificate platformCertFromCSRCreation(CertificateRequest certificateRequest, PKCS10CertificationRequest req)
+    private X509Certificate createPlatformCertFromCSR(CertificateRequest certificateRequest, PKCS10CertificationRequest req)
             throws PlatformManagementException {
         X509Certificate certFromCSR;
         platformRequestCheck(certificateRequest);
@@ -308,7 +304,7 @@ public class GetClientCertificateService {
         return certFromCSR;
     }
 
-    private X509Certificate platformComponentCertFromCSRCreation(CertificateRequest certificateRequest, PKCS10CertificationRequest req)
+    private X509Certificate createPlatformComponentCertFromCSR(CertificateRequest certificateRequest, PKCS10CertificationRequest req)
             throws PlatformManagementException {
         X509Certificate certFromCSR;
         platformComponentRequestCheck(certificateRequest);
@@ -332,13 +328,13 @@ public class GetClientCertificateService {
         if (user == null)
             throw new NotExistingUserException();
 
-        if (certificateRequest.getPassword() != user.getPasswordEncrypted() &&
+        if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
                 !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
             throw new WrongCredentialsException();
 
         try {
-            PKCS10CertificationRequest req = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
-            SubjectPublicKeyInfo pkInfo = req.getSubjectPublicKeyInfo();
+            PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
+            SubjectPublicKeyInfo pkInfo = request.getSubjectPublicKeyInfo();
             JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
             PublicKey pubKey = converter.getPublicKey(pkInfo);
             if (revokedKeysRepository.findOne(user.getUsername()) != null
@@ -353,22 +349,22 @@ public class GetClientCertificateService {
 
     private void platformRequestCheck(CertificateRequest certificateRequest) throws
             PlatformManagementException {
-        PKCS10CertificationRequest req = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
+        PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
         if (userRepository.findOne(certificateRequest.getUsername()).getRole() != UserRole.PLATFORM_OWNER) {
             throw new PlatformManagementException("User is not a Platform Owner", HttpStatus.UNAUTHORIZED);
         }
-        if (!platformRepository.exists(req.getSubject().toString().split("CN=")[1])) {
+        if (!platformRepository.exists(request.getSubject().toString().split("CN=")[1])) {
             throw new PlatformManagementException("Platform doesn't exist", HttpStatus.UNAUTHORIZED);
         }
     }
 
     private void platformComponentRequestCheck(CertificateRequest certificateRequest) throws
             PlatformManagementException {
-        PKCS10CertificationRequest req = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
+        PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
         if (userRepository.findOne(certificateRequest.getUsername()).getRole() != UserRole.PLATFORM_OWNER) {
             throw new PlatformManagementException("User is not a Platform Owner", HttpStatus.UNAUTHORIZED);
         }
-        if (!platformRepository.exists(req.getSubject().toString().split("CN=")[1].split(illegalSign)[1])) {
+        if (!platformRepository.exists(request.getSubject().toString().split("CN=")[1].split(illegalSign)[1])) {
             throw new PlatformManagementException("Platform doesn't exist", HttpStatus.UNAUTHORIZED);
         }
     }

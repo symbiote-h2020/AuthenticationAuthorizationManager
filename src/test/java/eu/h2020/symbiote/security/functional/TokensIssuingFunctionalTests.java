@@ -18,7 +18,7 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.GetClientCertificateService;
+import eu.h2020.symbiote.security.services.GetCertificateService;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
@@ -83,7 +83,7 @@ public class TokensIssuingFunctionalTests extends
     @Autowired
     private PlatformRepository platformRepository;
     @Autowired
-    private GetClientCertificateService getClientCertificateService;
+    private GetCertificateService getCertificateService;
     @Autowired
     private TokenIssuer tokenIssuer;
 
@@ -435,7 +435,7 @@ public class TokensIssuingFunctionalTests extends
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, preferredPlatformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateString = getClientCertificateService.getCertificate(certRequest);
+        String certificateString = getCertificateService.getCertificate(certRequest);
         Platform platform = platformRepository.findOne(preferredPlatformId);
         platform.getComponentCertificates().put(componentId, new Certificate(certificateString));
         platformRepository.save(platform);

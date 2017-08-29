@@ -3,7 +3,7 @@ package eu.h2020.symbiote.security.listeners.rest.controllers;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IGetClientCertificate;
-import eu.h2020.symbiote.security.services.GetClientCertificateService;
+import eu.h2020.symbiote.security.services.GetCertificateService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,17 +18,17 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 public class GetCertificateController implements IGetClientCertificate {
-    private GetClientCertificateService getClientCertificateService;
+    private GetCertificateService getCertificateService;
 
     @Autowired
-    public GetCertificateController(GetClientCertificateService getClientCertificateService) {
-        this.getClientCertificateService = getClientCertificateService;
+    public GetCertificateController(GetCertificateService getCertificateService) {
+        this.getCertificateService = getCertificateService;
     }
 
     @Override
     public ResponseEntity<String> getClientCertificate(@RequestBody CertificateRequest certificateRequest) {
         try {
-            String certificate = getClientCertificateService.getCertificate(certificateRequest);
+            String certificate = getCertificateService.getCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
         } catch (WrongCredentialsException | NotExistingUserException | InvalidArgumentsException
                 | UserManagementException | PlatformManagementException | ValidationException e) {
