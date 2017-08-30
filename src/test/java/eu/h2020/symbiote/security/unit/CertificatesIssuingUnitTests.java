@@ -843,5 +843,56 @@ public class CertificatesIssuingUnitTests extends
         assertEquals(-1, x509Certificate.getBasicConstraints());
     }
 
+    @Test
+    public void revokeAndReplaceAAMOwnerCertificate() throws
+            IOException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            InvalidAlgorithmParameterException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            InvalidArgumentsException,
+            ValidationException,
+            UserManagementException,
+            PlatformManagementException {
+        //  Register AAM Owner
+        User aamowner = new User();
+        aamowner.setUsername(AAMOwnerUsername);
+        aamowner.setPasswordEncrypted(passwordEncoder.encode(AAMOwnerPassword));
+        aamowner.setRecoveryMail(recoveryMail);
+        aamowner.setRole(UserRole.PLATFORM_OWNER);
+        userRepository.save(aamowner);
 
+        Platform platform = new Platform(AAM_CORE_AAM_INSTANCE_ID, null, null, aamowner, new Certificate(), new HashMap<>());
+        platformRepository.save(platform);
+        aamowner.getOwnedPlatforms().put(AAM_CORE_AAM_INSTANCE_ID, platform);
+        userRepository.save(aamowner);
+
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, AAM_CORE_AAM_INSTANCE_ID, pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csrString);
+        String certificate = getCertificateService.getCertificate(certRequest);
+
+        assertTrue(certificate.contains("BEGIN CERTIFICATE"));
+        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + componentId + illegalSign + AAM_CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        // -1 for intermediate CA certificate
+        assertEquals(-1, x509Certificate.getBasicConstraints());
+
+        pair = CryptoHelper.createKeyPair();
+        csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, AAM_CORE_AAM_INSTANCE_ID, pair);
+        assertNotNull(csrString);
+        certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csrString);
+        getCertificateService.getCertificate(certRequest);
+
+        assertTrue(certificate.contains("BEGIN CERTIFICATE"));
+        x509Certificate = CryptoHelper.convertPEMToX509(certificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + componentId + illegalSign + AAM_CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        // -1 for intermediate CA certificate
+        assertEquals(-1, x509Certificate.getBasicConstraints());
+    }
 }

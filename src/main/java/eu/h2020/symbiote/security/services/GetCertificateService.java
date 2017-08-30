@@ -134,7 +134,7 @@ public class GetCertificateService {
                         componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
                     } else {
                         RevocationRequest revocationRequest = new RevocationRequest();
-                        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+                        revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
                         revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
                         revocationRequest.setCertificateCommonName(componentId + illegalSign + platformId);
                         if (!revocationService.revoke(revocationRequest).isRevoked()) {

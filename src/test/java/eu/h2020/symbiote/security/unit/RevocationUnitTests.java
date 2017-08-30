@@ -371,7 +371,7 @@ public class RevocationUnitTests extends
         //check if revocation ended with success using certificate with revoked key
 
         RevocationRequest revocationRequest = new RevocationRequest();
-        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCertificatePEMString(certFromCSR);
         revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
