@@ -83,11 +83,11 @@ public class UsersManagementService {
         // If requested user IS in database but wrong password was provided
         if (!credentials.getPassword().equals(held.getPasswordEncrypted()) &&
                 !passwordEncoder.matches(credentials.getPassword(), held.getPasswordEncrypted()))
-            throw new UserManagementException(HttpStatus.UNAUTHORIZED);
+            throw new UserManagementException("Incorrect login / password", HttpStatus.UNAUTHORIZED);
         //  Everything is fine, returning requested user's details
         return new UserDetails(new Credentials(
-                held.getUsername(), held.getPasswordEncrypted()),
-                null,
+                held.getUsername(), ""),
+                "",
                 held.getRecoveryMail(),
                 held.getRole(),
                 held.getAttributes()
