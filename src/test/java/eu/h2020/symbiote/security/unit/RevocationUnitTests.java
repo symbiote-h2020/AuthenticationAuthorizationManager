@@ -364,8 +364,7 @@ public class RevocationUnitTests extends
         csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
         certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
 
-        String certFromCSR = CryptoHelper.convertPEMToX509(getCertificateService.getCertificate(certRequest)).toString();
-
+        String certFromCSR = getCertificateService.getCertificate(certRequest);
         //revoke certificate using revoked certificate
         //check if there is platform certificate in database
         assertFalse(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
