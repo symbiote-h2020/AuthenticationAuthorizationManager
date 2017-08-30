@@ -108,6 +108,7 @@ public class UsersManagementService {
                 user.setUsername(userDetails.getCredentials().getUsername());
                 user.setPasswordEncrypted(passwordEncoder.encode(userDetails.getCredentials().getPassword()));
                 user.setRecoveryMail(userDetails.getRecoveryMail());
+                user.setAttributes(userDetails.getAttributes());
                 userRepository.save(user);
                 break;
             case UPDATE:
@@ -120,7 +121,7 @@ public class UsersManagementService {
         return ManagementStatus.OK;
     }
 
-    private void update(UserManagementRequest userManagementRequest) throws UserManagementException, NotExistingUserException {
+    private void update(UserManagementRequest userManagementRequest) throws UserManagementException {
         User user = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
         // checking if request contains current password
         if (!userManagementRequest.getUserCredentials().getPassword().equals(user.getPasswordEncrypted())
@@ -132,7 +133,6 @@ public class UsersManagementService {
             user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
         if (!userManagementRequest.getUserDetails().getRecoveryMail().isEmpty())
             user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
-
         userRepository.save(user);
     }
 

@@ -5,20 +5,21 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import eu.h2020.symbiote.security.communication.payloads.LocalUsersAttributesMap;
+import eu.h2020.symbiote.security.communication.payloads.AttributesMap;
 import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
+import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
 import java.util.Map;
 
-public class LocalUsersAttributesConsumerService extends DefaultConsumer {
+public class AttributesMapConsumerService extends DefaultConsumer {
 
-    private static Log log = LogFactory.getLog(LocalUsersAttributesConsumerService.class);
+    private static Log log = LogFactory.getLog(AttributesMapConsumerService.class);
     private LocalUsersAttributesRepository localUsersAttributesRepository;
 
-    public LocalUsersAttributesConsumerService(Channel channel, LocalUsersAttributesRepository localUsersAttributesRepository) {
+    public AttributesMapConsumerService(Channel channel, LocalUsersAttributesRepository localUsersAttributesRepository) {
         super(channel);
         this.localUsersAttributesRepository = localUsersAttributesRepository;
     }
@@ -40,7 +41,7 @@ public class LocalUsersAttributesConsumerService extends DefaultConsumer {
 
         String message = new String(body, "UTF-8");
         ObjectMapper om = new ObjectMapper();
-        LocalUsersAttributesMap map;
+        AttributesMap list;
         String response;
 
         if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
@@ -49,11 +50,11 @@ public class LocalUsersAttributesConsumerService extends DefaultConsumer {
                     .Builder()
                     .correlationId(properties.getCorrelationId())
                     .build();
-            map = om.readValue(message, LocalUsersAttributesMap.class);
-            log.debug("[x] Received LocalUsersAttributesMap with: " + map.getAttributes().size() + " attributes");
+            list = om.readValue(message, AttributesMap.class);
+            log.debug("[x] Received LocalUsersAttributesMap with: " + list.getAttributes().size() + " attributes");
             localUsersAttributesRepository.deleteAll();
-            for (Map.Entry<String, String> entry : map.getAttributes().entrySet()) {
-                localUsersAttributesRepository.save(entry.getValue());
+            for (Map.Entry<String, String> entry : list.getAttributes().entrySet()) {
+                localUsersAttributesRepository.save(new Attribute(entry.getKey(), entry.getValue()));
             }
 
             response = "true";

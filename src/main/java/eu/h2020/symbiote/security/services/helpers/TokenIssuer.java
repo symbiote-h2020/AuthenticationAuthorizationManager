@@ -13,6 +13,7 @@ import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
 import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
+import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
@@ -124,18 +125,17 @@ public class TokenIssuer {
                     }
                     break;
                 case PLATFORM:
-                    //2 dodatkowe repa,
+
                     // TODO R3 federation
                     break;
                 case NULL:
                     throw new JWTCreationException("Misconfigured AAM deployment type");
             }
-
-            //TODO
-            for (String entry : localUsersAttributesRepository.findAll()) {
-                attributes.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "", entry);
+            //adding local user's attributes
+            for (Attribute entry : localUsersAttributesRepository.findAll()) {
+                attributes.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + entry.getKey(), entry.getValue());
             }
-            //adding user attributes
+            //adding particular user's attributes
             for (Map.Entry<String, String> entry : user.getAttributes().entrySet()) {
                 attributes.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + entry.getKey(), entry.getValue());
             }

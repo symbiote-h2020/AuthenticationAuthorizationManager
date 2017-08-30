@@ -362,7 +362,7 @@ public class RabbitManager {
 
             log.info("Authentication and Authorization Manager waiting for localUsersAttributes messages");
 
-            Consumer consumer = new LocalUsersAttributesConsumerService(channel,
+            Consumer consumer = new AttributesMapConsumerService(channel,
                     localUsersAttributesRepository);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
@@ -427,6 +427,9 @@ public class RabbitManager {
                         channel.queueUnbind(this.getHomeTokenRequestQueue, this.AAMExchangeName,
                                 this.getHomeTokenRequestRoutingKey);
                         channel.queueDelete(this.getHomeTokenRequestQueue);
+                        channel.queueUnbind(this.localUsersAttributesQueue, this.AAMExchangeName,
+                                this.localUsersAttributesRoutingKey);
+                        channel.queueDelete(this.localUsersAttributesQueue);
                         break;
                     case CORE:
                         // user registration
@@ -449,6 +452,10 @@ public class RabbitManager {
                         channel.queueUnbind(this.ownedPlatformDetailsRequestQueue, this.AAMExchangeName,
                                 this.ownedPlatformDetailsRequestRoutingKey);
                         channel.queueDelete(this.ownedPlatformDetailsRequestQueue);
+                        //attributes
+                        channel.queueUnbind(this.localUsersAttributesQueue, this.AAMExchangeName,
+                                this.localUsersAttributesRoutingKey);
+                        channel.queueDelete(this.localUsersAttributesQueue);
                         break;
                     case NULL:
                         break;

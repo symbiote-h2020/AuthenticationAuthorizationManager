@@ -71,12 +71,16 @@ public class TokensIssuingFunctionalTests extends
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
+    @Value("${rabbit.queue.manage.attributes}")
+    protected String attributeAddingQueue;
     private KeyPair platformOwnerKeyPair;
     private RpcClient appRegistrationClient;
     private UserDetails appUserDetails;
+    private RpcClient attributesAddingOverAMQPClient;
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
+    private AttributesMap localUsersAttributesMap;
     @Autowired
     private PlatformRepository platformRepository;
     @Autowired
@@ -101,7 +105,7 @@ public class TokensIssuingFunctionalTests extends
         appRegistrationClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 userManagementRequestQueue, 5000);
         appUserDetails = new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER);
+                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>());
 
         //user registration useful
         User user = new User();
@@ -120,6 +124,9 @@ public class TokensIssuingFunctionalTests extends
                 platformInstanceFriendlyName,
                 preferredPlatformId, OperationType.CREATE);
         platformOwnerKeyPair = CryptoHelper.createKeyPair();
+
+        attributesAddingOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+                attributeAddingQueue, 5000);
     }
 
     /**
@@ -645,7 +652,7 @@ public class TokensIssuingFunctionalTests extends
         appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(coreAppUsername, coreAppPassword),
-                new UserDetails(new Credentials(coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER), new HashMap<>(),
+                new UserDetails(new Credentials(coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>()),
                 OperationType.CREATE)).getBytes());
 
         //put certificate into database
@@ -885,5 +892,17 @@ public class TokensIssuingFunctionalTests extends
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(acquired_token);
         assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));
         assertTrue(claimsFromToken.getAtt().isEmpty());
+    }
+
+    @Test
+    public void addAttributesOverAMQPSuccess() throws MalformedJWTException, JWTCreationException, IOException, TimeoutException {
+        localUsersAttributesRepository.deleteAll();
+        Map<String, String> attributesMap = new HashMap<>();
+        attributesMap.put("key1", "attribute1");
+        attributesMap.put("key2", "attribute2");
+        localUsersAttributesMap = new AttributesMap(attributesMap);
+        attributesAddingOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (localUsersAttributesMap).getBytes());
+        assertEquals(2, localUsersAttributesRepository.findAll().size());
     }
 }

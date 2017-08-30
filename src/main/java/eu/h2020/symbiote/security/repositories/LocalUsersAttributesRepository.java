@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.repositories;
 
+import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 /**
@@ -7,5 +8,5 @@ import org.springframework.data.mongodb.repository.MongoRepository;
  *
  * @author Jakub Toczek (PSNC)
  */
-public interface LocalUsersAttributesRepository extends MongoRepository<String, String> {
+public interface LocalUsersAttributesRepository extends MongoRepository<Attribute, String> {
 }

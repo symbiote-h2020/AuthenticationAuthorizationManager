@@ -17,7 +17,7 @@ import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
-import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
+import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -82,8 +82,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     private TokenIssuer tokenIssuer;
     @Autowired
     private GetTokenService getTokenService;
-    @Autowired
-    private LocalUsersAttributesRepository localUsersAttributesRepository;
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
@@ -678,11 +676,12 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         Token homeToken = getTokenService.getHomeToken(loginRequest);
     }
     @Test
-    public void getHomeTokenWithAttributesProvisionedToBeIssuedForGivenUser() throws IOException, TimeoutException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException, MalformedJWTException {
+    public void getHomeTokenWithAttributesProvisionedToBeIssuedForLocalUser() throws IOException, TimeoutException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException, MalformedJWTException {
 
-        localUsersAttributesRepository.save("attr1");
+        localUsersAttributesRepository.save(new Attribute("key", "attribute"));
         addTestUserWithClientCertificateToRepository();
         User user = userRepository.findOne(username);
+
         assertNotNull(user);
         Token token = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
         assertNotNull(token);
@@ -691,14 +690,29 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
         Map<String, String> attributes = claimsFromToken.getAtt();
         assertEquals(UserRole.USER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
-        assertTrue(attributes.entrySet().contains("attr1"));
+        assertNotNull(attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
+        assertEquals("attribute", attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
+    }
 
-        /*
-        TODO attributes provisioning test
-        2. send the attributes list
-        3. receive a success status
-        4. log in as an user and check if the token does contain sent attributes
-        */
+    @Test
+    public void getHomeTokenWithAttributesProvisionedToBeIssuedForGivenUser() throws IOException, TimeoutException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException, MalformedJWTException {
+
+        addTestUserWithClientCertificateToRepository();
+        User user = userRepository.findOne(username);
+        Map<String, String> map = new HashMap<>();
+        map.put("key", "attribute");
+        user.setAttributes(map);
+        userRepository.save(user);
+        assertNotNull(user);
+        Token token = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
+        assertNotNull(token);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.toString());
+        assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
+
+        Map<String, String> attributes = claimsFromToken.getAtt();
+        assertEquals(UserRole.USER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+        assertNotNull(attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
+        assertEquals("attribute", attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
     }
 
     @Test
