@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
@@ -71,6 +72,26 @@ public class UsersManagementService {
             throw new UserManagementException(HttpStatus.UNAUTHORIZED);
         // do it
         return this.manage(request);
+    }
+
+    public UserDetails getUserDetails(Credentials credentials) throws UserManagementException {
+        //  If requested user is not in database
+        if (!userRepository.exists(credentials.getUsername()))
+            throw new UserManagementException("User not in database", HttpStatus.BAD_REQUEST);
+
+        User held = userRepository.findOne(credentials.getUsername());
+        // If requested user IS in database but wrong password was provided
+        if (!credentials.getPassword().equals(held.getPasswordEncrypted()) &&
+                !passwordEncoder.matches(credentials.getPassword(), held.getPasswordEncrypted()))
+            throw new UserManagementException(HttpStatus.UNAUTHORIZED);
+        //  Everything is fine, returning requested user's details
+        return new UserDetails(new Credentials(
+                held.getUsername(), held.getPasswordEncrypted()),
+                null,
+                held.getRecoveryMail(),
+                held.getRole(),
+                held.getAttributes()
+        );
     }
 
     public ManagementStatus manage(UserManagementRequest userManagementRequest)
