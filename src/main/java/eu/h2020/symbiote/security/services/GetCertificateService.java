@@ -244,8 +244,7 @@ public class GetCertificateService {
         userRepository.save(user);
     }
 
-    //TODO should be private, covered in tests from higher level
-    public X509Certificate createCertificateFromCSR(CertificateRequest certificateRequest, PKCS10CertificationRequest req) throws
+    private X509Certificate createCertificateFromCSR(CertificateRequest certificateRequest, PKCS10CertificationRequest req) throws
             InvalidArgumentsException, UserManagementException, PlatformManagementException {
         X509Certificate certFromCSR;
 
