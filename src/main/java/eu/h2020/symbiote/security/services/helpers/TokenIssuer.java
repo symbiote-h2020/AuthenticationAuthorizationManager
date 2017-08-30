@@ -10,8 +10,10 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigura
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.communication.payloads.FederationRule;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
+import eu.h2020.symbiote.security.repositories.FederationRepository;
 import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
 import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -45,8 +47,6 @@ public class TokenIssuer {
     private static final String ISSUING_FOREIGN_TOKEN_ERROR = "Someone tried issuing a foreign token using a home token";
     private static Log log = LogFactory.getLog(TokenIssuer.class);
     private static SecureRandom random = new SecureRandom();
-    // TODO R3 create a CRUD for this
-    public Map<String, String> foreignMappingRules = new HashMap<>();
     // AAM configuration
     private String deploymentId = "";
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
@@ -55,14 +55,16 @@ public class TokenIssuer {
     private CertificationAuthorityHelper certificationAuthorityHelper;
     private KeyPair guestKeyPair;
     private LocalUsersAttributesRepository localUsersAttributesRepository;
+    private FederationRepository federationRepository;
 
     @Autowired
-    public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper, LocalUsersAttributesRepository localUsersAttributesRepository) {
+    public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper, LocalUsersAttributesRepository localUsersAttributesRepository, FederationRepository federationRepository) {
 
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
         this.localUsersAttributesRepository = localUsersAttributesRepository;
+        this.federationRepository = federationRepository;
     }
 
     public static String buildAuthorizationToken(String subject, Map<String, String> attributes, byte[] subjectPublicKey,
@@ -159,7 +161,7 @@ public class TokenIssuer {
     /**
      * @param remoteHomeToken from which needed information and attributes are gathered and mapped
      * @return foreignToken issued for given user
-     * @throws JWTCreationException
+     * @throws JWTCreationException throwed when error during creation of the token occurs
      */
     public Token getForeignToken(Token remoteHomeToken)
             throws JWTCreationException, ValidationException {
@@ -172,13 +174,19 @@ public class TokenIssuer {
 
         try {
             JWTClaims claims = JWTEngine.getClaimsFromToken(remoteHomeToken.toString());
-
-            // TODO R3 Attribute Mapping Function
-            Map<String, String> foreignAttributes = new HashMap<>();
-
+            HashMap<String, String> foreignAttributes = new HashMap<>();
             // disabling foreign token issuing when the mapping rule is empty
-            if (foreignMappingRules.isEmpty())
+            if (federationRepository.findAll().isEmpty())
                 throw new SecurityMisconfigurationException("AAM has no foreign rules defined");
+            for (FederationRule federationRule : federationRepository.findAll()) {
+                if (containRequiredRules(claims, federationRule.getRequiredAttributes())) {
+                    //putting all rules with prefix
+                    for (Map.Entry<String, String> entry : federationRule.getReleasedFederatedAttributes().entrySet()) {
+                        foreignAttributes.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + entry.getKey(), entry.getValue());
+                    }
+
+                }
+            }
             return new Token(buildAuthorizationToken(
                     // FOREIGN SUB: username@clientIdentifier@homeAAMInstanceIdentifier
                     claims.getSub() + "@" + claims.getIss(),
@@ -193,6 +201,18 @@ public class TokenIssuer {
             log.error(e);
             throw new JWTCreationException(e);
         }
+    }
+
+    private boolean containRequiredRules(JWTClaims claims, Map<String, String> requiredAttributes) {
+        for (Map.Entry<String, String> entry : requiredAttributes.entrySet()) {
+            if (claims.getAtt().get(entry.getKey()) == null) {
+                return false;
+            }
+            if (!entry.getValue().equals(claims.getAtt().get(entry.getKey()))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

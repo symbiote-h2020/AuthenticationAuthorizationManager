@@ -14,6 +14,7 @@ import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.FederationRule;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
@@ -372,6 +373,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
         addTestUserWithClientCertificateToRepository();
         assertNotNull(userRepository.findOne(username));
+
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
@@ -405,8 +407,15 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
         platformRepository.save(dummyPlatform);
 
-        // adding a dummy foreign rule
-        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
+        // adding a federation rule
+        Map<String, String> requiredAttr = new HashMap<>();
+        requiredAttr.put("name", "test2");
+        Map<String, String> releasedFederatedAttr = new HashMap<>();
+        releasedFederatedAttr.put("federatedKey", "federaredAttribute");
+
+        FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
+        federationRepository.save(federationRule);
+
         Token foreignToken = null;
         try {
             foreignToken = getTokenService.getForeignToken(token, "", "");
@@ -416,6 +425,10 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         }
         assertNotNull(foreignToken);
         assertEquals(Token.Type.FOREIGN, foreignToken.getType());
+
+        JWTClaims claims = JWTEngine.getClaimsFromToken(foreignToken.toString());
+        assertTrue(claims.getAtt().containsKey(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "federatedKey"));
+        assertTrue(claims.getAtt().containsValue("federaredAttribute"));
     }
 
     @Test(expected = JWTCreationException.class)
@@ -441,7 +454,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         } catch (Exception e) {
             fail("Exception thrown");
         }
-        tokenIssuer.foreignMappingRules.clear();
+        federationRepository.deleteAll();
         tokenIssuer.getForeignToken(token);
     }
 

@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
@@ -60,7 +61,6 @@ public class RevocationFunctionalTests extends
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
-
 
     @Bean
     DummyPlatformAAM dummyPlatformAAM() {
@@ -376,8 +376,15 @@ public class RevocationFunctionalTests extends
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
         platformRepository.save(dummyPlatform);
 
-        // adding a dummy foreign rule
-        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
+        // adding a federation rule
+        Map<String, String> requiredAttr = new HashMap<>();
+        requiredAttr.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key", "attribute");
+        Map<String, String> releasedFederatedAttr = new HashMap<>();
+        releasedFederatedAttr.put("federatedKey", "federaredAttribute");
+
+        FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
+        federationRepository.save(federationRule);
+
         Token foreignToken = getTokenService.getForeignToken(token, "", "");
         assertNotNull(foreignToken);
 
