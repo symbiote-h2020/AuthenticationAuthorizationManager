@@ -134,7 +134,7 @@ public class GetCertificateService {
                         componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
                     } else {
                         RevocationRequest revocationRequest = new RevocationRequest();
-                        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+                        revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
                         revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
                         revocationRequest.setCertificateCommonName(componentId + illegalSign + platformId);
                         if (!revocationService.revoke(revocationRequest).isRevoked()) {
@@ -244,8 +244,7 @@ public class GetCertificateService {
         userRepository.save(user);
     }
 
-    //TODO should be private, covered in tests from higher level
-    public X509Certificate createCertificateFromCSR(CertificateRequest certificateRequest, PKCS10CertificationRequest req) throws
+    private X509Certificate createCertificateFromCSR(CertificateRequest certificateRequest, PKCS10CertificationRequest req) throws
             InvalidArgumentsException, UserManagementException, PlatformManagementException {
         X509Certificate certFromCSR;
 

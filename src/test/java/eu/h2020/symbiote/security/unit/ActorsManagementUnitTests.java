@@ -288,5 +288,16 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
     }
 
+    @Test(expected = InvalidArgumentsException.class)
+    public void userCreateFailInvalidArguments() throws SecurityException {
+
+        // attempt adding new user to database using invalid request
+        UserManagementRequest userManagementRequest = new UserManagementRequest(null,
+                new Credentials(appUsername, "NewPassword"),
+                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>()),
+                OperationType.CREATE);
+        usersManagementService.authManage(userManagementRequest);
+
+    }
 
 }

@@ -228,7 +228,6 @@ public class CertificatesIssuingFunctionalTests extends
         X509Certificate x509CertificateNew = CryptoHelper.convertPEMToX509(clientCertificate);
         assertNotNull(x509CertificateNew);
         assertEquals("CN=" + platform.getPlatformInstanceId(), x509CertificateNew.getSubjectDN().getName());
-        System.out.println(x509Certificate);
         assertNotEquals(x509Certificate, x509CertificateNew);
 
     }

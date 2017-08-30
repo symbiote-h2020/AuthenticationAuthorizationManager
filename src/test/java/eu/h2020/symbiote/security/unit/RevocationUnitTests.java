@@ -27,7 +27,6 @@ import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM2;
 import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -365,19 +364,15 @@ public class RevocationUnitTests extends
         csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
         certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
 
-        PKCS10CertificationRequest req = CryptoHelper.convertPemToPKCS10CertificationRequest(certRequest.getClientCSRinPEMFormat());
-        X509Certificate certFromCSR = getCertificateService.createCertificateFromCSR(certRequest, req);
-        String certificateNew = CryptoHelper.convertX509ToPEM(certFromCSR);
-
-
+        String certFromCSR = getCertificateService.getCertificate(certRequest);
         //revoke certificate using revoked certificate
         //check if there is platform certificate in database
         assertFalse(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().get(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
         //check if revocation ended with success using certificate with revoked key
 
         RevocationRequest revocationRequest = new RevocationRequest();
-        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
-        revocationRequest.setCertificatePEMString(certificateNew);
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
+        revocationRequest.setCertificatePEMString(certFromCSR);
         revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
     }
