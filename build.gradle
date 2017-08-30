@@ -57,6 +57,8 @@ dependencies {
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
     compile('com.github.symbiote-h2020:SymbIoTeSecurity:18.+'){ changing = true }
+    // allows to select the downloaded matching sources in IntelliJ Idea as it fails to do so automatically from jitpack repo
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:18.+:sources'){ changing = true }
     //compile project(':SymbIoTeSecurity')
 
     // Spring
@@ -73,6 +75,7 @@ dependencies {
     testCompile('org.springframework.boot:spring-boot-starter-test')
     testCompile ('com.github.fakemongo:fongo:2.1+')
 }
+
 
 // code quality below
 task generateJavaDocs(type: Javadoc) {
