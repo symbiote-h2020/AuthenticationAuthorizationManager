@@ -23,5 +23,5 @@ public interface IUserManagement {
     ResponseEntity<ManagementStatus> manage(@RequestBody UserManagementRequest userManagementRequest);
 
     @PostMapping(value = SecurityConstants.AAM_GET_USER_DETAILS, consumes = "application/json")
-    UserDetails getUserDetails(@RequestBody Credentials credentials);
+    ResponseEntity<UserDetails> getUserDetails(@RequestBody Credentials credentials);
 }
