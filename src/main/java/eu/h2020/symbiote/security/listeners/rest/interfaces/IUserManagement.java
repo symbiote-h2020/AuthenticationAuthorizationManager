@@ -2,6 +2,8 @@ package eu.h2020.symbiote.security.listeners.rest.interfaces;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,4 +21,7 @@ public interface IUserManagement {
      */
     @PostMapping(value = SecurityConstants.AAM_MANAGE_USERS, consumes = "application/json")
     ResponseEntity<ManagementStatus> manage(@RequestBody UserManagementRequest userManagementRequest);
+
+    @PostMapping(value = SecurityConstants.AAM_GET_USER_DETAILS, consumes = "application/json")
+    ResponseEntity<UserDetails> getUserDetails(@RequestBody Credentials credentials);
 }

@@ -300,4 +300,31 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
 
     }
 
+    @Test
+    public void getExistingUserOverRestSuccess() throws UserManagementException {
+        //  Register user in database
+        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>());
+        userRepository.save(platformOwner);
+        //  Request user with matching credentials
+        UserDetails userDetails = AAMClient.getUserDetails(new Credentials(username, password));
+        assertNotNull(userDetails);
+    }
+
+    @Test(expected = UserManagementException.class)
+    public void getNotExistingUserOverRestFailure() throws UserManagementException {
+        //  Register user in database
+        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>());
+        userRepository.save(platformOwner);
+        //  Request different user that is NOT in database
+        AAMClient.getUserDetails(new Credentials("NotExisting", "somePassword"));
+    }
+
+    @Test(expected = UserManagementException.class)
+    public void getUserOverRestFailsForWrongPassword() throws UserManagementException {
+        //  Register user in database
+        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>());
+        userRepository.save(platformOwner);
+        //  Request existing user with incorrect password
+        AAMClient.getUserDetails(new Credentials(username, "WrongPassword"));
+    }
 }
