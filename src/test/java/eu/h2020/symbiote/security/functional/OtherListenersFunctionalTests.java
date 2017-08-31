@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.functional;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
@@ -7,34 +8,32 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
-import eu.h2020.symbiote.security.communication.payloads.AAM;
-import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
-import eu.h2020.symbiote.security.communication.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import org.bouncycastle.operator.OperatorCreationException;
+import org.codehaus.jettison.json.JSONException;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 /**
  * Test suite for Core AAM deployment scenarios.
@@ -186,6 +185,103 @@ public class OtherListenersFunctionalTests extends
         assertEquals(certificationAuthorityHelper.getAAMCert(), componentCertificate);
     }
 
+    /**
+     * Features: CAAM - Providing platform details for Administration upon giving a correct credentials
+     * Interfaces: CAAM ;
+     * CommunicationType AMQP
+     */
+    @Test
+    public void getOwnedPlatformDetailsForPlatformOwnerInAdministrationSuccess() throws IOException, TimeoutException {
+
+        // verify that our platform is not in repository and that our platformOwner is in repository
+        assertFalse(platformRepository.exists(preferredPlatformId));
+        assertTrue(userRepository.exists(platformOwnerUsername));
+
+        // issue platform registration over AMQP
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        User platformOwner = userRepository.findOne(platformOwnerUsername);
+        // platform owner should have a platform bound to him by now
+        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+        // creating request
+        UserManagementRequest userManagementRequest = new UserManagementRequest();
+        userManagementRequest.setAdministratorCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
+        userManagementRequest.setUserCredentials(new Credentials(platformOwnerUsername, ""));
+
+        // issue owned platform details request with the given token
+        RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+                ownedPlatformDetailsRequestQueue, 5000);
+        byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
+                (userManagementRequest).getBytes());
+
+        Set<OwnedPlatformDetails> responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
+        });
+
+        // there should be a platform
+        assertFalse(responseSet.isEmpty());
+        OwnedPlatformDetails platformDetailsFromResponse = responseSet.iterator().next();
+        Platform ownedPlatformInDB = platformRepository.findOne(preferredPlatformId);
+
+        // verify the contents of the response
+        assertEquals(ownedPlatformInDB.getPlatformInstanceFriendlyName(), platformDetailsFromResponse
+                .getPlatformInstanceFriendlyName());
+        assertEquals(ownedPlatformInDB.getPlatformInstanceId(), platformDetailsFromResponse.getPlatformInstanceId());
+        assertEquals(ownedPlatformInDB.getPlatformInterworkingInterfaceAddress(), platformDetailsFromResponse
+                .getPlatformInterworkingInterfaceAddress());
+    }
+
+
+    @Test
+    public void getOwnedPlatformDetailsForPlatformOwnerInAdministrationUnauthorized()
+            throws
+            IOException,
+            TimeoutException,
+            MalformedJWTException,
+            JSONException,
+            CertificateException,
+            ValidationException,
+            InterruptedException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            InvalidKeyException,
+            JWTCreationException, WrongCredentialsException {
+
+        // verify that our platform is not in repository and that our platformOwner is in repository
+        assertFalse(platformRepository.exists(preferredPlatformId));
+        assertTrue(userRepository.exists(platformOwnerUsername));
+
+        // issue platform registration over AMQP
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        User platformOwner = userRepository.findOne(platformOwnerUsername);
+        // platform owner should have a platform bound to him by now
+        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+        // creating request
+        UserManagementRequest userManagementRequest = new UserManagementRequest();
+        userManagementRequest.setAdministratorCredentials(new Credentials(AAMOwnerUsername, "bad_password"));
+        userManagementRequest.setUserCredentials(new Credentials(platformOwnerUsername, ""));
+
+        // issue owned platform details request with the given token
+        RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+                ownedPlatformDetailsRequestQueue, 5000);
+        byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
+                (userManagementRequest).getBytes());
+
+        try {
+            mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
+            });
+            assert false;
+        } catch (Exception e) {
+            ErrorResponseContainer error = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer.class);
+            assertEquals(HttpStatus.UNAUTHORIZED.value(), error.getErrorCode());
+        }
+    }
 
     private X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
             NoSuchProviderException,

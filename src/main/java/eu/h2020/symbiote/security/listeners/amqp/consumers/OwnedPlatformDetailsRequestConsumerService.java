@@ -5,21 +5,15 @@ import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.Token;
-import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
-import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.payloads.OwnedPlatformDetails;
+import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
-import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
-import io.jsonwebtoken.ExpiredJwtException;
+import eu.h2020.symbiote.security.repositories.entities.User;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpStatus;
@@ -27,7 +21,6 @@ import org.springframework.http.HttpStatus;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -38,21 +31,24 @@ import java.util.Set;
 public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer {
 
     private static Log log = LogFactory.getLog(OwnedPlatformDetailsRequestConsumerService.class);
-    private UserRepository userRepository;
-    private ValidationHelper validationHelper;
-
+    private final UserRepository userRepository;
+    private final String adminUsername;
+    private final String adminPassword;
 
     /**
      * Constructs a new instance and records its association to the passed-in channel.
      * Managers beans passed as parameters because of lack of possibility to inject it to consumer.
      *
      * @param channel the channel to which this consumer is attached
+     * @param adminUsername
+     * @param adminPassword
      */
     public OwnedPlatformDetailsRequestConsumerService(Channel channel,
-                                                      UserRepository userRepository, ValidationHelper validationHelper) {
+                                                      UserRepository userRepository, String adminUsername, String adminPassword) {
         super(channel);
         this.userRepository = userRepository;
-        this.validationHelper = validationHelper;
+        this.adminUsername = adminUsername;
+        this.adminPassword = adminPassword;
     }
 
     /**
@@ -72,9 +68,7 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
 
         String message = new String(body, "UTF-8");
         ObjectMapper om = new ObjectMapper();
-        Token token;
         String response;
-
 
         if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
 
@@ -83,31 +77,21 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
                     .correlationId(properties.getCorrelationId())
                     .build();
             try {
-                token = new Token(om.readValue(message, String.class));
+                UserManagementRequest userManagementRequest = om.readValue(message, UserManagementRequest.class);
+                Credentials administratorCredentials = userManagementRequest.getAdministratorCredentials();
 
-                if (validationHelper.validate(token.getToken(), "", "", "") != ValidationStatus.VALID)
-                    throw new ValidationException("Token validation failed");
-
-                JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
-                //verify that JWT is of type Core as was released by a CoreAAM
-                if (Token.Type.HOME == Token.Type.valueOf(claimsFromToken.getTtyp()) && !claimsFromToken.getIss().equals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID))
-                    throw new ValidationException("Provider of the HOME Token is not a CORE AAM");
-
-                // verify that the token contains the platform owner public key
-                String userFromToken = token.getClaims().getSubject().split("@")[0];
-
-                // verify that this JWT contains attributes relevant for platform owner
-                Map<String, String> attributes = claimsFromToken.getAtt();
-                // PO role
-                if (!UserRole.PLATFORM_OWNER.toString().equals(attributes.get(CoreAttributes.ROLE.toString())))
-                    throw new ValidationException("Missing Platform Owner Role");
-
-                // try to retrieve platform corresponding to this platform owner
-                Collection<Platform> ownedPlatforms = userRepository.findOne(userFromToken).getOwnedPlatforms().values();
-                if (ownedPlatforms.isEmpty())
-                    throw new ValidationException("Couldn't find platforms bound with this user");
+                // check if we received required administrator credentials for API auth
+                if (administratorCredentials == null || userManagementRequest.getUserCredentials().getUsername().isEmpty())
+                    throw new InvalidArgumentsException();
+                // and if they match the admin credentials from properties
+                if (!administratorCredentials.getUsername().equals(adminUsername)
+                        || !administratorCredentials.getPassword().equals(adminPassword))
+                    throw new UserManagementException(HttpStatus.UNAUTHORIZED);
+                // do it
+                User platformOwner = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
 
                 Set<OwnedPlatformDetails> ownedPlatformDetailsSet = new HashSet<>();
+                Collection<Platform> ownedPlatforms = platformOwner.getOwnedPlatforms().values();
                 for (Platform ownedPlatform : ownedPlatforms) {
                     OwnedPlatformDetails ownedPlatformDetails = new OwnedPlatformDetails(
                             ownedPlatform.getPlatformInstanceId(),
@@ -118,12 +102,11 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
                     );
                     ownedPlatformDetailsSet.add(ownedPlatformDetails);
                 }
-
                 // replying with the whole set
                 response = om.writeValueAsString(ownedPlatformDetailsSet);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
                 log.debug("Owned Platforms Details response: sent back");
-            } catch (ExpiredJwtException | IOException | MalformedJWTException | ValidationException e) {
+            } catch (UserManagementException | InvalidArgumentsException e) {
                 log.error(e);
                 response = (new ErrorResponseContainer(e.getMessage(), HttpStatus.UNAUTHORIZED.value()).toJson());
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());

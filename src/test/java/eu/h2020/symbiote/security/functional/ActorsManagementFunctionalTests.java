@@ -269,7 +269,7 @@ public class ActorsManagementFunctionalTests extends
         // issue app registration over AMQP
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, attributesMap),
                 OperationType.CREATE)).getBytes());
 

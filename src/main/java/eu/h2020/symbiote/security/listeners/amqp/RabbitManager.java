@@ -11,7 +11,6 @@ import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.*;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,12 +96,16 @@ public class RabbitManager {
     private String AAMOwnerPassword;
 
     private Connection connection;
-    private ValidationHelper validationHelper;
 
     @Value("${rabbit.routingKey.manage.attributes}")
     private String localUsersAttributesRoutingKey;
     @Value("${rabbit.queue.manage.attributes}")
     private String localUsersAttributesQueue;
+
+    @Value("${aam.deployment.owner.username}")
+    private String adminUsername;
+    @Value("${aam.deployment.owner.password}")
+    private String adminPassword;
 
     @Autowired
     public RabbitManager(UsersManagementService usersManagementService,
@@ -112,14 +115,13 @@ public class RabbitManager {
                          GetTokenService getTokenService,
                          UserRepository userRepository,
                          CertificationAuthorityHelper certificationAuthorityHelper,
-                         ValidationHelper validationHelper, LocalUsersAttributesRepository localUsersAttributesRepository) {
+                         LocalUsersAttributesRepository localUsersAttributesRepository) {
         this.usersManagementService = usersManagementService;
         this.revocationService = revocationService;
         this.platformsManagementService = platformsManagementService;
         this.credentialsValidationService = credentialsValidationService;
         this.getTokenService = getTokenService;
         this.userRepository = userRepository;
-        this.validationHelper = validationHelper;
         this.localUsersAttributesRepository = localUsersAttributesRepository;
         // setting the deployment type from the provisioned certificate
         deploymentType = certificationAuthorityHelper.getDeploymentType();
@@ -287,7 +289,7 @@ public class RabbitManager {
 
             log.info("Authentication and Authorization Manager waiting for owned platform details requests messages");
 
-            Consumer consumer = new OwnedPlatformDetailsRequestConsumerService(channel, userRepository, validationHelper);
+            Consumer consumer = new OwnedPlatformDetailsRequestConsumerService(channel, userRepository, adminUsername, adminPassword);
 
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
