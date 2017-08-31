@@ -292,7 +292,7 @@ public class RabbitManager {
 
             log.info("Authentication and Authorization Manager waiting for users' management request messages");
 
-            Consumer consumer = new GetUserDetailsService(channel, adminUsername, adminPassword,
+            Consumer consumer = new GetUserDetailsConsumerService(channel, adminUsername, adminPassword,
                     userRepository, passwordEncoder);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {

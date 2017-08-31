@@ -24,7 +24,7 @@ import java.io.IOException;
  * RabbitMQ Consumer implementation used for providing requested user's details
  * <p>
  */
-public class GetUserDetailsService extends DefaultConsumer {
+public class GetUserDetailsConsumerService extends DefaultConsumer {
 
     private static Log log = LogFactory.getLog(OwnedPlatformDetailsRequestConsumerService.class);
     private final UserRepository userRepository;
@@ -40,8 +40,8 @@ public class GetUserDetailsService extends DefaultConsumer {
      * @param adminUsername
      * @param adminPassword
      */
-    public GetUserDetailsService(Channel channel, String adminUsername, String adminPassword,
-                                 UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public GetUserDetailsConsumerService(Channel channel, String adminUsername, String adminPassword,
+                                         UserRepository userRepository, PasswordEncoder passwordEncoder) {
         super(channel);
         this.userRepository = userRepository;
         this.adminUsername = adminUsername;
