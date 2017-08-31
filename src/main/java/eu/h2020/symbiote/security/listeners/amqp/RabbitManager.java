@@ -367,9 +367,9 @@ public class RabbitManager {
             channel.queueDeclare(queueName, true, false, false, null);
             channel.queueBind(queueName, this.AAMExchangeName, this.localUsersAttributesRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for localUsersAttributes messages");
+            log.info("Authentication and Authorization Manager waiting for localAttributesManagementRequests messages");
 
-            Consumer consumer = new AttributesMapConsumerService(channel,
+            Consumer consumer = new LocalAttributesManagementRequestConsumerService(channel,
                     localUsersAttributesRepository, AAMOwnerUsername, AAMOwnerPassword);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {

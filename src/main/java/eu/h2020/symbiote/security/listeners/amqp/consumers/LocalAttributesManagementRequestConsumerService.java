@@ -19,14 +19,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class AttributesMapConsumerService extends DefaultConsumer {
+public class LocalAttributesManagementRequestConsumerService extends DefaultConsumer {
 
-    private static Log log = LogFactory.getLog(AttributesMapConsumerService.class);
+    private static Log log = LogFactory.getLog(LocalAttributesManagementRequestConsumerService.class);
     private final LocalUsersAttributesRepository localUsersAttributesRepository;
     private final String adminUsername;
     private final String adminPassword;
 
-    public AttributesMapConsumerService(Channel channel, LocalUsersAttributesRepository localUsersAttributesRepository, String adminUsername, String adminPassword) {
+    public LocalAttributesManagementRequestConsumerService(Channel channel, LocalUsersAttributesRepository localUsersAttributesRepository, String adminUsername, String adminPassword) {
         super(channel);
         this.localUsersAttributesRepository = localUsersAttributesRepository;
         this.adminUsername = adminUsername;

@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.functional;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
