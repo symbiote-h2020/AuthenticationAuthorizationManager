@@ -18,10 +18,8 @@ import java.io.IOException;
 /**
  * RabbitMQ Consumer implementation used for Platforms' Registration actions
  *
- * @author Mikołaj Dobski (PSNC)
+ * @author Maksymilian Marcinowski (PSNC)
  * <p>
- * TODO R3 @Mikołaj, @Tilemachos rework to support full platforms CRUD <- single message with operation type, PO
- * Token, AAM admin credentials and PlatformDetails
  */
 public class PlatformManagementRequestConsumerService extends DefaultConsumer {
 
@@ -70,7 +68,7 @@ public class PlatformManagementRequestConsumerService extends DefaultConsumer {
                     .build();
             try {
                 request = om.readValue(message, PlatformManagementRequest.class);
-                log.debug("[x] Received Platform Registration Request for: " + request.getAAMOwnerCredentials()
+                log.debug("[x] Received Platform Management Request for: " + request.getPlatformOwnerCredentials()
                         .getUsername());
                 PlatformManagementResponse registrationResponse = platformsManagementService.authManage
                         (request);
@@ -81,7 +79,7 @@ public class PlatformManagementRequestConsumerService extends DefaultConsumer {
                 response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
             }
-            log.debug("Platform Registration Response: sent back");
+            log.debug("Platform Management Response: sent back");
         } else {
             log.error("Received RPC message without ReplyTo or CorrelationId properties.");
         }

@@ -1,6 +1,5 @@
 package eu.h2020.symbiote.security.functional;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
@@ -30,13 +29,11 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-import org.codehaus.jettison.json.JSONException;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
@@ -47,7 +44,10 @@ import java.io.StringWriter;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
@@ -471,225 +471,7 @@ public class TokensIssuingFunctionalTests extends
         assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
     }
 
-    /**
-     * Features: CAAM - Providing platform details for Administration upon giving a correct Core Token
-     * Interfaces: CAAM ;
-     * CommunicationType AMQP
-     */
-    @Test
-    public void getHomeTokenForPlatformOwnerOverRESTAndReceivesInAdministrationDetailsOfHisOwnedPlatform() throws
-            IOException,
-            TimeoutException,
-            MalformedJWTException,
-            JSONException,
-            CertificateException,
-            ValidationException,
-            InterruptedException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException,
-            OperatorCreationException,
-            UnrecoverableKeyException,
-            InvalidKeyException,
-            JWTCreationException, WrongCredentialsException {
-        // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
 
-        // issue platform registration over AMQP
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
-        User user = userRepository.findOne(platformOwnerUsername);
-        //platform owner adding certificate
-        String cn = "CN=" + platformOwnerUsername + "@" + preferredPlatformId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), platformOwnerKeyPair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(platformOwnerKeyPair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, preferredPlatformId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
-        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
-        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
-        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
-        Certificate cert = new Certificate(pem);
-        user.getClientCertificates().clear();
-        user.getClientCertificates().put(preferredPlatformId, cert);
-        userRepository.save(user);
-
-        // getHomeToken the platform owner
-        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, preferredPlatformId, null, platformOwnerKeyPair.getPrivate());
-
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        String homeToken = AAMClient.getHomeToken(loginRequest);
-        //verify that JWT was issued for user
-        assertNotNull(homeToken);
-
-        // issue owned platform details request with the given token
-        RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                ownedPlatformDetailsRequestQueue, 5000);
-        byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (homeToken).getBytes());
-
-        Set<OwnedPlatformDetails> responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
-        });
-
-        // there should be a platform
-        assertFalse(responseSet.isEmpty());
-        OwnedPlatformDetails platformDetailsFromResponse = responseSet.iterator().next();
-
-        Platform ownedPlatformInDB = platformRepository.findOne(preferredPlatformId);
-
-        // verify the contents of the response
-        assertEquals(ownedPlatformInDB.getPlatformInstanceFriendlyName(), platformDetailsFromResponse
-                .getPlatformInstanceFriendlyName());
-        assertEquals(ownedPlatformInDB.getPlatformInstanceId(), platformDetailsFromResponse.getPlatformInstanceId());
-        assertEquals(ownedPlatformInDB.getPlatformInterworkingInterfaceAddress(), platformDetailsFromResponse
-                .getPlatformInterworkingInterfaceAddress());
-    }
-
-
-    /**
-     * Features: CAAM - Providing platform details for Administration upon giving a correct Core Token
-     * Interfaces: CAAM ;
-     * CommunicationType AMQP
-     */
-    @Test
-    public void getHomeTokenForPlatformOwnerOverRESTAndUsesExpiredTokenToReceivesInAdministrationDetailsOfHisOwnedPlatform()
-            throws
-            IOException,
-            TimeoutException,
-            MalformedJWTException,
-            JSONException,
-            CertificateException,
-            ValidationException,
-            InterruptedException,
-            InvalidAlgorithmParameterException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            KeyStoreException,
-            OperatorCreationException,
-            UnrecoverableKeyException,
-            InvalidKeyException,
-            JWTCreationException, WrongCredentialsException {
-        // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
-
-        // issue platform registration over AMQP
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-        User user = userRepository.findOne(platformOwnerUsername);
-        String cn = "CN=" + platformOwnerUsername + "@" + platformId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), platformOwnerKeyPair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(platformOwnerKeyPair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
-        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
-        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
-        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
-        Certificate cert = new Certificate(pem);
-        user.getClientCertificates().put(platformId, cert);
-        userRepository.save(user);
-
-        // getHomeToken the platform owner
-        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, platformOwnerKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        String homeToken = AAMClient.getHomeToken(loginRequest);
-        //verify that JWT was issued for user
-        assertNotNull(homeToken);
-
-        // waiting for the token to expire
-        Thread.sleep(tokenValidityPeriod + 10);
-
-        // issue owned platform details request with the given token
-        RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                ownedPlatformDetailsRequestQueue, 5000);
-        byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (homeToken).getBytes());
-
-        try {
-            mapper.readValue(ownedPlatformRawResponse, OwnedPlatformDetails.class);
-            assert false;
-        } catch (Exception e) {
-            ErrorResponseContainer error = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer.class);
-            assertEquals(HttpStatus.UNAUTHORIZED.value(), error.getErrorCode());
-        }
-    }
-
-    /**
-     * Features: CAAM - Providing platform details for Administration upon giving a correct Core Token
-     * Interfaces: CAAM ;
-     * CommunicationType AMQP
-     */
-    @Test
-    public void getHomeTokenForPlatformOwnerOverRESTAndIsDeclinedOwnedPlatformDetailsRequestNoPlatform() throws
-            IOException,
-            TimeoutException,
-            MalformedJWTException,
-            JSONException,
-            CertificateException,
-            ValidationException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException,
-            InvalidAlgorithmParameterException,
-            OperatorCreationException,
-            UnrecoverableKeyException,
-            InvalidKeyException,
-            JWTCreationException, WrongCredentialsException {
-        // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
-
-        // issue platform registration over AMQP
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
-        // issue app registration over AMQP
-        appRegistrationClient.primitiveCall(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(coreAppUsername, coreAppPassword),
-                new UserDetails(new Credentials(coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>()),
-                OperationType.CREATE)).getBytes());
-
-        //put certificate into database
-        User user = userRepository.findOne(coreAppUsername);
-        KeyPair keyPair = CryptoHelper.createKeyPair();
-        String cn = "CN=" + coreAppUsername + "@" + platformId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), keyPair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(keyPair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(coreAppUsername, coreAppPassword, platformId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
-        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
-        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
-        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
-        Certificate cert = new Certificate(pem);
-        user.getClientCertificates().put(platformId, cert);
-        userRepository.save(user);
-
-        // getHomeToken an ordinary user to get token
-        HomeCredentials homeCredentials = new HomeCredentials(null, coreAppUsername, platformId, null, keyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-
-        String homeToken = AAMClient.getHomeToken(loginRequest);
-        //verify that JWT was issued for user
-        assertNotNull(homeToken);
-
-        // issue owned platform details request with the given token
-        RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                ownedPlatformDetailsRequestQueue, 5000);
-        byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
-                (homeToken).getBytes());
-
-        // verify error response
-        ErrorResponseContainer errorResponse = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer.class);
-        assertEquals(HttpStatus.UNAUTHORIZED.value(), errorResponse.getErrorCode());
-    }
 
     /**
      * Features: PAAM - 4, CAAM - 5 (tokens issueing)
