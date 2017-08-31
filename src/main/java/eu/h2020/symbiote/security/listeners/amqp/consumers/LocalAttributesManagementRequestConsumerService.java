@@ -79,7 +79,7 @@ public class LocalAttributesManagementRequestConsumerService extends DefaultCons
 
                 switch (request.getOperationType()) {
                     case READ:
-                        Map<String, String> localAttributes = new HashMap();
+                        Map<String, String> localAttributes = new HashMap<>();
                         for (Attribute attr : localUsersAttributesRepository.findAll()) {
                             localAttributes.put(attr.getKey(), attr.getValue());
                         }
