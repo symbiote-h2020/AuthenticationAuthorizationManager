@@ -2,6 +2,9 @@ package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IUserManagement;
 import eu.h2020.symbiote.security.services.UsersManagementService;
@@ -40,5 +43,19 @@ public class UserManagementController implements IUserManagement {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ManagementStatus.ERROR);
         }
     }
+
+    @Override
+    public ResponseEntity<UserDetails> getUserDetails(@RequestBody Credentials credentials) {
+        try {
+            return new ResponseEntity<UserDetails>(usersManagementService.getUserDetails(credentials), HttpStatus.OK);
+        } catch (UserManagementException e) {
+            log.error(e);
+            if (e.getStatusCode() == HttpStatus.BAD_REQUEST)
+                return new ResponseEntity<UserDetails>(new UserDetails(), e.getStatusCode());
+            else
+                return new ResponseEntity<UserDetails>(new UserDetails(), e.getStatusCode());
+        }
+    }
+
 
 }
