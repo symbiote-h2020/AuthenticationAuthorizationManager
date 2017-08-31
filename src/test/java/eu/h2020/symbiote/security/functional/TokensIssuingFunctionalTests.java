@@ -544,7 +544,7 @@ public class TokensIssuingFunctionalTests extends
         releasedFederatedAttr.put("federatedKey", "federaredAttribute");
 
         FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
-        federationRepository.save(federationRule);
+        federationRulesRepository.save(federationRule);
 
         // checking issuing of foreign token using the dummy platform token
         String token = AAMClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
@@ -592,7 +592,7 @@ public class TokensIssuingFunctionalTests extends
         releasedFederatedAttr.put("federatedKey", "federaredAttribute");
 
         FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
-        federationRepository.save(federationRule);
+        federationRulesRepository.save(federationRule);
 
         // checking issuing of foreign token using the dummy platform token
         AAMClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
@@ -627,7 +627,7 @@ public class TokensIssuingFunctionalTests extends
         releasedFederatedAttr.put("federatedKey", "federaredAttribute");
 
         FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
-        federationRepository.save(federationRule);
+        federationRulesRepository.save(federationRule);
 
         // checking issuing of foreign token using the dummy platform token
         AAMClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
@@ -680,7 +680,7 @@ public class TokensIssuingFunctionalTests extends
         platformRepository.save(dummyPlatform);
 
         // making sure the foreignMappingRules are empty
-        federationRepository.deleteAll();
+        federationRulesRepository.deleteAll();
 
         // checking issuing of foreign token using the dummy platform token
         AAMClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());

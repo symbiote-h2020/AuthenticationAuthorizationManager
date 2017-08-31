@@ -8,5 +8,5 @@ import org.springframework.data.mongodb.repository.MongoRepository;
  *
  * @author Jakub Toczek (PSNC)
  */
-public interface FederationRepository extends MongoRepository<FederationRule, String> {
+public interface FederationRulesRepository extends MongoRepository<FederationRule, String> {
 }

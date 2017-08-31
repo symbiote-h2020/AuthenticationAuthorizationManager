@@ -414,7 +414,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         releasedFederatedAttr.put("federatedKey", "federaredAttribute");
 
         FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
-        federationRepository.save(federationRule);
+        federationRulesRepository.save(federationRule);
 
         Token foreignToken = null;
         try {
@@ -454,7 +454,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         } catch (Exception e) {
             fail("Exception thrown");
         }
-        federationRepository.deleteAll();
+        federationRulesRepository.deleteAll();
         tokenIssuer.getForeignToken(token);
     }
 

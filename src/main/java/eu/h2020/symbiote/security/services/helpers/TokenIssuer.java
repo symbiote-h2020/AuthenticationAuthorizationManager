@@ -13,7 +13,7 @@ import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.FederationRule;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
-import eu.h2020.symbiote.security.repositories.FederationRepository;
+import eu.h2020.symbiote.security.repositories.FederationRulesRepository;
 import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
 import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -55,16 +55,16 @@ public class TokenIssuer {
     private CertificationAuthorityHelper certificationAuthorityHelper;
     private KeyPair guestKeyPair;
     private LocalUsersAttributesRepository localUsersAttributesRepository;
-    private FederationRepository federationRepository;
+    private FederationRulesRepository federationRulesRepository;
 
     @Autowired
-    public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper, LocalUsersAttributesRepository localUsersAttributesRepository, FederationRepository federationRepository) {
+    public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper, LocalUsersAttributesRepository localUsersAttributesRepository, FederationRulesRepository federationRulesRepository) {
 
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
         this.localUsersAttributesRepository = localUsersAttributesRepository;
-        this.federationRepository = federationRepository;
+        this.federationRulesRepository = federationRulesRepository;
     }
 
     public static String buildAuthorizationToken(String subject, Map<String, String> attributes, byte[] subjectPublicKey,
@@ -176,9 +176,9 @@ public class TokenIssuer {
             JWTClaims claims = JWTEngine.getClaimsFromToken(remoteHomeToken.toString());
             HashMap<String, String> foreignAttributes = new HashMap<>();
             // disabling foreign token issuing when the mapping rule is empty
-            if (federationRepository.findAll().isEmpty())
+            if (federationRulesRepository.findAll().isEmpty())
                 throw new SecurityMisconfigurationException("AAM has no foreign rules defined");
-            for (FederationRule federationRule : federationRepository.findAll()) {
+            for (FederationRule federationRule : federationRulesRepository.findAll()) {
                 if (containRequiredRules(claims, federationRule.getRequiredAttributes())) {
                     //putting all rules with prefix
                     for (Map.Entry<String, String> entry : federationRule.getReleasedFederatedAttributes().entrySet()) {

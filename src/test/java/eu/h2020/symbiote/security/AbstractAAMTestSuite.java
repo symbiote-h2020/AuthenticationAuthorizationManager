@@ -75,7 +75,7 @@ public abstract class AbstractAAMTestSuite {
     protected final String recoveryMail = "null@dev.null";
     protected KeyPair userKeyPair;
     @Autowired
-    protected FederationRepository federationRepository;
+    protected FederationRulesRepository federationRulesRepository;
     @Autowired
     protected LocalUsersAttributesRepository localUsersAttributesRepository;
     @Autowired

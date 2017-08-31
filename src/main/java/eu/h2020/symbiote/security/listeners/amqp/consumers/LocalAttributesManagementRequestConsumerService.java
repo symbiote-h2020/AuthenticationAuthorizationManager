@@ -19,6 +19,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Consumer service responsible for Local Attributes Management.
+ * To work, LocalAttributesManagementRequest is required.
+ * As a return, actual Map<String,String> of LocalAttributes are sent (in case of WRITE operation - after the replacement).
+ * In case of error, new ErrorResponseContainer is returned.
+ *
+ * @author Jakub Toczek
+ */
 public class LocalAttributesManagementRequestConsumerService extends DefaultConsumer {
 
     private static Log log = LogFactory.getLog(LocalAttributesManagementRequestConsumerService.class);
@@ -69,19 +77,23 @@ public class LocalAttributesManagementRequestConsumerService extends DefaultCons
                         || !request.getAdminCredentials().getPassword().equals(adminPassword))
                     throw new UserManagementException(HttpStatus.UNAUTHORIZED);
 
-
-                if (request.getOperationType().equals(LocalAttributesManagementRequest.OperationType.READ)) {
-                    Map<String, String> localAttributes = new HashMap();
-                    for (Attribute attr : localUsersAttributesRepository.findAll()) {
-                        localAttributes.put(attr.getKey(), attr.getValue());
-                    }
-                    response = om.writeValueAsString(localAttributes);
-                } else {
-                    localUsersAttributesRepository.deleteAll();
-                    for (Map.Entry<String, String> entry : request.getAttributes().entrySet()) {
-                        localUsersAttributesRepository.save(new Attribute(entry.getKey(), entry.getValue()));
-                    }
-                    response = "true";
+                switch (request.getOperationType()) {
+                    case READ:
+                        Map<String, String> localAttributes = new HashMap();
+                        for (Attribute attr : localUsersAttributesRepository.findAll()) {
+                            localAttributes.put(attr.getKey(), attr.getValue());
+                        }
+                        response = om.writeValueAsString(localAttributes);
+                        break;
+                    case WRITE:
+                        localUsersAttributesRepository.deleteAll();
+                        for (Map.Entry<String, String> entry : request.getAttributes().entrySet()) {
+                            localUsersAttributesRepository.save(new Attribute(entry.getKey(), entry.getValue()));
+                        }
+                        response = om.writeValueAsString(request.getAttributes());
+                        break;
+                    default:
+                        throw new InvalidArgumentsException();
                 }
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
                 log.debug("Revocation Response: sent back");

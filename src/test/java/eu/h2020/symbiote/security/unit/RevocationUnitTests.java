@@ -734,7 +734,7 @@ public class RevocationUnitTests extends
         releasedFederatedAttr.put("federatedKey", "federaredAttribute");
 
         FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
-        federationRepository.save(federationRule);
+        federationRulesRepository.save(federationRule);
 
         Token foreignToken = getTokenService.getForeignToken(token, "", "");
         assertNotNull(foreignToken);
@@ -776,7 +776,7 @@ public class RevocationUnitTests extends
         releasedFederatedAttr.put("federatedKey", "federaredAttribute");
 
         FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
-        federationRepository.save(federationRule);
+        federationRulesRepository.save(federationRule);
 
         Token foreignToken = getTokenService.getForeignToken(token, "", "");
         assertNotNull(foreignToken);
