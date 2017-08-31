@@ -56,7 +56,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         // manage new user to db
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
-                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>())
+                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
                 , OperationType.CREATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
 
@@ -79,7 +79,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         // manage new user to db
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
-                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.PLATFORM_OWNER, new HashMap<>()),
+                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.PLATFORM_OWNER, new HashMap<>(), new HashMap<>()),
                 OperationType.CREATE);
         try {
             // hack: make sure the AAM thinks it is a platform AAM
@@ -120,7 +120,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         // delete the user
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
-                new UserDetails(new Credentials(username, password), "", "", UserRole.NULL, new HashMap<>()),
+                new UserDetails(new Credentials(username, password), "", "", UserRole.NULL, new HashMap<>(), new HashMap<>()),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
         log.debug("User successfully unregistered!");
@@ -171,7 +171,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         // delete the user
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
-                new UserDetails(new Credentials(username, password), "", "", UserRole.USER, new HashMap<>()),
+                new UserDetails(new Credentials(username, password), "", "", UserRole.USER, new HashMap<>(), new HashMap<>()),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
         log.debug("User successfully unregistered!");
@@ -194,7 +194,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         // add user again
         userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, "NewPassword"),
-                new UserDetails(new Credentials(username, "NewPassword"), "nullId", "nullMail", UserRole.PLATFORM_OWNER, new HashMap<>()),
+                new UserDetails(new Credentials(username, "NewPassword"), "nullId", "nullMail", UserRole.PLATFORM_OWNER, new HashMap<>(), new HashMap<>()),
                 OperationType.CREATE);
         assertEquals(ManagementStatus.OK, usersManagementService.authManage(userManagementRequest));
 
@@ -228,7 +228,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         // delete the user
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
-                new UserDetails(new Credentials("", password), "", "", UserRole.NULL, new HashMap<>()),
+                new UserDetails(new Credentials("", password), "", "", UserRole.NULL, new HashMap<>(), new HashMap<>()),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -241,7 +241,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         // delete the user
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
-                new UserDetails(new Credentials(username, password), "", "", UserRole.NULL, new HashMap<>()),
+                new UserDetails(new Credentials(username, password), "", "", UserRole.NULL, new HashMap<>(), new HashMap<>()),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -274,7 +274,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         // delete the user
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
-                new UserDetails(new Credentials(username, ""), "", "", UserRole.NULL, new HashMap<>()),
+                new UserDetails(new Credentials(username, ""), "", "", UserRole.NULL, new HashMap<>(), new HashMap<>()),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -294,7 +294,7 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         // attempt adding new user to database using invalid request
         UserManagementRequest userManagementRequest = new UserManagementRequest(null,
                 new Credentials(appUsername, "NewPassword"),
-                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>()),
+                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()),
                 OperationType.CREATE);
         usersManagementService.authManage(userManagementRequest);
 

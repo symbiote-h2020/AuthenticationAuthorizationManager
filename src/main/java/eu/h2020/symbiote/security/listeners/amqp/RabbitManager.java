@@ -15,6 +15,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PreDestroy;
@@ -39,7 +40,7 @@ public class RabbitManager {
     private final UserRepository userRepository;
     private final RevocationService revocationService;
     private final LocalUsersAttributesRepository localUsersAttributesRepository;
-
+    private final PasswordEncoder passwordEncoder;
     private IssuingAuthorityType deploymentType;
 
     @Value("${rabbit.host}")
@@ -101,6 +102,10 @@ public class RabbitManager {
     private String adminUsername;
     @Value("${aam.deployment.owner.password}")
     private String adminPassword;
+    @Value("${rabbit.queue.get.user.details}")
+    private String getUserDetailsQueue;
+    @Value("${rabbit.routingKey.get.user.details}")
+    private String getUserDetailsRoutingKey;
 
     @Autowired
     public RabbitManager(UsersManagementService usersManagementService,
@@ -110,7 +115,8 @@ public class RabbitManager {
                          GetTokenService getTokenService,
                          UserRepository userRepository,
                          CertificationAuthorityHelper certificationAuthorityHelper,
-                         LocalUsersAttributesRepository localUsersAttributesRepository) {
+                         LocalUsersAttributesRepository localUsersAttributesRepository,
+                         PasswordEncoder passwordEncoder) {
         this.usersManagementService = usersManagementService;
         this.revocationService = revocationService;
         this.platformsManagementService = platformsManagementService;
@@ -118,6 +124,7 @@ public class RabbitManager {
         this.getTokenService = getTokenService;
         this.userRepository = userRepository;
         this.localUsersAttributesRepository = localUsersAttributesRepository;
+        this.passwordEncoder = passwordEncoder;
         // setting the deployment type from the provisioned certificate
         deploymentType = certificationAuthorityHelper.getDeploymentType();
     }
@@ -174,6 +181,7 @@ public class RabbitManager {
                     startConsumerOfOwnedPlatformDetailsRequestMessages();
                     startConsumerOfRevocationRequestMessages();
                     startConsumerOfLocalUsersAttributesMap();
+                    startConsumerOfGetUserDetails();
                     break;
                 case NULL:
                     throw new SecurityMisconfigurationException("Wrong deployment type");
@@ -259,6 +267,33 @@ public class RabbitManager {
 
             Consumer consumer = new UserManagementRequestConsumerService(channel,
                     usersManagementService);
+            channel.basicConsume(queueName, false, consumer);
+        } catch (IOException e) {
+            log.error(e);
+        }
+    }
+
+    /**
+     * Method creates queue and binds it globally available exchange and adequate Routing Key.
+     * It also creates a consumer for messages incoming to this queue, regarding to Login requests.
+     *
+     * @throws IOException
+     */
+    private void startConsumerOfGetUserDetails() throws IOException {
+
+        String queueName = this.getUserDetailsQueue;
+
+        Channel channel;
+
+        try {
+            channel = this.connection.createChannel();
+            channel.queueDeclare(queueName, true, false, false, null);
+            channel.queueBind(queueName, this.AAMExchangeName, this.getUserDetailsRoutingKey);
+
+            log.info("Authentication and Authorization Manager waiting for users' management request messages");
+
+            Consumer consumer = new GetUserDetailsService(channel, adminUsername, adminPassword,
+                    userRepository, passwordEncoder);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
             log.error(e);
@@ -458,6 +493,10 @@ public class RabbitManager {
                         channel.queueUnbind(this.localUsersAttributesQueue, this.AAMExchangeName,
                                 this.localUsersAttributesRoutingKey);
                         channel.queueDelete(this.localUsersAttributesQueue);
+                        // user registration
+                        channel.queueUnbind(this.getUserDetailsQueue, this.AAMExchangeName, this
+                                .getUserDetailsRoutingKey);
+                        channel.queueDelete(this.getUserDetailsQueue);
                         break;
                     case NULL:
                         break;
