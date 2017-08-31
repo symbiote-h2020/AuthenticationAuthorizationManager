@@ -193,7 +193,7 @@ public abstract class AbstractAAMTestSuite {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), "federatedId",
-                        "nullMail", UserRole.USER, new HashMap<>()), OperationType.CREATE);
+                        "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
 
         User user = new User();
         user.setRole(userManagementRequest.getUserDetails().getRole());

@@ -257,10 +257,9 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
 
         // delete the user
-
         UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 new Credentials(username, password), new UserDetails(new Credentials(
-                username, password), "sth", recoveryMail, UserRole.USER, new HashMap<>()), OperationType.DELETE);
+                username, password), "sth", recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
 
         //check if home token is valid

@@ -79,18 +79,19 @@ public class UsersManagementService {
         if (!userRepository.exists(credentials.getUsername()))
             throw new UserManagementException("User not in database", HttpStatus.BAD_REQUEST);
 
-        User held = userRepository.findOne(credentials.getUsername());
+        User foundUser = userRepository.findOne(credentials.getUsername());
         // If requested user IS in database but wrong password was provided
-        if (!credentials.getPassword().equals(held.getPasswordEncrypted()) &&
-                !passwordEncoder.matches(credentials.getPassword(), held.getPasswordEncrypted()))
+        if (!credentials.getPassword().equals(foundUser.getPasswordEncrypted()) &&
+                !passwordEncoder.matches(credentials.getPassword(), foundUser.getPasswordEncrypted()))
             throw new UserManagementException("Incorrect login / password", HttpStatus.UNAUTHORIZED);
         //  Everything is fine, returning requested user's details
         return new UserDetails(new Credentials(
-                held.getUsername(), ""),
+                foundUser.getUsername(), ""),
                 "",
-                held.getRecoveryMail(),
-                held.getRole(),
-                held.getAttributes()
+                foundUser.getRecoveryMail(),
+                foundUser.getRole(),
+                foundUser.getAttributes(),
+                foundUser.getClientCertificates()
         );
     }
 

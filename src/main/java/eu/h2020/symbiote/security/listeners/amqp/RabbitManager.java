@@ -15,6 +15,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PreDestroy;
@@ -39,7 +40,7 @@ public class RabbitManager {
     private final UserRepository userRepository;
     private final RevocationService revocationService;
     private final LocalUsersAttributesRepository localUsersAttributesRepository;
-
+    private final PasswordEncoder passwordEncoder;
     private IssuingAuthorityType deploymentType;
 
     @Value("${rabbit.host}")
@@ -76,9 +77,9 @@ public class RabbitManager {
     private String userManagementRequestQueue;
 
     @Value("${rabbit.routingKey.manage.platform.request}")
-    private String platformRegistrationRequestRoutingKey;
+    private String platformManagementRequestRoutingKey;
     @Value("${rabbit.queue.manage.platform.request}")
-    private String platformRegistrationRequestQueue;
+    private String platformManagementRequestQueue;
 
     @Value("${rabbit.routingKey.manage.revocation.request}")
     private String revocationRequestRoutingKey;
@@ -90,22 +91,24 @@ public class RabbitManager {
     @Value("${rabbit.queue.ownedplatformdetails.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     private String ownedPlatformDetailsRequestQueue;
 
-    @Value("${aam.deployment.owner.username}")
-    private String AAMOwnerUsername;
-    @Value("${aam.deployment.owner.password}")
-    private String AAMOwnerPassword;
-
     private Connection connection;
 
     @Value("${rabbit.routingKey.manage.attributes}")
-    private String localUsersAttributesRoutingKey;
+    private String localUsersAttributesManagementRequestRoutingKey;
     @Value("${rabbit.queue.manage.attributes}")
-    private String localUsersAttributesQueue;
+    private String localUsersAttributesManagementRequestQueue;
+
+    @Value("${rabbit.queue.get.user.details}")
+    private String getUserDetailsQueue;
+    @Value("${rabbit.routingKey.get.user.details}")
+    private String getUserDetailsRoutingKey;
+
 
     @Value("${aam.deployment.owner.username}")
     private String adminUsername;
     @Value("${aam.deployment.owner.password}")
     private String adminPassword;
+
 
     @Autowired
     public RabbitManager(UsersManagementService usersManagementService,
@@ -115,7 +118,8 @@ public class RabbitManager {
                          GetTokenService getTokenService,
                          UserRepository userRepository,
                          CertificationAuthorityHelper certificationAuthorityHelper,
-                         LocalUsersAttributesRepository localUsersAttributesRepository) {
+                         LocalUsersAttributesRepository localUsersAttributesRepository,
+                         PasswordEncoder passwordEncoder) {
         this.usersManagementService = usersManagementService;
         this.revocationService = revocationService;
         this.platformsManagementService = platformsManagementService;
@@ -123,6 +127,7 @@ public class RabbitManager {
         this.getTokenService = getTokenService;
         this.userRepository = userRepository;
         this.localUsersAttributesRepository = localUsersAttributesRepository;
+        this.passwordEncoder = passwordEncoder;
         // setting the deployment type from the provisioned certificate
         deploymentType = certificationAuthorityHelper.getDeploymentType();
     }
@@ -174,10 +179,11 @@ public class RabbitManager {
                     break;
                 case CORE:
                     startConsumerOfUserManagementRequestMessages();
-                    startConsumerOfPlatformRegistrationRequestMessages();
+                    startConsumerOfPlatformManagementRequestMessages();
                     startConsumerOfLoginRequestMessages();
                     startConsumerOfOwnedPlatformDetailsRequestMessages();
                     startConsumerOfRevocationRequestMessages();
+                    startConsumerOfGetUserDetails();
                     startConsumerOfLocalAttributesManagementRequest();
                     break;
                 case NULL:
@@ -272,6 +278,33 @@ public class RabbitManager {
 
     /**
      * Method creates queue and binds it globally available exchange and adequate Routing Key.
+     * It also creates a consumer for messages incoming to this queue, regarding to Login requests.
+     *
+     * @throws IOException
+     */
+    private void startConsumerOfGetUserDetails() throws IOException {
+
+        String queueName = this.getUserDetailsQueue;
+
+        Channel channel;
+
+        try {
+            channel = this.connection.createChannel();
+            channel.queueDeclare(queueName, true, false, false, null);
+            channel.queueBind(queueName, this.AAMExchangeName, this.getUserDetailsRoutingKey);
+
+            log.info("Authentication and Authorization Manager waiting for users' details requests messages");
+
+            Consumer consumer = new GetUserDetailsConsumerService(channel, adminUsername, adminPassword,
+                    userRepository, passwordEncoder);
+            channel.basicConsume(queueName, false, consumer);
+        } catch (IOException e) {
+            log.error(e);
+        }
+    }
+
+    /**
+     * Method creates queue and binds it globally available exchange and adequate Routing Key.
      * It also creates a consumer for messages incoming to this queue, regarding to Owned Platform Details requests.
      *
      * @throws IOException
@@ -304,17 +337,17 @@ public class RabbitManager {
      *
      * @throws IOException
      */
-    private void startConsumerOfPlatformRegistrationRequestMessages() throws IOException {
+    private void startConsumerOfPlatformManagementRequestMessages() throws IOException {
 
-        String queueName = this.platformRegistrationRequestQueue;
+        String queueName = this.platformManagementRequestQueue;
 
         Channel channel;
         try {
             channel = this.connection.createChannel();
             channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.platformRegistrationRequestRoutingKey);
+            channel.queueBind(queueName, this.AAMExchangeName, this.platformManagementRequestRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for platform registration requests messages");
+            log.info("Authentication and Authorization Manager waiting for platform management requests messages");
 
             Consumer consumer = new PlatformManagementRequestConsumerService(channel,
                     platformsManagementService);
@@ -359,18 +392,18 @@ public class RabbitManager {
      */
     private void startConsumerOfLocalAttributesManagementRequest() throws IOException {
 
-        String queueName = this.localUsersAttributesQueue;
+        String queueName = this.localUsersAttributesManagementRequestQueue;
 
         Channel channel;
         try {
             channel = this.connection.createChannel();
             channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.localUsersAttributesRoutingKey);
+            channel.queueBind(queueName, this.AAMExchangeName, this.localUsersAttributesManagementRequestRoutingKey);
 
             log.info("Authentication and Authorization Manager waiting for localAttributesManagementRequests messages");
 
             Consumer consumer = new LocalAttributesManagementRequestConsumerService(channel,
-                    localUsersAttributesRepository, AAMOwnerUsername, AAMOwnerPassword);
+                    localUsersAttributesRepository, adminUsername, adminPassword);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
             log.error(e);
@@ -434,9 +467,10 @@ public class RabbitManager {
                         channel.queueUnbind(this.getHomeTokenRequestQueue, this.AAMExchangeName,
                                 this.getHomeTokenRequestRoutingKey);
                         channel.queueDelete(this.getHomeTokenRequestQueue);
-                        channel.queueUnbind(this.localUsersAttributesQueue, this.AAMExchangeName,
-                                this.localUsersAttributesRoutingKey);
-                        channel.queueDelete(this.localUsersAttributesQueue);
+                        // local attributes management request
+                        channel.queueUnbind(this.localUsersAttributesManagementRequestQueue, this.AAMExchangeName,
+                                this.localUsersAttributesManagementRequestRoutingKey);
+                        channel.queueDelete(this.localUsersAttributesManagementRequestQueue);
                         break;
                     case CORE:
                         // user registration
@@ -444,9 +478,9 @@ public class RabbitManager {
                                 .userManagementRequestRoutingKey);
                         channel.queueDelete(this.userManagementRequestQueue);
                         // platform registration
-                        channel.queueUnbind(this.platformRegistrationRequestQueue, this.AAMExchangeName, this
-                                .platformRegistrationRequestRoutingKey);
-                        channel.queueDelete(this.platformRegistrationRequestQueue);
+                        channel.queueUnbind(this.platformManagementRequestQueue, this.AAMExchangeName, this
+                                .platformManagementRequestRoutingKey);
+                        channel.queueDelete(this.platformManagementRequestQueue);
                         // revocation
                         channel.queueUnbind(this.revocationRequestQueue, this.AAMExchangeName, this
                                 .revocationRequestRoutingKey);
@@ -459,10 +493,14 @@ public class RabbitManager {
                         channel.queueUnbind(this.ownedPlatformDetailsRequestQueue, this.AAMExchangeName,
                                 this.ownedPlatformDetailsRequestRoutingKey);
                         channel.queueDelete(this.ownedPlatformDetailsRequestQueue);
-                        //attributes
-                        channel.queueUnbind(this.localUsersAttributesQueue, this.AAMExchangeName,
-                                this.localUsersAttributesRoutingKey);
-                        channel.queueDelete(this.localUsersAttributesQueue);
+                        // local attributes management request
+                        channel.queueUnbind(this.localUsersAttributesManagementRequestQueue, this.AAMExchangeName,
+                                this.localUsersAttributesManagementRequestRoutingKey);
+                        channel.queueDelete(this.localUsersAttributesManagementRequestQueue);
+                        // user details request
+                        channel.queueUnbind(this.getUserDetailsQueue, this.AAMExchangeName, this
+                                .getUserDetailsRoutingKey);
+                        channel.queueDelete(this.getUserDetailsQueue);
                         break;
                     case NULL:
                         break;
