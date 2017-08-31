@@ -73,7 +73,7 @@ public class UsersManagementService {
         return this.manage(request);
     }
 
-    public ManagementStatus manage(UserManagementRequest userManagementRequest)
+    private ManagementStatus manage(UserManagementRequest userManagementRequest)
             throws SecurityException {
         UserDetails userDetails = userManagementRequest.getUserDetails();
 
@@ -133,11 +133,12 @@ public class UsersManagementService {
             user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
         if (!userManagementRequest.getUserDetails().getRecoveryMail().isEmpty())
             user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
+        user.setAttributes(userManagementRequest.getUserDetails().getAttributes());
         userRepository.save(user);
     }
 
 
-    public void delete(String username) throws SecurityException {
+    private void delete(String username) throws SecurityException {
         // validate request
         if (username.isEmpty())
             throw new InvalidArgumentsException();

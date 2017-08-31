@@ -91,6 +91,11 @@ public class RabbitManager {
     @Value("${rabbit.queue.ownedplatformdetails.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     private String ownedPlatformDetailsRequestQueue;
 
+    @Value("${aam.deployment.owner.username}")
+    private String AAMOwnerUsername;
+    @Value("${aam.deployment.owner.password}")
+    private String AAMOwnerPassword;
+
     private Connection connection;
     private ValidationHelper validationHelper;
 
@@ -163,7 +168,7 @@ public class RabbitManager {
             switch (deploymentType) {
                 case PLATFORM:
                     startConsumerOfLoginRequestMessages();
-                    startConsumerOfLocalUsersAttributesMap();
+                    startConsumerOfLocalAttributesManagementRequest();
                     break;
                 case CORE:
                     startConsumerOfUserManagementRequestMessages();
@@ -171,7 +176,7 @@ public class RabbitManager {
                     startConsumerOfLoginRequestMessages();
                     startConsumerOfOwnedPlatformDetailsRequestMessages();
                     startConsumerOfRevocationRequestMessages();
-                    startConsumerOfLocalUsersAttributesMap();
+                    startConsumerOfLocalAttributesManagementRequest();
                     break;
                 case NULL:
                     throw new SecurityMisconfigurationException("Wrong deployment type");
@@ -350,7 +355,7 @@ public class RabbitManager {
      *
      * @throws IOException
      */
-    private void startConsumerOfLocalUsersAttributesMap() throws IOException {
+    private void startConsumerOfLocalAttributesManagementRequest() throws IOException {
 
         String queueName = this.localUsersAttributesQueue;
 
@@ -363,7 +368,7 @@ public class RabbitManager {
             log.info("Authentication and Authorization Manager waiting for localUsersAttributes messages");
 
             Consumer consumer = new AttributesMapConsumerService(channel,
-                    localUsersAttributesRepository);
+                    localUsersAttributesRepository, AAMOwnerUsername, AAMOwnerPassword);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
             log.error(e);

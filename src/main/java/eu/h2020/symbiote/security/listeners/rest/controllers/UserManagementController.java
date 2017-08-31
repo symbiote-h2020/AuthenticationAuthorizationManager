@@ -33,7 +33,7 @@ public class UserManagementController implements IUserManagement {
     @Override
     public ResponseEntity<ManagementStatus> manage(@RequestBody UserManagementRequest userManagementRequest) {
         try {
-            ManagementStatus managementStatus = usersManagementService.manage(userManagementRequest);
+            ManagementStatus managementStatus = usersManagementService.authManage(userManagementRequest);
             return ResponseEntity.status(HttpStatus.OK).body(managementStatus);
         } catch (SecurityException e) {
             log.error(e);

@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
@@ -14,6 +15,8 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
+import eu.h2020.symbiote.security.communication.payloads.UserDetails;
+import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
@@ -254,7 +257,11 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
 
         // delete the user
-        usersManagementService.delete(username);
+
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(username, password), new UserDetails(new Credentials(
+                username, password), "sth", recoveryMail, UserRole.USER, new HashMap<>()), OperationType.DELETE);
+        usersManagementService.authManage(userManagementRequest);
 
         //check if home token is valid
         ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");

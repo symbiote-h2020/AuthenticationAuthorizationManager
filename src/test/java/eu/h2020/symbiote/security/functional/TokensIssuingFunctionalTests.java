@@ -16,6 +16,7 @@ import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.GetCertificateService;
@@ -72,7 +73,7 @@ public class TokensIssuingFunctionalTests extends
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
     @Value("${rabbit.queue.manage.attributes}")
-    protected String attributeAddingQueue;
+    protected String attributeManagementRequestQueue;
     private KeyPair platformOwnerKeyPair;
     private RpcClient appRegistrationClient;
     private UserDetails appUserDetails;
@@ -80,7 +81,7 @@ public class TokensIssuingFunctionalTests extends
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-    private AttributesMap localUsersAttributesMap;
+    private LocalAttributesManagementRequest localUsersLocalAttributesManagementRequest;
     @Autowired
     private PlatformRepository platformRepository;
     @Autowired
@@ -126,7 +127,7 @@ public class TokensIssuingFunctionalTests extends
         platformOwnerKeyPair = CryptoHelper.createKeyPair();
 
         attributesAddingOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                attributeAddingQueue, 5000);
+                attributeManagementRequestQueue, 5000);
     }
 
     /**
@@ -900,9 +901,36 @@ public class TokensIssuingFunctionalTests extends
         Map<String, String> attributesMap = new HashMap<>();
         attributesMap.put("key1", "attribute1");
         attributesMap.put("key2", "attribute2");
-        localUsersAttributesMap = new AttributesMap(attributesMap);
+        localUsersLocalAttributesManagementRequest = new LocalAttributesManagementRequest(attributesMap, new Credentials(AAMOwnerUsername, AAMOwnerPassword), LocalAttributesManagementRequest.OperationType.WRITE);
         attributesAddingOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (localUsersAttributesMap).getBytes());
+                (localUsersLocalAttributesManagementRequest).getBytes());
         assertEquals(2, localUsersAttributesRepository.findAll().size());
+    }
+
+    @Test
+    public void readAttributesOverAMQPSuccess() throws MalformedJWTException, JWTCreationException, IOException, TimeoutException {
+        localUsersAttributesRepository.deleteAll();
+        localUsersAttributesRepository.save(new Attribute("key1", "attribute1"));
+        localUsersAttributesRepository.save(new Attribute("key2", "attribute2"));
+        localUsersLocalAttributesManagementRequest = new LocalAttributesManagementRequest(new HashMap<>(), new Credentials(AAMOwnerUsername, AAMOwnerPassword), LocalAttributesManagementRequest.OperationType.READ);
+        byte[] response = attributesAddingOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (localUsersLocalAttributesManagementRequest).getBytes());
+
+        HashMap<String, String> responseMap = mapper.readValue(response, new TypeReference<HashMap<String, String>>() {
+        });
+        assertEquals("attribute1", responseMap.get("key1"));
+        assertEquals("attribute2", responseMap.get("key2"));
+    }
+
+    @Test
+    public void readAttributesOverAMQPFailWrongCredentials() throws MalformedJWTException, JWTCreationException, IOException, TimeoutException {
+        localUsersLocalAttributesManagementRequest = new LocalAttributesManagementRequest(new HashMap<>(), new Credentials(username, AAMOwnerPassword), LocalAttributesManagementRequest.OperationType.READ);
+        byte[] response = attributesAddingOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (localUsersLocalAttributesManagementRequest).getBytes());
+
+        ErrorResponseContainer fail = mapper.readValue(response, ErrorResponseContainer.class);
+        assertNotNull(fail);
+        log.info("Test Client received this error message instead of token: " + fail.getErrorMessage());
+
     }
 }
