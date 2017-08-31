@@ -7,10 +7,7 @@ import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
-import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
-import eu.h2020.symbiote.security.communication.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
-import eu.h2020.symbiote.security.communication.payloads.RevocationResponse;
+import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
@@ -39,10 +36,7 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeoutException;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
@@ -734,7 +728,14 @@ public class RevocationUnitTests extends
         platformRepository.save(dummyPlatform);
 
         // adding a dummy foreign rule
-        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
+        Map<String, String> requiredAttr = new HashMap<>();
+        requiredAttr.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key", "attribute");
+        Map<String, String> releasedFederatedAttr = new HashMap<>();
+        releasedFederatedAttr.put("federatedKey", "federaredAttribute");
+
+        FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
+        federationRepository.save(federationRule);
+
         Token foreignToken = getTokenService.getForeignToken(token, "", "");
         assertNotNull(foreignToken);
 
@@ -768,8 +769,15 @@ public class RevocationUnitTests extends
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
         platformRepository.save(dummyPlatform);
 
-        // adding a dummy foreign rule
-        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
+        // adding a federation rule
+        Map<String, String> requiredAttr = new HashMap<>();
+        requiredAttr.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key", "attribute");
+        Map<String, String> releasedFederatedAttr = new HashMap<>();
+        releasedFederatedAttr.put("federatedKey", "federaredAttribute");
+
+        FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
+        federationRepository.save(federationRule);
+
         Token foreignToken = getTokenService.getForeignToken(token, "", "");
         assertNotNull(foreignToken);
 

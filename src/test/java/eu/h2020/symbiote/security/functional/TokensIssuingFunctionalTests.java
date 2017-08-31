@@ -134,9 +134,6 @@ public class TokensIssuingFunctionalTests extends
      * Feature: 3 (Authentication of components/ and users registered in a platform)
      * Interface: PAAM - 1 and CAAM (for Administration)
      * CommunicationType AMQP
-     *
-     * @throws IOException
-     * @throws TimeoutException
      */
     @Test
     public void getHomeTokenForUserOverAMQPSuccessAndIssuesCoreTokenType() throws
@@ -172,9 +169,6 @@ public class TokensIssuingFunctionalTests extends
      * Feature: 3 (Authentication of components/ and users registered in a platform)
      * Interface: PAAM - 1, CAAM (for Administration)
      * CommunicationType AMQP
-     *
-     * @throws IOException
-     * @throws TimeoutException
      */
     @Test
     public void getHomeTokenForUserOverAMQPWrongCredentialsFailure() throws
@@ -218,8 +212,6 @@ public class TokensIssuingFunctionalTests extends
      * Interface: PAAM - 1, CAAM (for Administration)
      * CommunicationType AMQP
      *
-     * @throws IOException
-     * @throws TimeoutException
      */
     @Test
     public void getHomeTokenForUserOverAMQPMissingArgumentsFailure() throws
@@ -243,8 +235,6 @@ public class TokensIssuingFunctionalTests extends
      * Interface: PAAM - 1, CAAM (for Administration)
      * CommunicationType AMQP
      *
-     * @throws IOException
-     * @throws TimeoutException
      */
     @Test
     public void getHomeTokenForUserOverAMQPWrongSignFailure() throws
@@ -732,6 +722,7 @@ public class TokensIssuingFunctionalTests extends
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+
         ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
                         SecurityConstants
                                 .AAM_GET_HOME_TOKEN,
@@ -759,8 +750,18 @@ public class TokensIssuingFunctionalTests extends
         dummyPlatform.setPlatformAAMCertificate(new eu.h2020.symbiote.security.commons.Certificate(dummyPlatformAAMPEMCertString));
         platformRepository.save(dummyPlatform);
 
-        // adding a dummy foreign rule
-        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
+        //checking token attributes
+        JWTClaims claims = JWTEngine.getClaimsFromToken(dummyHomeToken.getToken());
+        assertTrue(claims.getAtt().containsKey("name"));
+        assertTrue(claims.getAtt().containsValue("test2"));
+        // adding a federation rule
+        Map<String, String> requiredAttr = new HashMap<>();
+        requiredAttr.put("name", "test2");
+        Map<String, String> releasedFederatedAttr = new HashMap<>();
+        releasedFederatedAttr.put("federatedKey", "federaredAttribute");
+
+        FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
+        federationRepository.save(federationRule);
 
         // checking issuing of foreign token using the dummy platform token
         String token = AAMClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
@@ -768,6 +769,8 @@ public class TokensIssuingFunctionalTests extends
         assertNotNull(token);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token);
         assertEquals(Token.Type.FOREIGN, Token.Type.valueOf(claimsFromToken.getTtyp()));
+        assertTrue(claimsFromToken.getAtt().containsKey(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "federatedKey"));
+        assertTrue(claimsFromToken.getAtt().containsValue("federaredAttribute"));
     }
 
     @Test(expected = ValidationException.class)
@@ -799,7 +802,14 @@ public class TokensIssuingFunctionalTests extends
                 (platformRegistrationOverAMQPRequest).getBytes());
 
         // adding a dummy foreign rule
-        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
+        // adding a federation rule
+        Map<String, String> requiredAttr = new HashMap<>();
+        requiredAttr.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key", "attribute");
+        Map<String, String> releasedFederatedAttr = new HashMap<>();
+        releasedFederatedAttr.put("federatedKey", "federaredAttribute");
+
+        FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
+        federationRepository.save(federationRule);
 
         // checking issuing of foreign token using the dummy platform token
         AAMClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
@@ -827,7 +837,14 @@ public class TokensIssuingFunctionalTests extends
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         // adding a dummy foreign rule
-        tokenIssuer.foreignMappingRules.put("DummyRule", "dummyRule");
+        // adding a federation rule
+        Map<String, String> requiredAttr = new HashMap<>();
+        requiredAttr.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key", "attribute");
+        Map<String, String> releasedFederatedAttr = new HashMap<>();
+        releasedFederatedAttr.put("federatedKey", "federaredAttribute");
+
+        FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
+        federationRepository.save(federationRule);
 
         // checking issuing of foreign token using the dummy platform token
         AAMClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
@@ -880,7 +897,7 @@ public class TokensIssuingFunctionalTests extends
         platformRepository.save(dummyPlatform);
 
         // making sure the foreignMappingRules are empty
-        tokenIssuer.foreignMappingRules.clear();
+        federationRepository.deleteAll();
 
         // checking issuing of foreign token using the dummy platform token
         AAMClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
