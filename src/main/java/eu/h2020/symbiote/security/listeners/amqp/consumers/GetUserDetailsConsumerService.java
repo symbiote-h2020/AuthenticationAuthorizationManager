@@ -92,12 +92,12 @@ public class GetUserDetailsConsumerService extends DefaultConsumer {
                     //  If not then return appropriate message
                     userDetails = new UserDetailsResponse(HttpStatus.BAD_REQUEST, new UserDetails());
                 } else {   //  User IS in database
-                    User found = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
+                    User foundUser = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
                     //  Checking User's credentials
-                    if (passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), found.getPasswordEncrypted())) {
+                    if (passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), foundUser.getPasswordEncrypted())) {
                         userDetails = new UserDetailsResponse(
-                                HttpStatus.OK, new UserDetails(new Credentials(found.getUsername(), ""), "", found.getRecoveryMail(),
-                                found.getRole(), found.getAttributes(), found.getClientCertificates())
+                                HttpStatus.OK, new UserDetails(new Credentials(foundUser.getUsername(), ""), "", foundUser.getRecoveryMail(),
+                                foundUser.getRole(), foundUser.getAttributes(), foundUser.getClientCertificates())
                         );
                     } else
                         //  If wrong password was provided return message with UNAUTHORIZED status
