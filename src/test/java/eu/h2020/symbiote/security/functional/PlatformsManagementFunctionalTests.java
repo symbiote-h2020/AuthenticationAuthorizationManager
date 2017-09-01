@@ -169,7 +169,7 @@ public class PlatformsManagementFunctionalTests extends
 
         // verified that we received a generated platformId
         String generatedPlatformId = platformRegistrationOverAMQPResponse.getPlatformId();
-        assertNotNull(generatedPlatformId);
+        assertFalse(generatedPlatformId.isEmpty());
 
         // verify that PO is in repository (as PO!)
         User registeredPlatformOwner = userRepository.findOne(platformOwnerUsername);

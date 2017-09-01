@@ -37,7 +37,6 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -726,18 +725,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         assertEquals(UserRole.USER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
         assertNotNull(attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
         assertEquals("attribute", attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
-    }
-
-    @Test
-    @Ignore("Not R2")
-    public void getForeignTokenWithForeignAttributesIssuedUsingProvisionedAttributesMappingListForGivenHomeToken() throws IOException,
-            TimeoutException {
-        /*
-        // TODO attributes mapping list provisioning R3? R4?
-        2. send an attribute mapping list
-        3. receive a success status
-        4. request foreign tokens which should be based on given tokens
-        */
     }
 
     private X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws

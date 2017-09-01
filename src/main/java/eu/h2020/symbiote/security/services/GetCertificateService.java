@@ -226,7 +226,6 @@ public class GetCertificateService {
                 throw new SecurityException(e.getMessage(), e.getCause());
             }
             if (x509UserCert.getPublicKey().equals(certFromCSR.getPublicKey())) {
-
                 user.getClientCertificates().replace(certificateRequest.getClientId(), new Certificate(pem));
             } else {
                 RevocationRequest revocationRequest = new RevocationRequest();

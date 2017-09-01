@@ -127,20 +127,6 @@ public class ActorsManagementFunctionalTests extends
         // verify error response
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
         assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
-
-        // issue the same app registration over AMQP expecting with wrong Null UserRole
-        response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.NULL, new HashMap<>(), new HashMap<>()),
-                OperationType.CREATE)).getBytes());
-
-        // verify that our app was not registered in the repository
-        assertNull(userRepository.findOne(username));
-
-        // verify error response
-        errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
     }
 
 
