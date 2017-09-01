@@ -107,7 +107,7 @@ public class TokensIssuingFunctionalTests extends
         appRegistrationClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 userManagementRequestQueue, 5000);
         appUserDetails = new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>());
+                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>());
 
         //user registration useful
         User user = new User();
