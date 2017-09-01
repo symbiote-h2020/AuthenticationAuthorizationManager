@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
@@ -53,9 +54,14 @@ public class OtherListenersFunctionalTests extends
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
+    @Value("${rabbit.queue.get.platform.owners.names}")
+    private String getPlatformOwnersNamesQueue;
+    @Value("${rabbit.routingKey.get.platform.owners.names}")
+    private String getPlatformOwnersNamesRoutingKey;
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
+    private RpcClient getPlatofmsOwnersClient;
 
     @Autowired
     private ComponentCertificatesRepository componentCertificatesRepository;
@@ -72,7 +78,8 @@ public class OtherListenersFunctionalTests extends
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(user);
-
+        getPlatofmsOwnersClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+                getPlatformOwnersNamesQueue, 5000);
         // platform registration useful
         platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 platformManagementRequestQueue, 5000);
@@ -290,5 +297,52 @@ public class OtherListenersFunctionalTests extends
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
+    }
+
+    @Test
+    public void getPlatformOwnersNamesSuccess() throws IOException, TimeoutException {
+        saveTwoDifferentUsers();
+        Set<String> requested = new HashSet<>();
+        requested.add(platformId + "One");
+        requested.add(platformId + "Two");
+        byte[] response = getPlatofmsOwnersClient.primitiveCall(mapper.writeValueAsString(new
+                GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), requested)).getBytes());
+
+        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
+                GetPlatformOwnersResponse.class);
+        assertEquals(platformOwners.getHttpStatus().value(), 200);
+        assertNotNull(platformOwners.getplatformsOwners());
+        assertEquals("userOne", platformOwners.getplatformsOwners().get(platformId + "One"));
+        assertEquals("userTwo", platformOwners.getplatformsOwners().get(platformId + "Two"));
+    }
+
+    @Test
+    public void getPlatformOwnersNamesFailsForIncorrectAdminCredentials() throws IOException, TimeoutException {
+
+        saveTwoDifferentUsers();
+        Set<String> requested = new HashSet<>();
+        requested.add(platformId + "One");
+        requested.add(platformId + "Two");
+        byte[] response = getPlatofmsOwnersClient.primitiveCall(mapper.writeValueAsString(new
+                GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, wrongpassword), requested)).getBytes());
+
+        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
+                GetPlatformOwnersResponse.class);
+        assertEquals(401, platformOwners.getHttpStatus().value());
+    }
+
+    @Test
+    public void getPlatformOwnersNamesFailsWithoutAdminCredentials() throws IOException, TimeoutException {
+
+        saveTwoDifferentUsers();
+        Set<String> requested = new HashSet<>();
+        requested.add(platformId + "One");
+        requested.add(platformId + "Two");
+        byte[] response = getPlatofmsOwnersClient.primitiveCall(mapper.writeValueAsString(new
+                GetPlatformOwnersRequest(null, requested)).getBytes());
+
+        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
+                GetPlatformOwnersResponse.class);
+        assertEquals(401, platformOwners.getHttpStatus().value());
     }
 }

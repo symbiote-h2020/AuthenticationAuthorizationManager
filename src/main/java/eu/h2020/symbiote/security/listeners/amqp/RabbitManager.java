@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.listeners.amqp.consumers.*;
 import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
+import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.*;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
@@ -41,6 +42,7 @@ public class RabbitManager {
     private final RevocationService revocationService;
     private final LocalUsersAttributesRepository localUsersAttributesRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PlatformRepository platformRepository;
     private IssuingAuthorityType deploymentType;
 
     @Value("${rabbit.host}")
@@ -103,6 +105,10 @@ public class RabbitManager {
     @Value("${rabbit.routingKey.get.user.details}")
     private String getUserDetailsRoutingKey;
 
+    @Value("${rabbit.queue.get.platform.owners.names}")
+    private String getPlatformOwnersNamesQueue;
+    @Value("${rabbit.routingKey.get.platform.owners.names}")
+    private String getPlatformOwnersNamesRoutingKey;
 
     @Value("${aam.deployment.owner.username}")
     private String adminUsername;
@@ -119,7 +125,8 @@ public class RabbitManager {
                          UserRepository userRepository,
                          CertificationAuthorityHelper certificationAuthorityHelper,
                          LocalUsersAttributesRepository localUsersAttributesRepository,
-                         PasswordEncoder passwordEncoder) {
+                         PasswordEncoder passwordEncoder,
+                         PlatformRepository platformRepository) {
         this.usersManagementService = usersManagementService;
         this.revocationService = revocationService;
         this.platformsManagementService = platformsManagementService;
@@ -128,6 +135,7 @@ public class RabbitManager {
         this.userRepository = userRepository;
         this.localUsersAttributesRepository = localUsersAttributesRepository;
         this.passwordEncoder = passwordEncoder;
+        this.platformRepository = platformRepository;
         // setting the deployment type from the provisioned certificate
         deploymentType = certificationAuthorityHelper.getDeploymentType();
     }
@@ -184,6 +192,7 @@ public class RabbitManager {
                     startConsumerOfOwnedPlatformDetailsRequestMessages();
                     startConsumerOfRevocationRequestMessages();
                     startConsumerOfGetUserDetails();
+                    startConsumerOfGetPlatformOwnersNames();
                     startConsumerOfLocalAttributesManagementRequest();
                     break;
                 case NULL:
@@ -297,6 +306,33 @@ public class RabbitManager {
 
             Consumer consumer = new GetUserDetailsConsumerService(channel, adminUsername, adminPassword,
                     userRepository, passwordEncoder);
+            channel.basicConsume(queueName, false, consumer);
+        } catch (IOException e) {
+            log.error(e);
+        }
+    }
+
+    /**
+     * Method creates queue and binds it globally available exchange and adequate Routing Key.
+     * It also creates a consumer for messages incoming to this queue, regarding to Login requests.
+     *
+     * @throws IOException
+     */
+    private void startConsumerOfGetPlatformOwnersNames() throws IOException {
+
+        String queueName = this.getPlatformOwnersNamesQueue;
+
+        Channel channel;
+
+        try {
+            channel = this.connection.createChannel();
+            channel.queueDeclare(queueName, true, false, false, null);
+            channel.queueBind(queueName, this.AAMExchangeName, this.getPlatformOwnersNamesRoutingKey);
+
+            log.info("Authentication and Authorization Manager waiting for users' details requests messages");
+
+            Consumer consumer = new GetPlatformOwnersNamesConsumerService(channel, adminUsername, adminPassword,
+                    platformRepository);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
             log.error(e);
@@ -501,6 +537,10 @@ public class RabbitManager {
                         channel.queueUnbind(this.getUserDetailsQueue, this.AAMExchangeName, this
                                 .getUserDetailsRoutingKey);
                         channel.queueDelete(this.getUserDetailsQueue);
+                        //  platform owners request
+                        channel.queueUnbind(this.getPlatformOwnersNamesQueue, this.AAMExchangeName, this
+                                .getPlatformOwnersNamesRoutingKey);
+                        channel.queueDelete(this.getPlatformOwnersNamesQueue);
                         break;
                     case NULL:
                         break;
