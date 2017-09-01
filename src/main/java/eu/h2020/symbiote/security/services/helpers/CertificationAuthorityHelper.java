@@ -6,7 +6,6 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
-import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.cert.CertIOException;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
@@ -200,7 +199,7 @@ public class CertificationAuthorityHelper {
 
         X509Certificate caCert;
         try {
-            caCert = this.getRootCACertificate();
+            caCert = this.getAAMCertificate();
         } catch (KeyStoreException | NoSuchProviderException | IOException | NoSuchAlgorithmException e) {
             log.error(e);
             throw new SecurityException(e.getMessage(), e.getCause());
@@ -215,8 +214,6 @@ public class CertificationAuthorityHelper {
             log.error(e);
             throw new SecurityException(e.getMessage(), e.getCause());
         }
-
-        X500Name issuer = new X500Name(caCert.getSubjectX500Principal().getName());
         if (flagCA)
             basicConstraints = new BasicConstraints(0);
         else
@@ -225,7 +222,7 @@ public class CertificationAuthorityHelper {
         X509v3CertificateBuilder certGen;
         try {
             certGen = new JcaX509v3CertificateBuilder(
-                    issuer,
+                    caCert,
                     BigInteger.valueOf(1),
                     new Date(System.currentTimeMillis()),
                     new Date(System.currentTimeMillis() + certificateValidityPeriod),
