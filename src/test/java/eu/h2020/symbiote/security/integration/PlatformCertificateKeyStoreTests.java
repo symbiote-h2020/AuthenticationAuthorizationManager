@@ -39,15 +39,10 @@ public class PlatformCertificateKeyStoreTests extends AbstractAAMTestSuite {
         platformOwner.setOwnedPlatforms(platforms);
 
         PlatformAAMCertificateKeyStoreFactory.getPlatformAAMKeystore(
-                KEY_STORE_PATH,
+                serverAddress, platformOwnerUsername, platformOwnerPassword, platformId, KEY_STORE_PATH,
                 KEY_STORE_PASSWORD,
-                platformId,
-                platformOwnerUsername,
-                platformOwnerPassword,
-                clientId,
-                serverAddress,
-                "KEY_TAG",
-                "CORE_ALIAS");
+                "CORE_ALIAS", "KEY_TAG", PV_KEY_PASSWORD
+        );
         //keyStore checking if proper Certificates exists
         KeyStore trustStore = KeyStore.getInstance("JKS");
         try (
