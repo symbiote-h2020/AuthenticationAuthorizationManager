@@ -61,7 +61,7 @@ public class OtherListenersFunctionalTests extends
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-    private RpcClient getPlatofmsOwnersClient;
+    private RpcClient getPlatformsOwnersClient;
 
     @Autowired
     private ComponentCertificatesRepository componentCertificatesRepository;
@@ -78,7 +78,7 @@ public class OtherListenersFunctionalTests extends
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(user);
-        getPlatofmsOwnersClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+        getPlatformsOwnersClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 getPlatformOwnersNamesQueue, 5000);
         // platform registration useful
         platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
@@ -305,7 +305,7 @@ public class OtherListenersFunctionalTests extends
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");
         requested.add(platformId + "Two");
-        byte[] response = getPlatofmsOwnersClient.primitiveCall(mapper.writeValueAsString(new
+        byte[] response = getPlatformsOwnersClient.primitiveCall(mapper.writeValueAsString(new
                 GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), requested)).getBytes());
 
         GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
@@ -323,7 +323,7 @@ public class OtherListenersFunctionalTests extends
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");
         requested.add(platformId + "Two");
-        byte[] response = getPlatofmsOwnersClient.primitiveCall(mapper.writeValueAsString(new
+        byte[] response = getPlatformsOwnersClient.primitiveCall(mapper.writeValueAsString(new
                 GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, wrongpassword), requested)).getBytes());
 
         GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
@@ -338,7 +338,7 @@ public class OtherListenersFunctionalTests extends
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");
         requested.add(platformId + "Two");
-        byte[] response = getPlatofmsOwnersClient.primitiveCall(mapper.writeValueAsString(new
+        byte[] response = getPlatformsOwnersClient.primitiveCall(mapper.writeValueAsString(new
                 GetPlatformOwnersRequest(null, requested)).getBytes());
 
         GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
