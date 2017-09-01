@@ -386,7 +386,7 @@ public class ActorsManagementFunctionalTests extends
     }
 
     @Test
-    public void requestUserDetailsOverAMQPSuccess() throws Exception {
+    public void requestUserDetailsOverAMQPSuccess() throws IOException, TimeoutException {
         //  Registering user in database
         User User = new User();
         User.setUsername(username);
@@ -411,7 +411,7 @@ public class ActorsManagementFunctionalTests extends
     }
 
     @Test
-    public void requestUserDetailsOverAMQPFailsForNotExistingUser() throws Exception {
+    public void requestUserDetailsOverAMQPFailsForNotExistingUser() throws IOException, TimeoutException {
         //  Registering user in database
         User User = new User();
         User.setUsername(username);
@@ -434,7 +434,7 @@ public class ActorsManagementFunctionalTests extends
     }
 
     @Test
-    public void requestUserDetailsOverAMQPFailsForWrongPassword() throws Exception {
+    public void requestUserDetailsOverAMQPFailsForWrongPassword() throws IOException, TimeoutException {
         //  Registering user in database
         User User = new User();
         User.setUsername(username);
@@ -456,8 +456,8 @@ public class ActorsManagementFunctionalTests extends
         assertEquals(HttpStatus.UNAUTHORIZED, userDetails.getHttpStatus());
     }
 
-    @Test//(expected = InvalidArgumentsException.class)
-    public void requestUserDetailsOverAMQPFailsForRequest() throws Exception {
+    @Test
+    public void requestUserDetailsOverAMQPFailsForRequestWithoutUserCredentials() throws IOException, TimeoutException {
         //  Registering user in database
         User User = new User();
         User.setUsername(username);
@@ -476,5 +476,19 @@ public class ActorsManagementFunctionalTests extends
         UserDetailsResponse userDetails = mapper.readValue(response,
                 UserDetailsResponse.class);
         assertEquals(HttpStatus.UNAUTHORIZED, userDetails.getHttpStatus());
+    }
+
+    @Test
+    public void getUserDetailsFailsForIncorrectAdminPassword() throws IOException, TimeoutException {
+
+        byte[] response = getUserDetailsClient.primitiveCall(mapper.writeValueAsString(new
+                UserManagementRequest(new
+                Credentials(AAMOwnerUsername, "wrongPassword"), new Credentials(username, password),
+                null, null
+        )).getBytes());
+
+        UserDetailsResponse userDetails = mapper.readValue(response,
+                UserDetailsResponse.class);
+        assertEquals(HttpStatus.FORBIDDEN, userDetails.getHttpStatus());
     }
 }
