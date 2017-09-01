@@ -20,7 +20,6 @@ import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.GetCertificateService;
-import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -60,24 +59,19 @@ public class TokensIssuingFunctionalTests extends
         AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(TokensIssuingFunctionalTests.class);
-    private final String coreAppUsername = "testCoreAppUsername";
-    private final String coreAppPassword = "testCoreAppPassword";
-    private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
+    @Value("${rabbit.queue.manage.attributes}")
+    protected String attributeManagementRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
-    @Value("${rabbit.queue.manage.attributes}")
-    protected String attributeManagementRequestQueue;
     private KeyPair platformOwnerKeyPair;
-    private RpcClient appRegistrationClient;
-    private UserDetails appUserDetails;
     private RpcClient attributesAddingOverAMQPClient;
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
@@ -87,8 +81,6 @@ public class TokensIssuingFunctionalTests extends
     private PlatformRepository platformRepository;
     @Autowired
     private GetCertificateService getCertificateService;
-    @Autowired
-    private TokenIssuer tokenIssuer;
 
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
@@ -104,10 +96,6 @@ public class TokensIssuingFunctionalTests extends
         platformRepository.deleteAll();
 
         // user registration useful
-        appRegistrationClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                userManagementRequestQueue, 5000);
-        appUserDetails = new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>());
 
         //user registration useful
         User user = new User();
@@ -212,7 +200,6 @@ public class TokensIssuingFunctionalTests extends
      * Feature: 3 (Authentication of components/ and users registered in a platform)
      * Interface: PAAM - 1, CAAM (for Administration)
      * CommunicationType AMQP
-     *
      */
     @Test
     public void getHomeTokenForUserOverAMQPMissingArgumentsFailure() throws
@@ -235,7 +222,6 @@ public class TokensIssuingFunctionalTests extends
      * Feature: 3 (Authentication of components/ and users registered in a platform)
      * Interface: PAAM - 1, CAAM (for Administration)
      * CommunicationType AMQP
-     *
      */
     @Test
     public void getHomeTokenForUserOverAMQPWrongSignFailure() throws
@@ -462,7 +448,6 @@ public class TokensIssuingFunctionalTests extends
         // PO role
         assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
     }
-
 
 
     /**

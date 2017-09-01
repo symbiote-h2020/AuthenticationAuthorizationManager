@@ -7,6 +7,7 @@ import com.rabbitmq.client.Consumer;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.listeners.amqp.consumers.*;
+import eu.h2020.symbiote.security.repositories.FederationRulesRepository;
 import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.*;
@@ -40,6 +41,7 @@ public class RabbitManager {
     private final UserRepository userRepository;
     private final RevocationService revocationService;
     private final LocalUsersAttributesRepository localUsersAttributesRepository;
+    private final FederationRulesRepository federationRulesRepository;
     private final PasswordEncoder passwordEncoder;
     private IssuingAuthorityType deploymentType;
 
@@ -103,6 +105,11 @@ public class RabbitManager {
     @Value("${rabbit.routingKey.get.user.details}")
     private String getUserDetailsRoutingKey;
 
+    @Value("${rabbit.queue.manage.federation.rule}")
+    private String manageFederationRuleQueue;
+    @Value("${rabbit.routingKey.manage.federation.rule}")
+    private String manageFederationRuleRoutingKey;
+
 
     @Value("${aam.deployment.owner.username}")
     private String adminUsername;
@@ -119,6 +126,7 @@ public class RabbitManager {
                          UserRepository userRepository,
                          CertificationAuthorityHelper certificationAuthorityHelper,
                          LocalUsersAttributesRepository localUsersAttributesRepository,
+                         FederationRulesRepository federationRulesRepository,
                          PasswordEncoder passwordEncoder) {
         this.usersManagementService = usersManagementService;
         this.revocationService = revocationService;
@@ -128,6 +136,7 @@ public class RabbitManager {
         this.userRepository = userRepository;
         this.localUsersAttributesRepository = localUsersAttributesRepository;
         this.passwordEncoder = passwordEncoder;
+        this.federationRulesRepository = federationRulesRepository;
         // setting the deployment type from the provisioned certificate
         deploymentType = certificationAuthorityHelper.getDeploymentType();
     }
@@ -176,6 +185,7 @@ public class RabbitManager {
                 case PLATFORM:
                     startConsumerOfLoginRequestMessages();
                     startConsumerOfLocalAttributesManagementRequest();
+                    startConsumerOfFederationRuleManagementRequest();
                     break;
                 case CORE:
                     startConsumerOfUserManagementRequestMessages();
@@ -185,6 +195,7 @@ public class RabbitManager {
                     startConsumerOfRevocationRequestMessages();
                     startConsumerOfGetUserDetails();
                     startConsumerOfLocalAttributesManagementRequest();
+                    startConsumerOfFederationRuleManagementRequest();
                     break;
                 case NULL:
                     throw new SecurityMisconfigurationException("Wrong deployment type");
@@ -386,7 +397,7 @@ public class RabbitManager {
 
     /**
      * Method creates queue and binds it globally available exchange and adequate Routing Key.
-     * It also creates a consumer for messages incoming to this queue, regarding to Revocation requests.
+     * It also creates a consumer for messages incoming to this queue, regarding to LocalAttributesManagementRequest requests.
      *
      * @throws IOException
      */
@@ -404,6 +415,33 @@ public class RabbitManager {
 
             Consumer consumer = new LocalAttributesManagementRequestConsumerService(channel,
                     localUsersAttributesRepository, adminUsername, adminPassword);
+            channel.basicConsume(queueName, false, consumer);
+        } catch (IOException e) {
+            log.error(e);
+        }
+
+    }
+
+    /**
+     * Method creates queue and binds it globally available exchange and adequate Routing Key.
+     * It also creates a consumer for messages incoming to this queue, regarding to FederationRuleManagement requests.
+     *
+     * @throws IOException
+     */
+    private void startConsumerOfFederationRuleManagementRequest() throws IOException {
+
+        String queueName = this.manageFederationRuleQueue;
+
+        Channel channel;
+        try {
+            channel = this.connection.createChannel();
+            channel.queueDeclare(queueName, true, false, false, null);
+            channel.queueBind(queueName, this.AAMExchangeName, this.manageFederationRuleRoutingKey);
+
+            log.info("Authentication and Authorization Manager waiting for FederationRuleManagementRequests messages");
+
+            Consumer consumer = new FederationRuleManagementRequestConsumerService(channel,
+                    federationRulesRepository, adminUsername, adminPassword);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
             log.error(e);
@@ -471,6 +509,11 @@ public class RabbitManager {
                         channel.queueUnbind(this.localUsersAttributesManagementRequestQueue, this.AAMExchangeName,
                                 this.localUsersAttributesManagementRequestRoutingKey);
                         channel.queueDelete(this.localUsersAttributesManagementRequestQueue);
+
+                        // federation rule management request
+                        channel.queueUnbind(this.manageFederationRuleQueue, this.AAMExchangeName,
+                                this.manageFederationRuleRoutingKey);
+                        channel.queueDelete(this.manageFederationRuleQueue);
                         break;
                     case CORE:
                         // user registration
@@ -501,6 +544,10 @@ public class RabbitManager {
                         channel.queueUnbind(this.getUserDetailsQueue, this.AAMExchangeName, this
                                 .getUserDetailsRoutingKey);
                         channel.queueDelete(this.getUserDetailsQueue);
+                        // federation rule management request
+                        channel.queueUnbind(this.manageFederationRuleQueue, this.AAMExchangeName,
+                                this.manageFederationRuleRoutingKey);
+                        channel.queueDelete(this.manageFederationRuleQueue);
                         break;
                     case NULL:
                         break;

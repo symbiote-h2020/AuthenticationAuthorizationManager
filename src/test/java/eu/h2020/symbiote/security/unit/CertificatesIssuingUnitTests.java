@@ -21,7 +21,6 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
@@ -738,7 +737,6 @@ public class CertificatesIssuingUnitTests extends
     }
 
     @Test
-    @Ignore
     public void revokeAndReplaceCoreComponentCertificateSuccess() throws
             IOException,
             NoSuchAlgorithmException,
