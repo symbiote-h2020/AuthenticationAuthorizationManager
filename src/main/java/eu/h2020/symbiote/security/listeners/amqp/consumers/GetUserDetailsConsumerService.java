@@ -84,7 +84,7 @@ public class GetUserDetailsConsumerService extends DefaultConsumer {
                 // and if the admin credentials match those from properties
                 if (!administratorCredentials.getUsername().equals(adminUsername)
                         || !administratorCredentials.getPassword().equals(adminPassword))
-                    throw new UserManagementException(HttpStatus.UNAUTHORIZED);
+                    throw new UserManagementException(HttpStatus.FORBIDDEN);
                 //  begin checking requested user's credentials
                 UserDetailsResponse userDetails;
                 //  Check if user exists in database
@@ -108,7 +108,10 @@ public class GetUserDetailsConsumerService extends DefaultConsumer {
                 log.debug("User Details response: sent back");
             } catch (UserManagementException | InvalidArgumentsException e) {
                 log.error(e);
-                response = om.writeValueAsString(new UserDetailsResponse(HttpStatus.UNAUTHORIZED, new UserDetails()));
+                if (e.getClass() == InvalidArgumentsException.class)    // Missing Admin or User credentials
+                    response = om.writeValueAsString(new UserDetailsResponse(HttpStatus.UNAUTHORIZED, new UserDetails()));
+                else    //  Incorrect Admin login / password
+                    response = om.writeValueAsString(new UserDetailsResponse(HttpStatus.FORBIDDEN, new UserDetails()));
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
             }
         } else {
