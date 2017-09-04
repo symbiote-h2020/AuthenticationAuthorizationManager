@@ -105,6 +105,7 @@ public class UsersManagementService {
             throw new InvalidArgumentsException();
 
         User user = new User();
+        User userToManage = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
         switch (userManagementRequest.getOperationType()) {
             case CREATE:
                 // validate request
@@ -134,17 +135,25 @@ public class UsersManagementService {
                 userRepository.save(user);
                 break;
             case UPDATE:
-                update(userManagementRequest);
+                update(userManagementRequest, userToManage);
+                break;
+            case FORCE_UPDATE:
+                forceUpdate(userManagementRequest, userToManage);
                 break;
             case DELETE:
-                delete(userManagementRequest.getUserDetails().getCredentials().getUsername());
+                delete(userToManage.getUsername());
                 break;
         }
         return ManagementStatus.OK;
     }
 
-    private void update(UserManagementRequest userManagementRequest) throws UserManagementException {
-        User user = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
+    private void forceUpdate(UserManagementRequest userManagementRequest, User user) {
+        user.setAttributes(userManagementRequest.getUserDetails().getAttributes());
+        userRepository.save(user);
+    }
+
+    private void update(UserManagementRequest userManagementRequest, User user) throws UserManagementException {
+
         // checking if request contains current password
         if (!userManagementRequest.getUserCredentials().getPassword().equals(user.getPasswordEncrypted())
                 && !passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), user.getPasswordEncrypted()))
