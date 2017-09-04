@@ -135,30 +135,24 @@ public class UsersManagementService {
                 userRepository.save(user);
                 break;
             case UPDATE:
+                // checking if request contains current password
+                if (!userManagementRequest.getUserCredentials().getPassword().equals(userToManage.getPasswordEncrypted())
+                        && !passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), userToManage.getPasswordEncrypted()))
+                    throw new UserManagementException(HttpStatus.UNAUTHORIZED);
                 update(userManagementRequest, userToManage);
                 break;
+
             case FORCE_UPDATE:
-                forceUpdate(userManagementRequest, userToManage);
+                update(userManagementRequest, userToManage);
                 break;
             case DELETE:
-                delete(userToManage.getUsername());
+                delete(userManagementRequest.getUserDetails().getCredentials().getUsername());
                 break;
         }
         return ManagementStatus.OK;
     }
 
-    private void forceUpdate(UserManagementRequest userManagementRequest, User user) {
-        user.setAttributes(userManagementRequest.getUserDetails().getAttributes());
-        userRepository.save(user);
-    }
-
     private void update(UserManagementRequest userManagementRequest, User user) throws UserManagementException {
-
-        // checking if request contains current password
-        if (!userManagementRequest.getUserCredentials().getPassword().equals(user.getPasswordEncrypted())
-                && !passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), user.getPasswordEncrypted()))
-            throw new UserManagementException(HttpStatus.UNAUTHORIZED);
-
         // update if not empty
         if (!userManagementRequest.getUserDetails().getCredentials().getPassword().isEmpty())
             user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
