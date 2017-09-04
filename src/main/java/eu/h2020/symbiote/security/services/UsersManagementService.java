@@ -145,6 +145,10 @@ public class UsersManagementService {
             case FORCE_UPDATE:
                 update(userManagementRequest, userToManage);
                 break;
+            case ATTRIBUTES_UPDATE:
+                userToManage.setAttributes(userDetails.getAttributes());
+                userRepository.save(userToManage);
+                break;
             case DELETE:
                 delete(userManagementRequest.getUserDetails().getCredentials().getUsername());
                 break;
@@ -152,13 +156,12 @@ public class UsersManagementService {
         return ManagementStatus.OK;
     }
 
-    private void update(UserManagementRequest userManagementRequest, User user) throws UserManagementException {
+    private void update(UserManagementRequest userManagementRequest, User user) {
         // update if not empty
         if (!userManagementRequest.getUserDetails().getCredentials().getPassword().isEmpty())
             user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
         if (!userManagementRequest.getUserDetails().getRecoveryMail().isEmpty())
             user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
-        user.setAttributes(userManagementRequest.getUserDetails().getAttributes());
         userRepository.save(user);
     }
 

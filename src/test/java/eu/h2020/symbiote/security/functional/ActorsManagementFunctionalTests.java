@@ -280,7 +280,6 @@ public class ActorsManagementFunctionalTests extends
     public void userUpdateOverAMQPSuccess() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(username));
-
         // issue app registration over AMQP
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
@@ -290,11 +289,18 @@ public class ActorsManagementFunctionalTests extends
         ManagementStatus appRegistrationResponse = mapper.readValue(response, ManagementStatus.class);
         assertEquals(appRegistrationResponse, ManagementStatus.OK);
 
+        //creating new attributes map
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("key", "attribute");
+
         appUserUpdateRequest.getUserDetails().setRecoveryMail(recoveryMail + "differentOne");
         appUserUpdateRequest.getUserDetails().getCredentials().setPassword(password + "differentOne");
         byte[] response2 = appManagementClient.primitiveCall(mapper.writeValueAsString(appUserUpdateRequest).getBytes());
         ManagementStatus appRegistrationResponse2 = mapper.readValue(response2, ManagementStatus.class);
         assertEquals(ManagementStatus.OK, appRegistrationResponse2);
+        User user = userRepository.findOne(username);
+        //attributes map should not be updated during UPDATE operationType
+        assertFalse(user.getAttributes().containsValue("attribute"));
     }
 
 

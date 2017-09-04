@@ -51,12 +51,14 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         // verify that app is not in the repository
         User registeredUser = userRepository.findOne(appUsername);
         assertNull(registeredUser);
-
+        // new attributes map
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("key", "attribute");
 
         // manage new user to db
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
-                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
+                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, attributes, new HashMap<>())
                 , OperationType.CREATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
 
@@ -64,8 +66,36 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         registeredUser = userRepository.findOne(appUsername);
         assertNotNull(registeredUser);
         assertEquals(UserRole.USER, registeredUser.getRole());
-
+        assertEquals(1, registeredUser.getAttributes().size());
         assertEquals(userRegistrationResponse, ManagementStatus.OK);
+    }
+
+    @Test
+    public void userInternalAttributesUpdateSuccess() throws SecurityException {
+        User user = saveUser();
+        assertEquals(0, user.getAttributes().size());
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("key", "attribute");
+        // update attributes - new values of mail and federatedId to check, if they change too
+        //wrong password used to check, if it is checked (should not be)
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, password),
+                new UserDetails(new Credentials(appUsername, wrongpassword), "newId", "newMail", UserRole.USER, attributes, new HashMap<>())
+                , OperationType.ATTRIBUTES_UPDATE);
+        ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
+        assertEquals(userRegistrationResponse, ManagementStatus.OK);
+        // verify that app really is in repository
+        User newUser = userRepository.findOne(appUsername);
+        assertNotNull(newUser);
+        //check if nothing change except attributes
+        assertEquals(user.getRecoveryMail(), newUser.getRecoveryMail());
+        assertEquals(user.getOwnedPlatforms().size(), newUser.getOwnedPlatforms().size());
+        assertEquals(user.getPasswordEncrypted(), newUser.getPasswordEncrypted());
+        assertEquals(user.getClientCertificates().size(), newUser.getClientCertificates().size());
+        assertNotEquals(user.getAttributes().size(), newUser.getAttributes().size());
+        assertTrue(newUser.getAttributes().containsValue("attribute"));
+        assertTrue(newUser.getAttributes().containsKey("key"));
+
     }
 
     @Test
