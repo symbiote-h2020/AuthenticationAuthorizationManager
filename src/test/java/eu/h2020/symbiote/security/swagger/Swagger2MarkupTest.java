@@ -4,24 +4,23 @@ import eu.h2020.symbiote.security.AuthenticationAuthorizationManager;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
-import org.junit.runner.RunWith;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.context.TestPropertySource;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-
 import java.io.BufferedWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -71,9 +70,7 @@ public class Swagger2MarkupTest {
 
     @Test
     public void createSpringfoxSwaggerJson() throws Exception {
-        //String designFirstSwaggerLocation = Swagger2MarkupTest.class.getResource("/swagger.yaml").getPath();
-
-        String outputDir = System.getProperty("io.springfox.staticdocs.outputDir");
+        String outputDir = "Output";
         MvcResult mvcResult = this.mockMvc.perform(get("/swagger/v2/api-docs")
                     .header("Origin", "localhost")
                     .accept(MediaType.APPLICATION_JSON))
