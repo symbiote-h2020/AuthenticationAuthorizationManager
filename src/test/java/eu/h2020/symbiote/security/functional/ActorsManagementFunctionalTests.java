@@ -15,6 +15,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -207,6 +208,7 @@ public class ActorsManagementFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
+    @Ignore("Federated id was pushed to R4")
     public void userRegistrationOverAMQPFailureMissingAppForeignId() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(username));

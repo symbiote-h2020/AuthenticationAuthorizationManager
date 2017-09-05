@@ -114,8 +114,9 @@ public class UsersManagementService {
                     throw new InvalidArgumentsException("Missing username or password");
                 }
                 if (deploymentType == IssuingAuthorityType.CORE
-                        && (userDetails.getRecoveryMail().isEmpty()
-                        || userDetails.getFederatedId().isEmpty()))
+                        && (userDetails.getRecoveryMail().isEmpty()))
+                    // not used in R3
+                    // || userDetails.getFederatedId().isEmpty()))
                     throw new InvalidArgumentsException("Missing recovery e-mail or OAuth identity");
 
                 // verify proper user role
