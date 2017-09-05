@@ -23,6 +23,7 @@ public interface IGetToken {
      * @return GUEST token used to access public resources offered in SymbIoTe
      */
     @ApiOperation(value = "Issues a Guest Token")
+    @ApiResponse(code = 500, message = "Could not create Guest Token")
     @PostMapping(SecurityConstants.AAM_GET_GUEST_TOKEN)
     ResponseEntity<String> getGuestToken();
 
@@ -32,13 +33,10 @@ public interface IGetToken {
      * @return HOME token used to access restricted resources offered in SymbIoTe
      */
     @ApiOperation(value = "Issues a Home Token")
-    @ApiImplicitParams({
-            @ApiImplicitParam(name = "Home AAM", value = "AAM the user has account in", required = true, dataType = "body"),
-            @ApiImplicitParam(name = "Username", value = "Username of logging user", required = true, dataType = "body"),
-            @ApiImplicitParam(name = "Client's ID", value = "ID of logging user", required = true, dataType = "body"),
-            @ApiImplicitParam(name = "Certificate", value = "Client's Certificate", required = true, dataType = "body"),
-            @ApiImplicitParam(name = "PrivateKey", value = "Key matching the public key in certificate", required = true, dataType = "body"),
-    })
+    @ApiResponses({
+            @ApiResponse(code = 400, message = "Received token was malformed"),
+            @ApiResponse(code = 401, message = "Incorrect Credentials were provided"),
+            @ApiResponse(code = 500, message = "Server failed to create Home Token")})
     @PostMapping(value = SecurityConstants.AAM_GET_HOME_TOKEN)
     ResponseEntity<String> getHomeToken(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String loginRequest);
 
@@ -49,7 +47,9 @@ public interface IGetToken {
      * @return FOREIGN token used to access restricted resources offered in SymbIoTe federations
      */
     @ApiOperation(value = "Issues a Foreign Token")
-
+    @ApiResponses({
+            @ApiResponse(code = 401, message = "Received token could not be validated"),
+            @ApiResponse(code = 500, message = "Server failed to create Foreign Token")})
     @PostMapping(value = SecurityConstants.AAM_GET_FOREIGN_TOKEN)
     ResponseEntity<String> getForeignToken(
             @ApiParam(value = "Token that will be exchanged for Foreign Token", required = true) @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String remoteHomeToken,

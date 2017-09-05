@@ -3,6 +3,7 @@ package eu.h2020.symbiote.security.listeners.rest.interfaces;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 
@@ -17,6 +18,7 @@ public interface IGetComponentCertificate {
      * @return Certificate of the component in PEM format
      */
     @ApiOperation(value = "Returns Component Certificate", response = String.class)
+    @ApiResponse(code = 500, message = "Could not create Component Certificate")
     @GetMapping(SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE)
     ResponseEntity<String> getComponentCertificate();
 }

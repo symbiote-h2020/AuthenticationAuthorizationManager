@@ -27,7 +27,7 @@ public interface IValidateCredentials {
      * @param foreignTokenIssuingAAMCertificate      in PEM with key matching the IPK claim in the provided FOREIGN token in 'offline' (intranet) scenarios
      * @return validation status
      */
-    @ApiOperation(value = "Responds with validation status of processed Validation request")
+    @ApiOperation(value = "Responds with validation status of processed Validation request", response = ValidationStatus.class)
     @PostMapping(SecurityConstants.AAM_VALIDATE)
     ValidationStatus validate(
             @ApiParam(name = "Token", value = "Token to be validated", required = true) @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String token,

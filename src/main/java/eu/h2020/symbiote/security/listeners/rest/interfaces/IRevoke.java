@@ -2,9 +2,7 @@ package eu.h2020.symbiote.security.listeners.rest.interfaces;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,6 +21,9 @@ public interface IRevoke {
      * @return ResponseEntity<String> where as header HTTP status is sent and in body true/false depending on revocation status
      */
     @ApiOperation(value = "Allows users to revoke their client certificates and tokens")
+    @ApiResponses({
+            @ApiResponse(code = 400, message = "Request contains invalid arguments"),
+            @ApiResponse(code = 401, message = "Incorrect credentials were provided")})
     @PostMapping(value = SecurityConstants.AAM_REVOKE, consumes = "application/json")
     ResponseEntity<String> revoke(
             @ApiParam(name = "Revocation Request", value = "Depending on it's fields, token or certificate can be revoked", required = true)
