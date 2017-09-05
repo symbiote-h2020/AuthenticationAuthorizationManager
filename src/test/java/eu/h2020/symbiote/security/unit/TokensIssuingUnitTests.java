@@ -28,7 +28,6 @@ import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -42,6 +41,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.security.auth.x500.X500Principal;
@@ -60,11 +60,9 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
-
-
     private static Log log = LogFactory.getLog(CertificatesIssuingUnitTests.class);
-    protected final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
 
     private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";

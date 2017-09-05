@@ -139,3 +139,4 @@ target
 # Logs
 logs
 *.log
+Output/swagger.json

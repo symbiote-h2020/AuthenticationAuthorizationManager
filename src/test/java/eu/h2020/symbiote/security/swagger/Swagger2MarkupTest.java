@@ -11,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
@@ -32,10 +33,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebAppConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringBootTest(classes = {AuthenticationAuthorizationManager.class, SwaggerConfig.class},
-                properties = {"eureka.client.enabled=false",
-                              "spring.sleuth.enabled=false"})
+        properties = {"eureka.client.enabled=false",
+                "spring.sleuth.enabled=false"})
 @AutoConfigureMockMvc
-@TestPropertySource("/platform.properties")
+@TestPropertySource("/core.properties")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class Swagger2MarkupTest {
 
     private static final Log LOG = LogFactory.getLog(Swagger2MarkupTest.class);
@@ -72,10 +74,10 @@ public class Swagger2MarkupTest {
     public void createSpringfoxSwaggerJson() throws Exception {
         String outputDir = "Output";
         MvcResult mvcResult = this.mockMvc.perform(get("/swagger/v2/api-docs")
-                    .header("Origin", "localhost")
-                    .accept(MediaType.APPLICATION_JSON))
-                    .andExpect(status().isOk())
-                    .andReturn();
+                .header("Origin", "localhost")
+                .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
 
 
         MockHttpServletResponse response = mvcResult.getResponse();
@@ -83,7 +85,7 @@ public class Swagger2MarkupTest {
         LOG.info("location: " + response.getHeader("Location"));
         String swaggerJson = response.getContentAsString();
         Files.createDirectories(Paths.get(outputDir));
-        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputDir, "swagger.json"), StandardCharsets.UTF_8)){
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputDir, "swagger.json"), StandardCharsets.UTF_8)) {
             writer.write(swaggerJson);
         }
     }

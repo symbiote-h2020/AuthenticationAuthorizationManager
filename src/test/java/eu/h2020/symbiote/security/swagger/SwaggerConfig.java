@@ -42,7 +42,7 @@ public class SwaggerConfig {
 //                ))
                 .produces(producesSet())
                 .select()
-                .paths(Predicates.and(ant("/**"), Predicates.not(ant("/error")), Predicates.not(ant("/test/**")), Predicates.not(ant("/management/**")), Predicates.not(ant("/management*"))))
+                .paths(Predicates.and(ant("/**"), Predicates.not(ant("/error")), Predicates.not(ant("/test/**"))))
                 .build();
     }
 

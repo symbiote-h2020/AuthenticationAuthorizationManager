@@ -14,6 +14,7 @@ buildscript {
     dependencies {
         classpath("io.github.swagger2markup:swagger2markup-spring-restdocs-ext:1.2.0")
         classpath("io.github.swagger2markup:swagger2markup-gradle-plugin:1.2.0")
+        classpath("org.asciidoctor:asciidoctorj-pdf:1.5.0-alpha.10.1")
     }
 }
 
