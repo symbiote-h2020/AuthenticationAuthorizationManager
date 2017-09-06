@@ -136,6 +136,9 @@ public class PlatformsManagementService {
                 }
 
                 platformRepository.delete(platformManagementRequest.getPlatformInstanceId());
+                // unbinding the platform from the platform owner
+                platformOwner.getOwnedPlatforms().remove(platformManagementRequest.getPlatformInstanceId());
+                userRepository.save(platformOwner);
                 break;
         }
 
