@@ -11,7 +11,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
@@ -37,7 +36,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "spring.sleuth.enabled=false"})
 @AutoConfigureMockMvc
 @TestPropertySource("/core.properties")
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class Swagger2MarkupTest {
 
     private static final Log LOG = LogFactory.getLog(Swagger2MarkupTest.class);
@@ -72,7 +70,7 @@ public class Swagger2MarkupTest {
 
     @Test
     public void createSpringfoxSwaggerJson() throws Exception {
-        String outputDir = "Output";
+        String outputDir = "build/swagger";
         MvcResult mvcResult = this.mockMvc.perform(get("/swagger/v2/api-docs")
                 .header("Origin", "localhost")
                 .accept(MediaType.APPLICATION_JSON))
@@ -81,8 +79,6 @@ public class Swagger2MarkupTest {
 
 
         MockHttpServletResponse response = mvcResult.getResponse();
-        LOG.info("getHeaderNames: " + response.getHeaderNames());
-        LOG.info("location: " + response.getHeader("Location"));
         String swaggerJson = response.getContentAsString();
         Files.createDirectories(Paths.get(outputDir));
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(outputDir, "swagger.json"), StandardCharsets.UTF_8)) {

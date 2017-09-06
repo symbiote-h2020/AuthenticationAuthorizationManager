@@ -139,10 +139,17 @@ check.dependsOn(jacocoTestReport)//, 'dependencyCheckAnalyze')
 test {
     systemProperty 'io.springfox.staticdocs.outputDir', swaggerOutputDir
     systemProperty 'io.springfox.staticdocs.snippetsOutputDir', snippetsOutputDir
+    // we don't need that for testing,
+    exclude '**/Swagger*'
+}
+
+// documentation below
+task swaggerGeneratorTest(type: Test, dependsOn: testClasses) {
+    include '**/Swagger*'
 }
 
 convertSwagger2markup {
-    dependsOn test
+    dependsOn swaggerGeneratorTest
     swaggerInput "${swaggerOutputDir}/swagger.json"
     outputDir asciiDocOutputDir
     config = [
