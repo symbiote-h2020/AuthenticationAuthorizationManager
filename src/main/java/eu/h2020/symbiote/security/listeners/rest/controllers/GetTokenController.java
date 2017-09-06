@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IGetToken;
 import eu.h2020.symbiote.security.services.GetTokenService;
+import io.swagger.annotations.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @see GetTokenService
  */
 @RestController
+@Api(value = "/docs/gettokenservice", description = "Exposes services responsible for providing Tokens")
 public class GetTokenController implements IGetToken {
 
     private final GetTokenService getTokenService;
@@ -37,9 +39,17 @@ public class GetTokenController implements IGetToken {
         this.getTokenService = getTokenService;
     }
 
-    public ResponseEntity<String> getForeignToken(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String remoteHomeToken,
-                                                  @RequestHeader(name = SecurityConstants.CLIENT_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificate,
-                                                  @RequestHeader(name = SecurityConstants.AAM_CERTIFICATE_HEADER_NAME, defaultValue = "") String aamCertificate) {
+    @ApiOperation(value = "Issues a Foreign Token")
+    @ApiResponses({
+            @ApiResponse(code = 401, message = "Received token could not be validated"),
+            @ApiResponse(code = 500, message = "Server failed to create Foreign Token")})
+    public ResponseEntity<String> getForeignToken(
+            @ApiParam(value = "Token that will be exchanged for Foreign Token", required = true)
+            @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String remoteHomeToken,
+            @ApiParam(value = "in PEM with key matching the SPK claim in the provided token in 'offline' (intranet) scenarios", required = false)
+            @RequestHeader(name = SecurityConstants.CLIENT_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificate,
+            @ApiParam(value = "in PEM with key matching the SPK claim in the provided token in 'offline' (intranet) scenarios", required = false)
+            @RequestHeader(name = SecurityConstants.AAM_CERTIFICATE_HEADER_NAME, defaultValue = "") String aamCertificate) {
         HttpHeaders headers = new HttpHeaders();
         Token foreignToken;
         try {
@@ -56,6 +66,8 @@ public class GetTokenController implements IGetToken {
         return new ResponseEntity<>(headers, HttpStatus.OK);
     }
 
+    @ApiOperation(value = "Issues a Guest Token")
+    @ApiResponse(code = 500, message = "Could not create Guest Token")
     public ResponseEntity<String> getGuestToken() {
         try {
             Token token = getTokenService.getGuestToken();
@@ -69,7 +81,14 @@ public class GetTokenController implements IGetToken {
     }
 
     //L1 Diagrams - getHomeToken()
-    public ResponseEntity<String> getHomeToken(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String loginRequest) {
+    @ApiOperation(value = "Issues a Home Token")
+    @ApiResponses({
+            @ApiResponse(code = 400, message = "Received token was malformed"),
+            @ApiResponse(code = 401, message = "Incorrect Credentials were provided"),
+            @ApiResponse(code = 500, message = "Server failed to create Home Token")})
+    public ResponseEntity<String> getHomeToken(
+            @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME)
+            @ApiParam(value = "JWS build in accordance to Symbiote Security Cryptohelper", required = true) String loginRequest) {
         try {
             Token token = getTokenService.getHomeToken(loginRequest);
             HttpHeaders headers = new HttpHeaders();

@@ -6,6 +6,10 @@ import eu.h2020.symbiote.security.communication.payloads.PlatformManagementReque
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementResponse;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IPlatformManagement;
 import eu.h2020.symbiote.security.services.PlatformsManagementService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Maks Marcinowski (PSNC)
  * @see PlatformsManagementService
  */
+@Api(value = "/docs/platformmanagement", description = "Exposes a service that allows platforms' management")
 @RestController
 public class PlatformManagementController implements IPlatformManagement {
     private static final Log log = LogFactory.getLog(PlatformManagementController.class);
@@ -31,7 +36,12 @@ public class PlatformManagementController implements IPlatformManagement {
     }
 
     @Override
-    public ResponseEntity<PlatformManagementResponse> manage(@RequestBody PlatformManagementRequest platformManagementRequest) {
+    @ApiOperation(value = "Operation used to manage platform based on contents of management request", response = PlatformManagementResponse.class)
+    @ApiResponse(code = 500, message = "Internal Platform Management Error")
+    public ResponseEntity<PlatformManagementResponse> manage(
+            @RequestBody
+            @ApiParam(value = "Platform Management Request", required = true)
+                    PlatformManagementRequest platformManagementRequest) {
         try {
             PlatformManagementResponse platformManagementResponse = platformsManagementService.manage(platformManagementRequest);
             return ResponseEntity.status(HttpStatus.OK).body(platformManagementResponse);

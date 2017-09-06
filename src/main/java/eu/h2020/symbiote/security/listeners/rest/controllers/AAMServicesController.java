@@ -6,6 +6,9 @@ import eu.h2020.symbiote.security.listeners.rest.interfaces.IAAMServices;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IGetComponentCertificate;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +29,7 @@ import java.util.Map;
  * @author Mikołaj Dobski (PSNC)
  */
 @RestController
+@Api(value = "/docs/aamservices", description = "Exposes services provided by AAM", produces = "application/json")
 public class AAMServicesController implements IAAMServices, IGetComponentCertificate {
 
     private static final Log log = LogFactory.getLog(AAMServicesController.class);
@@ -38,6 +42,8 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
         this.aamServices = aamServices;
     }
 
+    @ApiOperation(value = "Returns Component Certificate", response = String.class)
+    @ApiResponse(code = 500, message = "Could not create Component Certificate")
     public ResponseEntity<String> getComponentCertificate() {
         try {
             return ResponseEntity.status(HttpStatus.OK).body(certificationAuthorityHelper.getAAMCert());
@@ -48,6 +54,8 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
         }
     }
 
+    @ApiOperation(value = "Returns collection of available AAMs", response = AvailableAAMsCollection.class)
+    @ApiResponse(code = 500, message = "Internal AAM Error")
     public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {
         Map<String, AAM> result;
         try {

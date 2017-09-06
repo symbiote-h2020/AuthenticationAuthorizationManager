@@ -7,7 +7,9 @@ import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IUserManagement;
+import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.UsersManagementService;
+import io.swagger.annotations.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Maks Marcinowski (PSNC)
  * @see UsersManagementService
  */
-
+@Api(value = "/docs/usermanagement", description = "Exposes a service that allows users' management")
 @RestController
 public class UserManagementController implements IUserManagement {
     private static final Log log = LogFactory.getLog(UserManagementController.class);
@@ -34,7 +36,12 @@ public class UserManagementController implements IUserManagement {
     }
 
     @Override
-    public ResponseEntity<ManagementStatus> manage(@RequestBody UserManagementRequest userManagementRequest) {
+    @ApiOperation(value = "Performs management action based on management request", response = ManagementStatus.class)
+    @ApiResponse(code = 500, message = "Internal User Management Error")
+    public ResponseEntity<ManagementStatus> manage(
+            @RequestBody
+            @ApiParam(name = "User Management Request", value = "required to initialize user's management operation", required = true)
+                    UserManagementRequest userManagementRequest) {
         try {
             ManagementStatus managementStatus = usersManagementService.authManage(userManagementRequest);
             return ResponseEntity.status(HttpStatus.OK).body(managementStatus);
@@ -45,7 +52,14 @@ public class UserManagementController implements IUserManagement {
     }
 
     @Override
-    public ResponseEntity<UserDetails> getUserDetails(@RequestBody Credentials credentials) {
+    @ApiOperation(value = "Returns details of requested user", response = User.class)
+    @ApiResponses({
+            @ApiResponse(code = 400, message = "Requested User does not exist"),
+            @ApiResponse(code = 401, message = "Incorrect Credentials were provided")})
+    public ResponseEntity<UserDetails> getUserDetails(
+            @RequestBody
+            @ApiParam(name = "Credentials", value = "Credentials of a user whose details are requested", required = true)
+                    Credentials credentials) {
         try {
             return new ResponseEntity<UserDetails>(usersManagementService.getUserDetails(credentials), HttpStatus.OK);
         } catch (UserManagementException e) {
