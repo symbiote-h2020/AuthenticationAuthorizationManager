@@ -192,11 +192,7 @@ public class OtherListenersFunctionalTests extends
         assertEquals(certificationAuthorityHelper.getAAMCert(), componentCertificate);
     }
 
-    /**
-     * Features: CAAM - Providing platform details for Administration upon giving a correct credentials
-     * Interfaces: CAAM ;
-     * CommunicationType AMQP
-     */
+
     @Test
     public void getOwnedPlatformDetailsForPlatformOwnerInAdministrationSuccess() throws IOException, TimeoutException {
 
@@ -204,19 +200,16 @@ public class OtherListenersFunctionalTests extends
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
 
-        // issue platform registration over AMQP
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
         User platformOwner = userRepository.findOne(platformOwnerUsername);
-        // platform owner should have a platform bound to him by now
-        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+        // platform owner should have no platform bound to him by now
+        assertTrue(platformOwner.getOwnedPlatforms().isEmpty());
+
         // creating request
         UserManagementRequest userManagementRequest = new UserManagementRequest();
         userManagementRequest.setAdministratorCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         userManagementRequest.setUserCredentials(new Credentials(platformOwnerUsername, ""));
 
-        // issue owned platform details request with the given token
+        // issue owned platform details request
         RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
@@ -225,8 +218,27 @@ public class OtherListenersFunctionalTests extends
         Set<OwnedPlatformDetails> responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
         });
 
+        // no platforms there yet
+        assertTrue(responseSet.isEmpty());
+
+        // issue platform registration over AMQP
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        platformOwner = userRepository.findOne(platformOwnerUsername);
+        // platform owner should have a platform bound to him by now
+        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+
+        // issue owned platform details request
+        ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
+                (userManagementRequest).getBytes());
+
+        responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
+        });
+
         // there should be a platform
         assertFalse(responseSet.isEmpty());
+
         OwnedPlatformDetails platformDetailsFromResponse = responseSet.iterator().next();
         Platform ownedPlatformInDB = platformRepository.findOne(preferredPlatformId);
 

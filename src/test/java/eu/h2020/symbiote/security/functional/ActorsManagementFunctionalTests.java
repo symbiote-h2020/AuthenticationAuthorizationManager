@@ -15,7 +15,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -195,27 +194,6 @@ public class ActorsManagementFunctionalTests extends
 
         // issue app registration over AMQP with missing password
         appUserDetails.getCredentials().setPassword("");
-        byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
-                .getBytes());
-
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
-    }
-
-    /**
-     * Feature: CAAM - 2 (App Registration)
-     * Interface: CAAM - 3
-     * CommunicationType AMQP
-     */
-    @Test
-    @Ignore("Federated id was pushed to R4")
-    public void userRegistrationOverAMQPFailureMissingAppForeignId() throws IOException, TimeoutException {
-        // verify that our app is not in repository
-        assertNull(userRepository.findOne(username));
-
-
-        // issue app registration over AMQP with missing foreignId
-        appUserDetails.setFederatedID("");
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
                 .getBytes());
 
