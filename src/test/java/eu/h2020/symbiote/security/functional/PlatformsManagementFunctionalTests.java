@@ -433,7 +433,7 @@ public class PlatformsManagementFunctionalTests extends
     }
 
     @Test(expected = AAMException.class)
-    public void platfomManagementControllerFailsManagingIncorrectRegistrationRequest() throws AAMException {
+    public void platformManagementControllerFailsManagingIncorrectRegistrationRequest() throws AAMException {
         PlatformManagementRequest IncorrectPlatformRegistrationRequest;
         IncorrectPlatformRegistrationRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),

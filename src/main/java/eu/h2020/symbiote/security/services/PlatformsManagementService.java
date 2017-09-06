@@ -57,10 +57,6 @@ public class PlatformsManagementService {
 
         if (platformOwnerCredentials.getUsername().isEmpty() || platformOwnerCredentials.getPassword().isEmpty())
             throw new InvalidArgumentsException("Missing username or password");
-        if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
-            throw new InvalidArgumentsException("Missing Platform AAM URL");
-        if (platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
-            throw new InvalidArgumentsException("Missing Platform Instance Friendly Name");
 
         if (!userRepository.exists(platformOwnerCredentials.getUsername()))
             throw new NotExistingUserException();
@@ -74,6 +70,11 @@ public class PlatformsManagementService {
 
         switch (platformManagementRequest.getOperationType()) {
             case CREATE:
+                if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
+                    throw new InvalidArgumentsException("Missing Platform AAM URL");
+                if (platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
+                    throw new InvalidArgumentsException("Missing Platform Instance Friendly Name");
+
                 String platformId;
                 // verify if platform owner provided a preferred platform identifier
                 if (platformManagementRequest.getPlatformInstanceId().isEmpty())
@@ -113,19 +114,22 @@ public class PlatformsManagementService {
                     throw new PlatformManagementException("Platform doesn't exist", HttpStatus.BAD_REQUEST);
                 Set<String> keys = new HashSet<>();
                 try {
-                    for (Certificate c : platformRepository.findOne(platformManagementRequest.getPlatformInstanceId())
-                            .getComponentCertificates().values()) {
+                    Platform platformForRemoval = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
+                    for (Certificate c : platformForRemoval.getComponentCertificates().values()) {
                         keys.add(Base64.getEncoder().encodeToString(
                                 c.getX509().getPublicKey().getEncoded()));
                     }
 
+                    // adding platform AAM certificate for revocation
+                    if (!platformForRemoval.getPlatformAAMCertificate().getCertificateString().isEmpty())
+                        keys.add(Base64.getEncoder().encodeToString(
+                                platformForRemoval.getPlatformAAMCertificate().getX509().getPublicKey().getEncoded()));
+
                     // checking if this key contains keys already
-                    SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(platformManagementRequest
-                            .getPlatformOwnerCredentials().getUsername());
+                    SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(platformForRemoval.getPlatformInstanceId());
                     if (subjectsRevokedKeys == null)
                         // no keys exist yet
-                        revokedKeysRepository.save(new SubjectsRevokedKeys(platformManagementRequest
-                                .getPlatformOwnerCredentials().getUsername(), keys));
+                        revokedKeysRepository.save(new SubjectsRevokedKeys(platformForRemoval.getPlatformInstanceId(), keys));
                     else {
                         // extending the existing set
                         subjectsRevokedKeys.getRevokedKeysSet().addAll(keys);
@@ -136,6 +140,9 @@ public class PlatformsManagementService {
                 }
 
                 platformRepository.delete(platformManagementRequest.getPlatformInstanceId());
+                // unbinding the platform from the platform owner
+                platformOwner.getOwnedPlatforms().remove(platformManagementRequest.getPlatformInstanceId());
+                userRepository.save(platformOwner);
                 break;
         }
 
