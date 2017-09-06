@@ -57,10 +57,6 @@ public class PlatformsManagementService {
 
         if (platformOwnerCredentials.getUsername().isEmpty() || platformOwnerCredentials.getPassword().isEmpty())
             throw new InvalidArgumentsException("Missing username or password");
-        if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
-            throw new InvalidArgumentsException("Missing Platform AAM URL");
-        if (platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
-            throw new InvalidArgumentsException("Missing Platform Instance Friendly Name");
 
         if (!userRepository.exists(platformOwnerCredentials.getUsername()))
             throw new NotExistingUserException();
@@ -74,6 +70,11 @@ public class PlatformsManagementService {
 
         switch (platformManagementRequest.getOperationType()) {
             case CREATE:
+                if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
+                    throw new InvalidArgumentsException("Missing Platform AAM URL");
+                if (platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
+                    throw new InvalidArgumentsException("Missing Platform Instance Friendly Name");
+
                 String platformId;
                 // verify if platform owner provided a preferred platform identifier
                 if (platformManagementRequest.getPlatformInstanceId().isEmpty())
