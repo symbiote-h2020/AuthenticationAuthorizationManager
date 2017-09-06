@@ -68,8 +68,8 @@ public class PlatformManagementRequestConsumerService extends DefaultConsumer {
                     .build();
             try {
                 request = om.readValue(message, PlatformManagementRequest.class);
-                log.debug("[x] Received Platform Management Request for: " + request.getPlatformOwnerCredentials()
-                        .getUsername());
+                //log.debug("[x] Received Platform Management Request for: " + request.getPlatformOwnerCredentials().getUsername());
+                log.debug("[x] Received Platform Management Request for: " + request);
                 PlatformManagementResponse registrationResponse = platformsManagementService.authManage
                         (request);
                 response = om.writeValueAsString(registrationResponse);

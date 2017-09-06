@@ -113,19 +113,22 @@ public class PlatformsManagementService {
                     throw new PlatformManagementException("Platform doesn't exist", HttpStatus.BAD_REQUEST);
                 Set<String> keys = new HashSet<>();
                 try {
-                    for (Certificate c : platformRepository.findOne(platformManagementRequest.getPlatformInstanceId())
-                            .getComponentCertificates().values()) {
+                    Platform platformForRemoval = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
+                    for (Certificate c : platformForRemoval.getComponentCertificates().values()) {
                         keys.add(Base64.getEncoder().encodeToString(
                                 c.getX509().getPublicKey().getEncoded()));
                     }
 
+                    // adding platform AAM certificate for revocation
+                    if (!platformForRemoval.getPlatformAAMCertificate().getCertificateString().isEmpty())
+                        keys.add(Base64.getEncoder().encodeToString(
+                                platformForRemoval.getPlatformAAMCertificate().getX509().getPublicKey().getEncoded()));
+
                     // checking if this key contains keys already
-                    SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(platformManagementRequest
-                            .getPlatformOwnerCredentials().getUsername());
+                    SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(platformForRemoval.getPlatformInstanceId());
                     if (subjectsRevokedKeys == null)
                         // no keys exist yet
-                        revokedKeysRepository.save(new SubjectsRevokedKeys(platformManagementRequest
-                                .getPlatformOwnerCredentials().getUsername(), keys));
+                        revokedKeysRepository.save(new SubjectsRevokedKeys(platformForRemoval.getPlatformInstanceId(), keys));
                     else {
                         // extending the existing set
                         subjectsRevokedKeys.getRevokedKeysSet().addAll(keys);
