@@ -35,7 +35,7 @@ public class GetCertificateController implements IGetClientCertificate {
     @ApiResponse(code = 500, message = "Could not create Client Certificate")
     public ResponseEntity<String> getClientCertificate(
             @RequestBody
-            @ApiParam(name = "Certificate Request", value = "Request required to issue a certificate for given (username, clientId) tupple", required = true)
+            @ApiParam(value = "Request required to issue a certificate for given (username, clientId) tupple", required = true)
                     CertificateRequest certificateRequest) {
         try {
             String certificate = getCertificateService.getCertificate(certificateRequest);

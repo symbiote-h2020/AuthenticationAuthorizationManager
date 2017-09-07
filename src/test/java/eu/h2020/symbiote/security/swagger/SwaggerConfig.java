@@ -50,10 +50,10 @@ public class SwaggerConfig {
         return new ApiInfoBuilder()
                 .title("Authentication and Authorization Manager")
                 .description("Authentication and Authorization Manager API Description")
-                .contact(new Contact("TestName", "http:/test-url.com", "test@test.pl"))
+                .contact(new Contact("Mikołaj Dobski", "http:/test-url.com", "mikolaj.dobski@man.poznan.pl"))
                 .license("GNU Lesser General Public License v3.0")
                 .licenseUrl("https://github.com/symbiote-h2020/AuthenticationAuthorizationManager/blob/master/LICENSE.txt")
-                .version("0.2.0")
+                .version("3.0")
                 .build();
     }
 

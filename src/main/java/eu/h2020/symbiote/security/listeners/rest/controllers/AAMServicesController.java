@@ -42,7 +42,7 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
         this.aamServices = aamServices;
     }
 
-    @ApiOperation(value = "Returns Component Certificate", response = String.class)
+    @ApiOperation(value = "Get Component Certificate", response = String.class)
     @ApiResponse(code = 500, message = "Could not create Component Certificate")
     public ResponseEntity<String> getComponentCertificate() {
         try {

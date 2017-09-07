@@ -88,7 +88,7 @@ public class GetTokenController implements IGetToken {
             @ApiResponse(code = 500, message = "Server failed to create Home Token")})
     public ResponseEntity<String> getHomeToken(
             @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME)
-            @ApiParam(value = "JWS build in accordance to Symbiote Security Cryptohelper", required = true) String loginRequest) {
+            @ApiParam(value = "JWS built in accordance to Symbiote Security Cryptohelper", required = true) String loginRequest) {
         try {
             Token token = getTokenService.getHomeToken(loginRequest);
             HttpHeaders headers = new HttpHeaders();
