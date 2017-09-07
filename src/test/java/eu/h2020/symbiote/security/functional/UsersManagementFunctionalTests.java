@@ -30,7 +30,7 @@ import java.util.concurrent.TimeoutException;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
-public class ActorsManagementFunctionalTests extends
+public class UsersManagementFunctionalTests extends
         AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(OtherListenersFunctionalTests.class);
@@ -50,6 +50,7 @@ public class ActorsManagementFunctionalTests extends
     private RpcClient appManagementClient;
     private UserDetails appUserDetails;
     private RpcClient getUserDetailsClient;
+
     @Override
     @Before
     public void setUp() throws Exception {

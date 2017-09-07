@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
@@ -39,9 +40,9 @@ import static org.junit.Assert.*;
  * TODO @Maks cover user update and create scenarios better
  */
 @TestPropertySource("/core.properties")
-public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
+public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(ActorsManagementUnitTests.class);
+    private static Log log = LogFactory.getLog(UsersManagementUnitTests.class);
     private final String recoveryMail = "null@dev.null";
 
     @Test
@@ -68,6 +69,33 @@ public class ActorsManagementUnitTests extends AbstractAAMTestSuite {
         assertEquals(UserRole.USER, registeredUser.getRole());
         assertEquals(1, registeredUser.getAttributes().size());
         assertEquals(userRegistrationResponse, ManagementStatus.OK);
+    }
+
+
+    @Test
+    public void userInternalCreateFailForAAMAdminRegistrationAttempt() throws SecurityException {
+        // manage new user to db
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
+                new UserDetails(new Credentials(AAMOwnerUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
+                , OperationType.CREATE);
+        ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
+
+        // verify that we got an error
+        assertEquals(userRegistrationResponse, ManagementStatus.ERROR);
+    }
+
+    @Test
+    public void userInternalCreateFailForGuestAttempt() throws SecurityException {
+        // manage new user to db
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
+                new UserDetails(new Credentials(SecurityConstants.GUEST_NAME, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
+                , OperationType.CREATE);
+        ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
+
+        // verify that we got an error
+        assertEquals(userRegistrationResponse, ManagementStatus.ERROR);
     }
 
     @Test

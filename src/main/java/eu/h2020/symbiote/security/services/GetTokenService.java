@@ -83,7 +83,7 @@ public class GetTokenService {
             String componentOrClientId = sub.split(illegalSign)[0];
             String platformId = sub.split(illegalSign)[1];
 
-            // verify user credentials
+            // core components use case
             if (claims.getIss().equals(AAMOwnerUsername)) {
                 //authenticating
                 if (JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(componentOrClientId).getCertificate().getX509().getPublicKey()) != ValidationStatus.VALID)

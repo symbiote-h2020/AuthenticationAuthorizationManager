@@ -1,12 +1,14 @@
 package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
@@ -44,20 +46,26 @@ public class UsersManagementService {
     private final UserRepository userRepository;
     private final RevokedKeysRepository revokedKeysRepository;
     private final PasswordEncoder passwordEncoder;
-    @Value("${aam.deployment.owner.username}")
-    private String adminUsername;
-    @Value("${aam.deployment.owner.password}")
-    private String adminPassword;
+    private final String adminUsername;
+    private final String adminPassword;
     private IssuingAuthorityType deploymentType;
 
     @Autowired
     public UsersManagementService(UserRepository userRepository, RevokedKeysRepository revokedKeysRepository,
                                   CertificationAuthorityHelper certificationAuthorityHelper,
-                                  PasswordEncoder passwordEncoder) {
+                                  PasswordEncoder passwordEncoder,
+                                  @Value("${aam.deployment.owner.username}") String adminUsername,
+                                  @Value("${aam.deployment.owner.password}") String adminPassword) throws
+            SecurityMisconfigurationException {
         this.userRepository = userRepository;
         this.revokedKeysRepository = revokedKeysRepository;
         this.passwordEncoder = passwordEncoder;
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
+        this.adminUsername = adminUsername;
+        this.adminPassword = adminPassword;
+
+        if (userRepository.exists(adminUsername) || SecurityConstants.GUEST_NAME.equals(adminUsername))
+            throw new SecurityMisconfigurationException("AAM owner user already registered in database... Either delete that user or choose a different administrator username");
     }
 
     public ManagementStatus authManage(UserManagementRequest request) throws
@@ -109,7 +117,8 @@ public class UsersManagementService {
         switch (userManagementRequest.getOperationType()) {
             case CREATE:
                 // validate request
-                if (userDetails.getCredentials().getUsername().isEmpty()
+                String newUserUsername = userDetails.getCredentials().getUsername();
+                if (newUserUsername.isEmpty()
                         || userDetails.getCredentials().getPassword().isEmpty()) {
                     throw new InvalidArgumentsException("Missing username or password");
                 }
@@ -124,12 +133,16 @@ public class UsersManagementService {
                     throw new UserManagementException(HttpStatus.BAD_REQUEST);
 
                 // check if user already in repository
-                if (userRepository.exists(userDetails.getCredentials().getUsername())) {
+                if (userRepository.exists(newUserUsername)) {
                     return ManagementStatus.USERNAME_EXISTS;
                 }
 
+                // blocking guest and AAMOwner registration
+                if (adminUsername.equals(newUserUsername) || SecurityConstants.GUEST_NAME.equals(newUserUsername))
+                    return ManagementStatus.ERROR;
+
                 user.setRole(userDetails.getRole());
-                user.setUsername(userDetails.getCredentials().getUsername());
+                user.setUsername(newUserUsername);
                 user.setPasswordEncrypted(passwordEncoder.encode(userDetails.getCredentials().getPassword()));
                 user.setRecoveryMail(userDetails.getRecoveryMail());
                 user.setAttributes(userDetails.getAttributes());
