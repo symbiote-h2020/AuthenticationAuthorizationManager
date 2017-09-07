@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.services.helpers;
 
+import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
@@ -8,9 +9,9 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
-import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
-import eu.h2020.symbiote.security.repositories.UserRepository;
+import eu.h2020.symbiote.security.repositories.*;
+import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.services.AAMServices;
 import io.jsonwebtoken.Claims;
 import org.apache.commons.logging.Log;
@@ -27,6 +28,8 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.*;
 import java.util.*;
+
+import eu.h2020.symbiote.security.commons.Certificate;
 
 /**
  * Used to validate given credentials against data in the AAMs
@@ -57,18 +60,22 @@ public class ValidationHelper {
     private RevokedKeysRepository revokedKeysRepository;
     private RevokedTokensRepository revokedTokensRepository;
     private UserRepository userRepository;
+    private PlatformRepository platformRepository;
+    private ComponentCertificatesRepository componentCertificatesRepository;
     private AAMServices aamServices;
 
     @Autowired
     public ValidationHelper(CertificationAuthorityHelper certificationAuthorityHelper,
                             RevokedKeysRepository revokedKeysRepository,
-                            RevokedTokensRepository revokedTokensRepository, UserRepository userRepository, AAMServices aamServices) {
+                            RevokedTokensRepository revokedTokensRepository, UserRepository userRepository, PlatformRepository platformRepository, ComponentCertificatesRepository componentCertificatesRepository, AAMServices aamServices) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
         this.revokedKeysRepository = revokedKeysRepository;
         this.revokedTokensRepository = revokedTokensRepository;
         this.userRepository = userRepository;
+        this.platformRepository = platformRepository;
+        this.componentCertificatesRepository = componentCertificatesRepository;
         this.aamServices = aamServices;
     }
 
@@ -138,9 +145,31 @@ public class ValidationHelper {
                 return ValidationStatus.REVOKED_SPK;
             }
 
-            // check if subject certificate is valid
-            if (isExpired(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509())) {
-                return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
+            // components use case
+            if (claims.getSubject().split("@").length == 3) {
+                String platformId = claims.getSubject().split("@")[2];
+                Certificate componentCertificate = null;
+                // core case
+                if (platformId.equals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID)) {
+                    ComponentCertificate coreComponentCertificate = componentCertificatesRepository.findOne(clientId);
+                    if (coreComponentCertificate != null)
+                        componentCertificate = coreComponentCertificate.getCertificate();
+                } else {
+                    // platform owner
+                    Platform platform = platformRepository.findOne(platformId);
+                    if (platform != null) {
+                        componentCertificate = platform.getComponentCertificates().get(clientId);
+                    }
+                }
+                // check if subject certificate is valid
+                if (isExpired(componentCertificate.getX509())) {
+                    return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
+                }
+            } else { // user case
+                // check if subject certificate is valid
+                if (isExpired(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509())) {
+                    return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
+                }
             }
 
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |

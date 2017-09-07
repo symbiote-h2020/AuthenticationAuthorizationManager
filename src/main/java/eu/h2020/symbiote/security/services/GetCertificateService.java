@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
@@ -247,15 +248,15 @@ public class GetCertificateService {
             InvalidArgumentsException, UserManagementException, PlatformManagementException {
         X509Certificate certFromCSR;
 
-        //platform
+        // platform AAM
         if (!req.getSubject().toString().split("CN=")[1].contains(illegalSign)) {
             certFromCSR = createPlatformCertFromCSR(certificateRequest, req);
         }
-        //platform component
+        // component
         else if (req.getSubject().toString().matches("(CN=)(\\w+)(@)(\\w+)")) {
-            certFromCSR = createPlatformComponentCertFromCSR(certificateRequest, req);
+            certFromCSR = createComponentCertFromCSR(certificateRequest, req);
         }
-        //user
+        // user's client
         else {
             certFromCSR = createUserCertFromCSR(req);
         }
@@ -302,10 +303,10 @@ public class GetCertificateService {
         return certFromCSR;
     }
 
-    private X509Certificate createPlatformComponentCertFromCSR(CertificateRequest certificateRequest, PKCS10CertificationRequest req)
+    private X509Certificate createComponentCertFromCSR(CertificateRequest certificateRequest, PKCS10CertificationRequest req)
             throws PlatformManagementException {
         X509Certificate certFromCSR;
-        platformComponentRequestCheck(certificateRequest);
+        componentRequestCheck(certificateRequest);
         try {
             certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
         } catch (CertificateException e) {
@@ -321,26 +322,38 @@ public class GetCertificateService {
             NotExistingUserException,
             ValidationException {
 
-        User user = userRepository.findOne(certificateRequest.getUsername());
-
-        if (user == null)
-            throw new NotExistingUserException();
-
-        if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
-                !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
-            throw new WrongCredentialsException();
-
+        User user = null;
+        PublicKey pubKey = null;
         try {
             PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
             SubjectPublicKeyInfo pkInfo = request.getSubjectPublicKeyInfo();
             JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
-            PublicKey pubKey = converter.getPublicKey(pkInfo);
-            if (revokedKeysRepository.findOne(user.getUsername()) != null
-                    && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
-                throw new ValidationException("Key revoked");
-            }
+            pubKey = converter.getPublicKey(pkInfo);
         } catch (IOException e) {
             throw new SecurityException();
+        }
+
+        // core component path
+        if (certificateRequest.getUsername().equals(AAMOwnerUsername)) {
+            // password check
+            if (!certificateRequest.getPassword().equals(AAMOwnerPassword))
+                throw new WrongCredentialsException();
+            if (revokedKeysRepository.findOne(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID) != null
+                    && revokedKeysRepository.findOne(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                throw new ValidationException("Using revoked key");
+            }
+        } else { // other path
+            user = userRepository.findOne(certificateRequest.getUsername());
+            if (user == null)
+                throw new NotExistingUserException();
+
+            if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
+                    !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
+                throw new WrongCredentialsException();
+            if (revokedKeysRepository.findOne(user.getUsername()) != null
+                    && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                throw new ValidationException("Using revoked key");
+            }
         }
         return user;
     }
@@ -356,14 +369,18 @@ public class GetCertificateService {
         }
     }
 
-    private void platformComponentRequestCheck(CertificateRequest certificateRequest) throws
+    private void componentRequestCheck(CertificateRequest certificateRequest) throws
             PlatformManagementException {
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
-        if (userRepository.findOne(certificateRequest.getUsername()).getRole() != UserRole.PLATFORM_OWNER) {
-            throw new PlatformManagementException("User is not a Platform Owner", HttpStatus.UNAUTHORIZED);
-        }
-        if (!platformRepository.exists(request.getSubject().toString().split("CN=")[1].split(illegalSign)[1])) {
-            throw new PlatformManagementException("Platform doesn't exist", HttpStatus.UNAUTHORIZED);
+        String platformIdentifier = request.getSubject().toString().split("CN=")[1].split(illegalSign)[1];
+        // only platforms needs to be verified
+        if (!platformIdentifier.equals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID)) {
+            if (userRepository.findOne(certificateRequest.getUsername()).getRole() != UserRole.PLATFORM_OWNER) {
+                throw new PlatformManagementException("User is not a Platform Owner", HttpStatus.UNAUTHORIZED);
+            }
+            if (!platformRepository.exists(platformIdentifier)) {
+                throw new PlatformManagementException("Platform doesn't exist", HttpStatus.UNAUTHORIZED);
+            }
         }
     }
 }
