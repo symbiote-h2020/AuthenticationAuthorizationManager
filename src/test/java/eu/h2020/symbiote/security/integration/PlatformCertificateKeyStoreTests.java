@@ -38,6 +38,7 @@ public class PlatformCertificateKeyStoreTests extends AbstractAAMTestSuite {
         Map<String, Platform> platforms = new HashMap<>();
         platforms.put(platformId, platform);
         platformOwner.setOwnedPlatforms(platforms);
+        userRepository.save(platformOwner);
 
         PlatformAAMCertificateKeyStoreFactory.getPlatformAAMKeystore(
                 serverAddress, platformOwnerUsername, platformOwnerPassword, platformId, KEY_STORE_PATH,

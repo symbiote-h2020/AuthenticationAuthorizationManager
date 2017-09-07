@@ -83,9 +83,9 @@ dependencies {
             3) project dependency requires changes in settings.gradle file in this project
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:19.7+'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:19.7.3+'){ changing = true }
     // allows to select the downloaded matching sources in IntelliJ Idea as it fails to do so automatically from jitpack repo
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:19.7+:sources'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:19.7.3+:sources'){ changing = true }
     //compile project(':SymbIoTeSecurity')
 
     // Spring
