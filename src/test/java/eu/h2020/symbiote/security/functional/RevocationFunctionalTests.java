@@ -108,7 +108,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String clientCertificate = AAMClient.getClientCertificate(certRequest);
+        String clientCertificate = AAMClient.signCertificateRequest(certRequest);
 
         assertNotNull(clientCertificate);
         RevocationRequest revocationRequest = new RevocationRequest();
@@ -116,7 +116,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificatePEMString(clientCertificate);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revoke(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
 
 
     }
@@ -150,7 +150,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String platformCertificate = AAMClient.getClientCertificate(certRequest);
+        String platformCertificate = AAMClient.signCertificateRequest(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(platformCertificate));
         platformRepository.save(platform);
 
@@ -160,7 +160,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificatePEMString(platformCertificate);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revoke(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
     }
 
     @Test
@@ -183,7 +183,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String componentCertificate = AAMClient.getClientCertificate(certRequest);
+        String componentCertificate = AAMClient.signCertificateRequest(certRequest);
         platform.getComponentCertificates().put(componentId, new Certificate(componentCertificate));
         platformRepository.save(platform);
 
@@ -193,7 +193,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificatePEMString(componentCertificate);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revoke(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
     }
 
     @Test
@@ -214,7 +214,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String clientCertificate = AAMClient.getClientCertificate(certRequest);
+        String clientCertificate = AAMClient.signCertificateRequest(certRequest);
 
         assertNotNull(clientCertificate);
 
@@ -253,7 +253,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String clientCertificate = AAMClient.getClientCertificate(certRequest);
+        String clientCertificate = AAMClient.signCertificateRequest(certRequest);
 
         assertNotNull(clientCertificate);
         RevocationRequest revocationRequest = new RevocationRequest();
@@ -262,7 +262,7 @@ public class RevocationFunctionalTests extends
         String commonName = username + illegalSign + clientId;
         revocationRequest.setCertificateCommonName(commonName);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revoke(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
 
 
     }
@@ -287,7 +287,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String platformCertificate = AAMClient.getClientCertificate(certRequest);
+        String platformCertificate = AAMClient.signCertificateRequest(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(platformCertificate));
         platformRepository.save(platform);
 
@@ -297,7 +297,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificateCommonName(platformId);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revoke(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
     }
 
     @Test
@@ -320,7 +320,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String componentCertificate = AAMClient.getClientCertificate(certRequest);
+        String componentCertificate = AAMClient.signCertificateRequest(certRequest);
         platform.getComponentCertificates().put(componentId, new Certificate(componentCertificate));
         platformRepository.save(platform);
 
@@ -331,7 +331,7 @@ public class RevocationFunctionalTests extends
         String commonName = componentId + illegalSign + platformId;
         revocationRequest.setCertificateCommonName(commonName);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revoke(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
     }
 
     @Test
@@ -350,7 +350,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setHomeTokenString(homeToken);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revoke(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
         assertTrue(revokedTokensRepository.exists(new Token(homeToken).getClaims().getId()));
     }
 
@@ -393,14 +393,14 @@ public class RevocationFunctionalTests extends
         revocationRequest.setHomeTokenString(token.toString());
         revocationRequest.setForeignTokenString(foreignToken.toString());
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revoke(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
         assertTrue(revokedTokensRepository.exists(foreignToken.getClaims().getId()));
     }
 
     @Test(expected = InvalidArgumentsException.class)
     public void revokeForeignTokenOverRESTFailNoTokens() throws WrongCredentialsException, InvalidArgumentsException {
         RevocationRequest revocationRequest = new RevocationRequest();
-        AAMClient.revoke(revocationRequest);
+        AAMClient.revokeCredentials(revocationRequest);
     }
 
     @Test
@@ -421,7 +421,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String clientCertificate = AAMClient.getClientCertificate(certRequest);
+        String clientCertificate = AAMClient.signCertificateRequest(certRequest);
 
         assertNotNull(clientCertificate);
 

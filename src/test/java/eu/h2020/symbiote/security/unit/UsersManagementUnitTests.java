@@ -87,7 +87,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
     @Test
     public void userInternalCreateFailForGuestAttempt() throws SecurityException {
-        // manage new user to db
+        // managePlatform new user to db
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
                 new UserDetails(new Credentials(SecurityConstants.GUEST_NAME, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())

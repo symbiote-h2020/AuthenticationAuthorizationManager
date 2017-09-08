@@ -19,8 +19,7 @@ import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.GetCertificateService;
-import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
+import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -60,9 +59,6 @@ public class TokensIssuingFunctionalTests extends
         AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(TokensIssuingFunctionalTests.class);
-    private final String coreAppUsername = "testCoreAppUsername";
-    private final String coreAppPassword = "testCoreAppPassword";
-    private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
@@ -75,9 +71,8 @@ public class TokensIssuingFunctionalTests extends
     String coreInterfaceAddress;
     @Value("${rabbit.queue.manage.attributes}")
     protected String attributeManagementRequestQueue;
+
     private KeyPair platformOwnerKeyPair;
-    private RpcClient appRegistrationClient;
-    private UserDetails appUserDetails;
     private RpcClient attributesAddingOverAMQPClient;
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
@@ -86,9 +81,7 @@ public class TokensIssuingFunctionalTests extends
     @Autowired
     private PlatformRepository platformRepository;
     @Autowired
-    private GetCertificateService getCertificateService;
-    @Autowired
-    private TokenIssuer tokenIssuer;
+    private SignCertificateRequestService signCertificateRequestService;
 
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
@@ -102,12 +95,6 @@ public class TokensIssuingFunctionalTests extends
 
         // db cleanup
         platformRepository.deleteAll();
-
-        // user registration useful
-        appRegistrationClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                userManagementRequestQueue, 5000);
-        appUserDetails = new UserDetails(new Credentials(
-                coreAppUsername, coreAppPassword), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>());
 
         //user registration useful
         User user = new User();
@@ -431,7 +418,7 @@ public class TokensIssuingFunctionalTests extends
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, preferredPlatformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateString = getCertificateService.getCertificate(certRequest);
+        String certificateString = signCertificateRequestService.getCertificate(certRequest);
         Platform platform = platformRepository.findOne(preferredPlatformId);
         platform.getComponentCertificates().put(componentId, new Certificate(certificateString));
         platformRepository.save(platform);

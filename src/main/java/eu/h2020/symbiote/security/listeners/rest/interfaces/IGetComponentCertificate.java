@@ -5,7 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * Interface exposing the SymbIoTe Component's certificate required for challenge response procedure
+ * Interface exposing the SymbIoTe component's certificate required for challenge response procedure
  *
  * @author Mikołaj Dobski (PSNC)
  */

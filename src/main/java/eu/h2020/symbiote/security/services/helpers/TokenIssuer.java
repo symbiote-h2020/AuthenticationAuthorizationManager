@@ -48,14 +48,14 @@ public class TokenIssuer {
     private static Log log = LogFactory.getLog(TokenIssuer.class);
     private static SecureRandom random = new SecureRandom();
     // AAM configuration
-    private String deploymentId = "";
-    private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
+    private final String deploymentId;
+    private final IssuingAuthorityType deploymentType;
+    private final CertificationAuthorityHelper certificationAuthorityHelper;
+    private final LocalUsersAttributesRepository localUsersAttributesRepository;
+    private final FederationRulesRepository federationRulesRepository;
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
-    private CertificationAuthorityHelper certificationAuthorityHelper;
     private KeyPair guestKeyPair;
-    private LocalUsersAttributesRepository localUsersAttributesRepository;
-    private FederationRulesRepository federationRulesRepository;
 
     @Autowired
     public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper, LocalUsersAttributesRepository localUsersAttributesRepository, FederationRulesRepository federationRulesRepository) {
@@ -122,12 +122,11 @@ public class TokenIssuer {
                             attributes.put(CoreAttributes.ROLE.toString(), UserRole.PLATFORM_OWNER.toString());
                             break;
                         case NULL:
-                            //TODO consider CoreComponents Atributes
+                            //TODO consider CoreComponents Attributes
                             break;
                     }
                     break;
                 case PLATFORM:
-
                     // TODO R3 federation
                     break;
                 case NULL:

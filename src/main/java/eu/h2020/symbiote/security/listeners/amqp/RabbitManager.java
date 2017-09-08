@@ -25,9 +25,8 @@ import java.util.concurrent.TimeoutException;
 
 
 /**
- * Initiates amqp listeners
+ * Manages AMQP listeners
  * <p>
- * TODO R3 @Mikołaj update queues to reflect the new operations
  */
 @Component
 public class RabbitManager {
@@ -44,6 +43,12 @@ public class RabbitManager {
     private final PasswordEncoder passwordEncoder;
     private final PlatformRepository platformRepository;
     private IssuingAuthorityType deploymentType;
+    private Connection connection;
+
+    @Value("${aam.deployment.owner.username}")
+    private String adminUsername;
+    @Value("${aam.deployment.owner.password}")
+    private String adminPassword;
 
     @Value("${rabbit.host}")
     private String rabbitHost;
@@ -67,7 +72,6 @@ public class RabbitManager {
     @Value("${rabbit.routingKey.validate.request}")
     private String validateRequestRoutingKey;
 
-    // TODO R3 rework getHomeToken, do we need guest one here?
     @Value("${rabbit.queue.getHomeToken.request}")
     private String getHomeTokenRequestQueue;
     @Value("${rabbit.routingKey.getHomeToken.request}")
@@ -93,8 +97,6 @@ public class RabbitManager {
     @Value("${rabbit.queue.ownedplatformdetails.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     private String ownedPlatformDetailsRequestQueue;
 
-    private Connection connection;
-
     @Value("${rabbit.routingKey.manage.attributes}")
     private String localUsersAttributesManagementRequestRoutingKey;
     @Value("${rabbit.queue.manage.attributes}")
@@ -109,12 +111,6 @@ public class RabbitManager {
     private String getPlatformOwnersNamesQueue;
     @Value("${rabbit.routingKey.get.platform.owners.names}")
     private String getPlatformOwnersNamesRoutingKey;
-
-    @Value("${aam.deployment.owner.username}")
-    private String adminUsername;
-    @Value("${aam.deployment.owner.password}")
-    private String adminPassword;
-
 
     @Autowired
     public RabbitManager(UsersManagementService usersManagementService,
@@ -179,21 +175,20 @@ public class RabbitManager {
      */
     private void startConsumers() throws SecurityMisconfigurationException {
         try {
-            startConsumerOfValidateRequestMessages();
+            // common
+            startConsumerOfGetHomeTokenRequestMessages();
+            startConsumerOfLocalAttributesManagementRequest();
+            startConsumerOfValidationRequestMessages();
             switch (deploymentType) {
                 case PLATFORM:
-                    startConsumerOfLoginRequestMessages();
-                    startConsumerOfLocalAttributesManagementRequest();
                     break;
                 case CORE:
-                    startConsumerOfUserManagementRequestMessages();
-                    startConsumerOfPlatformManagementRequestMessages();
-                    startConsumerOfLoginRequestMessages();
-                    startConsumerOfOwnedPlatformDetailsRequestMessages();
-                    startConsumerOfRevocationRequestMessages();
-                    startConsumerOfGetUserDetails();
+                    startConsumerOfGetOwnedPlatformDetailsRequestMessages();
                     startConsumerOfGetPlatformOwnersNames();
-                    startConsumerOfLocalAttributesManagementRequest();
+                    startConsumerOfGetUserDetails();
+                    startConsumerOfPlatformManagementRequestMessages();
+                    startConsumerOfRevocationRequestMessages();
+                    startConsumerOfUserManagementRequestMessages();
                     break;
                 case NULL:
                     throw new SecurityMisconfigurationException("Wrong deployment type");
@@ -210,7 +205,7 @@ public class RabbitManager {
      *
      * @throws IOException
      */
-    private void startConsumerOfLoginRequestMessages() throws IOException {
+    private void startConsumerOfGetHomeTokenRequestMessages() throws IOException {
 
         String queueName = this.getHomeTokenRequestQueue;
 
@@ -223,7 +218,7 @@ public class RabbitManager {
 
             log.info("Authentication and Authorization Manager waiting for getHomeToken request messages....");
 
-            Consumer consumer = new HomeLoginRequestConsumerService(channel, getTokenService);
+            Consumer consumer = new GetHomeTokenRequestConsumerService(channel, getTokenService);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
             log.error(e);
@@ -237,7 +232,7 @@ public class RabbitManager {
      *
      * @throws IOException
      */
-    private void startConsumerOfValidateRequestMessages() throws IOException {
+    private void startConsumerOfValidationRequestMessages() throws IOException {
 
         String queueName = this.validateRequestQueue;
 
@@ -248,7 +243,7 @@ public class RabbitManager {
             channel.queueDeclare(queueName, true, false, false, null);
             channel.queueBind(queueName, this.AAMExchangeName, this.validateRequestRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for check token revocation request messages");
+            log.info("Authentication and Authorization Manager waiting for token validation request messages");
 
             Consumer consumer = new ValidationRequestConsumerService(channel, credentialsValidationService);
             channel.basicConsume(queueName, false, consumer);
@@ -329,7 +324,7 @@ public class RabbitManager {
             channel.queueDeclare(queueName, true, false, false, null);
             channel.queueBind(queueName, this.AAMExchangeName, this.getPlatformOwnersNamesRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for users' details requests messages");
+            log.info("Authentication and Authorization Manager waiting for platform owners requests messages");
 
             Consumer consumer = new GetPlatformOwnersNamesConsumerService(channel, adminUsername, adminPassword,
                     platformRepository);
@@ -345,7 +340,7 @@ public class RabbitManager {
      *
      * @throws IOException
      */
-    private void startConsumerOfOwnedPlatformDetailsRequestMessages() throws IOException {
+    private void startConsumerOfGetOwnedPlatformDetailsRequestMessages() throws IOException {
 
         String queueName = this.ownedPlatformDetailsRequestQueue;
 
@@ -356,7 +351,7 @@ public class RabbitManager {
             channel.queueDeclare(queueName, true, false, false, null);
             channel.queueBind(queueName, this.AAMExchangeName, this.ownedPlatformDetailsRequestRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for owned platform details requests messages");
+            log.info("Authentication and Authorization Manager waiting for owned platforms' details requests messages");
 
             Consumer consumer = new OwnedPlatformDetailsRequestConsumerService(channel, userRepository, adminUsername, adminPassword);
 
@@ -409,7 +404,7 @@ public class RabbitManager {
             channel.queueDeclare(queueName, true, false, false, null);
             channel.queueBind(queueName, this.AAMExchangeName, this.revocationRequestRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for revocation requests messages");
+            log.info("Authentication and Authorization Manager waiting for credentials revocation requests messages");
 
             Consumer consumer = new RevocationRequestConsumerService(channel,
                     revocationService);
@@ -471,9 +466,7 @@ public class RabbitManager {
                         this.AAMExchangeAutodelete,
                         this.AAMExchangeInternal,
                         null);
-
                 startConsumers();
-
             } catch (IOException e) {
                 log.error(e);
             } finally {
@@ -492,47 +485,40 @@ public class RabbitManager {
             Channel channel;
             if (this.connection != null && this.connection.isOpen()) {
                 channel = connection.createChannel();
-                // check revocation
+                // getHomeToken
+                channel.queueUnbind(this.getHomeTokenRequestQueue, this.AAMExchangeName,
+                        this.getHomeTokenRequestRoutingKey);
+                channel.queueDelete(this.getHomeTokenRequestQueue);
+                // local attributes management request
+                channel.queueUnbind(this.localUsersAttributesManagementRequestQueue, this.AAMExchangeName,
+                        this.localUsersAttributesManagementRequestRoutingKey);
+                channel.queueDelete(this.localUsersAttributesManagementRequestQueue);
+                // validation
                 channel.queueUnbind(this.validateRequestQueue, this.AAMExchangeName,
                         this.validateRequestRoutingKey);
                 channel.queueDelete(this.validateRequestQueue);
+
                 // deployment dependent interfaces
                 switch (deploymentType) {
                     case PLATFORM:
-                        // getHomeToken
-                        channel.queueUnbind(this.getHomeTokenRequestQueue, this.AAMExchangeName,
-                                this.getHomeTokenRequestRoutingKey);
-                        channel.queueDelete(this.getHomeTokenRequestQueue);
-                        // local attributes management request
-                        channel.queueUnbind(this.localUsersAttributesManagementRequestQueue, this.AAMExchangeName,
-                                this.localUsersAttributesManagementRequestRoutingKey);
-                        channel.queueDelete(this.localUsersAttributesManagementRequestQueue);
                         break;
                     case CORE:
-                        // user registration
+                        // user management
                         channel.queueUnbind(this.userManagementRequestQueue, this.AAMExchangeName, this
                                 .userManagementRequestRoutingKey);
                         channel.queueDelete(this.userManagementRequestQueue);
-                        // platform registration
+                        // platform management
                         channel.queueUnbind(this.platformManagementRequestQueue, this.AAMExchangeName, this
                                 .platformManagementRequestRoutingKey);
                         channel.queueDelete(this.platformManagementRequestQueue);
-                        // revocation
+                        // credentials revocation
                         channel.queueUnbind(this.revocationRequestQueue, this.AAMExchangeName, this
                                 .revocationRequestRoutingKey);
                         channel.queueDelete(this.revocationRequestQueue);
-                        // getHomeToken
-                        channel.queueUnbind(this.getHomeTokenRequestQueue, this.AAMExchangeName,
-                                this.getHomeTokenRequestRoutingKey);
-                        channel.queueDelete(this.getHomeTokenRequestQueue);
                         // owned platform details
                         channel.queueUnbind(this.ownedPlatformDetailsRequestQueue, this.AAMExchangeName,
                                 this.ownedPlatformDetailsRequestRoutingKey);
                         channel.queueDelete(this.ownedPlatformDetailsRequestQueue);
-                        // local attributes management request
-                        channel.queueUnbind(this.localUsersAttributesManagementRequestQueue, this.AAMExchangeName,
-                                this.localUsersAttributesManagementRequestRoutingKey);
-                        channel.queueDelete(this.localUsersAttributesManagementRequestQueue);
                         // user details request
                         channel.queueUnbind(this.getUserDetailsQueue, this.AAMExchangeName, this
                                 .getUserDetailsRoutingKey);
@@ -545,7 +531,6 @@ public class RabbitManager {
                     case NULL:
                         break;
                 }
-
                 closeChannel(channel);
                 this.connection.close();
             }

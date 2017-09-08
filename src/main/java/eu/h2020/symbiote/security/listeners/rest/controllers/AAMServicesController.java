@@ -42,7 +42,7 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
         this.aamServices = aamServices;
     }
 
-    @ApiOperation(value = "Get Component Certificate", response = String.class)
+    @ApiOperation(value = "Get component certificate", response = String.class)
     @ApiResponse(code = 500, message = "Could not create Component Certificate")
     public ResponseEntity<String> getComponentCertificate() {
         try {
@@ -54,7 +54,7 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
         }
     }
 
-    @ApiOperation(value = "Returns collection of available AAMs", response = AvailableAAMsCollection.class)
+    @ApiOperation(value = "Returns collection of available platforms (their AAMs and components)", response = AvailableAAMsCollection.class)
     @ApiResponse(code = 500, message = "Internal AAM Error")
     public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {
         Map<String, AAM> result;

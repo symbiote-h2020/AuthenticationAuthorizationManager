@@ -424,7 +424,7 @@ public class PlatformsManagementFunctionalTests extends
                 platformInstanceFriendlyName,
                 preferredPlatformId, OperationType.CREATE);
 
-        ManagementStatus response = AAMClient.manage(platformRegistrationRequest);
+        ManagementStatus response = AAMClient.managePlatform(platformRegistrationRequest);
         assertEquals(ManagementStatus.OK, response);
     }
 
@@ -437,7 +437,7 @@ public class PlatformsManagementFunctionalTests extends
                 platformInstanceFriendlyName,
                 preferredPlatformId, OperationType.CREATE);
 
-        ManagementStatus status = AAMClient.manage(IncorrectPlatformRegistrationRequest);
+        ManagementStatus status = AAMClient.managePlatform(IncorrectPlatformRegistrationRequest);
         assertEquals(ManagementStatus.ERROR, status);
     }
 

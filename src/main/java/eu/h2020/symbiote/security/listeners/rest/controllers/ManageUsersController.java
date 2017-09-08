@@ -6,7 +6,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementExcept
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
-import eu.h2020.symbiote.security.listeners.rest.interfaces.IUserManagement;
+import eu.h2020.symbiote.security.listeners.rest.interfaces.IManageUsers;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import io.swagger.annotations.*;
@@ -26,12 +26,12 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Api(value = "/docs/usermanagement", description = "Exposes a service that allows users' management")
 @RestController
-public class UserManagementController implements IUserManagement {
-    private static final Log log = LogFactory.getLog(UserManagementController.class);
+public class ManageUsersController implements IManageUsers {
+    private static final Log log = LogFactory.getLog(ManageUsersController.class);
     private UsersManagementService usersManagementService;
 
     @Autowired
-    public UserManagementController(UsersManagementService usersManagementService) {
+    public ManageUsersController(UsersManagementService usersManagementService) {
         this.usersManagementService = usersManagementService;
     }
 
@@ -61,13 +61,13 @@ public class UserManagementController implements IUserManagement {
             @ApiParam(name = "Credentials", value = "Credentials of a user whose details are requested", required = true)
                     Credentials credentials) {
         try {
-            return new ResponseEntity<UserDetails>(usersManagementService.getUserDetails(credentials), HttpStatus.OK);
+            return new ResponseEntity<>(usersManagementService.getUserDetails(credentials), HttpStatus.OK);
         } catch (UserManagementException e) {
             log.error(e);
             if (e.getStatusCode() == HttpStatus.BAD_REQUEST)
-                return new ResponseEntity<UserDetails>(new UserDetails(), e.getStatusCode());
+                return new ResponseEntity<>(new UserDetails(), e.getStatusCode());
             else
-                return new ResponseEntity<UserDetails>(new UserDetails(), e.getStatusCode());
+                return new ResponseEntity<>(new UserDetails(), e.getStatusCode());
         }
     }
 

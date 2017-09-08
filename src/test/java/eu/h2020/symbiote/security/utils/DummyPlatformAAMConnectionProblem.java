@@ -108,7 +108,7 @@ public class DummyPlatformAAMConnectionProblem {
     /**
      * return invalid status
      */
-    @PostMapping(path = PATH + SecurityConstants.AAM_VALIDATE + "conn_err")
+    @PostMapping(path = PATH + SecurityConstants.AAM_VALIDATE_CREDENTIALS + "conn_err")
     public ValidationStatus validate(@RequestHeader(SecurityConstants
             .TOKEN_HEADER_NAME) String token) {
         log.info("Validating token " + token);

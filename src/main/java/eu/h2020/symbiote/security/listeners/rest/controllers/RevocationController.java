@@ -2,7 +2,7 @@ package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
 import eu.h2020.symbiote.security.communication.payloads.RevocationResponse;
-import eu.h2020.symbiote.security.listeners.rest.interfaces.IRevoke;
+import eu.h2020.symbiote.security.listeners.rest.interfaces.IRevokeCredentials;
 import eu.h2020.symbiote.security.services.RevocationService;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Jakub Toczek (PSNC)
  * @see RevocationService
  */
-@Api(value = "/docs/revoke", description = "Exposes services allowing SymbIoTe actors (users) to revoke their tokens and certificates")
+@Api(value = "/docs/revokeCredentials", description = "Exposes services allowing SymbIoTe actors (users) to revoke their tokens and certificates")
 @RestController
-public class RevocationController implements IRevoke {
+public class RevocationController implements IRevokeCredentials {
     private RevocationService revocationService;
 
     @Autowired

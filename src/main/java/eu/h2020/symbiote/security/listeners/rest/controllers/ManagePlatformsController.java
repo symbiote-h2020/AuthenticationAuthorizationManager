@@ -4,14 +4,12 @@ import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementResponse;
-import eu.h2020.symbiote.security.listeners.rest.interfaces.IPlatformManagement;
+import eu.h2020.symbiote.security.listeners.rest.interfaces.IManagePlatforms;
 import eu.h2020.symbiote.security.services.PlatformsManagementService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,12 +24,11 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Api(value = "/docs/platformmanagement", description = "Exposes a service that allows platforms' management")
 @RestController
-public class PlatformManagementController implements IPlatformManagement {
-    private static final Log log = LogFactory.getLog(PlatformManagementController.class);
+public class ManagePlatformsController implements IManagePlatforms {
     private PlatformsManagementService platformsManagementService;
 
     @Autowired
-    public PlatformManagementController(PlatformsManagementService platformsManagementService) {
+    public ManagePlatformsController(PlatformsManagementService platformsManagementService) {
         this.platformsManagementService = platformsManagementService;
     }
 

@@ -47,8 +47,8 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
  */
 
 @Service
-public class GetCertificateService {
-    private static final Log log = LogFactory.getLog(GetCertificateService.class);
+public class SignCertificateRequestService {
+    private static final Log log = LogFactory.getLog(SignCertificateRequestService.class);
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
     private final RevokedKeysRepository revokedKeysRepository;
@@ -61,13 +61,12 @@ public class GetCertificateService {
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
 
-
     @Autowired
-    public GetCertificateService(UserRepository userRepository, PlatformRepository platformRepository,
-                                 RevokedKeysRepository revokedKeysRepository,
-                                 ComponentCertificatesRepository componentCertificatesRepository, CertificationAuthorityHelper certificationAuthorityHelper,
-                                 PasswordEncoder passwordEncoder,
-                                 RevocationService revocationService) {
+    public SignCertificateRequestService(UserRepository userRepository, PlatformRepository platformRepository,
+                                         RevokedKeysRepository revokedKeysRepository,
+                                         ComponentCertificatesRepository componentCertificatesRepository, CertificationAuthorityHelper certificationAuthorityHelper,
+                                         PasswordEncoder passwordEncoder,
+                                         RevocationService revocationService) {
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
         this.revokedKeysRepository = revokedKeysRepository;
@@ -100,21 +99,23 @@ public class GetCertificateService {
         }
         // symbiote components
         if (request.getSubject().toString().matches("(CN=)(\\w+)(@)(\\w+)")) {
-            putComponentCertToRepository(request, certificateRequest, pem, certFromCSR);
+            putComponentCertificateToRepository(request, certificateRequest, pem, certFromCSR);
         }
         //platform
         else if (!request.getSubject().toString().split("CN=")[1].contains(illegalSign)) {
-            putPlatformCertToRepository(request, certificateRequest, pem, certFromCSR);
+            putPlatformCertificateToRepository(request, certificateRequest, pem, certFromCSR);
         }
         // user / platform owner
         else {
-            putUserCertToRepository(user, certificateRequest, certFromCSR, pem);
+            putUserCertificateToRepository(user, certificateRequest, certFromCSR, pem);
         }
         return pem;
     }
 
-    private void putComponentCertToRepository(PKCS10CertificationRequest req, CertificateRequest certificateRequest,
-                                              String pem, X509Certificate certFromCSR) {
+    private void putComponentCertificateToRepository(PKCS10CertificationRequest req,
+                                                     CertificateRequest certificateRequest,
+                                                     String pem,
+                                                     X509Certificate certFromCSR) {
 
         String componentId = req.getSubject().toString().split("CN=")[1].split("@")[0];
         String platformId = req.getSubject().toString().split("CN=")[1].split("@")[1];
@@ -180,8 +181,10 @@ public class GetCertificateService {
         }
     }
 
-    private void putPlatformCertToRepository(PKCS10CertificationRequest req, CertificateRequest certificateRequest,
-                                             String pem, X509Certificate certFromCSR) {
+    private void putPlatformCertificateToRepository(PKCS10CertificationRequest req,
+                                                    CertificateRequest certificateRequest,
+                                                    String pem,
+                                                    X509Certificate certFromCSR) {
 
         String platformId = req.getSubject().toString().split("CN=")[1];
         Platform platform = platformRepository.findOne(platformId);
@@ -214,8 +217,10 @@ public class GetCertificateService {
         platformRepository.save(platform);
     }
 
-    private void putUserCertToRepository(User user, CertificateRequest certificateRequest, X509Certificate certFromCSR,
-                                         String pem) {
+    private void putUserCertificateToRepository(User user,
+                                                CertificateRequest certificateRequest,
+                                                X509Certificate certFromCSR,
+                                                String pem) {
 
         Certificate userCert = user.getClientCertificates().get(certificateRequest.getClientId());
         if (userCert != null) {

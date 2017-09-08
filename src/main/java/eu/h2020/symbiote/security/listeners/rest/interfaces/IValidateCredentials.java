@@ -23,7 +23,7 @@ public interface IValidateCredentials {
      * @param foreignTokenIssuingAAMCertificate      in PEM with key matching the IPK claim in the provided FOREIGN token in 'offline' (intranet) scenarios
      * @return validation status
      */
-    @PostMapping(SecurityConstants.AAM_VALIDATE)
+    @PostMapping(SecurityConstants.AAM_VALIDATE_CREDENTIALS)
     ValidationStatus validate(
             @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String token,
             @RequestHeader(name = SecurityConstants.CLIENT_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificate,

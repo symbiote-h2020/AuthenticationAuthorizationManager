@@ -70,7 +70,6 @@ public class PlatformsManagementService {
             throw new WrongCredentialsException();
         }
 
-
         switch (platformManagementRequest.getOperationType()) {
             case CREATE:
                 if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
@@ -98,7 +97,6 @@ public class PlatformsManagementService {
                 platformOwner.getOwnedPlatforms().put(platformId, platform);
                 userRepository.save(platformOwner);
                 break;
-
             case UPDATE:
                 platform = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
                 if (platform == null)
@@ -111,7 +109,6 @@ public class PlatformsManagementService {
 
                 platformRepository.save(platform);
                 break;
-
             case DELETE:
                 if (!platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
                     throw new PlatformManagementException("Platform doesn't exist", HttpStatus.BAD_REQUEST);
@@ -155,7 +152,6 @@ public class PlatformsManagementService {
 
     public PlatformManagementResponse authManage(PlatformManagementRequest request) throws
             SecurityException {
-
         // check if we received required credentials
         if (request.getAAMOwnerCredentials() == null || request.getPlatformOwnerCredentials() == null)
             throw new InvalidArgumentsException("Missing credentials");

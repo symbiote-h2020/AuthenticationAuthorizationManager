@@ -10,8 +10,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +32,6 @@ import static org.junit.Assert.assertEquals;
 public class CredentialsValidationInPlatformAAMWithExpiredCertificateUnitTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(CredentialsValidationInPlatformAAMWithExpiredCertificateUnitTests.class);
     @Autowired
     private ValidationHelper validationHelper;
 

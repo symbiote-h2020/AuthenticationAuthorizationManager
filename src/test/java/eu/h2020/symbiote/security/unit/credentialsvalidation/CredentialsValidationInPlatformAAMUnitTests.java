@@ -17,8 +17,6 @@ import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMRevokedIPK;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +47,6 @@ import static org.junit.Assert.*;
 public class CredentialsValidationInPlatformAAMUnitTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(CredentialsValidationInPlatformAAMUnitTests.class);
     @Autowired
     private ValidationHelper validationHelper;
     @Autowired

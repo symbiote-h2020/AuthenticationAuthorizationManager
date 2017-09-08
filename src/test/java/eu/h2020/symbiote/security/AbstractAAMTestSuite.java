@@ -17,8 +17,6 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -59,7 +57,6 @@ import java.util.HashMap;
 @ContextConfiguration
 public abstract class AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(AbstractAAMTestSuite.class);
     protected final String username = "testApplicationUsername";
     protected final String password = "testApplicationPassword";
     protected final String wrongusername = "veryWrongTestApplicationUsername";

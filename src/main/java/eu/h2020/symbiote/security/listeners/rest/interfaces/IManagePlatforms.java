@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
  *
  * @author Maks Marcinowski (PSNC)
  */
-public interface IPlatformManagement {
+public interface IManagePlatforms {
     /**
      * @param platformManagementRequest required to initialize platform's management operation.
      * @return the response containing the status and platform's id

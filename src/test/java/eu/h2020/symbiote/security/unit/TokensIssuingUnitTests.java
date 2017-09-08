@@ -22,8 +22,8 @@ import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.GetCertificateService;
 import eu.h2020.symbiote.security.services.GetTokenService;
+import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
@@ -87,7 +87,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     @Autowired
     ComponentCertificatesRepository componentCertificatesRepository;
     @Autowired
-    private GetCertificateService getCertificateService;
+    private SignCertificateRequestService signCertificateRequestService;
 
     @Bean
     DummyPlatformAAM dummyPlatformAAM() {
@@ -262,7 +262,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, federatedOAuthId, pair);
         certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
         platform.getComponentCertificates().put(componentId, new Certificate(certificate));
         platformRepository.save(platform);
         user.getOwnedPlatforms().put(federatedOAuthId, platform);
@@ -571,7 +571,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateString = getCertificateService.getCertificate(certRequest);
+        String certificateString = signCertificateRequestService.getCertificate(certRequest);
         platform.getComponentCertificates().put(componentId, new Certificate(certificateString));
         platformRepository.save(platform);
         platformOwner.getOwnedPlatforms().put(platformId, platform);

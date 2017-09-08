@@ -16,12 +16,12 @@ import java.io.IOException;
 import java.security.cert.CertificateException;
 
 /**
- * RabbitMQ Consumer implementation used for Login actions
+ * RabbitMQ Consumer implementation used for home token acquisition
  *
  */
-public class HomeLoginRequestConsumerService extends DefaultConsumer {
+public class GetHomeTokenRequestConsumerService extends DefaultConsumer {
 
-    private static Log log = LogFactory.getLog(HomeLoginRequestConsumerService.class);
+    private static Log log = LogFactory.getLog(GetHomeTokenRequestConsumerService.class);
     private GetTokenService getTokenService;
 
 
@@ -31,8 +31,8 @@ public class HomeLoginRequestConsumerService extends DefaultConsumer {
      *
      * @param channel the channel to which this consumer is attached
      */
-    public HomeLoginRequestConsumerService(Channel channel,
-                                           GetTokenService getTokenService) {
+    public GetHomeTokenRequestConsumerService(Channel channel,
+                                              GetTokenService getTokenService) {
         super(channel);
         this.getTokenService = getTokenService;
     }

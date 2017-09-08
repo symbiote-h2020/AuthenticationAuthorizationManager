@@ -31,14 +31,15 @@ import java.security.cert.CertificateException;
 
 @Service
 public class RevocationService {
-    private RevocationHelper revocationHelper;
-
+    private final RevocationHelper revocationHelper;
     private final PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
-    private final UserRepository userRepository;
+
     @Autowired
     public RevocationService(RevocationHelper revocationHelper, PasswordEncoder passwordEncoder, UserRepository userRepository) {
         this.passwordEncoder = passwordEncoder;
@@ -77,7 +78,7 @@ public class RevocationService {
         if (!revocationRequest.getCredentials().getUsername().equals(AAMOwnerUsername)
                 || !passwordEncoder.matches(revocationRequest.getCredentials().getPassword(), passwordEncoder.encode(AAMOwnerPassword))) {
             return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
-            }
+        }
         if (!revocationRequest.getHomeTokenString().isEmpty()) {
             return new RevocationResponse(this.revocationHelper.revokeHomeTokenByAdmin(revocationRequest.getHomeTokenString()), HttpStatus.OK);
         }

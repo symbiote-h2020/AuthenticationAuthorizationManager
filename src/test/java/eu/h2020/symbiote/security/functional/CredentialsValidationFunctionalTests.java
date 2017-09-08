@@ -103,7 +103,7 @@ public class CredentialsValidationFunctionalTests extends
 
         String homeToken = AAMClient.getHomeToken(loginRequest);
 
-        ValidationStatus status = AAMClient.validate(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
+        ValidationStatus status = AAMClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.VALID, status);
     }
 
@@ -135,7 +135,7 @@ public class CredentialsValidationFunctionalTests extends
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 10);
 
-        ValidationStatus status = AAMClient.validate(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
+        ValidationStatus status = AAMClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status);
     }
 
@@ -162,7 +162,7 @@ public class CredentialsValidationFunctionalTests extends
             WrongCredentialsException {
         addTestUserWithClientCertificateToRepository();
         String homeToken = "WrongTokenString";
-        ValidationStatus status = AAMClient.validate(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
+        ValidationStatus status = AAMClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.UNKNOWN, status);
     }
 
@@ -197,7 +197,7 @@ public class CredentialsValidationFunctionalTests extends
         revokedTokensRepository.save(new Token(homeToken));
         assertTrue(revokedTokensRepository.exists(new Token(homeToken).getId()));
 
-        ValidationStatus status = AAMClient.validate(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
+        ValidationStatus status = AAMClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.REVOKED_TOKEN, status);
     }
 
@@ -240,7 +240,7 @@ public class CredentialsValidationFunctionalTests extends
 
         assertNotNull(revokedKeysRepository.findOne(username));
 
-        ValidationStatus status = AAMClient.validate(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
+        ValidationStatus status = AAMClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.REVOKED_SPK, status);
     }
 
