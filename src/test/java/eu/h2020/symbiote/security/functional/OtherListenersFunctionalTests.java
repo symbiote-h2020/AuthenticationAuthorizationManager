@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
@@ -53,9 +54,14 @@ public class OtherListenersFunctionalTests extends
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
+    @Value("${rabbit.queue.get.platform.owners.names}")
+    private String getPlatformOwnersNamesQueue;
+    @Value("${rabbit.routingKey.get.platform.owners.names}")
+    private String getPlatformOwnersNamesRoutingKey;
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
+    private RpcClient getPlatformsOwnersClient;
 
     @Autowired
     private ComponentCertificatesRepository componentCertificatesRepository;
@@ -72,7 +78,8 @@ public class OtherListenersFunctionalTests extends
         user.setRecoveryMail(recoveryMail);
         user.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(user);
-
+        getPlatformsOwnersClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+                getPlatformOwnersNamesQueue, 5000);
         // platform registration useful
         platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 platformManagementRequestQueue, 5000);
@@ -185,11 +192,7 @@ public class OtherListenersFunctionalTests extends
         assertEquals(certificationAuthorityHelper.getAAMCert(), componentCertificate);
     }
 
-    /**
-     * Features: CAAM - Providing platform details for Administration upon giving a correct credentials
-     * Interfaces: CAAM ;
-     * CommunicationType AMQP
-     */
+
     @Test
     public void getOwnedPlatformDetailsForPlatformOwnerInAdministrationSuccess() throws IOException, TimeoutException {
 
@@ -197,19 +200,16 @@ public class OtherListenersFunctionalTests extends
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
 
-        // issue platform registration over AMQP
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
         User platformOwner = userRepository.findOne(platformOwnerUsername);
-        // platform owner should have a platform bound to him by now
-        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+        // platform owner should have no platform bound to him by now
+        assertTrue(platformOwner.getOwnedPlatforms().isEmpty());
+
         // creating request
         UserManagementRequest userManagementRequest = new UserManagementRequest();
         userManagementRequest.setAdministratorCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         userManagementRequest.setUserCredentials(new Credentials(platformOwnerUsername, ""));
 
-        // issue owned platform details request with the given token
+        // issue owned platform details request
         RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 ownedPlatformDetailsRequestQueue, 5000);
         byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
@@ -218,8 +218,27 @@ public class OtherListenersFunctionalTests extends
         Set<OwnedPlatformDetails> responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
         });
 
+        // no platforms there yet
+        assertTrue(responseSet.isEmpty());
+
+        // issue platform registration over AMQP
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        platformOwner = userRepository.findOne(platformOwnerUsername);
+        // platform owner should have a platform bound to him by now
+        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+
+        // issue owned platform details request
+        ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
+                (userManagementRequest).getBytes());
+
+        responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
+        });
+
         // there should be a platform
         assertFalse(responseSet.isEmpty());
+
         OwnedPlatformDetails platformDetailsFromResponse = responseSet.iterator().next();
         Platform ownedPlatformInDB = platformRepository.findOne(preferredPlatformId);
 
@@ -290,5 +309,52 @@ public class OtherListenersFunctionalTests extends
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
+    }
+
+    @Test
+    public void getPlatformOwnersNamesSuccess() throws IOException, TimeoutException {
+        saveTwoDifferentUsers();
+        Set<String> requested = new HashSet<>();
+        requested.add(platformId + "One");
+        requested.add(platformId + "Two");
+        byte[] response = getPlatformsOwnersClient.primitiveCall(mapper.writeValueAsString(new
+                GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), requested)).getBytes());
+
+        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
+                GetPlatformOwnersResponse.class);
+        assertEquals(platformOwners.getHttpStatus().value(), 200);
+        assertNotNull(platformOwners.getplatformsOwners());
+        assertEquals("userOne", platformOwners.getplatformsOwners().get(platformId + "One"));
+        assertEquals("userTwo", platformOwners.getplatformsOwners().get(platformId + "Two"));
+    }
+
+    @Test
+    public void getPlatformOwnersNamesFailsForIncorrectAdminCredentials() throws IOException, TimeoutException {
+
+        saveTwoDifferentUsers();
+        Set<String> requested = new HashSet<>();
+        requested.add(platformId + "One");
+        requested.add(platformId + "Two");
+        byte[] response = getPlatformsOwnersClient.primitiveCall(mapper.writeValueAsString(new
+                GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, wrongpassword), requested)).getBytes());
+
+        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
+                GetPlatformOwnersResponse.class);
+        assertEquals(401, platformOwners.getHttpStatus().value());
+    }
+
+    @Test
+    public void getPlatformOwnersNamesFailsWithoutAdminCredentials() throws IOException, TimeoutException {
+
+        saveTwoDifferentUsers();
+        Set<String> requested = new HashSet<>();
+        requested.add(platformId + "One");
+        requested.add(platformId + "Two");
+        byte[] response = getPlatformsOwnersClient.primitiveCall(mapper.writeValueAsString(new
+                GetPlatformOwnersRequest(null, requested)).getBytes());
+
+        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
+                GetPlatformOwnersResponse.class);
+        assertEquals(401, platformOwners.getHttpStatus().value());
     }
 }

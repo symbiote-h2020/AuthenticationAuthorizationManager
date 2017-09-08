@@ -30,7 +30,7 @@ import java.util.concurrent.TimeoutException;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
-public class ActorsManagementFunctionalTests extends
+public class UsersManagementFunctionalTests extends
         AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(OtherListenersFunctionalTests.class);
@@ -50,6 +50,7 @@ public class ActorsManagementFunctionalTests extends
     private RpcClient appManagementClient;
     private UserDetails appUserDetails;
     private RpcClient getUserDetailsClient;
+
     @Override
     @Before
     public void setUp() throws Exception {
@@ -126,20 +127,6 @@ public class ActorsManagementFunctionalTests extends
 
         // verify error response
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
-
-        // issue the same app registration over AMQP expecting with wrong Null UserRole
-        response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.NULL, new HashMap<>(), new HashMap<>()),
-                OperationType.CREATE)).getBytes());
-
-        // verify that our app was not registered in the repository
-        assertNull(userRepository.findOne(username));
-
-        // verify error response
-        errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
         assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
     }
 
@@ -221,26 +208,6 @@ public class ActorsManagementFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void userRegistrationOverAMQPFailureMissingAppForeignId() throws IOException, TimeoutException {
-        // verify that our app is not in repository
-        assertNull(userRepository.findOne(username));
-
-
-        // issue app registration over AMQP with missing foreignId
-        appUserDetails.setFederatedID("");
-        byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
-                .getBytes());
-
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
-    }
-
-    /**
-     * Feature: CAAM - 2 (App Registration)
-     * Interface: CAAM - 3
-     * CommunicationType AMQP
-     */
-    @Test
     public void userRegistrationOverAMQPFailureMissingRecoveryMail() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(username));
@@ -294,7 +261,6 @@ public class ActorsManagementFunctionalTests extends
     public void userUpdateOverAMQPSuccess() throws IOException, TimeoutException {
         // verify that our app is not in repository
         assertNull(userRepository.findOne(username));
-
         // issue app registration over AMQP
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
@@ -304,11 +270,18 @@ public class ActorsManagementFunctionalTests extends
         ManagementStatus appRegistrationResponse = mapper.readValue(response, ManagementStatus.class);
         assertEquals(appRegistrationResponse, ManagementStatus.OK);
 
+        //creating new attributes map
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("key", "attribute");
+
         appUserUpdateRequest.getUserDetails().setRecoveryMail(recoveryMail + "differentOne");
         appUserUpdateRequest.getUserDetails().getCredentials().setPassword(password + "differentOne");
         byte[] response2 = appManagementClient.primitiveCall(mapper.writeValueAsString(appUserUpdateRequest).getBytes());
         ManagementStatus appRegistrationResponse2 = mapper.readValue(response2, ManagementStatus.class);
         assertEquals(ManagementStatus.OK, appRegistrationResponse2);
+        User user = userRepository.findOne(username);
+        //attributes map should not be updated during UPDATE operationType
+        assertFalse(user.getAttributes().containsValue("attribute"));
     }
 
 

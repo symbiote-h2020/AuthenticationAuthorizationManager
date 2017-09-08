@@ -22,6 +22,10 @@ public interface IUserManagement {
     @PostMapping(value = SecurityConstants.AAM_MANAGE_USERS, consumes = "application/json")
     ResponseEntity<ManagementStatus> manage(@RequestBody UserManagementRequest userManagementRequest);
 
+    /**
+     * @param credentials of a user whose details are requested
+     * @return details concerning requested user. These do NOT contain user's password
+     */
     @PostMapping(value = SecurityConstants.AAM_GET_USER_DETAILS, consumes = "application/json")
     ResponseEntity<UserDetails> getUserDetails(@RequestBody Credentials credentials);
 }

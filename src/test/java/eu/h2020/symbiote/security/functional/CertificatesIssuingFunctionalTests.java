@@ -100,7 +100,7 @@ public class CertificatesIssuingFunctionalTests extends
     }
 
     @Test
-    public void revokeClientCertificateOverREST() throws
+    public void updateClientCertificateWithTheSameKeyByIssuingNewCertificateOverREST() throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,

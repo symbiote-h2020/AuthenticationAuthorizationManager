@@ -28,7 +28,6 @@ import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -37,12 +36,12 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.security.auth.x500.X500Principal;
@@ -61,11 +60,9 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
-
-
     private static Log log = LogFactory.getLog(CertificatesIssuingUnitTests.class);
-    protected final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
 
     private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
@@ -726,18 +723,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         assertEquals(UserRole.USER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
         assertNotNull(attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
         assertEquals("attribute", attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
-    }
-
-    @Test
-    @Ignore("Not R2")
-    public void getForeignTokenWithForeignAttributesIssuedUsingProvisionedAttributesMappingListForGivenHomeToken() throws IOException,
-            TimeoutException {
-        /*
-        // TODO attributes mapping list provisioning R3? R4?
-        2. send an attribute mapping list
-        3. receive a success status
-        4. request foreign tokens which should be based on given tokens
-        */
     }
 
     private X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws

@@ -1,3 +1,23 @@
+buildscript {
+    ext {
+        asciiDocOutputDir = file("${buildDir}/asciidoc/generated")
+        swaggerOutputDir = file("${buildDir}/swagger")
+        snippetsOutputDir = file("${buildDir}/asciidoc/snippets")
+        springfoxVersion = '2.7.0'
+        swaggerAnnotationsVersion = '1.5.13'
+    }
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven { url 'http://oss.jfrog.org/artifactory/oss-snapshot-local/' }
+    }
+    dependencies {
+        classpath("io.github.swagger2markup:swagger2markup-spring-restdocs-ext:1.2.0")
+        classpath("io.github.swagger2markup:swagger2markup-gradle-plugin:1.2.0")
+        classpath("org.asciidoctor:asciidoctorj-pdf:1.5.0-alpha.10.1")
+    }
+}
+
 // new plugins syntax
 plugins {
     // code
@@ -13,7 +33,12 @@ plugins {
     id "idea"
     // publishing
     id "com.cinnober.gradle.semver-git" version "2.2.2"
+    // documentation
+    id "org.asciidoctor.convert" version "1.5.3"
 }
+
+// documentation
+apply plugin: 'io.github.swagger2markup'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -21,11 +46,13 @@ targetCompatibility = 1.8
 // dependencies section
 repositories {
     mavenCentral()
+    jcenter()
+    maven { url 'http://oss.jfrog.org/artifactory/oss-snapshot-local/' }
     maven { url "https://jitpack.io" }
 }
 // Spring related configs
 ext {
-    springCloudVersion = 'Dalston.SR2'
+    springCloudVersion = 'Dalston.SR3'
 }
 dependencyManagement {
     imports {
@@ -56,9 +83,9 @@ dependencies {
             3) project dependency requires changes in settings.gradle file in this project
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:19.4+'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:19.7.3+'){ changing = true }
     // allows to select the downloaded matching sources in IntelliJ Idea as it fails to do so automatically from jitpack repo
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:19.4+:sources'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:19.7.3+:sources'){ changing = true }
     //compile project(':SymbIoTeSecurity')
 
     // Spring
@@ -70,10 +97,16 @@ dependencies {
     compile('org.springframework.boot:spring-boot-starter-web')
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
 
+    // Swagger annotations for documentation
+    compile("io.swagger:swagger-annotations:${swaggerAnnotationsVersion}")
+
     // tests only
     testCompile('junit:junit:4.+')
     testCompile('org.springframework.boot:spring-boot-starter-test')
     testCompile ('com.github.fakemongo:fongo:2.1+')
+    testCompile("io.springfox:springfox-swagger2:${springfoxVersion}")
+    testCompile("io.springfox:springfox-bean-validators:${springfoxVersion}")
+    testCompile('org.springframework.restdocs:spring-restdocs-mockmvc')
 }
 
 
@@ -102,3 +135,42 @@ dependencyCheck {
 
 // including code quality extensions into the build
 check.dependsOn(jacocoTestReport)//, 'dependencyCheckAnalyze')
+
+test {
+    systemProperty 'io.springfox.staticdocs.outputDir', swaggerOutputDir
+    systemProperty 'io.springfox.staticdocs.snippetsOutputDir', snippetsOutputDir
+    // we don't need that for testing,
+    exclude '**/Swagger*'
+}
+
+// documentation below
+task swaggerGeneratorTest(type: Test, dependsOn: testClasses) {
+    include '**/Swagger*'
+}
+
+convertSwagger2markup {
+    dependsOn swaggerGeneratorTest
+    swaggerInput "${swaggerOutputDir}/swagger.json"
+    outputDir asciiDocOutputDir
+    config = [
+            'swagger2markup.pathsGroupedBy' : 'TAGS',
+            'swagger2markup.extensions.springRestDocs.snippetBaseUri': snippetsOutputDir.getAbsolutePath()]
+}
+
+asciidoctor {
+    dependsOn convertSwagger2markup
+    sources {
+        include 'index.adoc'
+    }
+    backends = ['html5', 'pdf']
+    attributes = [
+            doctype: 'book',
+            toc: 'left',
+            toclevels: '3',
+            numbered: '',
+            sectlinks: '',
+            sectanchors: '',
+            hardbreaks: '',
+            generated: asciiDocOutputDir
+    ]
+}

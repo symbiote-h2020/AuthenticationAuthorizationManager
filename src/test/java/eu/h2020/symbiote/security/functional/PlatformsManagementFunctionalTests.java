@@ -14,8 +14,6 @@ import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,10 +30,6 @@ import static org.junit.Assert.*;
 public class PlatformsManagementFunctionalTests extends
         AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(OtherListenersFunctionalTests.class);
-    private final String coreAppUsername = "testCoreAppUsername";
-    private final String coreAppPassword = "testCoreAppPassword";
-    private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
@@ -169,7 +163,7 @@ public class PlatformsManagementFunctionalTests extends
 
         // verified that we received a generated platformId
         String generatedPlatformId = platformRegistrationOverAMQPResponse.getPlatformId();
-        assertNotNull(generatedPlatformId);
+        assertFalse(generatedPlatformId.isEmpty());
 
         // verify that PO is in repository (as PO!)
         User registeredPlatformOwner = userRepository.findOne(platformOwnerUsername);
@@ -398,6 +392,8 @@ public class PlatformsManagementFunctionalTests extends
         PlatformManagementResponse platformRegistrationOverAMQPResponse2 = mapper.readValue(response2,
                 PlatformManagementResponse.class);
         assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse2.getRegistrationStatus());
+
+        assertTrue(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().isEmpty());
     }
 
     @Test
@@ -433,7 +429,7 @@ public class PlatformsManagementFunctionalTests extends
     }
 
     @Test(expected = AAMException.class)
-    public void platfomManagementControllerFailsManagingIncorrectRegistrationRequest() throws AAMException {
+    public void platformManagementControllerFailsManagingIncorrectRegistrationRequest() throws AAMException {
         PlatformManagementRequest IncorrectPlatformRegistrationRequest;
         IncorrectPlatformRegistrationRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),

@@ -11,12 +11,11 @@ import org.springframework.web.bind.annotation.RequestBody;
  *
  * @author Jakub Toczek (PSNC)
  */
-
 public interface IRevoke {
     /**
      * Exposes a service that allows users to revoke their client certificates and tokens.
      *
-     * @param revocationRequest required to revoke. Depending it's fields, token or certificate can be revoked.
+     * @param revocationRequest required to revoke. Depending on it's fields, token or certificate can be revoked.
      * @return ResponseEntity<String> where as header HTTP status is sent and in body true/false depending on revocation status
      */
     @PostMapping(value = SecurityConstants.AAM_REVOKE, consumes = "application/json")

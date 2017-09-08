@@ -13,6 +13,7 @@ import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.listeners.amqp.RabbitManager;
 import eu.h2020.symbiote.security.repositories.*;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
@@ -189,6 +190,26 @@ public abstract class AbstractAAMTestSuite {
         return user;
     }
 
+    protected void saveTwoDifferentUsers() {
+        User userOne = new User();
+        userOne.setUsername("userOne");
+        userOne.setPasswordEncrypted(passwordEncoder.encode("Password"));
+        userOne.setRecoveryMail(recoveryMail);
+        userOne.setRole(UserRole.USER);
+        User userTwo = new User();
+        userTwo.setUsername("userTwo");
+        userTwo.setPasswordEncrypted(passwordEncoder.encode("Password"));
+        userTwo.setRecoveryMail(recoveryMail);
+        userTwo.setRole(UserRole.USER);
+
+        userRepository.save(userOne);
+        userRepository.save(userTwo);
+
+        Platform platformOne = new Platform(platformId + "One", null, null, userOne, new Certificate(), new HashMap<>());
+        Platform platformTwo = new Platform(platformId + "Two", null, null, userTwo, new Certificate(), new HashMap<>());
+        platformRepository.save(platformOne);
+        platformRepository.save(platformTwo);
+    }
     protected void addTestUserWithClientCertificateToRepository() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),

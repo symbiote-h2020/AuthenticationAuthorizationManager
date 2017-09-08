@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
  * @author Maks Marcinowski (PSNC)
  * @author Mikołaj Dobski (PSNC)
  */
+
 public interface IGetClientCertificate {
     /**
      * @param certificateRequest required to issue a certificate for given (username, clientId) tupple.

@@ -104,7 +104,7 @@ public class CertificationAuthorityHelper {
      */
     public String getRootCACert() throws NoSuchProviderException, KeyStoreException, IOException,
             CertificateException, NoSuchAlgorithmException {
-        return CryptoHelper.convertX509ToPEM(getAAMCertificate());
+        return CryptoHelper.convertX509ToPEM(getRootCACertificate());
     }
 
     /**

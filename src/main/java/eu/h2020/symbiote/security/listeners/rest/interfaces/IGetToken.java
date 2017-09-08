@@ -38,7 +38,8 @@ public interface IGetToken {
      * @return FOREIGN token used to access restricted resources offered in SymbIoTe federations
      */
     @PostMapping(value = SecurityConstants.AAM_GET_FOREIGN_TOKEN)
-    ResponseEntity<String> getForeignToken(@RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String remoteHomeToken,
-                                           @RequestHeader(name = SecurityConstants.CLIENT_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificate,
-                                           @RequestHeader(name = SecurityConstants.AAM_CERTIFICATE_HEADER_NAME, defaultValue = "") String aamCertificate);
+    ResponseEntity<String> getForeignToken(
+            @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String remoteHomeToken,
+            @RequestHeader(name = SecurityConstants.CLIENT_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificate,
+            @RequestHeader(name = SecurityConstants.AAM_CERTIFICATE_HEADER_NAME, defaultValue = "") String aamCertificate);
 }

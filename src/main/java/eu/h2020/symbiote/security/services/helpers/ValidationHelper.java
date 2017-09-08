@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.services.helpers;
 
+import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
@@ -8,9 +9,9 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
-import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
-import eu.h2020.symbiote.security.repositories.UserRepository;
+import eu.h2020.symbiote.security.repositories.*;
+import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.services.AAMServices;
 import io.jsonwebtoken.Claims;
 import org.apache.commons.logging.Log;
@@ -27,6 +28,8 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.*;
 import java.util.*;
+
+import eu.h2020.symbiote.security.commons.Certificate;
 
 /**
  * Used to validate given credentials against data in the AAMs
@@ -47,28 +50,30 @@ public class ValidationHelper {
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
-
     @Value("${aam.deployment.validation.allow-offline}")
     private boolean isOfflineEnough;
-
     // dependencies
     private RestTemplate restTemplate = new RestTemplate();
     private CertificationAuthorityHelper certificationAuthorityHelper;
     private RevokedKeysRepository revokedKeysRepository;
     private RevokedTokensRepository revokedTokensRepository;
     private UserRepository userRepository;
+    private PlatformRepository platformRepository;
+    private ComponentCertificatesRepository componentCertificatesRepository;
     private AAMServices aamServices;
 
     @Autowired
     public ValidationHelper(CertificationAuthorityHelper certificationAuthorityHelper,
                             RevokedKeysRepository revokedKeysRepository,
-                            RevokedTokensRepository revokedTokensRepository, UserRepository userRepository, AAMServices aamServices) {
+                            RevokedTokensRepository revokedTokensRepository, UserRepository userRepository, PlatformRepository platformRepository, ComponentCertificatesRepository componentCertificatesRepository, AAMServices aamServices) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
         this.revokedKeysRepository = revokedKeysRepository;
         this.revokedTokensRepository = revokedTokensRepository;
         this.userRepository = userRepository;
+        this.platformRepository = platformRepository;
+        this.componentCertificatesRepository = componentCertificatesRepository;
         this.aamServices = aamServices;
     }
 
@@ -132,17 +137,59 @@ public class ValidationHelper {
             String userFromToken = claims.getSubject().split("@")[0];
             String clientId = claims.getSubject().split("@")[1];
 
-            // check if SPK is is in the revoked set
-            if (revokedKeysRepository.exists(userFromToken) &&
-                    revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
-                return ValidationStatus.REVOKED_SPK;
-            }
+            // check if SPK is is in the revoked set for user token
+            if (claims.getSubject().split("@").length == 2)
+                if (revokedKeysRepository.exists(userFromToken) &&
+                        revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
+                    return ValidationStatus.REVOKED_SPK;
+                }
 
-            // check if subject certificate is valid
-            if (isExpired(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509())) {
-                return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
-            }
+            // check if SPK is is in the revoked set for component token
+            if (claims.getSubject().split("@").length == 3)
+                if (revokedKeysRepository.exists(clientId) && revokedKeysRepository.findOne(clientId).getRevokedKeysSet().contains(spk)) {
+                    return ValidationStatus.REVOKED_SPK;
+                }
 
+            // check if subject certificate is valid & matching the token SPK
+            if (claims.getSubject().split("@").length == 3) {
+                // components use case
+                String platformId = claims.getSubject().split("@")[2];
+                Certificate componentCertificate = null;
+
+                if (platformId.equals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID)) {
+                    // core component case
+                    ComponentCertificate coreComponentCertificate = componentCertificatesRepository.findOne(clientId);
+                    if (coreComponentCertificate != null)
+                        componentCertificate = coreComponentCertificate.getCertificate();
+                } else {
+                    // platform component case
+                    Platform platform = platformRepository.findOne(platformId);
+                    if (platform != null) {
+                        componentCertificate = platform.getComponentCertificates().get(clientId);
+                    }
+                }
+                // if the token is to be valid, the certificate must not be null
+                if (componentCertificate == null)
+                    return ValidationStatus.INVALID_TRUST_CHAIN;
+                // check if subject certificate is not expired
+                if (isExpired(componentCertificate.getX509())) {
+                    return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
+                }
+                // checking if SPK matches the components certificate
+                if (componentCertificate == null || !Base64.getEncoder().encodeToString(componentCertificate.getX509().getPublicKey().getEncoded()).equals(spk))
+                    return ValidationStatus.REVOKED_SPK;
+            } else { // user case
+                // expiry check
+                if (isExpired(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509())) {
+                    return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
+                }
+                // and if it matches the client's currently assigned cert
+                if (!userRepository.exists(userFromToken) || !userRepository.findOne(userFromToken).getClientCertificates().containsKey(clientId))
+                    return ValidationStatus.REVOKED_SPK;
+                // checking match from token
+                if (!Base64.getEncoder().encodeToString(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded()).equals(spk))
+                    return ValidationStatus.REVOKED_SPK;
+            }
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
             log.error(e);
