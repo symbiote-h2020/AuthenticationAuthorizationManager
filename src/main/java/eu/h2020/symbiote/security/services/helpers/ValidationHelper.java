@@ -50,10 +50,8 @@ public class ValidationHelper {
     private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
-
     @Value("${aam.deployment.validation.allow-offline}")
     private boolean isOfflineEnough;
-
     // dependencies
     private RestTemplate restTemplate = new RestTemplate();
     private CertificationAuthorityHelper certificationAuthorityHelper;
@@ -139,14 +137,22 @@ public class ValidationHelper {
             String userFromToken = claims.getSubject().split("@")[0];
             String clientId = claims.getSubject().split("@")[1];
 
-            // check if SPK is is in the revoked set
-            if (revokedKeysRepository.exists(userFromToken) &&
-                    revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
-                return ValidationStatus.REVOKED_SPK;
-            }
+            // check if SPK is is in the revoked set for user token
+            if (claims.getSubject().split("@").length == 2)
+                if (revokedKeysRepository.exists(userFromToken) &&
+                        revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
+                    return ValidationStatus.REVOKED_SPK;
+                }
 
-            // components use case
+            // check if SPK is is in the revoked set for component token
+            if (claims.getSubject().split("@").length == 3)
+                if (revokedKeysRepository.exists(clientId) && revokedKeysRepository.findOne(clientId).getRevokedKeysSet().contains(spk)) {
+                    return ValidationStatus.REVOKED_SPK;
+                }
+
+            // check if subject certificate is valid
             if (claims.getSubject().split("@").length == 3) {
+                // components use case
                 String platformId = claims.getSubject().split("@")[2];
                 Certificate componentCertificate = null;
                 // core case
@@ -161,17 +167,18 @@ public class ValidationHelper {
                         componentCertificate = platform.getComponentCertificates().get(clientId);
                     }
                 }
+                // we must find the certificate
+                if (componentCertificate == null)
+                    return ValidationStatus.INVALID_TRUST_CHAIN;
                 // check if subject certificate is valid
                 if (isExpired(componentCertificate.getX509())) {
                     return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
                 }
             } else { // user case
-                // check if subject certificate is valid
                 if (isExpired(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509())) {
                     return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
                 }
             }
-
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
             log.error(e);
