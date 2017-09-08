@@ -150,34 +150,45 @@ public class ValidationHelper {
                     return ValidationStatus.REVOKED_SPK;
                 }
 
-            // check if subject certificate is valid
+            // check if subject certificate is valid & matching the token SPK
             if (claims.getSubject().split("@").length == 3) {
                 // components use case
                 String platformId = claims.getSubject().split("@")[2];
                 Certificate componentCertificate = null;
-                // core case
+
                 if (platformId.equals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID)) {
+                    // core component case
                     ComponentCertificate coreComponentCertificate = componentCertificatesRepository.findOne(clientId);
                     if (coreComponentCertificate != null)
                         componentCertificate = coreComponentCertificate.getCertificate();
                 } else {
-                    // platform owner
+                    // platform component case
                     Platform platform = platformRepository.findOne(platformId);
                     if (platform != null) {
                         componentCertificate = platform.getComponentCertificates().get(clientId);
                     }
                 }
-                // we must find the certificate
+                // if the token is to be valid, the certificate must not be null
                 if (componentCertificate == null)
                     return ValidationStatus.INVALID_TRUST_CHAIN;
-                // check if subject certificate is valid
+                // check if subject certificate is not expired
                 if (isExpired(componentCertificate.getX509())) {
                     return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
                 }
+                // checking if SPK matches the components certificate
+                if (componentCertificate == null || !Base64.getEncoder().encodeToString(componentCertificate.getX509().getPublicKey().getEncoded()).equals(spk))
+                    return ValidationStatus.REVOKED_SPK;
             } else { // user case
+                // expiry check
                 if (isExpired(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509())) {
                     return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
                 }
+                // and if it matches the client's currently assigned cert
+                if (!userRepository.exists(userFromToken) || !userRepository.findOne(userFromToken).getClientCertificates().containsKey(clientId))
+                    return ValidationStatus.REVOKED_SPK;
+                // checking match from token
+                if (!Base64.getEncoder().encodeToString(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded()).equals(spk))
+                    return ValidationStatus.REVOKED_SPK;
             }
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
