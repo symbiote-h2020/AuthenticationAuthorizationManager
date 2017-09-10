@@ -329,7 +329,7 @@ public class RevocationHelper {
 
                 String componentId = certificateCommonName.split(illegalSign)[0];
                 String platformId = certificateCommonName.split(illegalSign)[1];
-                if (platformId.equals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID)) {
+                if (platformId.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)) {
                     return revokeAAMComponentUsingCommonName(componentId);
                 }
                 Platform platform = platformRepository.findOne(platformId);
@@ -377,7 +377,7 @@ public class RevocationHelper {
         }
         if (certificateCommonName.split(illegalSign).length == 2) {
             String platformId = certificateCommonName.split(illegalSign)[1];
-            if (platformId.equals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID)) {
+            if (platformId.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)) {
                 return revokeAAMComponentUsingCertificate(certificate);
             }
             Platform platform = platformRepository.findOne(platformId);
@@ -452,9 +452,9 @@ public class RevocationHelper {
     /*
     private boolean isCertificateChainTrustedOrRevoked(String certificateString) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException {
         if (!isCertificateChainTrusted(certificateString)){
-            if (revokedKeysRepository.findOne(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID)!=null){
+            if (revokedKeysRepository.findOne(SecurityConstants.CORE_AAM_INSTANCE_ID)!=null){
                 X509Certificate certificate = CryptoHelper.convertPEMToX509(certificateString);
-                return revokedKeysRepository.findOne(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID).getRevokedKeysSet().contains(null) ;
+                return revokedKeysRepository.findOne(SecurityConstants.CORE_AAM_INSTANCE_ID).getRevokedKeysSet().contains(null) ;
             }
         }
         return true;

@@ -100,7 +100,7 @@ public class RevocationFunctionalTests extends
         user.setRole(UserRole.USER);
         userRepository.save(user);
 
-        AvailableAAMsCollection aamResponse = AAMClient.getAvailableAAMs();
+        AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
@@ -108,7 +108,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String clientCertificate = AAMClient.signCertificateRequest(certRequest);
+        String clientCertificate = aamClient.signCertificateRequest(certRequest);
 
         assertNotNull(clientCertificate);
         RevocationRequest revocationRequest = new RevocationRequest();
@@ -116,7 +116,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificatePEMString(clientCertificate);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
 
 
     }
@@ -150,7 +150,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String platformCertificate = AAMClient.signCertificateRequest(certRequest);
+        String platformCertificate = aamClient.signCertificateRequest(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(platformCertificate));
         platformRepository.save(platform);
 
@@ -160,7 +160,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificatePEMString(platformCertificate);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
     }
 
     @Test
@@ -183,7 +183,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String componentCertificate = AAMClient.signCertificateRequest(certRequest);
+        String componentCertificate = aamClient.signCertificateRequest(certRequest);
         platform.getComponentCertificates().put(componentId, new Certificate(componentCertificate));
         platformRepository.save(platform);
 
@@ -193,7 +193,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificatePEMString(componentCertificate);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
     }
 
     @Test
@@ -206,7 +206,7 @@ public class RevocationFunctionalTests extends
         user.setRole(UserRole.USER);
         userRepository.save(user);
 
-        AvailableAAMsCollection aamResponse = AAMClient.getAvailableAAMs();
+        AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
@@ -214,7 +214,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String clientCertificate = AAMClient.signCertificateRequest(certRequest);
+        String clientCertificate = aamClient.signCertificateRequest(certRequest);
 
         assertNotNull(clientCertificate);
 
@@ -245,7 +245,7 @@ public class RevocationFunctionalTests extends
         user.setRole(UserRole.USER);
         userRepository.save(user);
 
-        AvailableAAMsCollection aamResponse = AAMClient.getAvailableAAMs();
+        AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
@@ -253,7 +253,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String clientCertificate = AAMClient.signCertificateRequest(certRequest);
+        String clientCertificate = aamClient.signCertificateRequest(certRequest);
 
         assertNotNull(clientCertificate);
         RevocationRequest revocationRequest = new RevocationRequest();
@@ -262,7 +262,7 @@ public class RevocationFunctionalTests extends
         String commonName = username + illegalSign + clientId;
         revocationRequest.setCertificateCommonName(commonName);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
 
 
     }
@@ -287,7 +287,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String platformCertificate = AAMClient.signCertificateRequest(certRequest);
+        String platformCertificate = aamClient.signCertificateRequest(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(platformCertificate));
         platformRepository.save(platform);
 
@@ -297,7 +297,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificateCommonName(platformId);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
     }
 
     @Test
@@ -320,7 +320,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String componentCertificate = AAMClient.signCertificateRequest(certRequest);
+        String componentCertificate = aamClient.signCertificateRequest(certRequest);
         platform.getComponentCertificates().put(componentId, new Certificate(componentCertificate));
         platformRepository.save(platform);
 
@@ -331,7 +331,7 @@ public class RevocationFunctionalTests extends
         String commonName = componentId + illegalSign + platformId;
         revocationRequest.setCertificateCommonName(commonName);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
     }
 
     @Test
@@ -341,7 +341,7 @@ public class RevocationFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = AAMClient.getHomeToken(loginRequest);
+        String homeToken = aamClient.getHomeToken(loginRequest);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(homeToken);
         // As the AAM is now configured as core we confirm that relevant token type was issued.
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
@@ -350,7 +350,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setHomeTokenString(homeToken);
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
         assertTrue(revokedTokensRepository.exists(new Token(homeToken).getClaims().getId()));
     }
 
@@ -393,14 +393,14 @@ public class RevocationFunctionalTests extends
         revocationRequest.setHomeTokenString(token.toString());
         revocationRequest.setForeignTokenString(foreignToken.toString());
 
-        assertTrue(Boolean.parseBoolean(AAMClient.revokeCredentials(revocationRequest)));
+        assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
         assertTrue(revokedTokensRepository.exists(foreignToken.getClaims().getId()));
     }
 
     @Test(expected = InvalidArgumentsException.class)
     public void revokeForeignTokenOverRESTFailNoTokens() throws WrongCredentialsException, InvalidArgumentsException {
         RevocationRequest revocationRequest = new RevocationRequest();
-        AAMClient.revokeCredentials(revocationRequest);
+        aamClient.revokeCredentials(revocationRequest);
     }
 
     @Test
@@ -413,7 +413,7 @@ public class RevocationFunctionalTests extends
         user.setRole(UserRole.USER);
         userRepository.save(user);
 
-        AvailableAAMsCollection aamResponse = AAMClient.getAvailableAAMs();
+        AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
         KeyPair pair = CryptoHelper.createKeyPair();
         AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
@@ -421,7 +421,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String clientCertificate = AAMClient.signCertificateRequest(certRequest);
+        String clientCertificate = aamClient.signCertificateRequest(certRequest);
 
         assertNotNull(clientCertificate);
 
@@ -448,7 +448,7 @@ public class RevocationFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = AAMClient.getHomeToken(loginRequest);
+        String homeToken = aamClient.getHomeToken(loginRequest);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(homeToken);
         // As the AAM is now configured as core we confirm that relevant token type was issued.
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));

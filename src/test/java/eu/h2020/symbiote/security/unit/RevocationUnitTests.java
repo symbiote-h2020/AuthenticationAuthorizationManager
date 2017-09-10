@@ -894,7 +894,7 @@ public class RevocationUnitTests extends
         componentCertificatesRepository.save(
                 componentCertificate);
 
-        String commonName = componentId + illegalSign + SecurityConstants.AAM_CORE_AAM_INSTANCE_ID;
+        String commonName = componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID;
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
@@ -910,7 +910,7 @@ public class RevocationUnitTests extends
 
     @Test
     public void revokeAAMComponentCertificateUsingCommonNameByAdminFailNoComponentInDatabase() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException {
-        String commonName = componentId + illegalSign + SecurityConstants.AAM_CORE_AAM_INSTANCE_ID;
+        String commonName = componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID;
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
@@ -921,7 +921,7 @@ public class RevocationUnitTests extends
 
     @Test
     public void revokeByAdminFailWrongCommonName() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException {
-        String commonName = componentId + illegalSign + SecurityConstants.AAM_CORE_AAM_INSTANCE_ID + illegalSign + "WrongCommonNameEnding";
+        String commonName = componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID + illegalSign + "WrongCommonNameEnding";
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);

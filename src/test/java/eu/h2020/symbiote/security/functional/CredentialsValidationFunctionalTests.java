@@ -61,7 +61,7 @@ public class CredentialsValidationFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String token = AAMClient.getHomeToken(loginRequest);
+        String token = aamClient.getHomeToken(loginRequest);
         assertNotNull(token);
 
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
@@ -101,9 +101,9 @@ public class CredentialsValidationFunctionalTests extends
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
 
-        String homeToken = AAMClient.getHomeToken(loginRequest);
+        String homeToken = aamClient.getHomeToken(loginRequest);
 
-        ValidationStatus status = AAMClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
+        ValidationStatus status = aamClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.VALID, status);
     }
 
@@ -131,11 +131,11 @@ public class CredentialsValidationFunctionalTests extends
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        String homeToken = AAMClient.getHomeToken(loginRequest);
+        String homeToken = aamClient.getHomeToken(loginRequest);
         //Introduce latency so that JWT expires
         Thread.sleep(tokenValidityPeriod + 10);
 
-        ValidationStatus status = AAMClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
+        ValidationStatus status = aamClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status);
     }
 
@@ -162,7 +162,7 @@ public class CredentialsValidationFunctionalTests extends
             WrongCredentialsException {
         addTestUserWithClientCertificateToRepository();
         String homeToken = "WrongTokenString";
-        ValidationStatus status = AAMClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
+        ValidationStatus status = aamClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.UNKNOWN, status);
     }
 
@@ -192,12 +192,12 @@ public class CredentialsValidationFunctionalTests extends
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
 
-        String homeToken = AAMClient.getHomeToken(loginRequest);
+        String homeToken = aamClient.getHomeToken(loginRequest);
 
         revokedTokensRepository.save(new Token(homeToken));
         assertTrue(revokedTokensRepository.exists(new Token(homeToken).getId()));
 
-        ValidationStatus status = AAMClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
+        ValidationStatus status = aamClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.REVOKED_TOKEN, status);
     }
 
@@ -228,7 +228,7 @@ public class CredentialsValidationFunctionalTests extends
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
 
-        String homeToken = AAMClient.getHomeToken(loginRequest);
+        String homeToken = aamClient.getHomeToken(loginRequest);
 
         SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(username);
         Set<String> keySet = (subjectsRevokedKeys == null) ? new HashSet<>() : subjectsRevokedKeys
@@ -240,7 +240,7 @@ public class CredentialsValidationFunctionalTests extends
 
         assertNotNull(revokedKeysRepository.findOne(username));
 
-        ValidationStatus status = AAMClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
+        ValidationStatus status = aamClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.REVOKED_SPK, status);
     }
 

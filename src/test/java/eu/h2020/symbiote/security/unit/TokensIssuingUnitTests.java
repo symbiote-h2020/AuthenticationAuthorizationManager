@@ -626,7 +626,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
                                 "registry-core-1"))));
         componentCertificatesRepository.save(
                 componentCertificate);
-        HomeCredentials homeCredentials = new HomeCredentials(null, AAMOwnerUsername, componentId + illegalSign + SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, null, (PrivateKey) getPrivateKeyFromTestKeystore(
+        HomeCredentials homeCredentials = new HomeCredentials(null, AAMOwnerUsername, componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID, null, (PrivateKey) getPrivateKeyFromTestKeystore(
                 "core.p12",
                 "registry-core-1"));
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -660,7 +660,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
                                 "registry-core-1"))));
         componentCertificatesRepository.save(
                 componentCertificate);
-        HomeCredentials homeCredentials = new HomeCredentials(null, AAMOwnerUsername, componentId + illegalSign + SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, null, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, AAMOwnerUsername, componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
         Token homeToken = getTokenService.getHomeToken(loginRequest);
@@ -680,7 +680,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             InvalidKeyException,
             JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException {
 
-        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, componentId + illegalSign + SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, null, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
         Token homeToken = getTokenService.getHomeToken(loginRequest);

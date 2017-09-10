@@ -158,7 +158,7 @@ public class ValidationHelper {
                 String platformId = claims.getSubject().split("@")[2];
                 Certificate componentCertificate = null;
 
-                if (platformId.equals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID)) {
+                if (platformId.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)) {
                     // core component case
                     ComponentCertificate coreComponentCertificate = componentCertificatesRepository.findOne(clientId);
                     if (coreComponentCertificate != null)

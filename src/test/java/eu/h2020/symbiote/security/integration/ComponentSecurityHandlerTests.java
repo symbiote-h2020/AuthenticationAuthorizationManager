@@ -45,7 +45,7 @@ public class ComponentSecurityHandlerTests extends AbstractAAMTestSuite {
         // hack: injecting the AAM running port
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
         String crmKey = "crm";
-        String crmComponentId = crmKey + "@" + SecurityConstants.AAM_CORE_AAM_INSTANCE_ID;
+        String crmComponentId = crmKey + "@" + SecurityConstants.CORE_AAM_INSTANCE_ID;
         // generating the CSH
         IComponentSecurityHandler crmCSH = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
                 serverAddress,
@@ -62,8 +62,7 @@ public class ComponentSecurityHandlerTests extends AbstractAAMTestSuite {
         String crmServiceResponse = crmCSH.generateServiceResponse();
 
         // trying to validate the service response, yes we can use this SH as the operation is local
-        assertTrue(crmCSH.isReceivedServiceResponseVerified(crmServiceResponse,
-                crmCSH.getSecurityHandler().getComponentCertificate(crmComponentId)));
+        assertTrue(crmCSH.isReceivedServiceResponseVerified(crmServiceResponse, crmKey, SecurityConstants.CORE_AAM_INSTANCE_ID));
 
         SecurityRequest crmSecurityRequest = crmCSH.generateSecurityRequestUsingCoreCredentials();
         assertFalse(crmSecurityRequest.getSecurityCredentials().isEmpty());
@@ -71,7 +70,7 @@ public class ComponentSecurityHandlerTests extends AbstractAAMTestSuite {
         // building dummy access policy
         Map<String, IAccessPolicy> testAP = new HashMap<>();
         String testPolicyId = "testPolicyId";
-        testAP.put(testPolicyId, new SingleLocalHomeTokenIdentityBasedTokenAccessPolicy(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, AAMOwnerUsername, new HashMap<>()));
+        testAP.put(testPolicyId, new SingleLocalHomeTokenIdentityBasedTokenAccessPolicy(SecurityConstants.CORE_AAM_INSTANCE_ID, AAMOwnerUsername, new HashMap<>()));
 
         // the policy should be there!
         assertTrue(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
@@ -109,11 +108,10 @@ public class ComponentSecurityHandlerTests extends AbstractAAMTestSuite {
         );
 
         // getting a CRM service response
-        String crmServiceResponse = rhCSH.generateServiceResponse();
+        String regHandlerServiceResponse = rhCSH.generateServiceResponse();
 
         // trying to validate the service response, yes we can use this SH as the operation is local
-        assertTrue(rhCSH.isReceivedServiceResponseVerified(crmServiceResponse,
-                rhCSH.getSecurityHandler().getComponentCertificate(regHandlerComponentId)));
+        assertTrue(rhCSH.isReceivedServiceResponseVerified(regHandlerServiceResponse, rhKey, platformId));
 
         SecurityRequest rhSecurityRequest = rhCSH.generateSecurityRequestUsingCoreCredentials();
         assertFalse(rhSecurityRequest.getSecurityCredentials().isEmpty());
@@ -121,7 +119,7 @@ public class ComponentSecurityHandlerTests extends AbstractAAMTestSuite {
         // building dummy access policy
         Map<String, IAccessPolicy> testAP = new HashMap<>();
         String testPolicyId = "testPolicyId";
-        testAP.put(testPolicyId, new SingleLocalHomeTokenIdentityBasedTokenAccessPolicy(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, platformOwnerUsername, new HashMap<>()));
+        testAP.put(testPolicyId, new SingleLocalHomeTokenIdentityBasedTokenAccessPolicy(SecurityConstants.CORE_AAM_INSTANCE_ID, platformOwnerUsername, new HashMap<>()));
 
         // the policy should be there!
         assertTrue(rhCSH.getSatisfiedPoliciesIdentifiers(testAP, rhSecurityRequest).contains(testPolicyId));

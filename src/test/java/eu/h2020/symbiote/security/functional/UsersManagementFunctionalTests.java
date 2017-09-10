@@ -345,7 +345,7 @@ public class UsersManagementFunctionalTests extends
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), "federatedId",
                         "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
-        ManagementStatus managementStatus = AAMClient.manageUser(userManagementRequest);
+        ManagementStatus managementStatus = aamClient.manageUser(userManagementRequest);
         assertNotNull(managementStatus);
     }
 
@@ -355,7 +355,7 @@ public class UsersManagementFunctionalTests extends
                 Credentials(AAMOwnerUsername, wrongpassword), new Credentials(username, wrongpassword),
                 new UserDetails(new Credentials(username, wrongpassword), "federatedId",
                         "", UserRole.PLATFORM_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
-        AAMClient.manageUser(userManagementRequest);
+        aamClient.manageUser(userManagementRequest);
     }
 
     @Test

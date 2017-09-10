@@ -110,17 +110,17 @@ public class OtherListenersFunctionalTests extends
         componentCertificatesRepository.save(
                 componentCertificate);
 
-        AvailableAAMsCollection response = AAMClient.getAvailableAAMs();
+        AvailableAAMsCollection response = aamClient.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
         // there should be only core AAM in the list
         // verifying the contents
-        AAM aam = aams.get(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID);
+        AAM aam = aams.get(SecurityConstants.CORE_AAM_INSTANCE_ID);
         // this expected PlatformAAM is due to the value stored in the issued certificate in the test keystore
-        assertEquals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, aam.getAamInstanceId());
+        assertEquals(SecurityConstants.CORE_AAM_INSTANCE_ID, aam.getAamInstanceId());
         assertEquals(coreInterfaceAddress, aam.getAamAddress());
         // maybe we could externalize it to spring config
-        assertEquals(SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME, aam.getAamInstanceFriendlyName());
+        assertEquals(SecurityConstants.CORE_AAM_FRIENDLY_NAME, aam.getAamInstanceFriendlyName());
         assertEquals(certificationAuthorityHelper.getAAMCert(), aam.getAamCACertificate().getCertificateString());
 
         // should contain one component certificate
@@ -157,7 +157,7 @@ public class OtherListenersFunctionalTests extends
         // save the certs into the repo
         platformRepository.save(platform);
 
-        AvailableAAMsCollection response = AAMClient.getAvailableAAMs();
+        AvailableAAMsCollection response = aamClient.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
         // there should be only core AAM in the list
@@ -166,9 +166,9 @@ public class OtherListenersFunctionalTests extends
         // first should be served the core AAM
         AAM coreAAM = (AAM) aams.values().toArray()[0];
         // this expected PlatformAAM is due to the value stored in the issued certificate in the test keystore
-        assertEquals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, coreAAM.getAamInstanceId());
+        assertEquals(SecurityConstants.CORE_AAM_INSTANCE_ID, coreAAM.getAamInstanceId());
         assertEquals(coreInterfaceAddress, coreAAM.getAamAddress());
-        assertEquals(SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME, coreAAM.getAamInstanceFriendlyName());
+        assertEquals(SecurityConstants.CORE_AAM_FRIENDLY_NAME, coreAAM.getAamInstanceFriendlyName());
         // then comes the registered platform
         AAM platformAAM = (AAM) aams.values().toArray()[1];
         assertEquals(preferredPlatformId, platformAAM.getAamInstanceId());
@@ -188,7 +188,7 @@ public class OtherListenersFunctionalTests extends
     @Test
     public void getComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException, AAMException {
-        String componentCertificate = AAMClient.getComponentCertificate();
+        String componentCertificate = aamClient.getComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, SecurityConstants.CORE_AAM_INSTANCE_ID);
         assertEquals(certificationAuthorityHelper.getAAMCert(), componentCertificate);
     }
 

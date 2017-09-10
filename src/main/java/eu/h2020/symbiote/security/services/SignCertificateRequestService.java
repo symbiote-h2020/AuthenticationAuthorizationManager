@@ -36,7 +36,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 
-import static eu.h2020.symbiote.security.commons.SecurityConstants.AAM_CORE_AAM_INSTANCE_ID;
+import static eu.h2020.symbiote.security.commons.SecurityConstants.CORE_AAM_INSTANCE_ID;
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 
 /**
@@ -120,7 +120,7 @@ public class SignCertificateRequestService {
         String componentId = req.getSubject().toString().split("CN=")[1].split("@")[0];
         String platformId = req.getSubject().toString().split("CN=")[1].split("@")[1];
 
-        if (platformId.equals(AAM_CORE_AAM_INSTANCE_ID)) {
+        if (platformId.equals(CORE_AAM_INSTANCE_ID)) {
             // core components
             if (certificateRequest.getUsername().equals(AAMOwnerUsername) && certificateRequest.getPassword().equals(AAMOwnerPassword)) {
                 ComponentCertificate coreComponentCert = componentCertificatesRepository.findOne(componentId);
@@ -343,8 +343,8 @@ public class SignCertificateRequestService {
             // password check
             if (!certificateRequest.getPassword().equals(AAMOwnerPassword))
                 throw new WrongCredentialsException();
-            if (revokedKeysRepository.findOne(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID) != null
-                    && revokedKeysRepository.findOne(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+            if (revokedKeysRepository.findOne(SecurityConstants.CORE_AAM_INSTANCE_ID) != null
+                    && revokedKeysRepository.findOne(SecurityConstants.CORE_AAM_INSTANCE_ID).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
                 throw new ValidationException("Using revoked key");
             }
         } else { // other path
@@ -379,7 +379,7 @@ public class SignCertificateRequestService {
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
         String platformIdentifier = request.getSubject().toString().split("CN=")[1].split(illegalSign)[1];
         // only platforms needs to be verified
-        if (!platformIdentifier.equals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID)) {
+        if (!platformIdentifier.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)) {
             if (userRepository.findOne(certificateRequest.getUsername()).getRole() != UserRole.PLATFORM_OWNER) {
                 throw new PlatformManagementException("User is not a Platform Owner", HttpStatus.UNAUTHORIZED);
             }

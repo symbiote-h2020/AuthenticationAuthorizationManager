@@ -64,9 +64,9 @@ public class AAMServices {
             }
 
             // adding core aam info to the response
-            availableAAMs.put(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, new AAM(coreInterfaceAddress,
-                    SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME,
-                    SecurityConstants.AAM_CORE_AAM_INSTANCE_ID,
+            availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM(coreInterfaceAddress,
+                    SecurityConstants.CORE_AAM_FRIENDLY_NAME,
+                    SecurityConstants.CORE_AAM_INSTANCE_ID,
                     coreCertificate, componentsCertificatesMap));
 
             // registered platforms' AAMs

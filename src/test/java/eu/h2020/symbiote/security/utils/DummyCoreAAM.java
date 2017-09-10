@@ -63,9 +63,9 @@ public class DummyCoreAAM {
         pemWriter.close();
         Certificate revokedCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
 
-        aams.getAvailableAAMs().put(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, new AAM("irrelevant",
-                SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME,
-                SecurityConstants.AAM_CORE_AAM_INSTANCE_ID,
+        aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("irrelevant",
+                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
+                SecurityConstants.CORE_AAM_INSTANCE_ID,
                 revokedCert, new HashMap<>()));
     }
 
@@ -94,7 +94,7 @@ public class DummyCoreAAM {
                     ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey().getEncoded(),
                     Token.Type.HOME,
                     new Date().getTime() + 60000,
-                    SecurityConstants.AAM_CORE_AAM_INSTANCE_ID,
+                    SecurityConstants.CORE_AAM_INSTANCE_ID,
                     ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
                     (PrivateKey) key);
 
