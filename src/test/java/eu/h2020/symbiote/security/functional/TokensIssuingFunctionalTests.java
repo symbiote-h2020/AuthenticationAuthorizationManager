@@ -97,11 +97,7 @@ public class TokensIssuingFunctionalTests extends
         platformRepository.deleteAll();
 
         //user registration useful
-        User user = new User();
-        user.setUsername(platformOwnerUsername);
-        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.PLATFORM_OWNER);
+        User user = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
         userRepository.save(user);
 
         // platform registration useful
@@ -166,7 +162,7 @@ public class TokensIssuingFunctionalTests extends
 
         // test combinations of wrong credentials
         RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        HomeCredentials homeCredentials = new HomeCredentials(null, wrongusername, clientId, null, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, wrongUsername, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         byte[] response = client.primitiveCall(mapper.writeValueAsString(loginRequest)
                 .getBytes());
@@ -181,7 +177,7 @@ public class TokensIssuingFunctionalTests extends
         ErrorResponseContainer noToken2 = mapper.readValue(response2, ErrorResponseContainer.class);
 
         log.info("Test Client received this error message instead of token: " + noToken2.getErrorMessage());
-        homeCredentials = new HomeCredentials(null, wrongusername, wrongClientId, null, userKeyPair.getPrivate());
+        homeCredentials = new HomeCredentials(null, wrongUsername, wrongClientId, null, userKeyPair.getPrivate());
         loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         byte[] response3 = client.primitiveCall(mapper.writeValueAsString(loginRequest).getBytes());
         ErrorResponseContainer noToken3 = mapper.readValue(response3, ErrorResponseContainer.class);
@@ -266,7 +262,7 @@ public class TokensIssuingFunctionalTests extends
     }
 
     @Test(expected = WrongCredentialsException.class)
-    public void getHomeTokenForUserOverRESTWrongUsernameFailure() throws IOException, JWTCreationException, MalformedJWTException, WrongCredentialsException {
+    public void getHomeTokenForUserOverRESTwrongUsernameFailure() throws IOException, JWTCreationException, MalformedJWTException, WrongCredentialsException {
 
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);

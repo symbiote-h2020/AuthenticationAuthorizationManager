@@ -151,7 +151,7 @@ public class CertificatesIssuingUnitTests extends
 
         String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(),
                 user.getUsername(), clientId, pair);
-        CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, csr);
+        CertificateRequest certRequest = new CertificateRequest(appUsername, wrongPassword, clientId, csr);
         signCertificateRequestService.signCertificate(certRequest);
     }
 

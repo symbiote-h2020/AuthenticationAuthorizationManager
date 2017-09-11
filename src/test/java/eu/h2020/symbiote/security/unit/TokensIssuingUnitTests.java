@@ -176,11 +176,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             UnrecoverableKeyException,
             InvalidKeyException {
         //platformOwner registration and certificate
-        User user = new User();
-        user.setRole(UserRole.PLATFORM_OWNER);
-        user.setUsername(platformOwnerUsername);
-        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
-        user.setRecoveryMail("nullMail");
+        User user = createUser(platformOwnerUsername, platformOwnerPassword, "nullMail", UserRole.PLATFORM_OWNER);
 
         KeyPair platformKeyPair = CryptoHelper.createKeyPair();
         String cn = "CN=" + platformOwnerUsername + "@" + federatedOAuthId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
@@ -235,11 +231,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             PlatformManagementException,
             NotExistingUserException, ValidationException {
         //platformOwner registration and certificate
-        User user = new User();
-        user.setRole(UserRole.PLATFORM_OWNER);
-        user.setUsername(platformOwnerUsername);
-        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
-        user.setRecoveryMail("nullMail");
+        User user = createUser(platformOwnerUsername, platformOwnerPassword, "nullMail", UserRole.PLATFORM_OWNER);
 
         KeyPair platformKeyPair = CryptoHelper.createKeyPair();
         String cn = "CN=" + platformOwnerUsername + "@" + federatedOAuthId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];

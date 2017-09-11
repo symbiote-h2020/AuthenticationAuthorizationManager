@@ -64,11 +64,7 @@ public class PlatformsManagementFunctionalTests extends
         userRepository.deleteAll();
 
         //user registration useful
-        User user = new User();
-        user.setUsername(platformOwnerUsername);
-        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.PLATFORM_OWNER);
+        User user = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
         userRepository.save(user);
 
         // platform registration useful
@@ -197,8 +193,8 @@ public class PlatformsManagementFunctionalTests extends
     @Test
     public void platformManageOverAMQPFailNotExistingUser() throws IOException, TimeoutException {
         // verify that our platformOwner is in repository
-        assertFalse(userRepository.exists(wrongusername));
-        platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setUsername(wrongusername);
+        assertFalse(userRepository.exists(wrongUsername));
+        platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setUsername(wrongUsername);
 
         byte[] response = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
@@ -209,10 +205,10 @@ public class PlatformsManagementFunctionalTests extends
     }
 
     @Test
-    public void platformManageOverAMQPFailWrongPassword() throws IOException, TimeoutException {
+    public void platformManageOverAMQPFailwrongPassword() throws IOException, TimeoutException {
         // verify that our platformOwner is in repository
         assertTrue(userRepository.exists(platformOwnerUsername));
-        platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setPassword(wrongpassword);
+        platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setPassword(wrongPassword);
 
         byte[] response = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
@@ -318,11 +314,7 @@ public class PlatformsManagementFunctionalTests extends
         assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
         assertNotNull(platformRepository.findOne(preferredPlatformId));
 
-        User user = new User();
-        user.setUsername(platformOwnerUsername + "differentOne");
-        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.PLATFORM_OWNER);
+        User user = createUser(platformOwnerUsername + "differentOne", platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
         userRepository.save(user);
         // issue registration request with the same preferred platform identifier but different PO
         platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setUsername
@@ -433,7 +425,7 @@ public class PlatformsManagementFunctionalTests extends
         PlatformManagementRequest IncorrectPlatformRegistrationRequest;
         IncorrectPlatformRegistrationRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new Credentials(wrongusername, wrongpassword),
+                new Credentials(wrongUsername, wrongPassword),
                 platformInstanceFriendlyName,
                 preferredPlatformId, OperationType.CREATE);
 
