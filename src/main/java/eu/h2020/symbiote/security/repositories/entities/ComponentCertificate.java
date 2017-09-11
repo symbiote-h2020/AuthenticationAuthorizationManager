@@ -14,10 +14,6 @@ public class ComponentCertificate {
     private String name;
     private Certificate certificate;
 
-    public ComponentCertificate() {
-        // required by org.springframework.data.mapping.model.MappingInstantiationException
-    }
-
     /**
      * @param name        e.g. Registry, Search, RAP, etc.
      * @param certificate used in @{@link MutualAuthenticationHelper#isServiceResponseVerified(String, Certificate)}

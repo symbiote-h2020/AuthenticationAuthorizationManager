@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
  *
  * @author Maks Marcinowski (PSNC)
  */
-public interface IUserManagement {
+public interface IManageUsers {
     /**
      * @param userManagementRequest required to initialize user's management operation.
      * @return the status of the operation

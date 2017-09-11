@@ -51,10 +51,6 @@ public class Platform {
         return platformInstanceId;
     }
 
-    public void setPlatformInstanceId(String platformInstanceId) {
-        this.platformInstanceId = platformInstanceId;
-    }
-
     /**
      * @return Address where the Platform exposes its Interworking Interface
      */
@@ -97,7 +93,4 @@ public class Platform {
         return componentCertificates;
     }
 
-    public void setComponentCertificates(Map<String, Certificate> componentCertificates) {
-        this.componentCertificates = componentCertificates;
-    }
 }

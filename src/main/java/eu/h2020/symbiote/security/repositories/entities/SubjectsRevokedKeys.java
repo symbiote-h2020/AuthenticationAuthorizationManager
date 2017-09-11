@@ -15,10 +15,6 @@ public class SubjectsRevokedKeys {
     private String subjectId;
     private Set<String> revokedKeysSet;
 
-    public SubjectsRevokedKeys() {
-        // required by org.springframework.data.mapping.model.MappingInstantiationException
-    }
-
     public SubjectsRevokedKeys(String subjectId, Set<String> revokedKeysSet) {
         this.subjectId = subjectId;
         this.revokedKeysSet = revokedKeysSet;
@@ -31,18 +27,10 @@ public class SubjectsRevokedKeys {
         return subjectId;
     }
 
-    public void setSubjectId(String subjectId) {
-        this.subjectId = subjectId;
-    }
-
     /**
      * @return collection of revoked public keys strings for the associated subject
      */
     public Set<String> getRevokedKeysSet() {
         return revokedKeysSet;
-    }
-
-    public void setRevokedKeysSet(Set<String> revokedKeysSet) {
-        this.revokedKeysSet = revokedKeysSet;
     }
 }

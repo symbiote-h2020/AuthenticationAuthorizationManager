@@ -21,7 +21,7 @@ import java.util.HashMap;
 
 
 /**
- * RabbitMQ Consumer implementation used to provide names of owners of requested platforms
+ * RabbitMQ Consumer implementation used to provide names of owners of given platforms
  * <p>
  */
 public class GetPlatformOwnersNamesConsumerService extends DefaultConsumer {

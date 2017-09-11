@@ -62,7 +62,7 @@ public class CertificationAuthorityHelper {
         String aamInstanceIdentifier = getAAMInstanceIdentifier();
         if (aamInstanceIdentifier.isEmpty())
             return IssuingAuthorityType.NULL;
-        if (aamInstanceIdentifier.equals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID))
+        if (aamInstanceIdentifier.equals(SecurityConstants.CORE_AAM_INSTANCE_ID))
             return IssuingAuthorityType.CORE;
         return IssuingAuthorityType.PLATFORM;
     }

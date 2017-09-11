@@ -90,7 +90,7 @@ public class DummyPlatformAAM {
     /**
      * return valid status
      */
-    @PostMapping(path = PATH + SecurityConstants.AAM_VALIDATE)
+    @PostMapping(path = PATH + SecurityConstants.AAM_VALIDATE_CREDENTIALS)
     public ValidationStatus validate(@RequestHeader(SecurityConstants
             .TOKEN_HEADER_NAME) String token) {
         log.info("Validating token " + token);

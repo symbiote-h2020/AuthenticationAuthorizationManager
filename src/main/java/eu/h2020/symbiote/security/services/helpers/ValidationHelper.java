@@ -46,21 +46,23 @@ public class ValidationHelper {
     private static Log log = LogFactory.getLog(ValidationHelper.class);
 
     // AAM configuration
-    private String deploymentId = "";
-    private IssuingAuthorityType deploymentType = IssuingAuthorityType.NULL;
+    private final String deploymentId;
+    private final IssuingAuthorityType deploymentType;
+    private final CertificationAuthorityHelper certificationAuthorityHelper;
+    private final RevokedKeysRepository revokedKeysRepository;
+    private final RevokedTokensRepository revokedTokensRepository;
+    private final UserRepository userRepository;
+    private final PlatformRepository platformRepository;
+    private final ComponentCertificatesRepository componentCertificatesRepository;
+    private final AAMServices aamServices;
+
+    // usable
+    private final RestTemplate restTemplate = new RestTemplate();
+
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
     @Value("${aam.deployment.validation.allow-offline}")
     private boolean isOfflineEnough;
-    // dependencies
-    private RestTemplate restTemplate = new RestTemplate();
-    private CertificationAuthorityHelper certificationAuthorityHelper;
-    private RevokedKeysRepository revokedKeysRepository;
-    private RevokedTokensRepository revokedTokensRepository;
-    private UserRepository userRepository;
-    private PlatformRepository platformRepository;
-    private ComponentCertificatesRepository componentCertificatesRepository;
-    private AAMServices aamServices;
 
     @Autowired
     public ValidationHelper(CertificationAuthorityHelper certificationAuthorityHelper,
@@ -156,7 +158,7 @@ public class ValidationHelper {
                 String platformId = claims.getSubject().split("@")[2];
                 Certificate componentCertificate = null;
 
-                if (platformId.equals(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID)) {
+                if (platformId.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)) {
                     // core component case
                     ComponentCertificate coreComponentCertificate = componentCertificatesRepository.findOne(clientId);
                     if (coreComponentCertificate != null)
@@ -256,7 +258,7 @@ public class ValidationHelper {
         // checking token revocation with proper AAM
         try {
             ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(
-                    aamAddress + SecurityConstants.AAM_VALIDATE,
+                    aamAddress + SecurityConstants.AAM_VALIDATE_CREDENTIALS,
                     entity, ValidationStatus.class);
             return status.getBody();
         } catch (Exception e) {

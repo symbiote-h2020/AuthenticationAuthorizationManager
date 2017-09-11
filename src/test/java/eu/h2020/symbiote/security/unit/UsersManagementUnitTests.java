@@ -87,7 +87,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
     @Test
     public void userInternalCreateFailForGuestAttempt() throws SecurityException {
-        // manage new user to db
+        // managePlatform new user to db
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
                 new UserDetails(new Credentials(SecurityConstants.GUEST_NAME, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
@@ -364,7 +364,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>());
         userRepository.save(platformOwner);
         //  Request user with matching credentials
-        UserDetails userDetails = AAMClient.getUserDetails(new Credentials(username, password));
+        UserDetails userDetails = aamClient.getUserDetails(new Credentials(username, password));
         assertNotNull(userDetails);
     }
 
@@ -374,7 +374,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>());
         userRepository.save(platformOwner);
         //  Request different user that is NOT in database
-        AAMClient.getUserDetails(new Credentials("NotExisting", "somePassword"));
+        aamClient.getUserDetails(new Credentials("NotExisting", "somePassword"));
     }
 
     @Test(expected = UserManagementException.class)
@@ -383,6 +383,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>());
         userRepository.save(platformOwner);
         //  Request existing user with incorrect password
-        AAMClient.getUserDetails(new Credentials(username, "WrongPassword"));
+        aamClient.getUserDetails(new Credentials(username, "WrongPassword"));
     }
 }

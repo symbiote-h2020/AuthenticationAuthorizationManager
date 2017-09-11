@@ -1,11 +1,11 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IAAMServices;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IGetComponentCertificate;
 import eu.h2020.symbiote.security.services.AAMServices;
-import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -14,6 +14,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
@@ -33,20 +34,36 @@ import java.util.Map;
 public class AAMServicesController implements IAAMServices, IGetComponentCertificate {
 
     private static final Log log = LogFactory.getLog(AAMServicesController.class);
-    private CertificationAuthorityHelper certificationAuthorityHelper;
     private AAMServices aamServices;
 
     @Autowired
-    public AAMServicesController(CertificationAuthorityHelper certificationAuthorityHelper, AAMServices aamServices) {
-        this.certificationAuthorityHelper = certificationAuthorityHelper;
+    public AAMServicesController(AAMServices aamServices) {
         this.aamServices = aamServices;
     }
 
-    @ApiOperation(value = "Get Component Certificate", response = String.class)
-    @ApiResponse(code = 500, message = "Could not create Component Certificate")
-    public ResponseEntity<String> getComponentCertificate() {
+    @ApiOperation(value = "Get component certificate", response = String.class)
+    @ApiResponse(code = 500, message = "Could not retrieve Component Certificate")
+    public ResponseEntity<String> getComponentCertificate(@PathVariable String componentIdentifier,
+                                                          @PathVariable String platformIdentifier) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(certificationAuthorityHelper.getAAMCert());
+            Map<String, AAM> availableAAMs = aamServices.getAvailableAAMs();
+            String certificate = "";
+
+            if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME)) {   // AAM CA cert
+                // trying to find the certificate for given AAM
+                if (availableAAMs.containsKey(platformIdentifier))
+                    certificate = availableAAMs.get(platformIdentifier).getAamCACertificate().getCertificateString();
+            } else {
+                // trying to find the certificate for given component
+                if (availableAAMs.containsKey(platformIdentifier) && availableAAMs.get(platformIdentifier).getComponentCertificates().containsKey(componentIdentifier))
+                    certificate = availableAAMs.get(platformIdentifier).getComponentCertificates().get(componentIdentifier).getCertificateString();
+            }
+
+            // not found
+            if (certificate.isEmpty())
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("");
+            // found
+            return ResponseEntity.status(HttpStatus.OK).body(certificate);
         } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException |
                 NoSuchProviderException e) {
             log.error(e);
@@ -54,7 +71,7 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
         }
     }
 
-    @ApiOperation(value = "Returns collection of available AAMs", response = AvailableAAMsCollection.class)
+    @ApiOperation(value = "Returns collection of available platforms (their AAMs and components)", response = AvailableAAMsCollection.class)
     @ApiResponse(code = 500, message = "Internal AAM Error")
     public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {
         Map<String, AAM> result;

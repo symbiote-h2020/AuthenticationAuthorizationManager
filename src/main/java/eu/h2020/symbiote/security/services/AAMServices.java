@@ -28,19 +28,19 @@ import java.util.TreeMap;
 @Service
 public class AAMServices {
 
+    private final CertificationAuthorityHelper certificationAuthorityHelper;
+    private final PlatformRepository platformRepository;
+    private final ComponentCertificatesRepository componentCertificatesRepository;
+    private final RestTemplate restTemplate = new RestTemplate();
+
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     private String coreInterfaceAddress;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}")
     private String platformAAMSuffixAtInterWorkingInterface = "/paam";
     @Value("${aam.environment.interworkingInterfacePort::8101}")
     private String interworkingInterfacePort = ":8101";
-
     @Value("${symbiote.coreaam.url:localhost}")
     private String coreAAMAddress = "";
-
-    private CertificationAuthorityHelper certificationAuthorityHelper;
-    private PlatformRepository platformRepository;
-    private ComponentCertificatesRepository componentCertificatesRepository;
 
     @Autowired
     public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper, PlatformRepository platformRepository, ComponentCertificatesRepository componentCertificatesRepository) {
@@ -64,9 +64,9 @@ public class AAMServices {
             }
 
             // adding core aam info to the response
-            availableAAMs.put(SecurityConstants.AAM_CORE_AAM_INSTANCE_ID, new AAM(coreInterfaceAddress,
-                    SecurityConstants.AAM_CORE_AAM_FRIENDLY_NAME,
-                    SecurityConstants.AAM_CORE_AAM_INSTANCE_ID,
+            availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM(coreInterfaceAddress,
+                    SecurityConstants.CORE_AAM_FRIENDLY_NAME,
+                    SecurityConstants.CORE_AAM_INSTANCE_ID,
                     coreCertificate, componentsCertificatesMap));
 
             // registered platforms' AAMs
@@ -78,7 +78,6 @@ public class AAMServices {
             }
         } else {
             // a PAAM needs to fetch them from core
-            RestTemplate restTemplate = new RestTemplate();
             availableAAMs = restTemplate.getForEntity(coreAAMAddress + SecurityConstants
                     .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class).getBody().getAvailableAAMs();
         }

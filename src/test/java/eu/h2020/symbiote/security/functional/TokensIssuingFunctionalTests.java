@@ -19,7 +19,7 @@ import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.GetCertificateService;
+import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -71,6 +71,7 @@ public class TokensIssuingFunctionalTests extends
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
+
     private KeyPair platformOwnerKeyPair;
     private RpcClient attributesAddingOverAMQPClient;
     private RpcClient platformRegistrationOverAMQPClient;
@@ -80,7 +81,7 @@ public class TokensIssuingFunctionalTests extends
     @Autowired
     private PlatformRepository platformRepository;
     @Autowired
-    private GetCertificateService getCertificateService;
+    private SignCertificateRequestService signCertificateRequestService;
 
     @Bean
     DummyPlatformAAM getDummyPlatformAAM() {
@@ -94,8 +95,6 @@ public class TokensIssuingFunctionalTests extends
 
         // db cleanup
         platformRepository.deleteAll();
-
-        // user registration useful
 
         //user registration useful
         User user = new User();
@@ -254,13 +253,13 @@ public class TokensIssuingFunctionalTests extends
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        String homeToken = AAMClient.getHomeToken(loginRequest);
+        String homeToken = aamClient.getHomeToken(loginRequest);
         assertNotNull(homeToken);
     }
 
     @Test(expected = MalformedJWTException.class)
     public void getHomeTokenForUserOverRESTIncorrectTokenFormat() throws JWTCreationException, MalformedJWTException, WrongCredentialsException {
-        String homeToken = AAMClient.getHomeToken("IncorrectlyFormattedToken");
+        String homeToken = aamClient.getHomeToken("IncorrectlyFormattedToken");
         assertNotNull(homeToken);
     }
 
@@ -269,7 +268,7 @@ public class TokensIssuingFunctionalTests extends
 
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        AAMClient.getHomeToken(loginRequest);
+        aamClient.getHomeToken(loginRequest);
     }
 
     /**
@@ -281,7 +280,7 @@ public class TokensIssuingFunctionalTests extends
     public void getHomeTokenForUserOverRESTWrongClientIdFailure() throws IOException, JWTCreationException, MalformedJWTException, WrongCredentialsException {
         HomeCredentials homeCredentials = new HomeCredentials(null, username, wrongClientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        AAMClient.getHomeToken(loginRequest);
+        aamClient.getHomeToken(loginRequest);
     }
 
     /**
@@ -305,7 +304,7 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = AAMClient.getHomeToken(loginRequest);
+        String homeToken = aamClient.getHomeToken(loginRequest);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(homeToken);
         // As the AAM is now configured as core we confirm that relevant token type was issued.
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
@@ -367,7 +366,7 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, platformOwnerKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = AAMClient.getHomeToken(loginRequest);
+        String homeToken = aamClient.getHomeToken(loginRequest);
         //verify that JWT was issued for user
         assertNotNull(homeToken);
 
@@ -417,7 +416,7 @@ public class TokensIssuingFunctionalTests extends
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, preferredPlatformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateString = getCertificateService.getCertificate(certRequest);
+        String certificateString = signCertificateRequestService.getCertificate(certRequest);
         Platform platform = platformRepository.findOne(preferredPlatformId);
         platform.getComponentCertificates().put(componentId, new Certificate(certificateString));
         platformRepository.save(platform);
@@ -427,7 +426,7 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, componentId + illegalSign + preferredPlatformId, null, pair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = AAMClient.getHomeToken(loginRequest);
+        String homeToken = aamClient.getHomeToken(loginRequest);
         //verify that JWT was issued for user
         assertNotNull(homeToken);
 
@@ -472,8 +471,8 @@ public class TokensIssuingFunctionalTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        String homeToken = AAMClient.getHomeToken(loginRequest);
-        AAMClient.getForeignToken(homeToken, Optional.empty(), Optional.empty());
+        String homeToken = aamClient.getHomeToken(loginRequest);
+        aamClient.getForeignToken(homeToken, Optional.empty(), Optional.empty());
     }
 
     @Test
@@ -532,7 +531,7 @@ public class TokensIssuingFunctionalTests extends
         federationRulesRepository.save(federationRule);
 
         // checking issuing of foreign token using the dummy platform token
-        String token = AAMClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
+        String token = aamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
         // check if returned status is ok and if there is token in header
         assertNotNull(token);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token);
@@ -580,7 +579,7 @@ public class TokensIssuingFunctionalTests extends
         federationRulesRepository.save(federationRule);
 
         // checking issuing of foreign token using the dummy platform token
-        AAMClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
+        aamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
     }
 
     @Test(expected = ValidationException.class)
@@ -615,7 +614,7 @@ public class TokensIssuingFunctionalTests extends
         federationRulesRepository.save(federationRule);
 
         // checking issuing of foreign token using the dummy platform token
-        AAMClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
+        aamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
     }
 
     /**
@@ -668,12 +667,12 @@ public class TokensIssuingFunctionalTests extends
         federationRulesRepository.deleteAll();
 
         // checking issuing of foreign token using the dummy platform token
-        AAMClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
+        aamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
     }
 
     @Test
     public void getGuestTokenOverRESTSuccess() throws MalformedJWTException, JWTCreationException {
-        String acquired_token = AAMClient.getGuestToken();
+        String acquired_token = aamClient.getGuestToken();
         assertNotNull(acquired_token);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(acquired_token);
         assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));

@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @see CredentialsValidationService
  */
 @RestController
-@Api(value = "/docs/validate", description = "Exposes services used to validate tokens and certificates in given AAM")
+@Api(value = "/docs/validateCredentials", description = "Exposes services used to validate tokens and certificates in given AAM")
 public class ValidateCredentialsController implements IValidateCredentials {
 
     private Log log = LogFactory.getLog(ValidateCredentialsController.class);

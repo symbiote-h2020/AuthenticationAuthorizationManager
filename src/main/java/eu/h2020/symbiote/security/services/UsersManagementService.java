@@ -48,7 +48,7 @@ public class UsersManagementService {
     private final PasswordEncoder passwordEncoder;
     private final String adminUsername;
     private final String adminPassword;
-    private IssuingAuthorityType deploymentType;
+    private final IssuingAuthorityType deploymentType;
 
     @Autowired
     public UsersManagementService(UserRepository userRepository, RevokedKeysRepository revokedKeysRepository,

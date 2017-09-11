@@ -10,9 +10,8 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.GetCertificateService;
+import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
@@ -34,7 +33,7 @@ import java.security.cert.X509Certificate;
 import java.security.spec.ECGenParameterSpec;
 import java.util.*;
 
-import static eu.h2020.symbiote.security.commons.SecurityConstants.AAM_CORE_AAM_INSTANCE_ID;
+import static eu.h2020.symbiote.security.commons.SecurityConstants.CORE_AAM_INSTANCE_ID;
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 import static org.junit.Assert.*;
 
@@ -51,11 +50,9 @@ public class CertificatesIssuingUnitTests extends
     private final String PROVIDER_NAME = BouncyCastleProvider.PROVIDER_NAME;
 
     @Autowired
-    private RevocationHelper revocationHelper;
-    @Autowired
     private CertificationAuthorityHelper certificationAuthorityHelper;
     @Autowired
-    private GetCertificateService getCertificateService;
+    private SignCertificateRequestService signCertificateRequestService;
 
     @Test
     public void generateCertificateFromCSRSuccess() throws OperatorCreationException, CertificateException,
@@ -155,7 +152,7 @@ public class CertificatesIssuingUnitTests extends
         String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(),
                 user.getUsername(), clientId, pair);
         CertificateRequest certRequest = new CertificateRequest(appUsername, wrongpassword, clientId, csr);
-        getCertificateService.getCertificate(certRequest);
+        signCertificateRequestService.getCertificate(certRequest);
     }
 
     @Test(expected = InvalidArgumentsException.class)
@@ -184,7 +181,7 @@ public class CertificatesIssuingUnitTests extends
         String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificate, username, clientId, pair);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csr);
 
-        getCertificateService.getCertificate(certRequest);
+        signCertificateRequestService.getCertificate(certRequest);
     }
 
     @Test(expected = NotExistingUserException.class)
@@ -207,7 +204,7 @@ public class CertificatesIssuingUnitTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        getCertificateService.getCertificate(certRequest);
+        signCertificateRequestService.getCertificate(certRequest);
     }
 
     @Test(expected = ValidationException.class)
@@ -230,13 +227,13 @@ public class CertificatesIssuingUnitTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
         Set<String> keySet = new HashSet<>();
         keySet.add(Base64.getEncoder().encodeToString(x509Certificate.getPublicKey().getEncoded()));
         revokedKeysRepository.save(new SubjectsRevokedKeys(appUsername, keySet));
-        getCertificateService.getCertificate(certRequest);
+        signCertificateRequestService.getCertificate(certRequest);
     }
 
 
@@ -266,7 +263,7 @@ public class CertificatesIssuingUnitTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(user.getUsername(), password, clientId, csrString);
         try {
-            getCertificateService.getCertificate(certRequest);
+            signCertificateRequestService.getCertificate(certRequest);
         } catch (Exception e) {
             assertEquals(PlatformManagementException.class, e.getClass());
             assertEquals("User is not a Platform Owner", e.getMessage());
@@ -296,7 +293,7 @@ public class CertificatesIssuingUnitTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
         try {
-            getCertificateService.getCertificate(certRequest);
+            signCertificateRequestService.getCertificate(certRequest);
         } catch (Exception e) {
             assertEquals(PlatformManagementException.class, e.getClass());
             assertEquals("Platform doesn't exist", e.getMessage());
@@ -324,7 +321,7 @@ public class CertificatesIssuingUnitTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
         User user = userRepository.findOne(appUsername);
         assertEquals(1, user.getClientCertificates().size());
 
@@ -336,7 +333,7 @@ public class CertificatesIssuingUnitTests extends
         assertEquals(-1, x509Certificate.getBasicConstraints());
 
         //adding next certificate with the same public key
-        String certificate2 = getCertificateService.getCertificate(certRequest);
+        String certificate2 = signCertificateRequestService.getCertificate(certRequest);
         assertNotNull(certificate2);
         user = userRepository.findOne(appUsername);
         assertEquals(1, user.getClientCertificates().size());
@@ -366,7 +363,7 @@ public class CertificatesIssuingUnitTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
         User user = userRepository.findOne(appUsername);
         assertEquals(1, user.getClientCertificates().size());
 
@@ -382,7 +379,7 @@ public class CertificatesIssuingUnitTests extends
         String csrString2 = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair2);
         assertNotNull(csrString);
         CertificateRequest certRequest2 = new CertificateRequest(appUsername, password, clientId, csrString2);
-        String certificate2 = getCertificateService.getCertificate(certRequest2);
+        String certificate2 = signCertificateRequestService.getCertificate(certRequest2);
         assertNotNull(certificate2);
         assertNotEquals(certificate, certificate2);
 
@@ -414,7 +411,7 @@ public class CertificatesIssuingUnitTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
@@ -448,7 +445,7 @@ public class CertificatesIssuingUnitTests extends
         String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
@@ -482,7 +479,7 @@ public class CertificatesIssuingUnitTests extends
         String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
@@ -495,7 +492,7 @@ public class CertificatesIssuingUnitTests extends
         csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
         certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        certificate = getCertificateService.getCertificate(certRequest);
+        certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         x509Certificate = CryptoHelper.convertPEMToX509(certificate);
@@ -529,7 +526,7 @@ public class CertificatesIssuingUnitTests extends
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
@@ -562,7 +559,7 @@ public class CertificatesIssuingUnitTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
         try {
-            getCertificateService.getCertificate(certRequest);
+            signCertificateRequestService.getCertificate(certRequest);
         } catch (Exception e) {
             assertEquals(PlatformManagementException.class, e.getClass());
             assertEquals("Platform doesn't exist", e.getMessage());
@@ -595,7 +592,7 @@ public class CertificatesIssuingUnitTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(user.getUsername(), password, clientId, csrString);
         try {
-            getCertificateService.getCertificate(certRequest);
+            signCertificateRequestService.getCertificate(certRequest);
         } catch (Exception e) {
             assertEquals(PlatformManagementException.class, e.getClass());
             assertEquals("User is not a Platform Owner", e.getMessage());
@@ -626,7 +623,7 @@ public class CertificatesIssuingUnitTests extends
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
@@ -639,7 +636,7 @@ public class CertificatesIssuingUnitTests extends
         csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
         assertNotNull(csrString);
         certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        certificate = getCertificateService.getCertificate(certRequest);
+        certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         x509Certificate = CryptoHelper.convertPEMToX509(certificate);
@@ -673,7 +670,7 @@ public class CertificatesIssuingUnitTests extends
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
@@ -685,7 +682,7 @@ public class CertificatesIssuingUnitTests extends
         csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
         assertNotNull(csrString);
         certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        certificate = getCertificateService.getCertificate(certRequest);
+        certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         x509Certificate = CryptoHelper.convertPEMToX509(certificate);
@@ -716,21 +713,21 @@ public class CertificatesIssuingUnitTests extends
         AAMOwner.setClientCertificates(new HashMap<>());
         AAMOwner.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(AAMOwner);
-        Platform platform = new Platform(AAM_CORE_AAM_INSTANCE_ID, null, null, AAMOwner, new Certificate(), new HashMap<>());
+        Platform platform = new Platform(CORE_AAM_INSTANCE_ID, null, null, AAMOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
         AAMOwner.getOwnedPlatforms().put(platformId, platform);
         userRepository.save(AAMOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, AAM_CORE_AAM_INSTANCE_ID, pair);
+        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + componentId + illegalSign + AAM_CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + componentId + illegalSign + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
         assertNotNull(componentCertificatesRepository.findOne(componentId));
@@ -757,34 +754,34 @@ public class CertificatesIssuingUnitTests extends
         AAMOwner.setClientCertificates(new HashMap<>());
         AAMOwner.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(AAMOwner);
-        Platform platform = new Platform(AAM_CORE_AAM_INSTANCE_ID, null, null, AAMOwner, new Certificate(), new HashMap<>());
+        Platform platform = new Platform(CORE_AAM_INSTANCE_ID, null, null, AAMOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
         AAMOwner.getOwnedPlatforms().put(platformId, platform);
         userRepository.save(AAMOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, AAM_CORE_AAM_INSTANCE_ID, pair);
+        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + componentId + illegalSign + AAM_CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + componentId + illegalSign + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
 
         pair = CryptoHelper.createKeyPair();
-        csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, AAM_CORE_AAM_INSTANCE_ID, pair);
+        csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
         assertNotNull(csrString);
         certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csrString);
-        certificate = getCertificateService.getCertificate(certRequest);
+        certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + componentId + illegalSign + AAM_CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + componentId + illegalSign + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
     }
@@ -810,33 +807,33 @@ public class CertificatesIssuingUnitTests extends
         AAMOwner.setClientCertificates(new HashMap<>());
         AAMOwner.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(AAMOwner);
-        Platform platform = new Platform(AAM_CORE_AAM_INSTANCE_ID, null, null, AAMOwner, new Certificate(), new HashMap<>());
+        Platform platform = new Platform(CORE_AAM_INSTANCE_ID, null, null, AAMOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
         AAMOwner.getOwnedPlatforms().put(platformId, platform);
         userRepository.save(AAMOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, AAM_CORE_AAM_INSTANCE_ID, pair);
+        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + componentId + illegalSign + AAM_CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + componentId + illegalSign + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
 
-        csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, AAM_CORE_AAM_INSTANCE_ID, pair);
+        csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
         assertNotNull(csrString);
         certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csrString);
-        certificate = getCertificateService.getCertificate(certRequest);
+        certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + componentId + illegalSign + AAM_CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + componentId + illegalSign + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
     }
@@ -862,34 +859,34 @@ public class CertificatesIssuingUnitTests extends
         aamowner.setRole(UserRole.PLATFORM_OWNER);
         userRepository.save(aamowner);
 
-        Platform platform = new Platform(AAM_CORE_AAM_INSTANCE_ID, null, null, aamowner, new Certificate(), new HashMap<>());
+        Platform platform = new Platform(CORE_AAM_INSTANCE_ID, null, null, aamowner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        aamowner.getOwnedPlatforms().put(AAM_CORE_AAM_INSTANCE_ID, platform);
+        aamowner.getOwnedPlatforms().put(CORE_AAM_INSTANCE_ID, platform);
         userRepository.save(aamowner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, AAM_CORE_AAM_INSTANCE_ID, pair);
+        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csrString);
-        String certificate = getCertificateService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + componentId + illegalSign + AAM_CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + componentId + illegalSign + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
 
         pair = CryptoHelper.createKeyPair();
-        csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, AAM_CORE_AAM_INSTANCE_ID, pair);
+        csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
         assertNotNull(csrString);
         certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csrString);
-        getCertificateService.getCertificate(certRequest);
+        signCertificateRequestService.getCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + componentId + illegalSign + AAM_CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + componentId + illegalSign + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
     }

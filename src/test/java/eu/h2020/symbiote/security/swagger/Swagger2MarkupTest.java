@@ -1,8 +1,6 @@
 package eu.h2020.symbiote.security.swagger;
 
 import eu.h2020.symbiote.security.AuthenticationAuthorizationManager;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,14 +36,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource("/core.properties")
 public class Swagger2MarkupTest {
 
-    private static final Log LOG = LogFactory.getLog(Swagger2MarkupTest.class);
-
     @Autowired
     private MockMvc mockMvc;
 
     @Before
     public void setUp() throws Exception {
-        // Create a trust manager that does not validate certificate chains
+        // Create a trust manager that does not validateCredentials certificate chains
         TrustManager[] trustAllCerts = new TrustManager[]{
                 new X509TrustManager() {
                     public java.security.cert.X509Certificate[] getAcceptedIssuers() {

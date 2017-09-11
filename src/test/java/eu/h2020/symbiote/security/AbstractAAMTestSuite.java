@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.communication.AAMClient;
+import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
@@ -17,8 +18,6 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -59,7 +58,6 @@ import java.util.HashMap;
 @ContextConfiguration
 public abstract class AbstractAAMTestSuite {
 
-    private static Log log = LogFactory.getLog(AbstractAAMTestSuite.class);
     protected final String username = "testApplicationUsername";
     protected final String password = "testApplicationPassword";
     protected final String wrongusername = "veryWrongTestApplicationUsername";
@@ -124,7 +122,7 @@ public abstract class AbstractAAMTestSuite {
     protected String CERTIFICATE_ALIAS;
     @Value("${aam.deployment.token.validityMillis}")
     protected Long tokenValidityPeriod;
-    protected AAMClient AAMClient;
+    protected IAAMClient aamClient;
     @LocalServerPort
     private int port;
 
@@ -132,7 +130,7 @@ public abstract class AbstractAAMTestSuite {
     public void setUp() throws Exception {
         // Catch the random port
         serverAddress = "https://localhost:" + port;
-        AAMClient = new AAMClient(serverAddress);
+        aamClient = new AAMClient(serverAddress);
 
         // Create a trust manager that does not validate certificate chains
         TrustManager[] trustAllCerts = new TrustManager[]{

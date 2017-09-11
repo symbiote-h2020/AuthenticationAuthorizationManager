@@ -35,7 +35,6 @@ public class User {
     /**
      * Might be used to assign in registration phase user-unique attributes
      */
-    //@DBRef -- might come in useful
     private Map<String, String> attributes = new HashMap<>();
 
     public User() {

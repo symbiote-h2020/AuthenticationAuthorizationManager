@@ -31,11 +31,13 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
  */
 @Service
 public class GetTokenService {
+    private static Log log = LogFactory.getLog(GetTokenService.class);
+
     private final TokenIssuer tokenIssuer;
     private final ComponentCertificatesRepository componentCertificateRepository;
-    private UserRepository userRepository;
-    private ValidationHelper validationHelper;
-    private Log log = LogFactory.getLog(GetTokenService.class);
+    private final UserRepository userRepository;
+    private final ValidationHelper validationHelper;
+
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
 
