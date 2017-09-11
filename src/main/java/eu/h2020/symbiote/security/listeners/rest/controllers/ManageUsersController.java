@@ -37,7 +37,8 @@ public class ManageUsersController implements IManageUsers {
 
     @Override
     @ApiOperation(value = "Performs management action based on management request", response = ManagementStatus.class)
-    @ApiResponse(code = 500, message = "Internal User Management Error")
+    @ApiResponses({
+            @ApiResponse(code = 500, message = "Internal User Management Error")})
     public ResponseEntity<ManagementStatus> manage(
             @RequestBody
             @ApiParam(name = "User Management Request", value = "required to initialize user's management operation", required = true)

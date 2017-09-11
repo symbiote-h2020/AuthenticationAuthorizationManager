@@ -67,7 +67,8 @@ public class GetTokenController implements IGetToken {
     }
 
     @ApiOperation(value = "Issues a Guest Token")
-    @ApiResponse(code = 500, message = "Could not create Guest Token")
+    @ApiResponses({
+            @ApiResponse(code = 500, message = "Could not create Guest Token")})
     public ResponseEntity<String> getGuestToken() {
         try {
             Token token = getTokenService.getGuestToken();

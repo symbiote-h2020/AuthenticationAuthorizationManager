@@ -6,10 +6,7 @@ import eu.h2020.symbiote.security.communication.payloads.PlatformManagementReque
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementResponse;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IManagePlatforms;
 import eu.h2020.symbiote.security.services.PlatformsManagementService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,7 +31,8 @@ public class ManagePlatformsController implements IManagePlatforms {
 
     @Override
     @ApiOperation(value = "Operation used to manage platform based on contents of management request", response = PlatformManagementResponse.class)
-    @ApiResponse(code = 500, message = "Internal Platform Management Error")
+    @ApiResponses({
+            @ApiResponse(code = 500, message = "Internal Platform Management Error")})
     public ResponseEntity<PlatformManagementResponse> manage(
             @RequestBody
             @ApiParam(value = "Platform Management Request", required = true)

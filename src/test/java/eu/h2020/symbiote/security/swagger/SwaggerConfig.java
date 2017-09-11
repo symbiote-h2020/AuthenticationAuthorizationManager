@@ -31,6 +31,7 @@ public class SwaggerConfig {
         LOG.info("restApi()");
         return new Docket(DocumentationType.SWAGGER_2)
                 .apiInfo(apiInfo())
+                .useDefaultResponseMessages(false)
 //                .securitySchemes(asList(
 //                        new OAuth(
 //                                "petstore_auth",

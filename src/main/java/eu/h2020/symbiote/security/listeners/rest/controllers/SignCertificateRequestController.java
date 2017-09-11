@@ -4,10 +4,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.ISignCertificateRequest;
 import eu.h2020.symbiote.security.services.SignCertificateRequestService;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,8 +28,9 @@ public class SignCertificateRequestController implements ISignCertificateRequest
     }
 
     @Override
-    @ApiOperation(value = "Allows signing user' Certificates")
-    @ApiResponse(code = 500, message = "Could not sign the requested certificate")
+    @ApiOperation(value = "Allows signing user's Certificates")
+    @ApiResponses({
+            @ApiResponse(code = 500, message = "Could not sign the requested certificate")})
     public ResponseEntity<String> signCertificateRequest(
             @RequestBody
             @ApiParam(value = "Request required to issue a certificate for given (username, clientId) tupple", required = true)

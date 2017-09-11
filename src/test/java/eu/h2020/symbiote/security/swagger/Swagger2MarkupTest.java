@@ -41,7 +41,7 @@ public class Swagger2MarkupTest {
 
     @Before
     public void setUp() throws Exception {
-        // Create a trust manager that does not validateCredentials certificate chains
+        // Create a trust manager that does not validate certificate chains
         TrustManager[] trustAllCerts = new TrustManager[]{
                 new X509TrustManager() {
                     public java.security.cert.X509Certificate[] getAcceptedIssuers() {

@@ -9,6 +9,7 @@ import eu.h2020.symbiote.security.services.AAMServices;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +43,9 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
     }
 
     @ApiOperation(value = "Get component certificate", response = String.class)
-    @ApiResponse(code = 500, message = "Could not retrieve Component Certificate")
+    @ApiResponses({
+            @ApiResponse(code = 500, message = "Could not retrieve Component Certificate"),
+            @ApiResponse(code = 404, message = "Certificate could not be found")})
     public ResponseEntity<String> getComponentCertificate(@PathVariable String componentIdentifier,
                                                           @PathVariable String platformIdentifier) {
         try {
@@ -72,7 +75,8 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
     }
 
     @ApiOperation(value = "Returns collection of available platforms (their AAMs and components)", response = AvailableAAMsCollection.class)
-    @ApiResponse(code = 500, message = "Internal AAM Error")
+    @ApiResponses({
+            @ApiResponse(code = 500, message = "Internal AAM Error")})
     public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {
         Map<String, AAM> result;
         try {
