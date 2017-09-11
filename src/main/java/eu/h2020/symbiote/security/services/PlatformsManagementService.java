@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
@@ -85,6 +86,9 @@ public class PlatformsManagementService {
                 else if (platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
                     // check if platform already in repository
                     throw new PlatformManagementException("Platform already exists", HttpStatus.BAD_REQUEST);
+                    // such a name would pose awkward questions
+                else if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME))
+                    throw new PlatformManagementException("That is an awkward platform id, we won't register it", HttpStatus.BAD_REQUEST);
                 else {
                     // use PO preferred platform identifier
                     platformId = platformManagementRequest.getPlatformInstanceId();

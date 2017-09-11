@@ -38,7 +38,7 @@ public class SignCertificateRequestController implements ISignCertificateRequest
             @ApiParam(value = "Request required to issue a certificate for given (username, clientId) tupple", required = true)
                     CertificateRequest certificateRequest) {
         try {
-            String certificate = signCertificateRequestService.getCertificate(certificateRequest);
+            String certificate = signCertificateRequestService.signCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
         } catch (WrongCredentialsException | NotExistingUserException | InvalidArgumentsException
                 | UserManagementException | PlatformManagementException | ValidationException e) {

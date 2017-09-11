@@ -76,7 +76,7 @@ public class SignCertificateRequestService {
         this.revocationService = revocationService;
     }
 
-    public String getCertificate(CertificateRequest certificateRequest) throws
+    public String signCertificate(CertificateRequest certificateRequest) throws
             WrongCredentialsException,
             NotExistingUserException,
             InvalidArgumentsException,
@@ -377,6 +377,9 @@ public class SignCertificateRequestService {
     private void componentRequestCheck(CertificateRequest certificateRequest) throws
             PlatformManagementException {
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
+        // component id must not be AAM
+        if (request.getSubject().toString().split("CN=")[1].split(illegalSign)[0].equals(SecurityConstants.AAM_COMPONENT_NAME))
+            throw new PlatformManagementException("this is not the way to issue AAM certificate", HttpStatus.BAD_REQUEST);
         String platformIdentifier = request.getSubject().toString().split("CN=")[1].split(illegalSign)[1];
         // only platforms needs to be verified
         if (!platformIdentifier.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)) {

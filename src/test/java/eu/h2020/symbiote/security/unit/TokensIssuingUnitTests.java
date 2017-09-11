@@ -262,7 +262,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, federatedOAuthId, pair);
         certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificate = signCertificateRequestService.getCertificate(certRequest);
+        String certificate = signCertificateRequestService.signCertificate(certRequest);
         platform.getComponentCertificates().put(componentId, new Certificate(certificate));
         platformRepository.save(platform);
         user.getOwnedPlatforms().put(federatedOAuthId, platform);
@@ -571,7 +571,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateString = signCertificateRequestService.getCertificate(certRequest);
+        String certificateString = signCertificateRequestService.signCertificate(certRequest);
         platform.getComponentCertificates().put(componentId, new Certificate(certificateString));
         platformRepository.save(platform);
         platformOwner.getOwnedPlatforms().put(platformId, platform);

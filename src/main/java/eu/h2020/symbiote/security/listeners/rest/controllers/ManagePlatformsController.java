@@ -40,7 +40,7 @@ public class ManagePlatformsController implements IManagePlatforms {
             @ApiParam(value = "Platform Management Request", required = true)
                     PlatformManagementRequest platformManagementRequest) {
         try {
-            PlatformManagementResponse platformManagementResponse = platformsManagementService.manage(platformManagementRequest);
+            PlatformManagementResponse platformManagementResponse = platformsManagementService.authManage(platformManagementRequest);
             return ResponseEntity.status(HttpStatus.OK).body(platformManagementResponse);
         } catch (SecurityException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new PlatformManagementResponse(null, ManagementStatus.ERROR));

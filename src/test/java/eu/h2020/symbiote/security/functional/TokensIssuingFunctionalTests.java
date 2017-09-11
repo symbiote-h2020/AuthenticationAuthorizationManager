@@ -418,7 +418,7 @@ public class TokensIssuingFunctionalTests extends
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, preferredPlatformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateString = signCertificateRequestService.getCertificate(certRequest);
+        String certificateString = signCertificateRequestService.signCertificate(certRequest);
         Platform platform = platformRepository.findOne(preferredPlatformId);
         platform.getComponentCertificates().put(componentId, new Certificate(certificateString));
         platformRepository.save(platform);

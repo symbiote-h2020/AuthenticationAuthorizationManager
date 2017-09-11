@@ -137,8 +137,8 @@ public class UsersManagementService {
                     return ManagementStatus.USERNAME_EXISTS;
                 }
 
-                // blocking guest and AAMOwner registration
-                if (adminUsername.equals(newUserUsername) || SecurityConstants.GUEST_NAME.equals(newUserUsername))
+                // blocking guest and AAMOwner registration, and aam component
+                if (adminUsername.equals(newUserUsername) || SecurityConstants.GUEST_NAME.equals(newUserUsername) || SecurityConstants.AAM_COMPONENT_NAME.equals(newUserUsername))
                     return ManagementStatus.ERROR;
 
                 user.setRole(userDetails.getRole());
