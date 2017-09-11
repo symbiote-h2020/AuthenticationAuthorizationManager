@@ -53,6 +53,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
 
@@ -403,14 +404,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
 
         platformRepository.save(dummyPlatform);
-
-        // adding a federation rule
-        Map<String, String> requiredAttr = new HashMap<>();
-        requiredAttr.put("name", "test2");
-        Map<String, String> releasedFederatedAttr = new HashMap<>();
-        releasedFederatedAttr.put("federatedKey", "federaredAttribute");
-
-        FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
+        FederationRule federationRule = new FederationRule("federationId", new HashSet<>());
+        federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
         federationRulesRepository.save(federationRule);
 
         Token foreignToken = null;
@@ -424,8 +419,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         assertEquals(Token.Type.FOREIGN, foreignToken.getType());
 
         JWTClaims claims = JWTEngine.getClaimsFromToken(foreignToken.toString());
-        assertTrue(claims.getAtt().containsKey(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "federatedKey"));
-        assertTrue(claims.getAtt().containsValue("federaredAttribute"));
+        assertTrue(claims.getAtt().containsKey("federation_1"));
     }
 
     @Test(expected = JWTCreationException.class)

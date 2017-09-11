@@ -63,8 +63,7 @@ public class FederationRuleManagementRequestConsumerService extends DefaultConsu
                 if (request.getAdminCredentials() == null
                         || request.getFederationRuleId() == null
                         || request.getOperationType() == null
-                        || request.getRequiredAttributes() == null
-                        || request.getReleasedFederatedAttributes() == null)
+                        || request.getPlatformIds() == null)
                     throw new InvalidArgumentsException();
                 // and if they don't match the admin credentials from properties
                 if (!request.getAdminCredentials().getUsername().equals(adminUsername)
@@ -94,7 +93,7 @@ public class FederationRuleManagementRequestConsumerService extends DefaultConsu
                         if (federationRulesRepository.findOne(request.getFederationRuleId()) != null) {
                             throw new InvalidArgumentsException("Rule with this id already exists");
                         }
-                        FederationRule federationRule = new FederationRule(request.getFederationRuleId(), request.getRequiredAttributes(), request.getReleasedFederatedAttributes());
+                        FederationRule federationRule = new FederationRule(request.getFederationRuleId(), request.getPlatformIds());
                         federationRulesList.put(request.getFederationRuleId(), federationRule);
                         federationRulesRepository.save(federationRule);
                         response = om.writeValueAsString(federationRulesList);
@@ -106,8 +105,16 @@ public class FederationRuleManagementRequestConsumerService extends DefaultConsu
                         }
                         federationRule = federationRulesRepository.findOne(request.getFederationRuleId());
                         if (federationRule != null) {
-                            federationRulesList.put(request.getFederationRuleId(), federationRule);
-                            federationRulesRepository.delete(request.getFederationRuleId());
+                            if (request.getPlatformIds().isEmpty()) {
+                                federationRulesList.put(request.getFederationRuleId(), federationRule);
+                                federationRulesRepository.delete(request.getFederationRuleId());
+                            } else {
+                                for (String id : request.getPlatformIds()) {
+                                    federationRule.deletePlatform(id);
+                                }
+                                federationRulesList.put(request.getFederationRuleId(), federationRule);
+                                federationRulesRepository.save(federationRule);
+                            }
                         }
                         response = om.writeValueAsString(federationRulesList);
                         break;
@@ -116,7 +123,7 @@ public class FederationRuleManagementRequestConsumerService extends DefaultConsu
                                 || federationRulesRepository.findOne(request.getFederationRuleId()) == null) {
                             throw new InvalidArgumentsException();
                         }
-                        federationRule = new FederationRule(request.getFederationRuleId(), request.getRequiredAttributes(), request.getReleasedFederatedAttributes());
+                        federationRule = new FederationRule(request.getFederationRuleId(), request.getPlatformIds());
                         federationRulesList.put(request.getFederationRuleId(), federationRule);
                         federationRulesRepository.save(federationRule);
                         response = om.writeValueAsString(federationRulesList);

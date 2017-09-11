@@ -177,13 +177,11 @@ public class TokenIssuer {
             // disabling foreign token issuing when the mapping rule is empty
             if (federationRulesRepository.findAll().isEmpty())
                 throw new SecurityMisconfigurationException("AAM has no foreign rules defined");
+            int i = 1;
             for (FederationRule federationRule : federationRulesRepository.findAll()) {
-                if (containRequiredRules(claims, federationRule.getRequiredAttributes())) {
-                    //putting all rules with prefix
-                    for (Map.Entry<String, String> entry : federationRule.getReleasedFederatedAttributes().entrySet()) {
-                        foreignAttributes.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + entry.getKey(), entry.getValue());
-                    }
-
+                if (federationRule.getPlatformIds().contains(claims.getIss())) {
+                    foreignAttributes.put("federation_" + i, federationRule.getFederationId());
+                    i++;
                 }
             }
             return new Token(buildAuthorizationToken(
@@ -200,18 +198,6 @@ public class TokenIssuer {
             log.error(e);
             throw new JWTCreationException(e);
         }
-    }
-
-    private boolean containRequiredRules(JWTClaims claims, Map<String, String> requiredAttributes) {
-        for (Map.Entry<String, String> entry : requiredAttributes.entrySet()) {
-            if (claims.getAtt().get(entry.getKey()) == null) {
-                return false;
-            }
-            if (!entry.getValue().equals(claims.getAtt().get(entry.getKey()))) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**

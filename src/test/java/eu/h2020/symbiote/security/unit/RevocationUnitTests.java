@@ -35,7 +35,10 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
@@ -704,10 +707,10 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokeForeignTokenSuccess() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, IOException, TimeoutException, JWTCreationException, ValidationException, NotExistingUserException, InvalidArgumentsException, WrongCredentialsException, MalformedJWTException, ClassNotFoundException {
+    public void revokeForeignTokenSuccess() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, IOException, TimeoutException, NotExistingUserException, InvalidArgumentsException, WrongCredentialsException, ClassNotFoundException, JWTCreationException, ValidationException, MalformedJWTException {
         addTestUserWithClientCertificateToRepository();
         assertNotNull(userRepository.findOne(username));
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, platformId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         DummyPlatformAAM dummyPlatformAAM = dummyPlatformAAM();
         Token token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
@@ -724,13 +727,10 @@ public class RevocationUnitTests extends
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
         platformRepository.save(dummyPlatform);
 
-        // adding a dummy foreign rule
-        Map<String, String> requiredAttr = new HashMap<>();
-        requiredAttr.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key", "attribute");
-        Map<String, String> releasedFederatedAttr = new HashMap<>();
-        releasedFederatedAttr.put("federatedKey", "federaredAttribute");
+        Set<String> platformsId = new HashSet<>();
+        platformsId.add(platformId);
 
-        FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
+        FederationRule federationRule = new FederationRule("federationId", platformsId);
         federationRulesRepository.save(federationRule);
 
         Token foreignToken = getTokenService.getForeignToken(token, "", "");
@@ -766,13 +766,9 @@ public class RevocationUnitTests extends
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
         platformRepository.save(dummyPlatform);
 
-        // adding a federation rule
-        Map<String, String> requiredAttr = new HashMap<>();
-        requiredAttr.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key", "attribute");
-        Map<String, String> releasedFederatedAttr = new HashMap<>();
-        releasedFederatedAttr.put("federatedKey", "federaredAttribute");
-
-        FederationRule federationRule = new FederationRule("federationId", requiredAttr, releasedFederatedAttr);
+        Set<String> platformsId = new HashSet<>();
+        platformsId.add(platformId);
+        FederationRule federationRule = new FederationRule("federationId", platformsId);
         federationRulesRepository.save(federationRule);
 
         Token foreignToken = getTokenService.getForeignToken(token, "", "");

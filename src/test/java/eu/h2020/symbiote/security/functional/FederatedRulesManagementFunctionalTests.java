@@ -16,7 +16,8 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
@@ -50,8 +51,7 @@ public class FederatedRulesManagementFunctionalTests extends
         FederationRuleManagementRequest federationRuleManagementRequest = new FederationRuleManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 federationRuleId,
-                new HashMap<>(),
-                new HashMap<>(),
+                new HashSet<>(),
                 FederationRuleManagementRequest.OperationType.CREATE);
         byte[] response = federationRuleManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (federationRuleManagementRequest).getBytes());
@@ -65,11 +65,9 @@ public class FederatedRulesManagementFunctionalTests extends
     public void federationRuleReadOneOverAMQPSuccess() throws IOException, TimeoutException {
         //putting proper FederationRule in database
         federationRulesRepository.deleteAll();
-        Map<String, String> requiredAttr = new HashMap<>();
-        requiredAttr.put("key1", "attribute1");
-        Map<String, String> releasedFederatedAttr = new HashMap<>();
-        releasedFederatedAttr.put("key2", "attribute2");
-        FederationRule federationRule = new FederationRule(federationRuleId, requiredAttr, releasedFederatedAttr);
+        Set<String> platformsId = new HashSet<>();
+        platformsId.add(platformId);
+        FederationRule federationRule = new FederationRule(federationRuleId, platformsId);
         federationRulesRepository.save(federationRule);
 
         FederationRuleManagementRequest federationRuleManagementRequest = new FederationRuleManagementRequest(
@@ -83,22 +81,19 @@ public class FederatedRulesManagementFunctionalTests extends
         assertEquals(1, responseMap.size());
         assertNotNull(responseMap.get(federationRuleId));
         FederationRule receivedRule = responseMap.get(federationRuleId);
-        assertTrue(receivedRule.getRequiredAttributes().containsKey("key1"));
-        assertTrue(receivedRule.getRequiredAttributes().containsValue("attribute1"));
-        assertTrue(receivedRule.getReleasedFederatedAttributes().containsKey("key2"));
-        assertTrue(receivedRule.getReleasedFederatedAttributes().containsValue("attribute2"));
+        assertTrue(receivedRule.getFederationId().contains(federationRuleId));
+        assertTrue(receivedRule.getPlatformIds().contains(platformId));
     }
 
     @Test
     public void federationRuleReadAllOverAMQPSuccess() throws IOException, TimeoutException {
         federationRulesRepository.deleteAll();
-        Map<String, String> requiredAttr = new HashMap<>();
-        requiredAttr.put("key1", "attribute1");
-        Map<String, String> releasedFederatedAttr = new HashMap<>();
-        releasedFederatedAttr.put("key2", "attribute2");
-        FederationRule federationRule = new FederationRule(federationRuleId, requiredAttr, releasedFederatedAttr);
+        Set<String> platformsId = new HashSet<>();
+        platformsId.add(platformId);
+        FederationRule federationRule = new FederationRule(federationRuleId, platformsId);
         federationRulesRepository.save(federationRule);
-        federationRule = new FederationRule(federationRuleId + "2", requiredAttr, releasedFederatedAttr);
+        platformsId.add(platformId + "2");
+        federationRule = new FederationRule(federationRuleId + "2", platformsId);
         federationRulesRepository.save(federationRule);
 
         FederationRuleManagementRequest federationRuleManagementRequest = new FederationRuleManagementRequest(
@@ -116,23 +111,18 @@ public class FederatedRulesManagementFunctionalTests extends
     @Test
     public void federationRuleUpdateOverAMQPSuccess() throws IOException, TimeoutException {
         federationRulesRepository.deleteAll();
-        Map<String, String> requiredAttr = new HashMap<>();
-        requiredAttr.put("key1", "attribute1");
-        Map<String, String> releasedFederatedAttr = new HashMap<>();
-        releasedFederatedAttr.put("key2", "attribute2");
-        FederationRule federationRule = new FederationRule(federationRuleId, requiredAttr, releasedFederatedAttr);
+        Set<String> platformsId = new HashSet<>();
+        platformsId.add(platformId);
+        FederationRule federationRule = new FederationRule(federationRuleId, platformsId);
         federationRulesRepository.save(federationRule);
 
-        Map<String, String> requiredAttrNew = new HashMap<>();
-        requiredAttrNew.put("key3", "attribute3");
-        Map<String, String> releasedFederatedAttrNew = new HashMap<>();
-        releasedFederatedAttrNew.put("key4", "attribute4");
+        Set<String> newPlatformsId = new HashSet<>();
+        newPlatformsId.add(platformId + "2");
 
         FederationRuleManagementRequest federationRuleManagementRequest = new FederationRuleManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 federationRuleId,
-                requiredAttrNew,
-                releasedFederatedAttrNew,
+                newPlatformsId,
                 FederationRuleManagementRequest.OperationType.UPDATE);
 
         byte[] response = federationRuleManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
@@ -140,26 +130,20 @@ public class FederatedRulesManagementFunctionalTests extends
         HashMap<String, FederationRule> responseMap = mapper.readValue(response, new TypeReference<HashMap<String, FederationRule>>() {
         });
         FederationRule receivedRule = responseMap.get(federationRuleId);
-        assertTrue(receivedRule.getRequiredAttributes().containsKey("key3"));
-        assertTrue(receivedRule.getRequiredAttributes().containsValue("attribute3"));
-        assertTrue(receivedRule.getReleasedFederatedAttributes().containsKey("key4"));
-        assertTrue(receivedRule.getReleasedFederatedAttributes().containsValue("attribute4"));
+        assertTrue(receivedRule.getFederationId().contains(federationRuleId));
+        assertTrue(receivedRule.getPlatformIds().contains(platformId + "2"));
 
         receivedRule = federationRulesRepository.findOne(federationRuleId);
-        assertTrue(receivedRule.getRequiredAttributes().containsKey("key3"));
-        assertTrue(receivedRule.getRequiredAttributes().containsValue("attribute3"));
-        assertTrue(receivedRule.getReleasedFederatedAttributes().containsKey("key4"));
-        assertTrue(receivedRule.getReleasedFederatedAttributes().containsValue("attribute4"));
+        assertTrue(receivedRule.getFederationId().contains(federationRuleId));
+        assertTrue(receivedRule.getPlatformIds().contains(platformId + "2"));
     }
 
     @Test
     public void federationRuleDeleteOverAMQPSuccess() throws IOException, TimeoutException {
         federationRulesRepository.deleteAll();
-        Map<String, String> requiredAttr = new HashMap<>();
-        requiredAttr.put("key1", "attribute1");
-        Map<String, String> releasedFederatedAttr = new HashMap<>();
-        releasedFederatedAttr.put("key2", "attribute2");
-        FederationRule federationRule = new FederationRule(federationRuleId, requiredAttr, releasedFederatedAttr);
+        Set<String> platformsId = new HashSet<>();
+        platformsId.add(platformId);
+        FederationRule federationRule = new FederationRule(federationRuleId, platformsId);
         federationRulesRepository.save(federationRule);
 
         FederationRuleManagementRequest federationRuleManagementRequest = new FederationRuleManagementRequest(
@@ -172,10 +156,8 @@ public class FederatedRulesManagementFunctionalTests extends
         HashMap<String, FederationRule> responseMap = mapper.readValue(response, new TypeReference<HashMap<String, FederationRule>>() {
         });
         FederationRule receivedRule = responseMap.get(federationRuleId);
-        assertTrue(receivedRule.getRequiredAttributes().containsKey("key1"));
-        assertTrue(receivedRule.getRequiredAttributes().containsValue("attribute1"));
-        assertTrue(receivedRule.getReleasedFederatedAttributes().containsKey("key2"));
-        assertTrue(receivedRule.getReleasedFederatedAttributes().containsValue("attribute2"));
+        assertTrue(receivedRule.getFederationId().contains(federationRuleId));
+        assertTrue(receivedRule.getPlatformIds().contains(platformId));
         assertNull(federationRulesRepository.findOne(federationRuleId));
     }
 
@@ -213,7 +195,7 @@ public class FederatedRulesManagementFunctionalTests extends
     @Test
     public void federationRuleCreateOverAMQPFailFederationRuleIdUsed() throws IOException, TimeoutException {
         federationRulesRepository.deleteAll();
-        FederationRule federationRule = new FederationRule(federationRuleId, new HashMap<>(), new HashMap<>());
+        FederationRule federationRule = new FederationRule(federationRuleId, new HashSet<>());
         federationRulesRepository.save(federationRule);
         FederationRuleManagementRequest federationRuleManagementRequest = new FederationRuleManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
