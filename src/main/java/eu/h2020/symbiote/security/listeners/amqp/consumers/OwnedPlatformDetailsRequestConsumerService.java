@@ -19,9 +19,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * RabbitMQ Consumer implementation used for providing owned platform instances details for the platform owners
@@ -39,7 +37,7 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
      * Constructs a new instance and records its association to the passed-in channel.
      * Managers beans passed as parameters because of lack of possibility to inject it to consumer.
      *
-     * @param channel the channel to which this consumer is attached
+     * @param channel       the channel to which this consumer is attached
      * @param adminUsername
      * @param adminPassword
      */
@@ -89,18 +87,24 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
                     throw new UserManagementException(HttpStatus.UNAUTHORIZED);
                 // do it
                 User platformOwner = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
-
                 Set<OwnedPlatformDetails> ownedPlatformDetailsSet = new HashSet<>();
-                Collection<Platform> ownedPlatforms = platformOwner.getOwnedPlatforms().values();
-                for (Platform ownedPlatform : ownedPlatforms) {
-                    OwnedPlatformDetails ownedPlatformDetails = new OwnedPlatformDetails(
-                            ownedPlatform.getPlatformInstanceId(),
-                            ownedPlatform.getPlatformInterworkingInterfaceAddress(),
-                            ownedPlatform.getPlatformInstanceFriendlyName(),
-                            ownedPlatform.getPlatformAAMCertificate(),
-                            ownedPlatform.getComponentCertificates()
-                    );
-                    ownedPlatformDetailsSet.add(ownedPlatformDetails);
+                Map<String, Platform> ownedPlatformsMap = new HashMap<>();
+
+                if (platformOwner != null)
+                    ownedPlatformsMap = platformOwner.getOwnedPlatforms();
+
+                if (ownedPlatformsMap != null && !ownedPlatformsMap.isEmpty()) {
+                    Collection<Platform> ownedPlatforms = ownedPlatformsMap.values();
+                    for (Platform ownedPlatform : ownedPlatforms) {
+                        OwnedPlatformDetails ownedPlatformDetails = new OwnedPlatformDetails(
+                                ownedPlatform.getPlatformInstanceId(),
+                                ownedPlatform.getPlatformInterworkingInterfaceAddress(),
+                                ownedPlatform.getPlatformInstanceFriendlyName(),
+                                ownedPlatform.getPlatformAAMCertificate(),
+                                ownedPlatform.getComponentCertificates()
+                        );
+                        ownedPlatformDetailsSet.add(ownedPlatformDetails);
+                    }
                 }
                 // replying with the whole set
                 response = om.writeValueAsString(ownedPlatformDetailsSet);
