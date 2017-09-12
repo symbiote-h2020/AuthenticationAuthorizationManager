@@ -30,6 +30,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
@@ -135,6 +136,7 @@ public class RevocationHelper {
     }
 
     private boolean revokeCertificateUsingCertificate(User user, X509Certificate certificate) throws WrongCredentialsException, CertificateException, IOException {
+        Map<String, Platform> ownedPlatforms = user.getOwnedPlatforms();
         if (!isMyCertificate(certificate)) {
             throw new CertificateException();
         }
@@ -144,7 +146,7 @@ public class RevocationHelper {
         if (certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign).length == 1) {
             if (user.getRole() == UserRole.PLATFORM_OWNER) {
                 String platformId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
-                Platform platform = user.getOwnedPlatforms().get(platformId);
+                Platform platform = ownedPlatforms.get(platformId);
                 return revokePlatformCertificateUsingCertificate(certificate, platform);
             }
             throw new SecurityException();
@@ -152,7 +154,7 @@ public class RevocationHelper {
         if (certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign).length == 2) {
             if (user.getRole() == UserRole.PLATFORM_OWNER) {
                 String platformId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[1];
-                Platform platform = user.getOwnedPlatforms().get(platformId);
+                Platform platform = ownedPlatforms.get(platformId);
                 return revokePlatformComponentCertificateUsingCertificate(certificate, platform);
             }
             throw new SecurityException();

@@ -98,6 +98,7 @@ public class GetTokenService {
             }
             // platform owner use case
             if (userInDB == null
+                    || userInDB.getOwnedPlatforms() == null
                     || userInDB.getOwnedPlatforms().get(platformId) == null
                     || JWTEngine.validateTokenString(loginRequest, userInDB.getOwnedPlatforms().get(platformId).getComponentCertificates().get(componentOrClientId).getX509().getPublicKey()) != ValidationStatus.VALID) {
                 throw new WrongCredentialsException();

@@ -188,13 +188,14 @@ public class UsersManagementService {
         if (!userRepository.exists(username))
             throw new NotExistingUserException();
 
-        if (!userRepository.findOne(username).getOwnedPlatforms().isEmpty())
+        User user = userRepository.findOne(username);
+        if (user.getOwnedPlatforms() != null && !user.getOwnedPlatforms().isEmpty())
             throw new UserManagementException("Cannot remove platform owner with platforms", HttpStatus.BAD_REQUEST);
 
         // add user certificated to revoked repository
         Set<String> keys = new HashSet<>();
         try {
-            for (Certificate c : userRepository.findOne(username).getClientCertificates().values()) {
+            for (Certificate c : user.getClientCertificates().values()) {
                 keys.add(Base64.getEncoder().encodeToString(
                         c.getX509().getPublicKey().getEncoded()));
             }
