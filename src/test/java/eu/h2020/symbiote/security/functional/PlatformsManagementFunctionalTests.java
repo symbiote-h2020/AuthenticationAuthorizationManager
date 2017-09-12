@@ -155,7 +155,7 @@ public class PlatformsManagementFunctionalTests extends
         assertTrue(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without preferred platform identifier
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId("");
         byte[] response = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
         PlatformManagementResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
@@ -169,6 +169,7 @@ public class PlatformsManagementFunctionalTests extends
         User registeredPlatformOwner = userRepository.findOne(platformOwnerUsername);
         assertNotNull(registeredPlatformOwner);
         assertEquals(UserRole.PLATFORM_OWNER, registeredPlatformOwner.getRole());
+        assertNotNull(registeredPlatformOwner.getOwnedPlatforms().get(generatedPlatformId));
 
         // verify that platform with the generated id is in repository and is tied with the given PO
         Platform registeredPlatform = platformRepository.findOne(generatedPlatformId);

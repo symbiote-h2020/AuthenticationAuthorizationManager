@@ -80,19 +80,23 @@ public class PlatformsManagementService {
 
                 String platformId;
                 // verify if platform owner provided a preferred platform identifier
-                if (platformManagementRequest.getPlatformInstanceId().isEmpty())
+                if (platformManagementRequest.getPlatformInstanceId().isEmpty()) {
                     // generate a new 'random' platform identifier
                     platformId = GENERATED_PLATFORM_IDENTIFIER_PREFIX + new Date().getTime();
-                else if (platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
-                    // check if platform already in repository
-                    throw new PlatformManagementException("Platform already exists", HttpStatus.BAD_REQUEST);
-                    // such a name would pose awkward questions
-                else if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME))
-                    throw new PlatformManagementException("That is an awkward platform id, we won't register it", HttpStatus.BAD_REQUEST);
-                else {
-                    // use PO preferred platform identifier
-                    platformId = platformManagementRequest.getPlatformInstanceId();
+                    platformManagementRequest.setPlatformInstanceId(platformId);
                 }
+
+                // check if platform already in repository
+                if (platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
+                    throw new PlatformManagementException("Platform already exists", HttpStatus.BAD_REQUEST);
+
+                if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME))
+                    // such a name would pose awkward questions
+                    throw new PlatformManagementException("That is an awkward platform id, we won't register it", HttpStatus.BAD_REQUEST);
+
+                // use PO preferred platform identifier
+                platformId = platformManagementRequest.getPlatformInstanceId();
+
 
                 Platform platform = new Platform(platformId, platformManagementRequest
                         .getPlatformInterworkingInterfaceAddress(),
