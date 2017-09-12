@@ -15,6 +15,8 @@ import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.Before;
@@ -43,6 +45,7 @@ import static org.junit.Assert.*;
 public class OtherListenersFunctionalTests extends
         AbstractAAMTestSuite {
 
+    private final Log log = LogFactory.getLog(OtherListenersFunctionalTests.class);
     private final String recoveryMail = "null@dev.null";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
@@ -210,9 +213,9 @@ public class OtherListenersFunctionalTests extends
         userManagementRequest.setUserCredentials(new Credentials(platformOwnerUsername, ""));
 
         // issue owned platform details request
-        RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
+        RpcClient ownedPlatformsDetailsRPCClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 ownedPlatformDetailsRequestQueue, 5000);
-        byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
+        byte[] ownedPlatformRawResponse = ownedPlatformsDetailsRPCClient.primitiveCall(mapper.writeValueAsString
                 (userManagementRequest).getBytes());
 
         Set<OwnedPlatformDetails> responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
@@ -230,7 +233,7 @@ public class OtherListenersFunctionalTests extends
         assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
 
         // issue owned platform details request
-        ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
+        ownedPlatformRawResponse = ownedPlatformsDetailsRPCClient.primitiveCall(mapper.writeValueAsString
                 (userManagementRequest).getBytes());
 
         responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
@@ -248,6 +251,52 @@ public class OtherListenersFunctionalTests extends
         assertEquals(ownedPlatformInDB.getPlatformInstanceId(), platformDetailsFromResponse.getPlatformInstanceId());
         assertEquals(ownedPlatformInDB.getPlatformInterworkingInterfaceAddress(), platformDetailsFromResponse
                 .getPlatformInterworkingInterfaceAddress());
+
+
+        // issue second platform registration over AMQP
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId + "2");
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        platformOwner = userRepository.findOne(platformOwnerUsername);
+        // platform owner should have a platform bound to him by now
+        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+
+        // issue owned platform details request
+        ownedPlatformRawResponse = ownedPlatformsDetailsRPCClient.primitiveCall(mapper.writeValueAsString
+                (userManagementRequest).getBytes());
+
+        responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
+        });
+
+        assertEquals(2, responseSet.size());
+
+
+        // issue second platform registration over AMQP
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId("");
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        platformOwner = userRepository.findOne(platformOwnerUsername);
+        // platform owner should have a platform bound to him by now
+        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+
+        // issue owned platform details request
+        ownedPlatformRawResponse = ownedPlatformsDetailsRPCClient.primitiveCall(mapper.writeValueAsString
+                (userManagementRequest).getBytes());
+
+        responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
+        });
+
+        assertEquals(3, responseSet.size());
+        for (OwnedPlatformDetails platform : responseSet) {
+            log.debug(platform.getPlatformInstanceId());
+        }
+
+        for (Platform platform : platformOwner.getOwnedPlatforms().values()) {
+            log.debug(platform.getPlatformInstanceId());
+        }
+
     }
 
 
