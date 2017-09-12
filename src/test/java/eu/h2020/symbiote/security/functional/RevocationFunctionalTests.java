@@ -141,7 +141,7 @@ public class RevocationFunctionalTests extends
         userRepository.save(user);
         Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        user.getOwnedPlatforms().put(platformId, platform);
+        user.getOwnedPlatforms().add(platformId);
         userRepository.save(user);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -174,7 +174,7 @@ public class RevocationFunctionalTests extends
         userRepository.save(user);
         Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        user.getOwnedPlatforms().put(platformId, platform);
+        user.getOwnedPlatforms().add(platformId);
         userRepository.save(user);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -278,7 +278,7 @@ public class RevocationFunctionalTests extends
         userRepository.save(user);
         Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        user.getOwnedPlatforms().put(platformId, platform);
+        user.getOwnedPlatforms().add(platformId);
         userRepository.save(user);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -311,7 +311,7 @@ public class RevocationFunctionalTests extends
         userRepository.save(user);
         Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        user.getOwnedPlatforms().put(platformId, platform);
+        user.getOwnedPlatforms().add(platformId);
         userRepository.save(user);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -368,7 +368,7 @@ public class RevocationFunctionalTests extends
         String platformId = "platform-1";
         Platform platform = new Platform(platformId, serverAddress + "/test", null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
 
         //inject platform PEM Certificate to the database

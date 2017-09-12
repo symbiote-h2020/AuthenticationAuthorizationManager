@@ -4,10 +4,11 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
-import org.springframework.data.mongodb.core.mapping.DBRef;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -26,9 +27,7 @@ public class User {
     private String passwordEncrypted = "";
     private String recoveryMail = "";
     private Map<String, Certificate> clientCertificates = new HashMap<>();
-
-    @DBRef(lazy = true)
-    private Map<String, Platform> ownedPlatforms = new HashMap<>();
+    private Set<String> ownedPlatforms = new HashSet<>();
 
     // TODO Release 4 - add OAuth federated ID support
 
@@ -43,23 +42,28 @@ public class User {
 
     /**
      * Used to create a new user entity
-     *
-     * @param username           selected username
+     *  @param username           selected username
      * @param passwordEncrypted  encrypted password for authentication
      * @param recoveryMail       for password reset/recovery purposes
      * @param clientCertificates user's public certificates
      * @param role               user's role in symbIoTe ecosystem, see @{@link UserRole}
      * @param attributes         used to assign in registration phase user-unique attributes
+     * @param ownedPlatforms     bound to the user
      */
-    public User(String username, String passwordEncrypted, String recoveryMail, Map<String, Certificate> clientCertificates,
+    public User(String username,
+                String passwordEncrypted,
+                String recoveryMail,
+                Map<String, Certificate> clientCertificates,
                 UserRole role,
-                Map<String, String> attributes) {
+                Map<String, String> attributes,
+                Set<String> ownedPlatforms) {
         this.username = username;
         this.passwordEncrypted = passwordEncrypted;
         this.recoveryMail = recoveryMail;
         this.clientCertificates = clientCertificates;
         this.role = role;
         this.attributes = attributes;
+        this.ownedPlatforms = ownedPlatforms;
     }
 
     public UserRole getRole() {
@@ -111,11 +115,11 @@ public class User {
         this.clientCertificates = clientCertificates;
     }
 
-    public Map<String, Platform> getOwnedPlatforms() {
+    public Set<String> getOwnedPlatforms() {
         return ownedPlatforms;
     }
 
-    public void setOwnedPlatforms(Map<String, Platform> ownedPlatforms) {
+    public void setOwnedPlatforms(Set<String> ownedPlatforms) {
         this.ownedPlatforms = ownedPlatforms;
     }
 }

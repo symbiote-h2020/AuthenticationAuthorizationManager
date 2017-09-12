@@ -3,7 +3,6 @@ package eu.h2020.symbiote.security.unit;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -255,7 +254,7 @@ public class CertificatesIssuingUnitTests extends
         User user = saveUser();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -438,7 +437,7 @@ public class CertificatesIssuingUnitTests extends
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -472,7 +471,7 @@ public class CertificatesIssuingUnitTests extends
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -519,7 +518,7 @@ public class CertificatesIssuingUnitTests extends
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -584,7 +583,7 @@ public class CertificatesIssuingUnitTests extends
         User user = saveUser();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -616,7 +615,7 @@ public class CertificatesIssuingUnitTests extends
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -663,7 +662,7 @@ public class CertificatesIssuingUnitTests extends
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -706,18 +705,6 @@ public class CertificatesIssuingUnitTests extends
             UserManagementException,
             PlatformManagementException {
 
-        User AAMOwner = new User();
-        AAMOwner.setUsername(AAMOwnerUsername);
-        AAMOwner.setPasswordEncrypted(AAMOwnerPassword);
-        AAMOwner.setRecoveryMail(recoveryMail);
-        AAMOwner.setClientCertificates(new HashMap<>());
-        AAMOwner.setRole(UserRole.PLATFORM_OWNER);
-        userRepository.save(AAMOwner);
-        Platform platform = new Platform(CORE_AAM_INSTANCE_ID, null, null, AAMOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        AAMOwner.getOwnedPlatforms().put(platformId, platform);
-        userRepository.save(AAMOwner);
-
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
         assertNotNull(csrString);
@@ -746,18 +733,6 @@ public class CertificatesIssuingUnitTests extends
             ValidationException,
             UserManagementException,
             PlatformManagementException {
-
-        User AAMOwner = new User();
-        AAMOwner.setUsername(AAMOwnerUsername);
-        AAMOwner.setPasswordEncrypted(AAMOwnerPassword);
-        AAMOwner.setRecoveryMail(recoveryMail);
-        AAMOwner.setClientCertificates(new HashMap<>());
-        AAMOwner.setRole(UserRole.PLATFORM_OWNER);
-        userRepository.save(AAMOwner);
-        Platform platform = new Platform(CORE_AAM_INSTANCE_ID, null, null, AAMOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        AAMOwner.getOwnedPlatforms().put(platformId, platform);
-        userRepository.save(AAMOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
@@ -800,18 +775,6 @@ public class CertificatesIssuingUnitTests extends
             UserManagementException,
             PlatformManagementException {
 
-        User AAMOwner = new User();
-        AAMOwner.setUsername(AAMOwnerUsername);
-        AAMOwner.setPasswordEncrypted(AAMOwnerPassword);
-        AAMOwner.setRecoveryMail(recoveryMail);
-        AAMOwner.setClientCertificates(new HashMap<>());
-        AAMOwner.setRole(UserRole.PLATFORM_OWNER);
-        userRepository.save(AAMOwner);
-        Platform platform = new Platform(CORE_AAM_INSTANCE_ID, null, null, AAMOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        AAMOwner.getOwnedPlatforms().put(platformId, platform);
-        userRepository.save(AAMOwner);
-
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
         assertNotNull(csrString);
@@ -851,18 +814,6 @@ public class CertificatesIssuingUnitTests extends
             ValidationException,
             UserManagementException,
             PlatformManagementException {
-        //  Register AAM Owner
-        User aamowner = new User();
-        aamowner.setUsername(AAMOwnerUsername);
-        aamowner.setPasswordEncrypted(passwordEncoder.encode(AAMOwnerPassword));
-        aamowner.setRecoveryMail(recoveryMail);
-        aamowner.setRole(UserRole.PLATFORM_OWNER);
-        userRepository.save(aamowner);
-
-        Platform platform = new Platform(CORE_AAM_INSTANCE_ID, null, null, aamowner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        aamowner.getOwnedPlatforms().put(CORE_AAM_INSTANCE_ID, platform);
-        userRepository.save(aamowner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);

@@ -353,7 +353,7 @@ public class RabbitManager {
 
             log.info("Authentication and Authorization Manager waiting for owned platforms' details requests messages");
 
-            Consumer consumer = new OwnedPlatformDetailsRequestConsumerService(channel, userRepository, adminUsername, adminPassword);
+            Consumer consumer = new OwnedPlatformDetailsRequestConsumerService(channel, userRepository, adminUsername, adminPassword, platformRepository);
 
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {

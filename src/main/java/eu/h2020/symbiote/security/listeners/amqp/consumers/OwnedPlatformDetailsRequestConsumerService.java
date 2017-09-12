@@ -11,6 +11,7 @@ import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.payloads.OwnedPlatformDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -19,7 +20,8 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * RabbitMQ Consumer implementation used for providing owned platform instances details for the platform owners
@@ -32,21 +34,24 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
     private final UserRepository userRepository;
     private final String adminUsername;
     private final String adminPassword;
+    private PlatformRepository platformRepository;
 
     /**
      * Constructs a new instance and records its association to the passed-in channel.
      * Managers beans passed as parameters because of lack of possibility to inject it to consumer.
      *
-     * @param channel       the channel to which this consumer is attached
+     * @param channel            the channel to which this consumer is attached
      * @param adminUsername
      * @param adminPassword
+     * @param platformRepository
      */
     public OwnedPlatformDetailsRequestConsumerService(Channel channel,
-                                                      UserRepository userRepository, String adminUsername, String adminPassword) {
+                                                      UserRepository userRepository, String adminUsername, String adminPassword, PlatformRepository platformRepository) {
         super(channel);
         this.userRepository = userRepository;
         this.adminUsername = adminUsername;
         this.adminPassword = adminPassword;
+        this.platformRepository = platformRepository;
     }
 
     /**
@@ -88,13 +93,18 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
                 // do it
                 User platformOwner = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
                 Set<OwnedPlatformDetails> ownedPlatformDetailsSet = new HashSet<>();
-                Map<String, Platform> ownedPlatformsMap = new HashMap<>();
+                Set<String> ownedPlatformsIdentifiers = new HashSet<>();
 
                 if (platformOwner != null)
-                    ownedPlatformsMap = platformOwner.getOwnedPlatforms();
+                    ownedPlatformsIdentifiers = platformOwner.getOwnedPlatforms();
 
-                if (ownedPlatformsMap != null && !ownedPlatformsMap.isEmpty()) {
-                    Collection<Platform> ownedPlatforms = ownedPlatformsMap.values();
+                if (!ownedPlatformsIdentifiers.isEmpty()) {
+                    Set<Platform> ownedPlatforms = new HashSet<>();
+                    for (String platformIdentifier : ownedPlatformsIdentifiers) {
+                        Platform platform = platformRepository.findOne(platformIdentifier);
+                        if (platform != null)
+                            ownedPlatforms.add(platform);
+                    }
                     for (Platform ownedPlatform : ownedPlatforms) {
                         OwnedPlatformDetails ownedPlatformDetails = new OwnedPlatformDetails(
                                 ownedPlatform.getPlatformInstanceId(),

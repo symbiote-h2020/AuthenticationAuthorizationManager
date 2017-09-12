@@ -265,10 +265,10 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String certificate = signCertificateRequestService.signCertificate(certRequest);
         platform.getComponentCertificates().put(componentId, new Certificate(certificate));
         platformRepository.save(platform);
-        user.getOwnedPlatforms().put(federatedOAuthId, platform);
+        user.getOwnedPlatforms().add(federatedOAuthId);
         userRepository.save(user);
 
-        Token token = tokenIssuer.getHomeToken(user, componentId + illegalSign + federatedOAuthId, user.getOwnedPlatforms().get(federatedOAuthId).getComponentCertificates().get(componentId).getX509().getPublicKey());
+        Token token = tokenIssuer.getHomeToken(user, componentId + illegalSign + federatedOAuthId, platformRepository.findOne(federatedOAuthId).getComponentCertificates().get(componentId).getX509().getPublicKey());
         assertNotNull(token);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.toString());
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
@@ -276,7 +276,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         Map<String, String> attributes = claimsFromToken.getAtt();
         assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
         // verify that the token contains the user public key
-        byte[] userPublicKeyInRepository = user.getOwnedPlatforms().get(federatedOAuthId).getComponentCertificates().get(componentId).getX509().getPublicKey().getEncoded();
+        byte[] userPublicKeyInRepository = platformRepository.findOne(federatedOAuthId).getComponentCertificates().get(componentId).getX509().getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
     }
@@ -574,7 +574,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String certificateString = signCertificateRequestService.signCertificate(certRequest);
         platform.getComponentCertificates().put(componentId, new Certificate(certificateString));
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
 
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, componentId + illegalSign + platformId, null, pair.getPrivate());
@@ -590,8 +590,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
 
         // verify that the token contains the platform owner public key
-        byte[] userPublicKeyInRepository = userRepository.findOne
-                (platformOwnerUsername).getOwnedPlatforms().get(platformId).getComponentCertificates().get(componentId).getX509()
+        byte[] userPublicKeyInRepository = platformRepository.findOne(platformId).getComponentCertificates().get(componentId).getX509()
                 .getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);

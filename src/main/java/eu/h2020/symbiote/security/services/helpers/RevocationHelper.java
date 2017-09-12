@@ -30,7 +30,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
@@ -71,8 +70,8 @@ public class RevocationHelper {
 
     private boolean revokeCertificateUsingCommonName(User user, String commonName) throws WrongCredentialsException, CertificateException {
         if (commonName.split(illegalSign).length == 1) {
-            if (user.getRole() == UserRole.PLATFORM_OWNER) {
-                Platform platform = user.getOwnedPlatforms().get(commonName);
+            if (user.getRole() == UserRole.PLATFORM_OWNER && user.getOwnedPlatforms().contains(commonName)) {
+                Platform platform = platformRepository.findOne(commonName);
                 return revokePlatformCertificateUsingCommonName(commonName, platform);
             }
             throw new SecurityException();
@@ -85,7 +84,7 @@ public class RevocationHelper {
             if (user.getRole() == UserRole.PLATFORM_OWNER) {
                 String componentId = commonName.split(illegalSign)[0];
                 String platformId = commonName.split(illegalSign)[1];
-                Platform platform = user.getOwnedPlatforms().get(platformId);
+                Platform platform = platformRepository.findOne(platformId);
                 return revokePlatformComponentCertificateUsingCommonName(componentId, platform);
             }
             throw new SecurityException();
@@ -136,7 +135,7 @@ public class RevocationHelper {
     }
 
     private boolean revokeCertificateUsingCertificate(User user, X509Certificate certificate) throws WrongCredentialsException, CertificateException, IOException {
-        Map<String, Platform> ownedPlatforms = user.getOwnedPlatforms();
+        Set<String> ownedPlatforms = user.getOwnedPlatforms();
         if (!isMyCertificate(certificate)) {
             throw new CertificateException();
         }
@@ -146,16 +145,20 @@ public class RevocationHelper {
         if (certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign).length == 1) {
             if (user.getRole() == UserRole.PLATFORM_OWNER) {
                 String platformId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
-                Platform platform = ownedPlatforms.get(platformId);
-                return revokePlatformCertificateUsingCertificate(certificate, platform);
+                if (ownedPlatforms.contains(platformId)) {
+                    Platform platform = platformRepository.findOne(platformId);
+                    return revokePlatformCertificateUsingCertificate(certificate, platform);
+                }
             }
             throw new SecurityException();
         }
         if (certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign).length == 2) {
             if (user.getRole() == UserRole.PLATFORM_OWNER) {
                 String platformId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[1];
-                Platform platform = ownedPlatforms.get(platformId);
-                return revokePlatformComponentCertificateUsingCertificate(certificate, platform);
+                if (ownedPlatforms.contains(platformId)) {
+                    Platform platform = platformRepository.findOne(platformId);
+                    return revokePlatformComponentCertificateUsingCertificate(certificate, platform);
+                }
             }
             throw new SecurityException();
         }
@@ -263,7 +266,7 @@ public class RevocationHelper {
         if (token.getClaims().get("sub").toString().split(illegalSign).length == 2
                 && user.getClientCertificates().get(token.getClaims().get("sub").toString().split(illegalSign)[1]) != null
                 && Base64.getEncoder().encodeToString(user.getClientCertificates().get(token.getClaims().get("sub").toString().split(illegalSign)[1]).getX509().getPublicKey().getEncoded())
-                        .equals(token.getClaims().get("spk"))) {
+                .equals(token.getClaims().get("spk"))) {
             revokedTokensRepository.save(token);
             return true;
         }
@@ -272,7 +275,7 @@ public class RevocationHelper {
         if (platform != null
                 && !platform.getPlatformAAMCertificate().getCertificateString().isEmpty()
                 && Base64.getEncoder().encodeToString(platform.getPlatformAAMCertificate().getX509().getPublicKey().getEncoded())
-                        .equals(token.getClaims().get("ipk").toString())) {
+                .equals(token.getClaims().get("ipk").toString())) {
             revokedTokensRepository.save(token);
             return true;
         }

@@ -71,8 +71,6 @@ public class PlatformsManagementService {
             throw new WrongCredentialsException();
         }
 
-        // due to lazy loading
-        Map<String, Platform> ownedPlatforms = platformOwner.getOwnedPlatforms();
         switch (platformManagementRequest.getOperationType()) {
             case CREATE:
                 if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
@@ -104,7 +102,7 @@ public class PlatformsManagementService {
                         .getPlatformInterworkingInterfaceAddress(),
                         platformManagementRequest.getPlatformInstanceFriendlyName(), platformOwner, new Certificate(), new HashMap<>());
                 platformRepository.save(platform);
-                ownedPlatforms.put(platformId, platform);
+                platformOwner.getOwnedPlatforms().add(platformId);
                 userRepository.save(platformOwner);
                 break;
             case UPDATE:
@@ -151,7 +149,7 @@ public class PlatformsManagementService {
 
                 platformRepository.delete(platformManagementRequest.getPlatformInstanceId());
                 // unbinding the platform from the platform owner
-                ownedPlatforms.remove(platformManagementRequest.getPlatformInstanceId());
+                platformOwner.getOwnedPlatforms().remove(platformManagementRequest.getPlatformInstanceId());
                 userRepository.save(platformOwner);
                 break;
         }

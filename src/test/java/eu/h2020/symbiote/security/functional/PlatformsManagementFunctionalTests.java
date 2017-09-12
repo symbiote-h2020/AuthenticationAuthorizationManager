@@ -129,17 +129,13 @@ public class PlatformsManagementFunctionalTests extends
         // verify that PO has this platform in his collection
         User platformOwnerFromPlatformEntity = registeredPlatform.getPlatformOwner();
         assertEquals(platformOwnerUsername, platformOwnerFromPlatformEntity.getUsername());
-        assertTrue(platformOwnerFromPlatformEntity.getOwnedPlatforms().containsKey(preferredPlatformId));
-
-        // verify that DBRef is working two-way
-        Platform platformFromPlatformOwnerFromPlatformEntity = platformOwnerFromPlatformEntity.getOwnedPlatforms().get(preferredPlatformId);
-        assertEquals(preferredPlatformId, platformFromPlatformOwnerFromPlatformEntity.getPlatformInstanceId());
+        assertTrue(platformOwnerFromPlatformEntity.getOwnedPlatforms().contains(preferredPlatformId));
 
         // verify that PO was properly updated in repository with new platform ownership
         platformOwnerFromRepository = userRepository.findOne(platformOwnerUsername);
         assertEquals(platformOwnerUsername, platformOwnerFromRepository.getUsername());
         assertFalse(platformOwnerFromRepository.getOwnedPlatforms().isEmpty());
-        assertNotNull(platformOwnerFromRepository.getOwnedPlatforms().get(preferredPlatformId));
+        assertTrue(platformOwnerFromRepository.getOwnedPlatforms().contains(preferredPlatformId));
 
         assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse.getRegistrationStatus());
     }
@@ -169,7 +165,7 @@ public class PlatformsManagementFunctionalTests extends
         User registeredPlatformOwner = userRepository.findOne(platformOwnerUsername);
         assertNotNull(registeredPlatformOwner);
         assertEquals(UserRole.PLATFORM_OWNER, registeredPlatformOwner.getRole());
-        assertNotNull(registeredPlatformOwner.getOwnedPlatforms().get(generatedPlatformId));
+        assertTrue(registeredPlatformOwner.getOwnedPlatforms().contains(generatedPlatformId));
 
         // verify that platform with the generated id is in repository and is tied with the given PO
         Platform registeredPlatform = platformRepository.findOne(generatedPlatformId);
@@ -388,9 +384,27 @@ public class PlatformsManagementFunctionalTests extends
         //ensure platform is registered
         assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse.getRegistrationStatus());
 
+        //register second platform
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId(preferredPlatformId + "2");
+        platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+        platformRegistrationOverAMQPResponse = mapper.readValue(response,
+                PlatformManagementResponse.class);
+        //ensure platform is registered
+        assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse.getRegistrationStatus());
+
+        // delete platform 1
         byte[] response2 = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformDeleteOverAMQPRequest).getBytes());
         PlatformManagementResponse platformRegistrationOverAMQPResponse2 = mapper.readValue(response2,
+                PlatformManagementResponse.class);
+        assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse2.getRegistrationStatus());
+
+        // delete platform 2
+        platformDeleteOverAMQPRequest.setPlatformInstanceId(preferredPlatformId + "2");
+        response2 = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformDeleteOverAMQPRequest).getBytes());
+        platformRegistrationOverAMQPResponse2 = mapper.readValue(response2,
                 PlatformManagementResponse.class);
         assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse2.getRegistrationStatus());
 

@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
-import java.util.Map;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
@@ -35,9 +34,7 @@ public class PlatformCertificateKeyStoreTests extends AbstractAAMTestSuite {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, "", "", platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        Map<String, Platform> platforms = new HashMap<>();
-        platforms.put(platformId, platform);
-        platformOwner.setOwnedPlatforms(platforms);
+        platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
 
         PlatformAAMCertificateKeyStoreFactory.getPlatformAAMKeystore(

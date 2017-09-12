@@ -293,8 +293,8 @@ public class OtherListenersFunctionalTests extends
             log.debug(platform.getPlatformInstanceId());
         }
 
-        for (Platform platform : platformOwner.getOwnedPlatforms().values()) {
-            log.debug(platform.getPlatformInstanceId());
+        for (String platform : platformOwner.getOwnedPlatforms()) {
+            log.debug(platform);
         }
 
     }

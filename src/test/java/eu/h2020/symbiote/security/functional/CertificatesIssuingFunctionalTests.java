@@ -206,7 +206,7 @@ public class CertificatesIssuingFunctionalTests extends
 
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();

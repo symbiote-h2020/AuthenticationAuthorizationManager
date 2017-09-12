@@ -84,9 +84,7 @@ public class ComponentSecurityHandlerTests extends AbstractAAMTestSuite {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        Map<String, Platform> platforms = new HashMap<>();
-        platforms.put(platformId, platform);
-        platformOwner.setOwnedPlatforms(platforms);
+        platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
 
         // hack: injecting the AAM running port

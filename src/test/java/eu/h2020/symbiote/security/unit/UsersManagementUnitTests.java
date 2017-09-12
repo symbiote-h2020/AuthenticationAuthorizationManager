@@ -166,7 +166,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
         Map<String, Certificate> clientCertificates = new HashMap<>();
         clientCertificates.put("clientId", new Certificate(CryptoHelper.convertX509ToPEM(userCertificate)));
-        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, new HashMap<>()));
+        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, new HashMap<>(), new HashSet<>()));
 
         // verify that app really is in repository
         User user = userRepository.findOne(username);
@@ -217,7 +217,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
         Map<String, Certificate> clientCertificates = new HashMap<>();
         clientCertificates.put("clientId", new Certificate(CryptoHelper.convertX509ToPEM(userCertificate)));
-        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, new HashMap<>()));
+        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, new HashMap<>(), new HashSet<>()));
 
         // verify that app really is in repository
         User user = userRepository.findOne(username);
@@ -314,7 +314,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
             IOException {
 
         // save PO
-        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>());
+        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
         userRepository.save(platformOwner);
 
         // save platform
@@ -322,7 +322,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         platformRepository.save(platform);
 
         // update platform owner
-        platformOwner.getOwnedPlatforms().put(platformId, platform);
+        platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
 
         // verify that app really is in repository
@@ -361,7 +361,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test
     public void getExistingUserOverRestSuccess() throws UserManagementException {
         //  Register user in database
-        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>());
+        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
         userRepository.save(platformOwner);
         //  Request user with matching credentials
         UserDetails userDetails = aamClient.getUserDetails(new Credentials(username, password));
@@ -371,7 +371,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test(expected = UserManagementException.class)
     public void getNotExistingUserOverRestFailure() throws UserManagementException {
         //  Register user in database
-        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>());
+        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
         userRepository.save(platformOwner);
         //  Request different user that is NOT in database
         aamClient.getUserDetails(new Credentials("NotExisting", "somePassword"));
@@ -380,7 +380,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test(expected = UserManagementException.class)
     public void getUserOverRestFailsForWrongPassword() throws UserManagementException {
         //  Register user in database
-        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>());
+        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
         userRepository.save(platformOwner);
         //  Request existing user with incorrect password
         aamClient.getUserDetails(new Credentials(username, "WrongPassword"));

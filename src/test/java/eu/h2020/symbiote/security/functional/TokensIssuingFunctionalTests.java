@@ -422,7 +422,7 @@ public class TokensIssuingFunctionalTests extends
         Platform platform = platformRepository.findOne(preferredPlatformId);
         platform.getComponentCertificates().put(componentId, new Certificate(certificateString));
         platformRepository.save(platform);
-        user.getOwnedPlatforms().put(preferredPlatformId, platform);
+        user.getOwnedPlatforms().add(preferredPlatformId);
         userRepository.save(user);
 
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, componentId + illegalSign + preferredPlatformId, null, pair.getPrivate());
@@ -438,8 +438,7 @@ public class TokensIssuingFunctionalTests extends
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
 
         // verify that the token contains the platform owner public key
-        byte[] userPublicKeyInRepository = userRepository.findOne
-                (platformOwnerUsername).getOwnedPlatforms().get(preferredPlatformId).getComponentCertificates().get(componentId).getX509()
+        byte[] userPublicKeyInRepository = platformRepository.findOne(preferredPlatformId).getComponentCertificates().get(componentId).getX509()
                 .getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);

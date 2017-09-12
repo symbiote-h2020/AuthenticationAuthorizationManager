@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
+import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
@@ -37,16 +38,17 @@ public class GetTokenService {
     private final ComponentCertificatesRepository componentCertificateRepository;
     private final UserRepository userRepository;
     private final ValidationHelper validationHelper;
-
+    private final PlatformRepository platformRepository;
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
 
     @Autowired
-    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository, ValidationHelper validationHelper, ComponentCertificatesRepository componentCertificateRepository) {
+    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository, ValidationHelper validationHelper, ComponentCertificatesRepository componentCertificateRepository, PlatformRepository platformRepository) {
         this.tokenIssuer = tokenIssuer;
         this.userRepository = userRepository;
         this.validationHelper = validationHelper;
         this.componentCertificateRepository = componentCertificateRepository;
+        this.platformRepository = platformRepository;
     }
 
     public Token getForeignToken(Token receivedRemoteHomeToken, String clientCertificate, String aamCertificate) throws
@@ -98,12 +100,11 @@ public class GetTokenService {
             }
             // platform owner use case
             if (userInDB == null
-                    || userInDB.getOwnedPlatforms() == null
-                    || userInDB.getOwnedPlatforms().get(platformId) == null
-                    || JWTEngine.validateTokenString(loginRequest, userInDB.getOwnedPlatforms().get(platformId).getComponentCertificates().get(componentOrClientId).getX509().getPublicKey()) != ValidationStatus.VALID) {
+                    || !userInDB.getOwnedPlatforms().contains(platformId)
+                    || JWTEngine.validateTokenString(loginRequest, platformRepository.findOne(platformId).getComponentCertificates().get(componentOrClientId).getX509().getPublicKey()) != ValidationStatus.VALID) {
                 throw new WrongCredentialsException();
             }
-            return tokenIssuer.getHomeToken(userInDB, claims.getSub(), userInDB.getOwnedPlatforms().get(platformId).getComponentCertificates().get(componentOrClientId).getX509().getPublicKey());
+            return tokenIssuer.getHomeToken(userInDB, claims.getSub(), platformRepository.findOne(platformId).getComponentCertificates().get(componentOrClientId).getX509().getPublicKey());
         }
         // ordinary user/po client
         if (userInDB == null
