@@ -108,6 +108,9 @@ public class ComponentSecurityHandlerTests extends AbstractAAMTestSuite {
         // getting a CRM service response
         String regHandlerServiceResponse = rhCSH.generateServiceResponse();
 
+        // making sure it won't issue certs multiple times
+        regHandlerServiceResponse = rhCSH.generateServiceResponse();
+
         // trying to validate the service response, yes we can use this SH as the operation is local
         assertTrue(rhCSH.isReceivedServiceResponseVerified(regHandlerServiceResponse, rhKey, platformId));
 

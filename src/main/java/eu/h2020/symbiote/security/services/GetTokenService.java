@@ -90,7 +90,8 @@ public class GetTokenService {
             // core components use case
             if (claims.getIss().equals(AAMOwnerUsername)) {
                 //authenticating
-                if (JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(componentOrClientId).getCertificate().getX509().getPublicKey()) != ValidationStatus.VALID)
+                if (componentCertificateRepository.findOne(componentOrClientId) == null
+                        || JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(componentOrClientId).getCertificate().getX509().getPublicKey()) != ValidationStatus.VALID)
                     throw new WrongCredentialsException();
 
                 User user = new User();
@@ -101,6 +102,7 @@ public class GetTokenService {
             // platform owner use case
             if (userInDB == null
                     || !userInDB.getOwnedPlatforms().contains(platformId)
+                    || !platformRepository.findOne(platformId).getComponentCertificates().containsKey(componentOrClientId)
                     || JWTEngine.validateTokenString(loginRequest, platformRepository.findOne(platformId).getComponentCertificates().get(componentOrClientId).getX509().getPublicKey()) != ValidationStatus.VALID) {
                 throw new WrongCredentialsException();
             }
