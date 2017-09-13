@@ -113,7 +113,7 @@ public class RabbitManager {
     private String getPlatformOwnersNamesQueue;
     @Value("${rabbit.routingKey.get.platform.owners.names}")
     private String getPlatformOwnersNamesRoutingKey;
-    
+
     @Value("${rabbit.queue.manage.federation.rule}")
     private String manageFederationRuleQueue;
     @Value("${rabbit.routingKey.manage.federation.rule}")
@@ -129,8 +129,8 @@ public class RabbitManager {
                          UserRepository userRepository,
                          CertificationAuthorityHelper certificationAuthorityHelper,
                          LocalUsersAttributesRepository localUsersAttributesRepository,
-			 PasswordEncoder passwordEncoder,
-			 FederationRulesRepository federationRulesRepository,
+                         PasswordEncoder passwordEncoder,
+                         FederationRulesRepository federationRulesRepository,
                          PlatformRepository platformRepository) {
         this.usersManagementService = usersManagementService;
         this.revocationService = revocationService;
@@ -139,8 +139,8 @@ public class RabbitManager {
         this.getTokenService = getTokenService;
         this.userRepository = userRepository;
         this.localUsersAttributesRepository = localUsersAttributesRepository;
-	this.passwordEncoder = passwordEncoder;
-	this.platformRepository = platformRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.platformRepository = platformRepository;
         this.federationRulesRepository = federationRulesRepository;
         // setting the deployment type from the provisioned certificate
         deploymentType = certificationAuthorityHelper.getDeploymentType();
@@ -186,21 +186,27 @@ public class RabbitManager {
     private void startConsumers() throws SecurityMisconfigurationException {
         try {
             // common
-            startConsumerOfGetHomeTokenRequestMessages();
-            startConsumerOfLocalAttributesManagementRequest();
+            // credentials validation/revocation
             startConsumerOfValidationRequestMessages();
+            startConsumerOfRevocationRequestMessages();
+
+            // tokens attributes management
+            startConsumerOfLocalAttributesManagementRequest();
+            startConsumerOfFederationRuleManagementRequest();
+
+            // users management
+            startConsumerOfUserManagementRequestMessages();
+            startConsumerOfGetUserDetails();
+            // TODO remove unused R4
+            startConsumerOfGetHomeTokenRequestMessages();
             switch (deploymentType) {
                 case PLATFORM:
-                    startConsumerOfFederationRuleManagementRequest();
                     break;
                 case CORE:
+                    // platforms/enablers management
                     startConsumerOfGetOwnedPlatformDetailsRequestMessages();
                     startConsumerOfGetPlatformOwnersNames();
-                    startConsumerOfGetUserDetails();
                     startConsumerOfPlatformManagementRequestMessages();
-                    startConsumerOfRevocationRequestMessages();
-                    startConsumerOfUserManagementRequestMessages();
-                    startConsumerOfFederationRuleManagementRequest();
                     break;
                 case NULL:
                     throw new SecurityMisconfigurationException("Wrong deployment type");
@@ -524,55 +530,58 @@ public class RabbitManager {
             Channel channel;
             if (this.connection != null && this.connection.isOpen()) {
                 channel = connection.createChannel();
-                // getHomeToken
-                channel.queueUnbind(this.getHomeTokenRequestQueue, this.AAMExchangeName,
-                        this.getHomeTokenRequestRoutingKey);
-                channel.queueDelete(this.getHomeTokenRequestQueue);
-                // local attributes management request
-                channel.queueUnbind(this.localUsersAttributesManagementRequestQueue, this.AAMExchangeName,
-                        this.localUsersAttributesManagementRequestRoutingKey);
-                channel.queueDelete(this.localUsersAttributesManagementRequestQueue);
+
+                // common interfaces
+
                 // validation
                 channel.queueUnbind(this.validateRequestQueue, this.AAMExchangeName,
                         this.validateRequestRoutingKey);
                 channel.queueDelete(this.validateRequestQueue);
-		// federation rule management request
+                // credentials revocation
+                channel.queueUnbind(this.revocationRequestQueue, this.AAMExchangeName, this
+                        .revocationRequestRoutingKey);
+                channel.queueDelete(this.revocationRequestQueue);
+
+                // local attributes management request
+                channel.queueUnbind(this.localUsersAttributesManagementRequestQueue, this.AAMExchangeName,
+                        this.localUsersAttributesManagementRequestRoutingKey);
+                channel.queueDelete(this.localUsersAttributesManagementRequestQueue);
+                // federation rule management request
                 channel.queueUnbind(this.manageFederationRuleQueue, this.AAMExchangeName,
                         this.manageFederationRuleRoutingKey);
                 channel.queueDelete(this.manageFederationRuleQueue);
+
+                // user management
+                channel.queueUnbind(this.userManagementRequestQueue, this.AAMExchangeName, this
+                        .userManagementRequestRoutingKey);
+                channel.queueDelete(this.userManagementRequestQueue);
+                // user details request
+                channel.queueUnbind(this.getUserDetailsQueue, this.AAMExchangeName, this
+                        .getUserDetailsRoutingKey);
+                channel.queueDelete(this.getUserDetailsQueue);
+
+                // getHomeToken TODO probably drop in R4 completely
+                channel.queueUnbind(this.getHomeTokenRequestQueue, this.AAMExchangeName,
+                        this.getHomeTokenRequestRoutingKey);
+                channel.queueDelete(this.getHomeTokenRequestQueue);
+
                 // deployment dependent interfaces
                 switch (deploymentType) {
                     case PLATFORM:
                         break;
                     case CORE:
-                        // user management
-                        channel.queueUnbind(this.userManagementRequestQueue, this.AAMExchangeName, this
-                                .userManagementRequestRoutingKey);
-                        channel.queueDelete(this.userManagementRequestQueue);
                         // platform management
                         channel.queueUnbind(this.platformManagementRequestQueue, this.AAMExchangeName, this
                                 .platformManagementRequestRoutingKey);
                         channel.queueDelete(this.platformManagementRequestQueue);
-                        // credentials revocation
-                        channel.queueUnbind(this.revocationRequestQueue, this.AAMExchangeName, this
-                                .revocationRequestRoutingKey);
-                        channel.queueDelete(this.revocationRequestQueue);
                         // owned platform details
                         channel.queueUnbind(this.ownedPlatformDetailsRequestQueue, this.AAMExchangeName,
                                 this.ownedPlatformDetailsRequestRoutingKey);
                         channel.queueDelete(this.ownedPlatformDetailsRequestQueue);
-                        // user details request
-                        channel.queueUnbind(this.getUserDetailsQueue, this.AAMExchangeName, this
-                                .getUserDetailsRoutingKey);
-                        channel.queueDelete(this.getUserDetailsQueue);
                         //  platform owners request
                         channel.queueUnbind(this.getPlatformOwnersNamesQueue, this.AAMExchangeName, this
                                 .getPlatformOwnersNamesRoutingKey);
                         channel.queueDelete(this.getPlatformOwnersNamesQueue);
-                        // federation rule management request
-                        channel.queueUnbind(this.manageFederationRuleQueue, this.AAMExchangeName,
-                                this.manageFederationRuleRoutingKey);
-                        channel.queueDelete(this.manageFederationRuleQueue);
                         break;
                     case NULL:
                         break;

@@ -526,7 +526,7 @@ public class TokensIssuingFunctionalTests extends
         assertNotNull(token);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token);
         assertEquals(Token.Type.FOREIGN, Token.Type.valueOf(claimsFromToken.getTtyp()));
-        assertTrue(claimsFromToken.getAtt().containsKey("federation_1"));
+        assertTrue(claimsFromToken.getAtt().containsKey(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "federation_1"));
         assertTrue(claimsFromToken.getAtt().containsValue("federationId"));
     }
 

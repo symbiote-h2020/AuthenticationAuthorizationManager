@@ -411,7 +411,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         assertEquals(Token.Type.FOREIGN, foreignToken.getType());
 
         JWTClaims claims = JWTEngine.getClaimsFromToken(foreignToken.toString());
-        assertTrue(claims.getAtt().containsKey("federation_1"));
+        assertTrue(claims.getAtt().containsKey(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "federation_1"));
     }
 
     @Test(expected = JWTCreationException.class)

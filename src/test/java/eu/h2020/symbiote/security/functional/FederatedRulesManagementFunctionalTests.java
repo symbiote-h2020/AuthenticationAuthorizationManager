@@ -165,7 +165,7 @@ public class FederatedRulesManagementFunctionalTests extends
     public void federationRuleManagementOverAMQPFailWrongCredentials() throws IOException, TimeoutException {
         federationRulesRepository.deleteAll();
         FederationRuleManagementRequest federationRuleManagementRequest = new FederationRuleManagementRequest(
-                new Credentials(wrongusername, AAMOwnerPassword),
+                new Credentials(wrongUsername, AAMOwnerPassword),
                 federationRuleId,
                 FederationRuleManagementRequest.OperationType.READ);
 
