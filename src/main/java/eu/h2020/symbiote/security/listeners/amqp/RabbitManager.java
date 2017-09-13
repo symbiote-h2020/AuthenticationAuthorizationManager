@@ -7,6 +7,7 @@ import com.rabbitmq.client.Consumer;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.listeners.amqp.consumers.*;
+import eu.h2020.symbiote.security.repositories.FederationRulesRepository;
 import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
@@ -40,6 +41,7 @@ public class RabbitManager {
     private final UserRepository userRepository;
     private final RevocationService revocationService;
     private final LocalUsersAttributesRepository localUsersAttributesRepository;
+    private final FederationRulesRepository federationRulesRepository;
     private final PasswordEncoder passwordEncoder;
     private final PlatformRepository platformRepository;
     private IssuingAuthorityType deploymentType;
@@ -111,6 +113,12 @@ public class RabbitManager {
     private String getPlatformOwnersNamesQueue;
     @Value("${rabbit.routingKey.get.platform.owners.names}")
     private String getPlatformOwnersNamesRoutingKey;
+    
+    @Value("${rabbit.queue.manage.federation.rule}")
+    private String manageFederationRuleQueue;
+    @Value("${rabbit.routingKey.manage.federation.rule}")
+    private String manageFederationRuleRoutingKey;
+
 
     @Autowired
     public RabbitManager(UsersManagementService usersManagementService,
@@ -121,7 +129,8 @@ public class RabbitManager {
                          UserRepository userRepository,
                          CertificationAuthorityHelper certificationAuthorityHelper,
                          LocalUsersAttributesRepository localUsersAttributesRepository,
-                         PasswordEncoder passwordEncoder,
+			 PasswordEncoder passwordEncoder,
+			 FederationRulesRepository federationRulesRepository,
                          PlatformRepository platformRepository) {
         this.usersManagementService = usersManagementService;
         this.revocationService = revocationService;
@@ -130,8 +139,9 @@ public class RabbitManager {
         this.getTokenService = getTokenService;
         this.userRepository = userRepository;
         this.localUsersAttributesRepository = localUsersAttributesRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.platformRepository = platformRepository;
+	this.passwordEncoder = passwordEncoder;
+	this.platformRepository = platformRepository;
+        this.federationRulesRepository = federationRulesRepository;
         // setting the deployment type from the provisioned certificate
         deploymentType = certificationAuthorityHelper.getDeploymentType();
     }
@@ -181,6 +191,7 @@ public class RabbitManager {
             startConsumerOfValidationRequestMessages();
             switch (deploymentType) {
                 case PLATFORM:
+                    startConsumerOfFederationRuleManagementRequest();
                     break;
                 case CORE:
                     startConsumerOfGetOwnedPlatformDetailsRequestMessages();
@@ -189,6 +200,7 @@ public class RabbitManager {
                     startConsumerOfPlatformManagementRequestMessages();
                     startConsumerOfRevocationRequestMessages();
                     startConsumerOfUserManagementRequestMessages();
+                    startConsumerOfFederationRuleManagementRequest();
                     break;
                 case NULL:
                     throw new SecurityMisconfigurationException("Wrong deployment type");
@@ -417,7 +429,7 @@ public class RabbitManager {
 
     /**
      * Method creates queue and binds it globally available exchange and adequate Routing Key.
-     * It also creates a consumer for messages incoming to this queue, regarding to Revocation requests.
+     * It also creates a consumer for messages incoming to this queue, regarding to LocalAttributesManagementRequest requests.
      *
      * @throws IOException
      */
@@ -435,6 +447,33 @@ public class RabbitManager {
 
             Consumer consumer = new LocalAttributesManagementRequestConsumerService(channel,
                     localUsersAttributesRepository, adminUsername, adminPassword);
+            channel.basicConsume(queueName, false, consumer);
+        } catch (IOException e) {
+            log.error(e);
+        }
+
+    }
+
+    /**
+     * Method creates queue and binds it globally available exchange and adequate Routing Key.
+     * It also creates a consumer for messages incoming to this queue, regarding to FederationRuleManagement requests.
+     *
+     * @throws IOException
+     */
+    private void startConsumerOfFederationRuleManagementRequest() throws IOException {
+
+        String queueName = this.manageFederationRuleQueue;
+
+        Channel channel;
+        try {
+            channel = this.connection.createChannel();
+            channel.queueDeclare(queueName, true, false, false, null);
+            channel.queueBind(queueName, this.AAMExchangeName, this.manageFederationRuleRoutingKey);
+
+            log.info("Authentication and Authorization Manager waiting for FederationRuleManagementRequests messages");
+
+            Consumer consumer = new FederationRuleManagementRequestConsumerService(channel,
+                    federationRulesRepository, adminUsername, adminPassword);
             channel.basicConsume(queueName, false, consumer);
         } catch (IOException e) {
             log.error(e);
@@ -497,7 +536,10 @@ public class RabbitManager {
                 channel.queueUnbind(this.validateRequestQueue, this.AAMExchangeName,
                         this.validateRequestRoutingKey);
                 channel.queueDelete(this.validateRequestQueue);
-
+		// federation rule management request
+                channel.queueUnbind(this.manageFederationRuleQueue, this.AAMExchangeName,
+                        this.manageFederationRuleRoutingKey);
+                channel.queueDelete(this.manageFederationRuleQueue);
                 // deployment dependent interfaces
                 switch (deploymentType) {
                     case PLATFORM:
@@ -527,6 +569,10 @@ public class RabbitManager {
                         channel.queueUnbind(this.getPlatformOwnersNamesQueue, this.AAMExchangeName, this
                                 .getPlatformOwnersNamesRoutingKey);
                         channel.queueDelete(this.getPlatformOwnersNamesQueue);
+                        // federation rule management request
+                        channel.queueUnbind(this.manageFederationRuleQueue, this.AAMExchangeName,
+                                this.manageFederationRuleRoutingKey);
+                        channel.queueDelete(this.manageFederationRuleQueue);
                         break;
                     case NULL:
                         break;

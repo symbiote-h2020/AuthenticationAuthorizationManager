@@ -72,7 +72,7 @@ public class LocalAttributesManagementRequestConsumerService extends DefaultCons
 
                 if (request.getAdminCredentials() == null)
                     throw new InvalidArgumentsException();
-                // and if they match the admin credentials from properties
+                // and if they don't match the admin credentials from properties
                 if (!request.getAdminCredentials().getUsername().equals(adminUsername)
                         || !request.getAdminCredentials().getPassword().equals(adminPassword))
                     throw new UserManagementException(HttpStatus.UNAUTHORIZED);
@@ -96,7 +96,7 @@ public class LocalAttributesManagementRequestConsumerService extends DefaultCons
                         throw new InvalidArgumentsException();
                 }
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-                log.debug("Revocation Response: sent back");
+                log.debug("Local Attributes Management Response: sent back");
             } catch (InvalidArgumentsException | UserManagementException e) {
                 response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
