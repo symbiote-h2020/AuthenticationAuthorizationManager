@@ -60,8 +60,8 @@ public abstract class AbstractAAMTestSuite {
 
     protected final String username = "testApplicationUsername";
     protected final String password = "testApplicationPassword";
-    protected final String wrongusername = "veryWrongTestApplicationUsername";
-    protected final String wrongpassword = "veryWrongTestApplicationPassword";
+    protected final String wrongUsername = "veryWrongTestApplicationUsername";
+    protected final String wrongPassword = "veryWrongTestApplicationPassword";
     protected final String usernameWithAt = "test@";
     protected final String appUsername = "NewApplication";
     protected final String clientId = "clientId";
@@ -166,39 +166,34 @@ public abstract class AbstractAAMTestSuite {
         localUsersAttributesRepository.deleteAll();
     }
 
-    protected User savePlatformOwner() {
+    protected User createUser(String username, String password, String recoveryMail,
+                         UserRole userRole) {
         User user = new User();
-        user.setUsername(platformOwnerUsername);
-        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
+        user.setUsername(username);
+        user.setPasswordEncrypted(passwordEncoder.encode(password));
         user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.PLATFORM_OWNER);
+        user.setRole(userRole);
+        return user;
+    }
+
+    protected User savePlatformOwner() {
+        User user = this.createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail,
+                UserRole.PLATFORM_OWNER);
         userRepository.save(user);
 
         return user;
     }
 
     protected User saveUser() {
-        User user = new User();
-        user.setUsername(appUsername);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
+        User user = this.createUser(appUsername, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
 
         return user;
     }
 
     protected void saveTwoDifferentUsers() {
-        User userOne = new User();
-        userOne.setUsername("userOne");
-        userOne.setPasswordEncrypted(passwordEncoder.encode("Password"));
-        userOne.setRecoveryMail(recoveryMail);
-        userOne.setRole(UserRole.USER);
-        User userTwo = new User();
-        userTwo.setUsername("userTwo");
-        userTwo.setPasswordEncrypted(passwordEncoder.encode("Password"));
-        userTwo.setRecoveryMail(recoveryMail);
-        userTwo.setRole(UserRole.USER);
+        User userOne = createUser("userOne", "Password", recoveryMail,UserRole.USER);
+        User userTwo = createUser("userTwo", "Password", recoveryMail,UserRole.USER);
 
         userRepository.save(userOne);
         userRepository.save(userTwo);
@@ -214,11 +209,8 @@ public abstract class AbstractAAMTestSuite {
                 new UserDetails(new Credentials(username, password), "federatedId",
                         "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
 
-        User user = new User();
-        user.setRole(userManagementRequest.getUserDetails().getRole());
-        user.setUsername(userManagementRequest.getUserDetails().getCredentials().getUsername());
-        user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
-        user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
+
+        User user = createUser(userManagementRequest.getUserDetails().getCredentials().getUsername(), userManagementRequest.getUserDetails().getCredentials().getPassword(), userManagementRequest.getUserDetails().getRecoveryMail(), userManagementRequest.getUserDetails().getRole());
 
         String cn = "CN=" + username + "@" + clientId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), userKeyPair.getPublic());

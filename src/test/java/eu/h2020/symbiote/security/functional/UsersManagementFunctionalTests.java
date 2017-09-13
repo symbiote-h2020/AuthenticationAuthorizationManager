@@ -38,9 +38,9 @@ public class UsersManagementFunctionalTests extends
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
-    String platformAAMSuffixAtInterWorkingInterface;
+    protected String platformAAMSuffixAtInterWorkingInterface;
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
-    String coreInterfaceAddress;
+    protected String coreInterfaceAddress;
     @Value("${rabbit.queue.get.user.details}")
     private String getUserDetailsQueue;
     @Value("${rabbit.routingKey.get.user.details}")
@@ -67,13 +67,14 @@ public class UsersManagementFunctionalTests extends
                 new Credentials(username, password), appUserDetails, OperationType.UPDATE);
 
         getUserDetailsClient = new RpcClient(rabbitManager.getConnection().createChannel(), "", getUserDetailsQueue, 5000);
+
+        // verify that our app is not in repository
+        assertNull(userRepository.findOne(username));
+
     }
 
     @Test
     public void userRegistrationOverAMQPFailureUnauthorized() throws IOException, TimeoutException {
-
-        // verify that our app is not in repository
-        assertNull(userRepository.findOne(username));
 
         // issue the app registration over AMQP expecting with wrong AAMOwnerUsername
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
@@ -112,9 +113,6 @@ public class UsersManagementFunctionalTests extends
     @Test
     public void userRegistrationOverAMQPFailureWrongUserRole() throws IOException, TimeoutException {
 
-        // verify that our app is not in repository
-        assertNull(userRepository.findOne(username));
-
         // issue the same app registration over AMQP expecting with wrong UserRole
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
@@ -138,8 +136,6 @@ public class UsersManagementFunctionalTests extends
      */
     @Test
     public void userRegistrationOverAMQPFailureUsernameExists() throws IOException, TimeoutException {
-        // verify that our app is not in repository
-        assertNull(userRepository.findOne(username));
 
         // issue app registration over AMQP
         appManagementClient.primitiveCall(mapper.writeValueAsString(new
@@ -170,8 +166,6 @@ public class UsersManagementFunctionalTests extends
      */
     @Test
     public void userRegistrationOverAMQPFailureMissingAppUsername() throws IOException, TimeoutException {
-        // verify that our app is not in repository
-        assertNull(userRepository.findOne(username));
 
         // issue app registration over AMQP with missing username
         appUserDetails.getCredentials().setUsername("");
@@ -190,8 +184,6 @@ public class UsersManagementFunctionalTests extends
      */
     @Test
     public void userRegistrationOverAMQPFailureMissingAppPassword() throws IOException, TimeoutException {
-        // verify that our app is not in repository
-        assertNull(userRepository.findOne(username));
 
         // issue app registration over AMQP with missing password
         appUserDetails.getCredentials().setPassword("");
@@ -209,8 +201,6 @@ public class UsersManagementFunctionalTests extends
      */
     @Test
     public void userRegistrationOverAMQPFailureMissingRecoveryMail() throws IOException, TimeoutException {
-        // verify that our app is not in repository
-        assertNull(userRepository.findOne(username));
 
         // issue app registration over AMQP with missing recovery mail
         appUserDetails.setRecoveryMail("");
@@ -233,8 +223,6 @@ public class UsersManagementFunctionalTests extends
             InvalidAlgorithmParameterException, NoSuchProviderException, OperatorCreationException,
             WrongCredentialsException {
 
-        // verify that our app is not in repository
-        assertNull(userRepository.findOne(username));
         Map<String, String> attributesMap = new HashMap<>();
         attributesMap.put("testKey", "testAttribute");
         // issue app registration over AMQP
@@ -259,8 +247,7 @@ public class UsersManagementFunctionalTests extends
 
     @Test
     public void userUpdateOverAMQPSuccess() throws IOException, TimeoutException {
-        // verify that our app is not in repository
-        assertNull(userRepository.findOne(username));
+
         // issue app registration over AMQP
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
@@ -286,9 +273,7 @@ public class UsersManagementFunctionalTests extends
 
 
     @Test
-    public void userUpdateOverAMQFailureWrongPassword() throws IOException, TimeoutException {
-        // verify that our app is not in repository
-        assertNull(userRepository.findOne(username));
+    public void userUpdateOverAMQFailurewrongPassword() throws IOException, TimeoutException {
 
         // issue app registration over AMQP
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
@@ -299,7 +284,7 @@ public class UsersManagementFunctionalTests extends
         ManagementStatus appRegistrationResponse = mapper.readValue(response, ManagementStatus.class);
         assertEquals(appRegistrationResponse, ManagementStatus.OK);
 
-        appUserUpdateRequest.getUserCredentials().setPassword(wrongpassword);
+        appUserUpdateRequest.getUserCredentials().setPassword(wrongPassword);
         byte[] response2 = appManagementClient.primitiveCall(mapper.writeValueAsString(appUserUpdateRequest).getBytes());
         ErrorResponseContainer errorResponse = mapper.readValue(response2, ErrorResponseContainer.class);
         assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
@@ -315,9 +300,6 @@ public class UsersManagementFunctionalTests extends
             NoSuchAlgorithmException, UnrecoverableKeyException, InvalidArgumentsException, KeyStoreException,
             InvalidAlgorithmParameterException, NoSuchProviderException, OperatorCreationException,
             WrongCredentialsException {
-
-        // verify that our app is not in repository
-        assertNull(userRepository.findOne(username));
 
         // issue app registration over AMQP
         byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
@@ -352,8 +334,8 @@ public class UsersManagementFunctionalTests extends
     @Test(expected = AAMException.class)
     public void UsersManagementCreationFailureWithIncorrectRequest() throws AAMException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, wrongpassword), new Credentials(username, wrongpassword),
-                new UserDetails(new Credentials(username, wrongpassword), "federatedId",
+                Credentials(AAMOwnerUsername, wrongPassword), new Credentials(username, wrongPassword),
+                new UserDetails(new Credentials(username, wrongPassword), "federatedId",
                         "", UserRole.PLATFORM_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
         aamClient.manageUser(userManagementRequest);
     }
@@ -361,11 +343,7 @@ public class UsersManagementFunctionalTests extends
     @Test
     public void requestUserDetailsOverAMQPSuccess() throws IOException, TimeoutException {
         //  Registering user in database
-        User User = new User();
-        User.setUsername(username);
-        User.setPasswordEncrypted(passwordEncoder.encode(password));
-        User.setRecoveryMail(recoveryMail);
-        User.setRole(UserRole.USER);
+        User User = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 
@@ -386,11 +364,7 @@ public class UsersManagementFunctionalTests extends
     @Test
     public void requestUserDetailsOverAMQPFailsForNotExistingUser() throws IOException, TimeoutException {
         //  Registering user in database
-        User User = new User();
-        User.setUsername(username);
-        User.setPasswordEncrypted(passwordEncoder.encode(password));
-        User.setRecoveryMail(recoveryMail);
-        User.setRole(UserRole.USER);
+        User User = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 
@@ -407,19 +381,15 @@ public class UsersManagementFunctionalTests extends
     }
 
     @Test
-    public void requestUserDetailsOverAMQPFailsForWrongPassword() throws IOException, TimeoutException {
+    public void requestUserDetailsOverAMQPFailsForwrongPassword() throws IOException, TimeoutException {
         //  Registering user in database
-        User User = new User();
-        User.setUsername(username);
-        User.setPasswordEncrypted(passwordEncoder.encode(password));
-        User.setRecoveryMail(recoveryMail);
-        User.setRole(UserRole.USER);
+        User User = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 
         byte[] response = getUserDetailsClient.primitiveCall(mapper.writeValueAsString(new
                 UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, "WrongPassword"),
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, "wrongPassword"),
                 null, null
         )).getBytes());
 
@@ -432,11 +402,7 @@ public class UsersManagementFunctionalTests extends
     @Test
     public void requestUserDetailsOverAMQPFailsForRequestWithoutUserCredentials() throws IOException, TimeoutException {
         //  Registering user in database
-        User User = new User();
-        User.setUsername(username);
-        User.setPasswordEncrypted(passwordEncoder.encode(password));
-        User.setRecoveryMail(recoveryMail);
-        User.setRole(UserRole.USER);
+        User User = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 

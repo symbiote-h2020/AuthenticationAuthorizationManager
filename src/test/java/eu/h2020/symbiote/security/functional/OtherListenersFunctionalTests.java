@@ -75,11 +75,7 @@ public class OtherListenersFunctionalTests extends
         super.setUp();
 
         //user registration useful
-        User user = new User();
-        user.setUsername(platformOwnerUsername);
-        user.setPasswordEncrypted(passwordEncoder.encode(platformOwnerPassword));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.PLATFORM_OWNER);
+        User user = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
         userRepository.save(user);
         getPlatformsOwnersClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 getPlatformOwnersNamesQueue, 5000);
@@ -385,7 +381,7 @@ public class OtherListenersFunctionalTests extends
         requested.add(platformId + "One");
         requested.add(platformId + "Two");
         byte[] response = getPlatformsOwnersClient.primitiveCall(mapper.writeValueAsString(new
-                GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, wrongpassword), requested)).getBytes());
+                GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, wrongPassword), requested)).getBytes());
 
         GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
                 GetPlatformOwnersResponse.class);

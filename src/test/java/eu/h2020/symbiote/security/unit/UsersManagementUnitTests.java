@@ -108,7 +108,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         //wrong password used to check, if it is checked (should not be)
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, password),
-                new UserDetails(new Credentials(appUsername, wrongpassword), "newId", "newMail", UserRole.USER, attributes, new HashMap<>())
+                new UserDetails(new Credentials(appUsername, wrongPassword), "newId", "newMail", UserRole.USER, attributes, new HashMap<>())
                 , OperationType.ATTRIBUTES_UPDATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         assertEquals(userRegistrationResponse, ManagementStatus.OK);
@@ -378,7 +378,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = UserManagementException.class)
-    public void getUserOverRestFailsForWrongPassword() throws UserManagementException {
+    public void getUserOverRestFailsForwrongPassword() throws UserManagementException {
         //  Register user in database
         User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
         userRepository.save(platformOwner);

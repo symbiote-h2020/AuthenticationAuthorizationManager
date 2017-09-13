@@ -80,11 +80,7 @@ public class CertificatesIssuingFunctionalTests extends
             NotExistingUserException,
             ValidationException {
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
@@ -111,11 +107,7 @@ public class CertificatesIssuingFunctionalTests extends
             NotExistingUserException,
             ValidationException {
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
@@ -145,11 +137,7 @@ public class CertificatesIssuingFunctionalTests extends
             WrongCredentialsException, NotExistingUserException,
             CertificateException, IOException, ValidationException {
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
@@ -159,7 +147,7 @@ public class CertificatesIssuingFunctionalTests extends
         assertNotNull(csrString);
         //  Attempt login with incorrect password
         aamClient.signCertificateRequest(new CertificateRequest
-                (username, wrongpassword, clientId, csrString));
+                (username, wrongPassword, clientId, csrString));
     }
 
     @Test
@@ -176,7 +164,7 @@ public class CertificatesIssuingFunctionalTests extends
 
         User platformOwner = savePlatformOwner();
 
-        Platform platform = new Platform("platformInstanceId", null, null, platformOwner, new Certificate(), new HashMap<>());
+        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();

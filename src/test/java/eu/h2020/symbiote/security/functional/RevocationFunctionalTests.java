@@ -93,11 +93,7 @@ public class RevocationFunctionalTests extends
             NotExistingUserException,
             ValidationException {
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
@@ -133,11 +129,7 @@ public class RevocationFunctionalTests extends
             NotExistingUserException,
             ValidationException {
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.PLATFORM_OWNER);
+        User user = createUser(username, password, recoveryMail, UserRole.PLATFORM_OWNER);
         userRepository.save(user);
         Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -166,11 +158,7 @@ public class RevocationFunctionalTests extends
     @Test
     public void revokePlatformComponentCertificateUsingCertificateOverRESTSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException {
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.PLATFORM_OWNER);
+        User user = createUser(username, password, recoveryMail, UserRole.PLATFORM_OWNER);
         userRepository.save(user);
         Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -199,11 +187,7 @@ public class RevocationFunctionalTests extends
     @Test
     public void revokeUserCertificateUsingCertificateOverAMQPSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException, TimeoutException {
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
@@ -238,11 +222,7 @@ public class RevocationFunctionalTests extends
     @Test
     public void revokeUserCertificateUsingCommonNameOverRESTSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException {
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
@@ -270,11 +250,7 @@ public class RevocationFunctionalTests extends
     @Test
     public void revokePlatformCertificateUsingCommonNameOverRESTSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException {
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.PLATFORM_OWNER);
+        User user = createUser(username, password, recoveryMail, UserRole.PLATFORM_OWNER);
         userRepository.save(user);
         Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -303,11 +279,7 @@ public class RevocationFunctionalTests extends
     @Test
     public void revokePlatformComponentCertificateUsingCommonNameOverRESTSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException {
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.PLATFORM_OWNER);
+        User user = createUser(username, password, recoveryMail, UserRole.PLATFORM_OWNER);
         userRepository.save(user);
         Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -406,11 +378,7 @@ public class RevocationFunctionalTests extends
     @Test
     public void revokeUserCertificateUsingCertificateOverAMQPByAdminSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException, TimeoutException {
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();

@@ -184,10 +184,10 @@ public class RevocationUnitTests extends
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificateCommonName(commonName);
-        revocationRequest.setCredentials(new Credentials(wrongusername, password));
+        revocationRequest.setCredentials(new Credentials(wrongUsername, password));
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
 
-        revocationRequest.setCredentials(new Credentials(appUsername, wrongpassword));
+        revocationRequest.setCredentials(new Credentials(appUsername, wrongPassword));
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
     }
 
@@ -201,7 +201,7 @@ public class RevocationUnitTests extends
         String certificate = signCertificateRequestService.signCertificate(certRequest);
         User user = userRepository.findOne(appUsername);
         assertNotNull(user.getClientCertificates().get(clientId));
-        String commonName = wrongusername + illegalSign + clientId;
+        String commonName = wrongUsername + illegalSign + clientId;
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -437,7 +437,7 @@ public class RevocationUnitTests extends
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
 
         pair = CryptoHelper.createKeyPair();
-        csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), wrongusername, clientId, pair);
+        csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), wrongUsername, clientId, pair);
         assertNotNull(csrString);
         certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
         certificateString = signCertificateRequestService.signCertificate(certRequest);
@@ -666,7 +666,7 @@ public class RevocationUnitTests extends
     public void revokeHomeTokeFailWrongCredentials() throws CertificateException, WrongCredentialsException, NotExistingUserException, ValidationException, JWTCreationException {
         savePlatformOwner();
         RevocationRequest revocationRequest = new RevocationRequest();
-        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, wrongpassword));
+        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, wrongPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setHomeTokenString(tokenIssuer.getGuestToken().toString());
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
@@ -681,7 +681,7 @@ public class RevocationUnitTests extends
     @Test
     public void revokeFailWrongAAMOwnerPassword() throws CertificateException, WrongCredentialsException, NotExistingUserException, ValidationException {
         RevocationRequest revocationRequest = new RevocationRequest();
-        revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, wrongpassword));
+        revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, wrongPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
     }
