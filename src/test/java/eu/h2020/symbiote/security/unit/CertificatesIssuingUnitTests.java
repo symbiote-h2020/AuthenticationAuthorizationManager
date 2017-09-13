@@ -252,10 +252,7 @@ public class CertificatesIssuingUnitTests extends
             ValidationException {
         User platformOwner = savePlatformOwner();
         User user = saveUser();
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
-        userRepository.save(platformOwner);
+        savePlatform(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
@@ -435,10 +432,7 @@ public class CertificatesIssuingUnitTests extends
             PlatformManagementException {
 
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
-        userRepository.save(platformOwner);
+        savePlatform(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
@@ -469,10 +463,7 @@ public class CertificatesIssuingUnitTests extends
             PlatformManagementException {
 
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
-        userRepository.save(platformOwner);
+        savePlatform(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
@@ -516,10 +507,7 @@ public class CertificatesIssuingUnitTests extends
             PlatformManagementException {
 
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
-        userRepository.save(platformOwner);
+        savePlatform(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
@@ -581,10 +569,7 @@ public class CertificatesIssuingUnitTests extends
             ValidationException {
         User platformOwner = savePlatformOwner();
         User user = saveUser();
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
-        userRepository.save(platformOwner);
+        savePlatform(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
@@ -613,10 +598,7 @@ public class CertificatesIssuingUnitTests extends
             PlatformManagementException {
 
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
-        userRepository.save(platformOwner);
+        savePlatform(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
@@ -645,6 +627,13 @@ public class CertificatesIssuingUnitTests extends
         assertEquals(-1, x509Certificate.getBasicConstraints());
     }
 
+    private void savePlatform(User platformOwner) {
+        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
+        platformRepository.save(platform);
+        platformOwner.getOwnedPlatforms().add(platformId);
+        userRepository.save(platformOwner);
+    }
+
     @Test
     public void replacePlatformComponentCertificateSuccess() throws
             IOException,
@@ -660,10 +649,7 @@ public class CertificatesIssuingUnitTests extends
             PlatformManagementException {
 
         User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
-        userRepository.save(platformOwner);
+        savePlatform(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
