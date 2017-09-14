@@ -149,6 +149,8 @@ public class UsersManagementService {
                 userRepository.save(user);
                 break;
             case UPDATE:
+                if (userToManage == null)
+                    throw new UserManagementException(HttpStatus.BAD_REQUEST);
                 // checking if request contains current password
                 if (!userManagementRequest.getUserCredentials().getPassword().equals(userToManage.getPasswordEncrypted())
                         && !passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), userToManage.getPasswordEncrypted()))
@@ -157,9 +159,13 @@ public class UsersManagementService {
                 break;
 
             case FORCE_UPDATE:
+                if (userToManage == null)
+                    throw new UserManagementException(HttpStatus.BAD_REQUEST);
                 update(userManagementRequest, userToManage);
                 break;
             case ATTRIBUTES_UPDATE:
+                if (userToManage == null)
+                    throw new UserManagementException(HttpStatus.BAD_REQUEST);
                 userToManage.setAttributes(userDetails.getAttributes());
                 userRepository.save(userToManage);
                 break;

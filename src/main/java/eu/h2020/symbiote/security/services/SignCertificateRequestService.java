@@ -343,7 +343,7 @@ public class SignCertificateRequestService {
             // password check
             if (!certificateRequest.getPassword().equals(AAMOwnerPassword))
                 throw new WrongCredentialsException();
-            if (revokedKeysRepository.findOne(SecurityConstants.CORE_AAM_INSTANCE_ID) != null
+            if (revokedKeysRepository.exists(SecurityConstants.CORE_AAM_INSTANCE_ID)
                     && revokedKeysRepository.findOne(SecurityConstants.CORE_AAM_INSTANCE_ID).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
                 throw new ValidationException("Using revoked key");
             }
@@ -355,7 +355,7 @@ public class SignCertificateRequestService {
             if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
                     !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
                 throw new WrongCredentialsException();
-            if (revokedKeysRepository.findOne(user.getUsername()) != null
+            if (revokedKeysRepository.exists(user.getUsername())
                     && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
                 throw new ValidationException("Using revoked key");
             }

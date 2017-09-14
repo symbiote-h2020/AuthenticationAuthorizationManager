@@ -90,11 +90,13 @@ public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer 
                 if (!administratorCredentials.getUsername().equals(adminUsername)
                         || !administratorCredentials.getPassword().equals(adminPassword))
                     throw new UserManagementException(HttpStatus.UNAUTHORIZED);
-                // do it
-                User platformOwner = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
+
+                // preparing collections
                 Set<OwnedPlatformDetails> ownedPlatformDetailsSet = new HashSet<>();
                 Set<String> ownedPlatformsIdentifiers = new HashSet<>();
 
+                // do it
+                User platformOwner = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
                 if (platformOwner != null)
                     ownedPlatformsIdentifiers = platformOwner.getOwnedPlatforms();
 

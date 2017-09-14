@@ -90,7 +90,7 @@ public class FederationRuleManagementRequestConsumerService extends DefaultConsu
                         if (request.getFederationRuleId().isEmpty()) {
                             throw new InvalidArgumentsException();
                         }
-                        if (federationRulesRepository.findOne(request.getFederationRuleId()) != null) {
+                        if (federationRulesRepository.exists(request.getFederationRuleId())) {
                             throw new InvalidArgumentsException("Rule with this id already exists");
                         }
                         FederationRule federationRule = new FederationRule(request.getFederationRuleId(), request.getPlatformIds());
@@ -120,7 +120,7 @@ public class FederationRuleManagementRequestConsumerService extends DefaultConsu
                         break;
                     case UPDATE:
                         if (request.getFederationRuleId().isEmpty()
-                                || federationRulesRepository.findOne(request.getFederationRuleId()) == null) {
+                                || !federationRulesRepository.exists(request.getFederationRuleId())) {
                             throw new InvalidArgumentsException();
                         }
                         federationRule = new FederationRule(request.getFederationRuleId(), request.getPlatformIds());

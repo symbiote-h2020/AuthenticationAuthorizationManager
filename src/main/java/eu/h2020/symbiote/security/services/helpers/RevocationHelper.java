@@ -321,7 +321,7 @@ public class RevocationHelper {
                 return revokePlatformCertificateUsingCommonName(certificateCommonName, platform);
             }
             if (certificateCommonName.split(illegalSign).length == 2) {
-                if (userRepository.findOne(certificateCommonName.split(illegalSign)[0]) != null) {
+                if (userRepository.exists(certificateCommonName.split(illegalSign)[0])) {
                     String username = certificateCommonName.split(illegalSign)[0];
                     String clientId = certificateCommonName.split(illegalSign)[1];
                     User user = userRepository.findOne(username);
@@ -452,68 +452,4 @@ public class RevocationHelper {
         Set<String> keySet = subjectsRevokedKeys.getRevokedKeysSet();
         return keySet.contains(Base64.getEncoder().encodeToString(publicKey.getEncoded()));
     }
-
-    //Checking, if AAM certificate was revoked.
-    /*
-    private boolean isCertificateChainTrustedOrRevoked(String certificateString) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException {
-        if (!isCertificateChainTrusted(certificateString)){
-            if (revokedKeysRepository.findOne(SecurityConstants.CORE_AAM_INSTANCE_ID)!=null){
-                X509Certificate certificate = CryptoHelper.convertPEMToX509(certificateString);
-                return revokedKeysRepository.findOne(SecurityConstants.CORE_AAM_INSTANCE_ID).getRevokedKeysSet().contains(null) ;
-            }
-        }
-        return true;
-    }
-
-    private boolean isCertificateChainTrusted(String certificateString) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        X509Certificate rootCertificate = certificationAuthorityHelper.getAAMCertificate();
-
-        // for foreign tokens issued by Core AAM
-        if (certificateString.equals(CryptoHelper.convertX509ToPEM(rootCertificate)))
-            return true;
-
-        // convert certificates to X509
-        X509Certificate certificate = CryptoHelper.convertPEMToX509(certificateString);
-
-        // Create the selector that specifies the starting certificate
-        X509CertSelector target = new X509CertSelector();
-        target.setCertificate(certificate);
-
-        // Create the trust anchors (set of root CA certificates)
-        Set<TrustAnchor> trustAnchors = new HashSet<>();
-        TrustAnchor trustAnchor = new TrustAnchor(rootCertificate, null);
-        trustAnchors.add(trustAnchor);
-
-        // List of intermediate certificates
-        List<X509Certificate> intermediateCertificates = new ArrayList<>();
-        intermediateCertificates.add(certificate);
-
-
-     // If build() returns successfully, the certificate is valid. More details
-     // about the valid path can be obtained through the PKIXCertPathBuilderResult.
-     // If no valid path can be found, a CertPathBuilderException is thrown.
-
-        try {
-            // Create the selector that specifies the starting certificate
-            PKIXBuilderParameters params = new PKIXBuilderParameters(trustAnchors, target);
-            // Disable CRL checks (this is done manually as additional step)
-            params.setRevocationEnabled(false);
-
-            // Specify a list of intermediate certificates
-            CertStore intermediateCertStore = CertStore.getInstance("Collection",
-                    new CollectionCertStoreParameters(intermediateCertificates), "BC");
-            params.addCertStore(intermediateCertStore);
-
-            // Build and verify the certification chain
-            CertPathBuilder builder = CertPathBuilder.getInstance("PKIX", "BC");
-            PKIXCertPathBuilderResult result = (PKIXCertPathBuilderResult) builder.build(params);
-            // path should have 1 intermediate cert in symbIoTe architecture
-            return result.getCertPath().getCertificates().size() == 1;
-        } catch (CertPathBuilderException | InvalidAlgorithmParameterException e) {
-            log.info(e);
-            return false;
-
-        }
-    }
-    */
 }

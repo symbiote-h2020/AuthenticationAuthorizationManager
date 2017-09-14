@@ -181,6 +181,10 @@ public class ValidationHelper {
                 if (componentCertificate == null || !Base64.getEncoder().encodeToString(componentCertificate.getX509().getPublicKey().getEncoded()).equals(spk))
                     return ValidationStatus.REVOKED_SPK;
             } else { // user case
+                // check if we have such a user and his certificate
+                if (!userRepository.exists(userFromToken)
+                        || !userRepository.findOne(userFromToken).getClientCertificates().containsKey(clientId))
+                    return ValidationStatus.INVALID_TRUST_CHAIN;
                 // expiry check
                 if (isExpired(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509())) {
                     return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;

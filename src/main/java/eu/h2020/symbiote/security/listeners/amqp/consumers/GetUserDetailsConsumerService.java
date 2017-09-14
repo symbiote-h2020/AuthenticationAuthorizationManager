@@ -87,12 +87,13 @@ public class GetUserDetailsConsumerService extends DefaultConsumer {
                     throw new UserManagementException(HttpStatus.FORBIDDEN);
                 //  begin checking requested user's credentials
                 UserDetailsResponse userDetails;
+                String username = userManagementRequest.getUserCredentials().getUsername();
                 //  Check if user exists in database
-                if (!(userRepository.exists(userManagementRequest.getUserCredentials().getUsername()))) {
+                if (!userRepository.exists(username)) {
                     //  If not then return appropriate message
                     userDetails = new UserDetailsResponse(HttpStatus.BAD_REQUEST, new UserDetails());
                 } else {   //  User IS in database
-                    User foundUser = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
+                    User foundUser = userRepository.findOne(username);
                     //  Checking User's credentials
                     if (passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), foundUser.getPasswordEncrypted())) {
                         userDetails = new UserDetailsResponse(
