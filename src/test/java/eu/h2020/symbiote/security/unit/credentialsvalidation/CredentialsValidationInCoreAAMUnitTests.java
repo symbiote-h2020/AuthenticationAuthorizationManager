@@ -13,10 +13,7 @@ import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
-import eu.h2020.symbiote.security.communication.payloads.UserDetails;
-import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
@@ -479,6 +476,71 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     }
 
     @Test
+    public void validateForeignTokenPlatformRemovedFromFederation() throws
+            IOException,
+            ValidationException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            JWTCreationException, TimeoutException {
+        // issuing dummy platform token
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
+                        SecurityConstants
+                                .AAM_GET_HOME_TOKEN,
+                loginRequest, String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
+
+        savePlatformOwner();
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId("platform-1");
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        //inject platform PEM Certificate to the database
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
+        Platform dummyPlatform = platformRepository.findOne("platform-1");
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
+        //put any valid certificate as client cert to pass validation
+        dummyPlatform.getComponentCertificates().put(clientId, new Certificate(dummyPlatformAAMPEMCertString));
+
+        platformRepository.save(dummyPlatform);
+        FederationRule federationRule = new FederationRule("federationId", new HashSet<>());
+        federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
+        federationRulesRepository.save(federationRule);
+
+        Token foreignToken = null;
+        try {
+            foreignToken = tokenIssuer.getForeignToken(dummyHomeToken);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e.getCause());
+            fail("Exception thrown");
+        }
+        assertNotNull(foreignToken);
+        //checking if foreign token is valid
+        assertEquals(ValidationStatus.VALID, validationHelper.validate(foreignToken.toString(), "", "", dummyPlatformAAMPEMCertString));
+        //changing federation not to contain this platform
+
+        federationRule.deletePlatform(dummyPlatform.getPlatformInstanceId());
+        federationRulesRepository.save(federationRule);
+        //checking if foreign token is valid
+        assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validate(foreignToken.toString(), "", "", ""));
+        federationRulesRepository.delete(federationRule);
+        assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validate(foreignToken.toString(), "", "", ""));
+    }
+
+    @Test
     public void validateForeignTokenRequestFails() throws
             IOException,
             ValidationException,
@@ -501,7 +563,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         String platformId = "testaam-connerr";
 
         savePlatformOwner();
-
+        saveUser();
         // registering the platform to the Core AAM so it will be available for token revocation
         platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
         platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test/conn_err");

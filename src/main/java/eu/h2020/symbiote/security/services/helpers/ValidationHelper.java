@@ -5,7 +5,9 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -29,7 +31,10 @@ import java.security.*;
 import java.security.cert.*;
 import java.util.*;
 
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
+
 import eu.h2020.symbiote.security.commons.Certificate;
+
 
 /**
  * Used to validate given credentials against data in the AAMs
@@ -51,6 +56,7 @@ public class ValidationHelper {
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final RevokedKeysRepository revokedKeysRepository;
     private final RevokedTokensRepository revokedTokensRepository;
+    private final FederationRulesRepository federationRulesRepository;
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
@@ -67,12 +73,13 @@ public class ValidationHelper {
     @Autowired
     public ValidationHelper(CertificationAuthorityHelper certificationAuthorityHelper,
                             RevokedKeysRepository revokedKeysRepository,
-                            RevokedTokensRepository revokedTokensRepository, UserRepository userRepository, PlatformRepository platformRepository, ComponentCertificatesRepository componentCertificatesRepository, AAMServices aamServices) {
+                            RevokedTokensRepository revokedTokensRepository, FederationRulesRepository federationRulesRepository, UserRepository userRepository, PlatformRepository platformRepository, ComponentCertificatesRepository componentCertificatesRepository, AAMServices aamServices) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
         this.revokedKeysRepository = revokedKeysRepository;
         this.revokedTokensRepository = revokedTokensRepository;
+        this.federationRulesRepository = federationRulesRepository;
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
@@ -139,6 +146,7 @@ public class ValidationHelper {
             String userFromToken = claims.getSubject().split("@")[0];
             String clientId = claims.getSubject().split("@")[1];
 
+
             // check if SPK is is in the revoked set for user token
             if (claims.getSubject().split("@").length == 2)
                 if (revokedKeysRepository.exists(userFromToken) &&
@@ -151,6 +159,7 @@ public class ValidationHelper {
                 if (revokedKeysRepository.exists(clientId) && revokedKeysRepository.findOne(clientId).getRevokedKeysSet().contains(spk)) {
                     return ValidationStatus.REVOKED_SPK;
                 }
+
 
             // check if subject certificate is valid & matching the token SPK
             if (claims.getSubject().split("@").length == 3) {
@@ -178,7 +187,7 @@ public class ValidationHelper {
                     return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
                 }
                 // checking if SPK matches the components certificate
-                if (componentCertificate == null || !Base64.getEncoder().encodeToString(componentCertificate.getX509().getPublicKey().getEncoded()).equals(spk))
+                if (!Base64.getEncoder().encodeToString(componentCertificate.getX509().getPublicKey().getEncoded()).equals(spk))
                     return ValidationStatus.REVOKED_SPK;
             } else { // user case
                 // check if we have such a user and his certificate
@@ -195,6 +204,9 @@ public class ValidationHelper {
                 // checking match from token
                 if (!Base64.getEncoder().encodeToString(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded()).equals(spk))
                     return ValidationStatus.REVOKED_SPK;
+            }
+            if (!validateFederationAttributes(token)) {
+                return ValidationStatus.REVOKED_TOKEN;
             }
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
@@ -465,6 +477,27 @@ public class ValidationHelper {
             log.info(e);
             return false;
         }
+    }
+
+    private boolean validateFederationAttributes(String foreignToken) throws ValidationException {
+        JWTClaims claims;
+        try {
+            claims = JWTEngine.getClaimsFromToken(foreignToken);
+        } catch (MalformedJWTException e) {
+            return false;
+        }
+
+        if (!new Token(foreignToken).getType().equals(Token.Type.FOREIGN))
+            return true;
+
+        for (String federationId : claims.getAtt().values()) {
+            if (!federationRulesRepository.exists(federationId)
+                    || claims.getSub().split(illegalSign).length != 3
+                    || !federationRulesRepository.findOne(federationId).getPlatformIds().contains(claims.getSub().split(illegalSign)[2])) {
+                return false;
+            }
+        }
+        return true;
     }
 
 
