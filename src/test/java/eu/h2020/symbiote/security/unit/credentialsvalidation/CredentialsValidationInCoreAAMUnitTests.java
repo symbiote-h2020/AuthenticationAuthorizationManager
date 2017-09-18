@@ -520,6 +520,17 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
         federationRulesRepository.save(federationRule);
 
+        federationRule = new FederationRule("federationId2", new HashSet<>());
+        federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
+        federationRule.addPlatform("testPlatform");
+        federationRulesRepository.save(federationRule);
+
+        federationRule = new FederationRule("federationId3", new HashSet<>());
+        federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
+        federationRule.addPlatform("testPlatform");
+        federationRule.addPlatform("testPlatform2");
+        federationRulesRepository.save(federationRule);
+
         Token foreignToken = null;
         try {
             foreignToken = tokenIssuer.getForeignToken(dummyHomeToken);
