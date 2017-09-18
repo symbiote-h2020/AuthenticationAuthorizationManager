@@ -4,7 +4,7 @@ buildscript {
         swaggerOutputDir = file("${buildDir}/swagger")
         snippetsOutputDir = file("${buildDir}/asciidoc/snippets")
         springfoxVersion = '2.7.0'
-        swaggerAnnotationsVersion = '1.5.13'
+        swaggerAnnotationsVersion = '1.5.16'
     }
     repositories {
         mavenCentral()
@@ -24,10 +24,10 @@ plugins {
     id "java"
     // spring
     id "io.spring.dependency-management" version "1.0.3.RELEASE"
-    id 'org.springframework.boot' version '1.5.4.RELEASE'
+    id 'org.springframework.boot' version '1.5.7.RELEASE'
     // code quality
     id "jacoco"
-    id "org.owasp.dependencycheck" version "2.1.0"
+    id "org.owasp.dependencycheck" version "2.1.1"
     // IDEs
     id "eclipse"
     id "idea"
@@ -47,7 +47,6 @@ targetCompatibility = 1.8
 repositories {
     mavenCentral()
     jcenter()
-    maven { url 'http://oss.jfrog.org/artifactory/oss-snapshot-local/' }
     maven { url "https://jitpack.io" }
 }
 // Spring related configs
@@ -83,9 +82,9 @@ dependencies {
             3) project dependency requires changes in settings.gradle file in this project
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:21.1+'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:21.2+'){ changing = true }
     // allows to select the downloaded matching sources in IntelliJ Idea as it fails to do so automatically from jitpack repo
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:21.1+:sources'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:21.2+:sources'){ changing = true }
     //compile project(':SymbIoTeSecurity')
 
     // Spring
@@ -103,7 +102,7 @@ dependencies {
     // tests only
     testCompile('junit:junit:4.+')
     testCompile('org.springframework.boot:spring-boot-starter-test')
-    testCompile ('com.github.fakemongo:fongo:2.1+')
+    testCompile('com.github.fakemongo:fongo:2.1+')
     testCompile("io.springfox:springfox-swagger2:${springfoxVersion}")
     testCompile("io.springfox:springfox-bean-validators:${springfoxVersion}")
     testCompile('org.springframework.restdocs:spring-restdocs-mockmvc')
@@ -134,11 +133,9 @@ dependencyCheck {
 }
 
 // including code quality extensions into the build
-check.dependsOn(jacocoTestReport)//, 'dependencyCheckAnalyze')
+check.dependsOn(jacocoTestReport)//,'dependencyCheckAnalyze')
 
 test {
-    systemProperty 'io.springfox.staticdocs.outputDir', swaggerOutputDir
-    systemProperty 'io.springfox.staticdocs.snippetsOutputDir', snippetsOutputDir
     // we don't need that for testing,
     exclude '**/Swagger*'
 }
@@ -146,6 +143,8 @@ test {
 // documentation below
 task swaggerGeneratorTest(type: Test, dependsOn: testClasses) {
     include '**/Swagger*'
+    systemProperty 'io.springfox.staticdocs.outputDir', swaggerOutputDir
+    systemProperty 'io.springfox.staticdocs.snippetsOutputDir', snippetsOutputDir
 }
 
 convertSwagger2markup {

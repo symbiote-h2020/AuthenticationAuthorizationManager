@@ -248,6 +248,7 @@ public class FederatedRulesManagementFunctionalTests extends
         ErrorResponseContainer fail = mapper.readValue(response, ErrorResponseContainer.class);
         assertNotNull(fail);
         log.info("Test Client received this error message instead of token: " + fail.getErrorMessage());
+
     }
 
 }

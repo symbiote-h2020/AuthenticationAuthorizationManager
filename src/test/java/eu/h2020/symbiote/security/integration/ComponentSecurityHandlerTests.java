@@ -3,7 +3,8 @@ package eu.h2020.symbiote.security.integration;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.ComponentSecurityHandlerFactory;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
-import eu.h2020.symbiote.security.accesspolicies.SingleLocalHomeTokenIdentityBasedTokenAccessPolicy;
+import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
+import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
@@ -13,6 +14,7 @@ import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.AAMServices;
+import io.jsonwebtoken.Claims;
 import org.junit.After;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,10 +69,17 @@ public class ComponentSecurityHandlerTests extends AbstractAAMTestSuite {
         SecurityRequest crmSecurityRequest = crmCSH.generateSecurityRequestUsingCoreCredentials();
         assertFalse(crmSecurityRequest.getSecurityCredentials().isEmpty());
 
-        // building dummy access policy
+        // building test access policy
         Map<String, IAccessPolicy> testAP = new HashMap<>();
         String testPolicyId = "testPolicyId";
-        testAP.put(testPolicyId, new SingleLocalHomeTokenIdentityBasedTokenAccessPolicy(SecurityConstants.CORE_AAM_INSTANCE_ID, AAMOwnerUsername, new HashMap<>()));
+        Map<String, String> requiredClaims = new HashMap<>();
+        requiredClaims.put(Claims.ISSUER, SecurityConstants.CORE_AAM_INSTANCE_ID);
+        requiredClaims.put(Claims.SUBJECT, AAMOwnerUsername);
+        SingleTokenAccessPolicySpecifier testPolicySpecifier =
+                new SingleTokenAccessPolicySpecifier(
+                        SingleTokenAccessPolicySpecifier.SingleTokenAccessPolicyType.SLHTIBAP,
+                        requiredClaims);
+        testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier));
 
         // the policy should be there!
         assertTrue(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
@@ -120,7 +129,15 @@ public class ComponentSecurityHandlerTests extends AbstractAAMTestSuite {
         // building dummy access policy
         Map<String, IAccessPolicy> testAP = new HashMap<>();
         String testPolicyId = "testPolicyId";
-        testAP.put(testPolicyId, new SingleLocalHomeTokenIdentityBasedTokenAccessPolicy(SecurityConstants.CORE_AAM_INSTANCE_ID, platformOwnerUsername, new HashMap<>()));
+        Map<String, String> requiredClaims = new HashMap<>();
+        requiredClaims.put(Claims.ISSUER, SecurityConstants.CORE_AAM_INSTANCE_ID);
+        requiredClaims.put(Claims.SUBJECT, platformOwnerUsername);
+        SingleTokenAccessPolicySpecifier testPolicySpecifier =
+                new SingleTokenAccessPolicySpecifier(
+                        SingleTokenAccessPolicySpecifier.SingleTokenAccessPolicyType.SLHTIBAP,
+                        requiredClaims);
+        testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier));
+
 
         // the policy should be there!
         assertTrue(rhCSH.getSatisfiedPoliciesIdentifiers(testAP, rhSecurityRequest).contains(testPolicyId));
