@@ -281,9 +281,10 @@ public class SignCertificateRequestService {
             throw new SecurityException(e.getMessage(), e.getCause());
         }
 
-        if (!req.getSubject().toString().split("CN=")[1].split("@")[2].equals
-                (caCert.getSubjectDN().getName().split("CN=")[1]))
-            throw new InvalidArgumentsException("Subject name doesn't match");
+        String platformIdFromCSR = req.getSubject().toString().split("CN=")[1].split("@")[2];
+        String aamId = caCert.getSubjectDN().getName().split("CN=")[1];
+        if (!platformIdFromCSR.equals(aamId))
+            throw new InvalidArgumentsException("CSR CN contains: "+platformIdFromCSR+ "which doesn't match this AAM: "+aamId);
 
         try {
             certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
