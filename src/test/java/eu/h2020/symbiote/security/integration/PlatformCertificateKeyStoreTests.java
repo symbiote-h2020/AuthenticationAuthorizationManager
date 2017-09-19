@@ -43,7 +43,7 @@ public class PlatformCertificateKeyStoreTests extends AbstractAAMTestSuite {
                 "root_cert", "aam_cert", PV_KEY_PASSWORD
         );
         //keyStore checking if proper Certificates exists
-        KeyStore trustStore = KeyStore.getInstance("JKS");
+        KeyStore trustStore = KeyStore.getInstance("PKCS12", "BC");
         try (
                 FileInputStream fIn = new FileInputStream(KEY_STORE_PATH)) {
             trustStore.load(fIn, KEY_STORE_PASSWORD.toCharArray());

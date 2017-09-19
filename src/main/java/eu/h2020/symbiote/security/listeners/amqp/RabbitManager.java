@@ -84,9 +84,9 @@ public class RabbitManager {
     @Value("${rabbit.queue.manage.user.request}")
     private String userManagementRequestQueue;
 
-    @Value("${rabbit.routingKey.manage.platform.request}")
+    @Value("${rabbit.routingKey.manage.platform.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     private String platformManagementRequestRoutingKey;
-    @Value("${rabbit.queue.manage.platform.request}")
+    @Value("${rabbit.queue.manage.platform.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     private String platformManagementRequestQueue;
 
     @Value("${rabbit.routingKey.manage.revocation.request}")
@@ -109,9 +109,9 @@ public class RabbitManager {
     @Value("${rabbit.routingKey.get.user.details}")
     private String getUserDetailsRoutingKey;
 
-    @Value("${rabbit.queue.get.platform.owners.names}")
+    @Value("${rabbit.queue.get.platform.owners.names:defaultOverridenBySpringConfigInCoreEnvironment}")
     private String getPlatformOwnersNamesQueue;
-    @Value("${rabbit.routingKey.get.platform.owners.names}")
+    @Value("${rabbit.routingKey.get.platform.owners.names:defaultOverridenBySpringConfigInCoreEnvironment}")
     private String getPlatformOwnersNamesRoutingKey;
 
     @Value("${rabbit.queue.manage.federation.rule}")

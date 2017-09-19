@@ -102,9 +102,9 @@ public abstract class AbstractAAMTestSuite {
     protected String loginRequestQueue;
     @Value("${rabbit.queue.manage.user.request}")
     protected String userManagementRequestQueue;
-    @Value("${rabbit.queue.manage.platform.request}")
+    @Value("${rabbit.queue.manage.platform.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String platformManagementRequestQueue;
-    @Value("${rabbit.queue.manage.revocation.request}")
+    @Value("${rabbit.queue.manage.revocation.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String revocationRequestQueue;
     @Value("${rabbit.queue.validate.request}")
     protected String validateRequestQueue;
