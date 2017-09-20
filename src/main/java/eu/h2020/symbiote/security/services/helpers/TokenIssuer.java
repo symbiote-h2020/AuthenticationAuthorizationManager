@@ -180,7 +180,7 @@ public class TokenIssuer {
             int i = 1;
             for (FederationRule federationRule : federationRulesRepository.findAll()) {
                 if (federationRule.getPlatformIds().contains(claims.getIss())) {
-                    foreignAttributes.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "federation_" + i, federationRule.getFederationId());
+                    foreignAttributes.put(SecurityConstants.FEDERATION_CLAIM_KEY_PREFIX + i, federationRule.getFederationId());
                     i++;
                 }
             }

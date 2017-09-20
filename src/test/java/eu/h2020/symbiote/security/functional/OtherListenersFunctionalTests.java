@@ -251,6 +251,7 @@ public class OtherListenersFunctionalTests extends
 
         // issue second platform registration over AMQP
         platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId + "2");
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(platformInterworkingInterfaceAddress + "/second");
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -270,6 +271,7 @@ public class OtherListenersFunctionalTests extends
 
         // issue second platform registration over AMQP
         platformRegistrationOverAMQPRequest.setPlatformInstanceId("");
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(platformInterworkingInterfaceAddress + "/third");
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -285,14 +287,6 @@ public class OtherListenersFunctionalTests extends
         });
 
         assertEquals(3, responseSet.size());
-        for (OwnedPlatformDetails platform : responseSet) {
-            log.debug(platform.getPlatformInstanceId());
-        }
-
-        for (String platform : platformOwner.getOwnedPlatforms()) {
-            log.debug(platform);
-        }
-
     }
 
 
