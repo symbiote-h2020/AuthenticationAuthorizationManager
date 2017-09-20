@@ -162,7 +162,7 @@ public class ValidationHelper {
 
 
             // check if subject certificate is valid & matching the token SPK
-            if (claims.get("ttyp").equals(Token.Type.HOME)) {
+            if (claims.get("ttyp").equals(Token.Type.HOME.toString())) {
                 if (claims.getSubject().split("@").length == 3) {
                     // components use case
                     String platformId = claims.getSubject().split("@")[2];
