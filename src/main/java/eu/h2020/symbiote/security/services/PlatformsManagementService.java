@@ -29,6 +29,7 @@ import java.util.*;
 /**
  * Spring service used to manage platforms and their owners in the AAM repository.
  * <p>
+ *
  * @author Maksymilian Marcinowski (PSNC)
  * @author Mikołaj Dobski (PSNC)
  */
@@ -46,6 +47,9 @@ public class PlatformsManagementService {
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
 
+    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
+    private String coreInterfaceAddress;
+
     @Autowired
     public PlatformsManagementService(UserRepository userRepository, PlatformRepository platformRepository,
                                       PasswordEncoder passwordEncoder, RevokedKeysRepository revokedKeysRepository) {
@@ -55,7 +59,8 @@ public class PlatformsManagementService {
         this.revokedKeysRepository = revokedKeysRepository;
     }
 
-    public PlatformManagementResponse manage(PlatformManagementRequest platformManagementRequest) throws SecurityException {
+    public PlatformManagementResponse manage(PlatformManagementRequest platformManagementRequest) throws
+            SecurityException {
 
         Credentials platformOwnerCredentials = platformManagementRequest.getPlatformOwnerCredentials();
 
@@ -90,9 +95,17 @@ public class PlatformsManagementService {
                 if (platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
                     throw new PlatformManagementException("Platform already exists", HttpStatus.BAD_REQUEST);
 
-                if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME))
+                // TODO try to improve it in R4 somehow
+                // checking if Interworking interface isn't already used
+                for (Platform platform : platformRepository.findAll()) {
+                    if (platform.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress()))
+                        throw new PlatformManagementException("Platform interworking interface already in use", HttpStatus.BAD_REQUEST);
+                }
+
+                if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME)
+                        || platformManagementRequest.getPlatformInterworkingInterfaceAddress().equals(coreInterfaceAddress))
                     // such a name would pose awkward questions
-                    throw new PlatformManagementException("That is an awkward platform id, we won't register it", HttpStatus.BAD_REQUEST);
+                    throw new PlatformManagementException("That is an awkward platform, we won't register it", HttpStatus.BAD_REQUEST);
 
                 // use PO preferred platform identifier
                 platformId = platformManagementRequest.getPlatformInstanceId();
@@ -112,9 +125,23 @@ public class PlatformsManagementService {
 
                 if (!platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
                     platform.setPlatformInstanceFriendlyName(platformManagementRequest.getPlatformInstanceFriendlyName());
-                if (!platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
-                    platform.setPlatformInterworkingInterfaceAddress(platformManagementRequest.getPlatformInterworkingInterfaceAddress());
 
+                // II part
+                if (!platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty()) {
+                    // check if other platforms don't use that Interworking interface already
+                    if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().equals(coreInterfaceAddress))
+                        throw new PlatformManagementException("That is an awkward platform interface, we won't update it", HttpStatus.BAD_REQUEST);
+
+                    // TODO try to improve it in R4 somehow
+                    // checking if Interworking interface isn't already used
+                    List<Platform> platformsInRepo = platformRepository.findAll();
+                    platformsInRepo.remove(platform);
+                    for (Platform otherPlatform : platformsInRepo) {
+                        if (otherPlatform.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress()))
+                            throw new PlatformManagementException("Platform interworking interface already in use", HttpStatus.BAD_REQUEST);
+                    }
+                    platform.setPlatformInterworkingInterfaceAddress(platformManagementRequest.getPlatformInterworkingInterfaceAddress());
+                }
                 platformRepository.save(platform);
                 break;
             case DELETE:

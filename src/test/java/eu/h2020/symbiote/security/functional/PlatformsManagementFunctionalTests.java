@@ -378,6 +378,7 @@ public class PlatformsManagementFunctionalTests extends
 
         //register second platform
         platformRegistrationOverAMQPRequest.setPlatformInstanceId(preferredPlatformId + "2");
+        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(platformInterworkingInterfaceAddress + "/second");
         platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
         platformRegistrationOverAMQPResponse = mapper.readValue(response,
