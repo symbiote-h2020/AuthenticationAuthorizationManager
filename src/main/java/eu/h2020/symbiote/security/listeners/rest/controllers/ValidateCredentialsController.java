@@ -35,6 +35,14 @@ public class ValidateCredentialsController implements IValidateCredentials {
         this.credentialsValidationService = credentialsValidationService;
     }
 
+    private String rebuildPEMStringFromHeader(String flatPEMString) {
+        String PEMBEGIN = "-----BEGIN CERTIFICATE-----";
+        String PEMEND = "-----END CERTIFICATE-----";
+        String certificateContent = flatPEMString.substring(PEMBEGIN.length(), flatPEMString.indexOf(PEMEND));
+        return PEMBEGIN + '\n' + certificateContent + '\n' + PEMEND;
+    }
+
+
     @Override
     @ApiOperation(value = "Responds with validation status of processed Validation request", response = ValidationStatus.class)
     public ValidationStatus validate(
@@ -49,17 +57,12 @@ public class ValidateCredentialsController implements IValidateCredentials {
         try {
             // input sanity check
             JWTEngine.validateTokenString(token);
+
+            // rebuilding PEMs from headers
+            String parsedClientCert = (clientCertificate.isEmpty()) ? clientCertificate : rebuildPEMStringFromHeader(clientCertificate);
+            String parsedClientSigningCert = (clientCertificateSigningAAMCertificate.isEmpty()) ? clientCertificateSigningAAMCertificate : rebuildPEMStringFromHeader(clientCertificateSigningAAMCertificate);
+            String parsedForeignTokenCert = (foreignTokenIssuingAAMCertificate.isEmpty()) ? foreignTokenIssuingAAMCertificate : rebuildPEMStringFromHeader(foreignTokenIssuingAAMCertificate);
             // real validation
-            String PEMBEGIN = "-----BEGIN CERTIFICATE-----";
-            String PEMEND = "-----END CERTIFICATE-----";
-            String Middle_ClientCert = clientCertificate.substring(PEMBEGIN.length(), clientCertificate.indexOf(PEMEND));
-            String Middle_ClientSigningCert = clientCertificateSigningAAMCertificate.substring(PEMBEGIN.length(), clientCertificateSigningAAMCertificate.indexOf(PEMEND));
-            String Middle_ForeignTokenCert = foreignTokenIssuingAAMCertificate.substring(PEMBEGIN.length(), foreignTokenIssuingAAMCertificate.indexOf(PEMEND));
-
-            String parsedClientCert = PEMBEGIN + '\n' + Middle_ClientCert + '\n' + PEMEND;
-            String parsedClientSigningCert = PEMBEGIN + '\n' + Middle_ClientSigningCert + '\n' + PEMEND;
-            String parsedForeignTokenCert = PEMBEGIN + '\n' + Middle_ForeignTokenCert + '\n' + PEMEND;
-
             return credentialsValidationService.validate(token, parsedClientCert, parsedClientSigningCert, parsedForeignTokenCert);
         } catch (ValidationException e) {
             log.error(e);

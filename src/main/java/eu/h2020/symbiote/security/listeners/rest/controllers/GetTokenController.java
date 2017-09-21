@@ -39,6 +39,13 @@ public class GetTokenController implements IGetToken {
         this.getTokenService = getTokenService;
     }
 
+    private String rebuildPEMStringFromHeader(String flatPEMString) {
+        String PEMBEGIN = "-----BEGIN CERTIFICATE-----";
+        String PEMEND = "-----END CERTIFICATE-----";
+        String certificateContent = flatPEMString.substring(PEMBEGIN.length(), flatPEMString.indexOf(PEMEND));
+        return PEMBEGIN + '\n' + certificateContent + '\n' + PEMEND;
+    }
+
     @ApiOperation(value = "Issues a Foreign Token")
     @ApiResponses({
             @ApiResponse(code = 401, message = "Received token could not be validated"),
@@ -52,14 +59,10 @@ public class GetTokenController implements IGetToken {
             @RequestHeader(name = SecurityConstants.AAM_CERTIFICATE_HEADER_NAME, defaultValue = "") String aamCertificate) {
         HttpHeaders headers = new HttpHeaders();
         Token foreignToken;
-        String PEMBEGIN = "-----BEGIN CERTIFICATE-----";
-        String PEMEND = "-----END CERTIFICATE-----";
-        //TODO check if those are empty prior to attempting change
-        String Middle_ClientCert = clientCertificate.substring(PEMBEGIN.length(), clientCertificate.indexOf(PEMEND));
-        String Middle_AamCert = aamCertificate.substring(PEMBEGIN.length(), aamCertificate.indexOf(PEMEND));
 
-        String parsedClientCert = PEMBEGIN + '\n' + Middle_ClientCert + '\n' + PEMEND;
-        String parsedAamCert = PEMBEGIN + '\n' + Middle_AamCert + '\n' + PEMEND;
+        // rebuilding PEMs from headers
+        String parsedClientCert = (clientCertificate.isEmpty()) ? clientCertificate : rebuildPEMStringFromHeader(clientCertificate);
+        String parsedAamCert = (aamCertificate.isEmpty()) ? aamCertificate : rebuildPEMStringFromHeader(aamCertificate);
         try {
             foreignToken = getTokenService.getForeignToken(new Token(remoteHomeToken), parsedClientCert, parsedAamCert);
         } catch (ValidationException e) {
