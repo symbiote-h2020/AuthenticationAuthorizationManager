@@ -29,7 +29,18 @@ public class PlatformCertificateKeyStoreTests extends AbstractAAMTestSuite {
 
 
     @Test
-    public void PlatformCertificateKeyStoreSuccess() throws IOException, CertificateException, NoSuchAlgorithmException, ValidationException, KeyStoreException, InvalidArgumentsException, InvalidAlgorithmParameterException, NotExistingUserException, WrongCredentialsException, NoSuchProviderException {
+    public void PlatformCertificateKeyStoreSuccess() throws
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            ValidationException,
+            KeyStoreException,
+            InvalidArgumentsException,
+            InvalidAlgorithmParameterException,
+            NotExistingUserException,
+            WrongCredentialsException,
+            NoSuchProviderException,
+            UnrecoverableKeyException {
         //platformOwner and platform  registration
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, "", "", platformOwner, new Certificate(), new HashMap<>());
@@ -38,9 +49,14 @@ public class PlatformCertificateKeyStoreTests extends AbstractAAMTestSuite {
         userRepository.save(platformOwner);
 
         PlatformAAMCertificateKeyStoreFactory.getPlatformAAMKeystore(
-                serverAddress, platformOwnerUsername, platformOwnerPassword, platformId, KEY_STORE_PATH,
+                serverAddress,
+                platformOwnerUsername,
+                platformOwnerPassword,
+                platformId,
+                KEY_STORE_PATH,
                 KEY_STORE_PASSWORD,
-                "root_cert", "aam_cert", PV_KEY_PASSWORD
+                "root_cert",
+                "aam_cert"
         );
         //keyStore checking if proper Certificates exists
         KeyStore trustStore = KeyStore.getInstance("PKCS12", "BC");
