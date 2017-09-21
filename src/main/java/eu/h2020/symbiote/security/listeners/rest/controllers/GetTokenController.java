@@ -52,8 +52,21 @@ public class GetTokenController implements IGetToken {
             @RequestHeader(name = SecurityConstants.AAM_CERTIFICATE_HEADER_NAME, defaultValue = "") String aamCertificate) {
         HttpHeaders headers = new HttpHeaders();
         Token foreignToken;
+        String PEMBEGIN = "-----BEGIN CERTIFICATE-----";
+        String PEMEND = "-----END CERTIFICATE-----";
+
+        String Middle_ClientCert = clientCertificate.substring(PEMBEGIN.length(), clientCertificate.indexOf(PEMEND));
+        String Middle_AamCert = aamCertificate.substring(PEMBEGIN.length(), aamCertificate.indexOf(PEMEND));
+
+        String parsedClientCert = PEMBEGIN + '\n' + Middle_ClientCert + '\n' + PEMEND;
+        String parsedAamCert = PEMBEGIN + '\n' + Middle_AamCert + '\n' + PEMEND;
+
+        System.out.println("Middle=" + Middle_ClientCert);
+        System.out.println("final=" + parsedClientCert);
         try {
-            foreignToken = getTokenService.getForeignToken(new Token(remoteHomeToken), clientCertificate, aamCertificate);
+            String held = clientCertificate;
+            //if(!held.isEmpty())held = clientCertificate.replace("\r", "").replace("\r", "");
+            foreignToken = getTokenService.getForeignToken(new Token(remoteHomeToken), parsedClientCert, parsedAamCert);
         } catch (ValidationException e) {
             log.error(e);
             return new ResponseEntity<>(headers, e.getStatusCode());
