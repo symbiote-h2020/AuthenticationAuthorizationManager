@@ -50,7 +50,17 @@ public class ValidateCredentialsController implements IValidateCredentials {
             // input sanity check
             JWTEngine.validateTokenString(token);
             // real validation
-            return credentialsValidationService.validate(token, clientCertificate, clientCertificateSigningAAMCertificate, foreignTokenIssuingAAMCertificate);
+            String PEMBEGIN = "-----BEGIN CERTIFICATE-----";
+            String PEMEND = "-----END CERTIFICATE-----";
+            String Middle_ClientCert = clientCertificate.substring(PEMBEGIN.length(), clientCertificate.indexOf(PEMEND));
+            String Middle_ClientSigningCert = clientCertificateSigningAAMCertificate.substring(PEMBEGIN.length(), clientCertificateSigningAAMCertificate.indexOf(PEMEND));
+            String Middle_ForeignTokenCert = foreignTokenIssuingAAMCertificate.substring(PEMBEGIN.length(), foreignTokenIssuingAAMCertificate.indexOf(PEMEND));
+
+            String parsedClientCert = PEMBEGIN + '\n' + Middle_ClientCert + '\n' + PEMEND;
+            String parsedClientSigningCert = PEMBEGIN + '\n' + Middle_ClientSigningCert + '\n' + PEMEND;
+            String parsedForeignTokenCert = PEMBEGIN + '\n' + Middle_ForeignTokenCert + '\n' + PEMEND;
+
+            return credentialsValidationService.validate(token, parsedClientCert, parsedClientSigningCert, parsedForeignTokenCert);
         } catch (ValidationException e) {
             log.error(e);
             return ValidationStatus.UNKNOWN;

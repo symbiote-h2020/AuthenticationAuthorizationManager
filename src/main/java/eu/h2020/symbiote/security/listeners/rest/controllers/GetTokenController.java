@@ -54,18 +54,13 @@ public class GetTokenController implements IGetToken {
         Token foreignToken;
         String PEMBEGIN = "-----BEGIN CERTIFICATE-----";
         String PEMEND = "-----END CERTIFICATE-----";
-
+        //TODO check if those are empty prior to attempting change
         String Middle_ClientCert = clientCertificate.substring(PEMBEGIN.length(), clientCertificate.indexOf(PEMEND));
         String Middle_AamCert = aamCertificate.substring(PEMBEGIN.length(), aamCertificate.indexOf(PEMEND));
 
         String parsedClientCert = PEMBEGIN + '\n' + Middle_ClientCert + '\n' + PEMEND;
         String parsedAamCert = PEMBEGIN + '\n' + Middle_AamCert + '\n' + PEMEND;
-
-        System.out.println("Middle=" + Middle_ClientCert);
-        System.out.println("final=" + parsedClientCert);
         try {
-            String held = clientCertificate;
-            //if(!held.isEmpty())held = clientCertificate.replace("\r", "").replace("\r", "");
             foreignToken = getTokenService.getForeignToken(new Token(remoteHomeToken), parsedClientCert, parsedAamCert);
         } catch (ValidationException e) {
             log.error(e);
