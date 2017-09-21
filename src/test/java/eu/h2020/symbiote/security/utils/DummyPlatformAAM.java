@@ -36,7 +36,8 @@ import java.util.HashMap;
 @RestController
 public class DummyPlatformAAM {
     private static final Log log = LogFactory.getLog(DummyPlatformAAM.class);
-    private static final String CERTIFICATE_ALIAS = "platform-1-1-c1";
+    private static final String PLATFORM_CERTIFICATE_ALIAS = "platform-1-1-c1";
+    private static final String P1_CLIENT_CERTIFICATE_CN = "userId@clientId@platform-1";
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String PATH = "/test/paam";
@@ -59,17 +60,17 @@ public class DummyPlatformAAM {
         try {
             KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
             ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
-            Key key = ks.getKey(CERTIFICATE_ALIAS, CERTIFICATE_PASSWORD.toCharArray());
+            Key key = ks.getKey(PLATFORM_CERTIFICATE_ALIAS, CERTIFICATE_PASSWORD.toCharArray());
 
             HashMap<String, String> attributes = new HashMap<>();
             attributes.put("name", "test2");
             String tokenString = TokenIssuer.buildAuthorizationToken(
                     claims.getIss() + "@" + claims.getSub(),
                     attributes,
-                    ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey().getEncoded(),
+                    ks.getCertificate(P1_CLIENT_CERTIFICATE_CN).getPublicKey().getEncoded(),
                     Token.Type.HOME, new Date().getTime() + 60000,
                     "platform-1",
-                    ks.getCertificate(CERTIFICATE_ALIAS).getPublicKey(),
+                    ks.getCertificate(PLATFORM_CERTIFICATE_ALIAS).getPublicKey(),
                     (PrivateKey) key);
 
             Token coreToken = new Token(tokenString);
@@ -102,7 +103,7 @@ public class DummyPlatformAAM {
             UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException {
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
-        X509Certificate certificate = (X509Certificate) ks.getCertificate(CERTIFICATE_ALIAS);
+        X509Certificate certificate = (X509Certificate) ks.getCertificate(PLATFORM_CERTIFICATE_ALIAS);
         StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
         JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
         pemWriter.writeObject(certificate);
