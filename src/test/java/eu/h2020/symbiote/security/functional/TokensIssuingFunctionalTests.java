@@ -251,13 +251,20 @@ public class TokensIssuingFunctionalTests extends
     }
 
     @Test(expected = MalformedJWTException.class)
-    public void getHomeTokenForUserOverRESTIncorrectTokenFormat() throws JWTCreationException, MalformedJWTException, WrongCredentialsException {
+    public void getHomeTokenForUserOverRESTIncorrectTokenFormat() throws
+            JWTCreationException,
+            MalformedJWTException,
+            WrongCredentialsException {
         String homeToken = aamClient.getHomeToken("IncorrectlyFormattedToken");
         assertNotNull(homeToken);
     }
 
     @Test(expected = WrongCredentialsException.class)
-    public void getHomeTokenForUserOverRESTwrongUsernameFailure() throws IOException, JWTCreationException, MalformedJWTException, WrongCredentialsException {
+    public void getHomeTokenForUserOverRESTwrongUsernameFailure() throws
+            IOException,
+            JWTCreationException,
+            MalformedJWTException,
+            WrongCredentialsException {
 
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -270,7 +277,11 @@ public class TokensIssuingFunctionalTests extends
      * CommunicationType REST
      */
     @Test(expected = WrongCredentialsException.class)
-    public void getHomeTokenForUserOverRESTWrongClientIdFailure() throws IOException, JWTCreationException, MalformedJWTException, WrongCredentialsException {
+    public void getHomeTokenForUserOverRESTWrongClientIdFailure() throws
+            IOException,
+            JWTCreationException,
+            MalformedJWTException,
+            WrongCredentialsException {
         HomeCredentials homeCredentials = new HomeCredentials(null, username, wrongClientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         aamClient.getHomeToken(loginRequest);
@@ -394,7 +405,14 @@ public class TokensIssuingFunctionalTests extends
             OperatorCreationException,
             UnrecoverableKeyException,
             InvalidKeyException,
-            JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException {
+            JWTCreationException,
+            WrongCredentialsException,
+            InvalidAlgorithmParameterException,
+            InvalidArgumentsException,
+            NotExistingUserException,
+            PlatformManagementException,
+            UserManagementException,
+            ValidationException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -479,6 +497,7 @@ public class TokensIssuingFunctionalTests extends
             MalformedJWTException,
             JWTCreationException {
         // issuing dummy platform token
+        String username = "userId";
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
@@ -488,6 +507,7 @@ public class TokensIssuingFunctionalTests extends
                 loginRequest, String.class);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
+
 
         String platformId = "platform-1";
         // registering the platform to the Core AAM so it will be available for token revocation
@@ -499,15 +519,15 @@ public class TokensIssuingFunctionalTests extends
         //inject platform PEM Certificate to the database
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
-        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
-        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
-        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
-        pemWriter.writeObject(certificate);
-        pemWriter.close();
-        String dummyPlatformAAMPEMCertString = signedCertificatePEMDataStringWriter.toString();
+
+        X509Certificate platformAAMCertificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
+
         Platform dummyPlatform = platformRepository.findOne(platformId);
-        dummyPlatform.setPlatformAAMCertificate(new eu.h2020.symbiote.security.commons.Certificate(dummyPlatformAAMPEMCertString));
+
+        dummyPlatform.setPlatformAAMCertificate(new eu.h2020.symbiote.security.commons.Certificate(CryptoHelper.convertX509ToPEM(platformAAMCertificate)));
         platformRepository.save(dummyPlatform);
+
+        String clientCertificate = CryptoHelper.convertX509ToPEM((X509Certificate) ks.getCertificate("userid@clientid@platform-1"));
 
         //checking token attributes
         JWTClaims claims = JWTEngine.getClaimsFromToken(dummyHomeToken.getToken());
@@ -520,8 +540,13 @@ public class TokensIssuingFunctionalTests extends
         FederationRule federationRule = new FederationRule("federationId", platformsId);
         federationRulesRepository.save(federationRule);
 
+        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        userRepository.save(user);
+
+        String aamcert = certificationAuthorityHelper.getAAMCert();
+
         // checking issuing of foreign token using the dummy platform token
-        String token = aamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
+        String token = aamClient.getForeignToken(dummyHomeToken.getToken(), Optional.of(clientCertificate), Optional.of(CryptoHelper.convertX509ToPEM(platformAAMCertificate)));
         // check if returned status is ok and if there is token in header
         assertNotNull(token);
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token);
@@ -663,7 +688,11 @@ public class TokensIssuingFunctionalTests extends
     }
 
     @Test
-    public void addAttributesOverAMQPSuccess() throws MalformedJWTException, JWTCreationException, IOException, TimeoutException {
+    public void addAttributesOverAMQPSuccess() throws
+            MalformedJWTException,
+            JWTCreationException,
+            IOException,
+            TimeoutException {
         localUsersAttributesRepository.deleteAll();
         Map<String, String> attributesMap = new HashMap<>();
         attributesMap.put("key1", "attribute1");
@@ -675,7 +704,11 @@ public class TokensIssuingFunctionalTests extends
     }
 
     @Test
-    public void readAttributesOverAMQPSuccess() throws MalformedJWTException, JWTCreationException, IOException, TimeoutException {
+    public void readAttributesOverAMQPSuccess() throws
+            MalformedJWTException,
+            JWTCreationException,
+            IOException,
+            TimeoutException {
         localUsersAttributesRepository.deleteAll();
         localUsersAttributesRepository.save(new Attribute("key1", "attribute1"));
         localUsersAttributesRepository.save(new Attribute("key2", "attribute2"));
@@ -690,7 +723,11 @@ public class TokensIssuingFunctionalTests extends
     }
 
     @Test
-    public void readAttributesOverAMQPFailWrongCredentials() throws MalformedJWTException, JWTCreationException, IOException, TimeoutException {
+    public void readAttributesOverAMQPFailWrongCredentials() throws
+            MalformedJWTException,
+            JWTCreationException,
+            IOException,
+            TimeoutException {
         localUsersLocalAttributesManagementRequest = new LocalAttributesManagementRequest(new HashMap<>(), new Credentials(username, AAMOwnerPassword), LocalAttributesManagementRequest.OperationType.READ);
         byte[] response = attributesAddingOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (localUsersLocalAttributesManagementRequest).getBytes());

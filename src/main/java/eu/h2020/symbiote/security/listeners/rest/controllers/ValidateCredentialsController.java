@@ -35,6 +35,14 @@ public class ValidateCredentialsController implements IValidateCredentials {
         this.credentialsValidationService = credentialsValidationService;
     }
 
+    private String rebuildPEMStringFromHeader(String flatPEMString) {
+        String PEMBEGIN = "-----BEGIN CERTIFICATE-----";
+        String PEMEND = "-----END CERTIFICATE-----";
+        String certificateContent = flatPEMString.substring(PEMBEGIN.length(), flatPEMString.indexOf(PEMEND));
+        return PEMBEGIN + '\n' + certificateContent + '\n' + PEMEND;
+    }
+
+
     @Override
     @ApiOperation(value = "Responds with validation status of processed Validation request", response = ValidationStatus.class)
     public ValidationStatus validate(
@@ -49,8 +57,13 @@ public class ValidateCredentialsController implements IValidateCredentials {
         try {
             // input sanity check
             JWTEngine.validateTokenString(token);
+
+            // rebuilding PEMs from headers
+            String parsedClientCert = (clientCertificate.isEmpty()) ? clientCertificate : rebuildPEMStringFromHeader(clientCertificate);
+            String parsedClientSigningCert = (clientCertificateSigningAAMCertificate.isEmpty()) ? clientCertificateSigningAAMCertificate : rebuildPEMStringFromHeader(clientCertificateSigningAAMCertificate);
+            String parsedForeignTokenCert = (foreignTokenIssuingAAMCertificate.isEmpty()) ? foreignTokenIssuingAAMCertificate : rebuildPEMStringFromHeader(foreignTokenIssuingAAMCertificate);
             // real validation
-            return credentialsValidationService.validate(token, clientCertificate, clientCertificateSigningAAMCertificate, foreignTokenIssuingAAMCertificate);
+            return credentialsValidationService.validate(token, parsedClientCert, parsedClientSigningCert, parsedForeignTokenCert);
         } catch (ValidationException e) {
             log.error(e);
             return ValidationStatus.UNKNOWN;
