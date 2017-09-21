@@ -98,7 +98,7 @@ public class SignCertificateRequestService {
             throw new SecurityException(e.getMessage(), e.getCause());
         }
         // symbiote components
-        if (request.getSubject().toString().matches("(CN=)(\\w+)(@)(\\w+)")) {
+        if (request.getSubject().toString().split("CN=")[1].split(illegalSign).length == 2) {
             putComponentCertificateToRepository(request, certificateRequest, pem, certFromCSR);
         }
         //platform
@@ -258,7 +258,8 @@ public class SignCertificateRequestService {
             certFromCSR = createPlatformCertFromCSR(certificateRequest, req);
         }
         // component
-        else if (req.getSubject().toString().matches("(CN=)(\\w+)(@)(\\w+)")) {
+        // TODO review this check
+        else if (req.getSubject().toString().split("CN=")[1].split(illegalSign).length == 2) {
             certFromCSR = createComponentCertFromCSR(certificateRequest, req);
         }
         // user's client

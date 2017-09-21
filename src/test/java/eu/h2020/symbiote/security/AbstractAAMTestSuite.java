@@ -66,7 +66,7 @@ public abstract class AbstractAAMTestSuite {
     protected final String appUsername = "NewApplication";
     protected final String clientId = "clientId";
     protected final String wrongClientId = "wrongClientId";
-    protected final String platformId = "testPlatformId";
+    protected final String platformId = "test-PlatformId";
     protected final String componentId = "componentId";
     protected final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     protected final String platformOwnerUsername = "testPlatformOwnerUsername";
