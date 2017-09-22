@@ -358,6 +358,18 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
     }
 
+    @Test(expected = InvalidArgumentsException.class)
+    public void userCreateFailIncorrectUsernameFormat() throws SecurityException {
+        String incorrectName = "@#$%^";
+
+        // manage new user to db
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(incorrectName, "NewPassword"),
+                new UserDetails(new Credentials(incorrectName, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
+                , OperationType.CREATE);
+        usersManagementService.authManage(userManagementRequest);
+    }
+
     @Test
     public void getExistingUserOverRestSuccess() throws UserManagementException {
         //  Register user in database
