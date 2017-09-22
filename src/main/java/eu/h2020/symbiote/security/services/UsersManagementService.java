@@ -118,6 +118,8 @@ public class UsersManagementService {
             case CREATE:
                 // validate request
                 String newUserUsername = userDetails.getCredentials().getUsername();
+                if (!newUserUsername.matches("^(([\\w-])+)$"))
+                    throw new InvalidArgumentsException("Could not create user with given Username");
                 if (newUserUsername.isEmpty()
                         || userDetails.getCredentials().getPassword().isEmpty()) {
                     throw new InvalidArgumentsException("Missing username or password");
