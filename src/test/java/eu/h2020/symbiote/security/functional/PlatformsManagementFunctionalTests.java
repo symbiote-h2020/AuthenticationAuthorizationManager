@@ -174,6 +174,21 @@ public class PlatformsManagementFunctionalTests extends
     }
 
     @Test
+    public void platformRegistrationOverAMQPFailWrongPlatformId() throws IOException, TimeoutException {
+        // verify that our platformOwner is in repository
+        assertTrue(userRepository.exists(platformOwnerUsername));
+
+        // issue platform registration over AMQP without preferred platform identifier
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId("Wrong_platform#id");
+        byte[] response = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+        ErrorResponseContainer errorResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+
+        assertEquals(new PlatformManagementException().getErrorMessage(), errorResponse.getErrorMessage());
+    }
+
+    @Test
     public void platformManageOverAMQPMissingCredentials() throws IOException, TimeoutException {
         // verify that our platformOwner is in repository
         assertTrue(userRepository.exists(platformOwnerUsername));
