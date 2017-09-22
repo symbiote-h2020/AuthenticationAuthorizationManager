@@ -103,13 +103,13 @@ public class PlatformsManagementService {
                 }
 
                 if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME)
-                        || platformManagementRequest.getPlatformInterworkingInterfaceAddress().equals(coreInterfaceAddress))
+                        || platformManagementRequest.getPlatformInterworkingInterfaceAddress().equals(coreInterfaceAddress)
+                        || !platformManagementRequest.getPlatformInstanceId().matches("((\\w|[\\-])+)$"))
                     // such a name would pose awkward questions
                     throw new PlatformManagementException("That is an awkward platform, we won't register it", HttpStatus.BAD_REQUEST);
 
                 // use PO preferred platform identifier
                 platformId = platformManagementRequest.getPlatformInstanceId();
-
 
                 Platform platform = new Platform(platformId, platformManagementRequest
                         .getPlatformInterworkingInterfaceAddress(),
