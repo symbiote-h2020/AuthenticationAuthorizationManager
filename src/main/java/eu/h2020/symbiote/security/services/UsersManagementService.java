@@ -145,7 +145,7 @@ public class UsersManagementService {
                     throw new InvalidArgumentsException("Missing recovery e-mail or OAuth identity");
                 }
 
-                // verify proper user role
+                // verify proper user role 
                 if (userDetails.getRole() == UserRole.NULL) {
                 	log.error("User Role is null");
                     throw new UserManagementException(HttpStatus.BAD_REQUEST);
