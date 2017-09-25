@@ -41,6 +41,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
@@ -409,6 +411,13 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         }
         assertNotNull(foreignToken);
         assertEquals(Token.Type.FOREIGN, foreignToken.getType());
+
+        ResponseEntity<String> validationstatus = restTemplate.postForEntity(serverAddress +
+                        SecurityConstants
+                                .AAM_VALIDATE_CLIENT_CERTIFICATE,
+                foreignToken, String.class);
+        //  TODO FIX since the user repository is empty for corresponding REST controller
+        assertEquals(HttpStatus.OK, validationstatus.getStatusCode());
 
         JWTClaims claims = JWTEngine.getClaimsFromToken(foreignToken.toString());
         assertTrue(claims.getAtt().containsKey("federation_1"));
