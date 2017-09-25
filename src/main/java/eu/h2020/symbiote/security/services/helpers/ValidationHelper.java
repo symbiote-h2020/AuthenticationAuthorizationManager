@@ -210,8 +210,8 @@ public class ValidationHelper {
             if (!validateFederationAttributes(token)) {
                 return ValidationStatus.REVOKED_TOKEN;
             }
-            //TODO @JT please revise
-            ValidationStatus foreignTokenStatus = ConfirmCertificateValidity(token);
+            //TODO @JT please review
+            ValidationStatus foreignTokenStatus = confirmCertificateValidity(token);
             if (foreignTokenStatus != ValidationStatus.VALID)
                 return foreignTokenStatus;
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
@@ -506,25 +506,35 @@ public class ValidationHelper {
         return true;
     }
 
-    // TODO @JT please revise
-    public ValidationStatus validateClientCertificate(String foreignToken) {
-        if (!userRepository.findAll().isEmpty()) {
-            if (userRepository.exists(foreignToken.split("@")[1])) {
+    // TODO @JT please review
+    public ValidationStatus validateClientCertificate(String foreignToken) throws CertificateException, MalformedJWTException {
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(foreignToken);
+        String userFromToken = claimsFromToken.getSub().split("@")[0];
+        String clientID = claimsFromToken.getSub().split("@")[1];
+        PublicKey userPublicKey = null;
+        if (userRepository.exists(userFromToken)) {
+            if (userRepository.findOne(userFromToken).getClientCertificates().get(clientID) != null)
+                userPublicKey = userRepository.findOne(userFromToken)
+                        .getClientCertificates()
+                        .get(clientID)
+                        .getX509()
+                        .getPublicKey();
+            // TODO Compare userPublicKey with the one from ForeignToken
                 return ValidationStatus.VALID;
-            }
         }
         return ValidationStatus.EXPIRED_TOKEN;
     }
 
-    // TODO @JT Please revise
-    public ValidationStatus ConfirmCertificateValidity(String token) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+    // TODO @JT Please review
+    public ValidationStatus confirmCertificateValidity(String token) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
         if (!aamServices.getAvailableAAMs().values().isEmpty()) {
             String aamAddress = aamServices.getAvailableAAMs().get(token.split("@")[2]).getAamAddress();
-            return restTemplate.postForEntity(aamAddress + SecurityConstants.AAM_VALIDATE_CLIENT_CERTIFICATE,
-                    token,
-                    ValidationStatus.class).getBody();
+            if (aamAddress != null)
+                return restTemplate.postForEntity(aamAddress + SecurityConstants.AAM_VALIDATE_CLIENT_CERTIFICATE,
+                        token,
+                        ValidationStatus.class).getBody();
         }
         //TODO Handle occuring problem in a better way
-        else return ValidationStatus.WRONG_AAM;
+        return ValidationStatus.WRONG_AAM;
     }
 }
