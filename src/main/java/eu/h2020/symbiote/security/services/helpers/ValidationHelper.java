@@ -210,6 +210,8 @@ public class ValidationHelper {
             if (!validateFederationAttributes(token)) {
                 return ValidationStatus.REVOKED_TOKEN;
             }
+            //TODO create function sending federated token over Rest to right AAM -> AAMServices.getAvailableAAMs and search for platformId in ISS of foreignToken. If not found - proper ValidationStatus
+
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
             log.error(e);
@@ -502,5 +504,8 @@ public class ValidationHelper {
         return true;
     }
 
-
+    public ValidationStatus validateClientCertificate(String foreignToken) {
+        //TODO here check the userRepository - it shouldn't be empty
+        return ValidationStatus.VALID;
+    }
 }
