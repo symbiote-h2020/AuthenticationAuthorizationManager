@@ -10,6 +10,7 @@ import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
@@ -35,6 +36,7 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 
@@ -736,5 +738,13 @@ public class TokensIssuingFunctionalTests extends
         assertNotNull(fail);
         log.info("Test Client received this error message instead of token: " + fail.getErrorMessage());
 
+    }
+
+    @Test
+    public void foreignTokenValidationPathIsOnline() {
+        ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(
+                serverAddress + SecurityConstants.AAM_VALIDATE_CLIENT_CERTIFICATE,
+                "foreigntoken", ValidationStatus.class);
+        assertEquals(HttpStatus.OK, status.getStatusCode());
     }
 }
