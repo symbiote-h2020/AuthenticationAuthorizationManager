@@ -32,7 +32,7 @@ public class ValidateClientCertificate implements IValidateClientCertificate {
             ValidationStatus status = validationHelper.validateClientCertificate(foreignToken);
             return ResponseEntity.status(HttpStatus.OK).body(status);
         } catch (Exception e) {
-            //TODO return that sth went wrong with proper code - see different controllers
+            //TODO return proper information about occuring problem
             return null;
         }
     }

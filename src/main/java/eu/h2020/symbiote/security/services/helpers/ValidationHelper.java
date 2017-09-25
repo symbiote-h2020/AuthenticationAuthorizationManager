@@ -210,8 +210,10 @@ public class ValidationHelper {
             if (!validateFederationAttributes(token)) {
                 return ValidationStatus.REVOKED_TOKEN;
             }
-            //TODO create function sending federated token over Rest to right AAM -> AAMServices.getAvailableAAMs and search for platformId in ISS of foreignToken. If not found - proper ValidationStatus
-
+            //TODO @JT please revise
+            ValidationStatus foreignTokenStatus = ConfirmCertificateValidity(token);
+            if (foreignTokenStatus != ValidationStatus.VALID)
+                return foreignTokenStatus;
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
             log.error(e);
@@ -504,8 +506,25 @@ public class ValidationHelper {
         return true;
     }
 
+    // TODO @JT please revise
     public ValidationStatus validateClientCertificate(String foreignToken) {
-        //TODO here check the userRepository - it shouldn't be empty
-        return ValidationStatus.VALID;
+        if (!userRepository.findAll().isEmpty()) {
+            if (userRepository.exists(foreignToken.split("@")[1])) {
+                return ValidationStatus.VALID;
+            }
+        }
+        return ValidationStatus.EXPIRED_TOKEN;
+    }
+
+    // TODO @JT Please revise
+    public ValidationStatus ConfirmCertificateValidity(String token) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+        if (!aamServices.getAvailableAAMs().values().isEmpty()) {
+            String aamAddress = aamServices.getAvailableAAMs().get(token.split("@")[2]).getAamAddress();
+            return restTemplate.postForEntity(aamAddress + SecurityConstants.AAM_VALIDATE_CLIENT_CERTIFICATE,
+                    token,
+                    ValidationStatus.class).getBody();
+        }
+        //TODO Handle occuring problem in a better way
+        else return ValidationStatus.WRONG_AAM;
     }
 }
