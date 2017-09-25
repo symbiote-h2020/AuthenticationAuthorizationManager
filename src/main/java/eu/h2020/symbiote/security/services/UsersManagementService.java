@@ -105,43 +105,63 @@ public class UsersManagementService {
 
     private ManagementStatus manage(UserManagementRequest userManagementRequest)
             throws SecurityException {
+    	
+    	log.info("Received a request for user management");
+    	
         UserDetails userDetails = userManagementRequest.getUserDetails();
 
+    	log.info("User details are "+userDetails);	// Might be a bit problematic. 1. There is no adequat toString method for userDetails. 2. Will such a method reveil passowrds?
+
+        
         // Platform AAM does not support registering platform owners
         if (deploymentType == IssuingAuthorityType.PLATFORM
-                && userDetails.getRole() != UserRole.USER)
+                && userDetails.getRole() != UserRole.USER) {
+        	log.error("Platform AAM does not support registering platform owners");
             throw new InvalidArgumentsException();
+        }
 
         User user = new User();
         User userToManage = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
         switch (userManagementRequest.getOperationType()) {
             case CREATE:
+            	log.info("Request is a create request");
                 // validate request
                 String newUserUsername = userDetails.getCredentials().getUsername();
-                if (!newUserUsername.matches("^(([\\w-])+)$"))
+                if (!newUserUsername.matches("^(([\\w-])+)$")) {
+                	log.error("Username "+newUserUsername+" contains invalid characters");
                     throw new InvalidArgumentsException("Could not create user with given Username");
+                }
                 if (newUserUsername.isEmpty()
                         || userDetails.getCredentials().getPassword().isEmpty()) {
+                	log.error("Username or password is empty");
                     throw new InvalidArgumentsException("Missing username or password");
                 }
                 if (deploymentType == IssuingAuthorityType.CORE
                         && (userDetails.getRecoveryMail().isEmpty()))
                     // not used in R3
                     // || userDetails.getFederatedId().isEmpty()))
+                {
+                	log.error("Recovery information (email and OAuth) are both empty");
                     throw new InvalidArgumentsException("Missing recovery e-mail or OAuth identity");
+                }
 
                 // verify proper user role
-                if (userDetails.getRole() == UserRole.NULL)
+                if (userDetails.getRole() == UserRole.NULL) {
+                	log.error("User Role is null");
                     throw new UserManagementException(HttpStatus.BAD_REQUEST);
+                }
 
                 // check if user already in repository
                 if (userRepository.exists(newUserUsername)) {
+                	log.error("Username "+newUserUsername+" already exists");
                     return ManagementStatus.USERNAME_EXISTS;
                 }
 
                 // blocking guest and AAMOwner registration, and aam component
-                if (adminUsername.equals(newUserUsername) || SecurityConstants.GUEST_NAME.equals(newUserUsername) || SecurityConstants.AAM_COMPONENT_NAME.equals(newUserUsername))
+                if (adminUsername.equals(newUserUsername) || SecurityConstants.GUEST_NAME.equals(newUserUsername) || SecurityConstants.AAM_COMPONENT_NAME.equals(newUserUsername)) {
+                	log.error("Username "+newUserUsername+" would override a predefined username");
                     return ManagementStatus.ERROR;
+                }
 
                 user.setRole(userDetails.getRole());
                 user.setUsername(newUserUsername);
