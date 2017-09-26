@@ -539,8 +539,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             fail("Exception thrown");
         }
         assertNotNull(foreignToken);
-        //checking if foreign token is valid
-        assertEquals(ValidationStatus.VALID, validationHelper.validate(foreignToken.toString(), "", "", dummyPlatformAAMPEMCertString));
+        //checking if foreign token is valid - due to usage of dummy platform aam, it is not available and validation throws WRONG_AAM
+        assertEquals(ValidationStatus.WRONG_AAM, validationHelper.validate(foreignToken.toString(), "", "", dummyPlatformAAMPEMCertString));
         //changing federation not to contain this platform
 
         federationRule.deletePlatform(dummyPlatform.getPlatformInstanceId());

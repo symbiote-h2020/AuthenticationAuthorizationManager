@@ -24,6 +24,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
@@ -210,10 +211,10 @@ public class ValidationHelper {
             if (!validateFederationAttributes(token)) {
                 return ValidationStatus.REVOKED_TOKEN;
             }
-            //TODO @JT please review
             ValidationStatus foreignTokenStatus = confirmCertificateValidity(token);
             if (foreignTokenStatus != ValidationStatus.VALID)
                 return foreignTokenStatus;
+
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
             log.error(e);
@@ -506,35 +507,43 @@ public class ValidationHelper {
         return true;
     }
 
-    // TODO @JT please review
     public ValidationStatus validateClientCertificate(String foreignToken) throws CertificateException, MalformedJWTException {
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(foreignToken);
         String userFromToken = claimsFromToken.getSub().split("@")[0];
         String clientID = claimsFromToken.getSub().split("@")[1];
-        PublicKey userPublicKey = null;
-        if (userRepository.exists(userFromToken)) {
-            if (userRepository.findOne(userFromToken).getClientCertificates().get(clientID) != null)
-                userPublicKey = userRepository.findOne(userFromToken)
-                        .getClientCertificates()
-                        .get(clientID)
-                        .getX509()
-                        .getPublicKey();
-            // TODO Compare userPublicKey with the one from ForeignToken
+        if (userRepository.exists(userFromToken)
+                && userRepository.findOne(userFromToken).getClientCertificates().get(clientID) != null) {
+            PublicKey userPublicKey = userRepository.findOne(userFromToken)
+                    .getClientCertificates()
+                    .get(clientID)
+                    .getX509()
+                    .getPublicKey();
+            if (claimsFromToken.getSpk().equals(Base64.getEncoder().encodeToString(userPublicKey.getEncoded()))) {
                 return ValidationStatus.VALID;
+            }
+            return ValidationStatus.INVALID_TRUST_CHAIN;
+
         }
-        return ValidationStatus.EXPIRED_TOKEN;
+        return ValidationStatus.REVOKED_TOKEN;
     }
 
-    // TODO @JT Please review
-    public ValidationStatus confirmCertificateValidity(String token) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        if (!aamServices.getAvailableAAMs().values().isEmpty()) {
-            String aamAddress = aamServices.getAvailableAAMs().get(token.split("@")[2]).getAamAddress();
-            if (aamAddress != null)
-                return restTemplate.postForEntity(aamAddress + SecurityConstants.AAM_VALIDATE_CLIENT_CERTIFICATE,
-                        token,
-                        ValidationStatus.class).getBody();
+    private ValidationStatus confirmCertificateValidity(String stringToken) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, ValidationException {
+        Token token = new Token(stringToken);
+        if (!token.getType().equals(Token.Type.FOREIGN)) {
+            return ValidationStatus.VALID;
         }
-        //TODO Handle occuring problem in a better way
+        if (!aamServices.getAvailableAAMs().values().isEmpty()) {
+            String aamAddress = aamServices.getAvailableAAMs().get(token.getClaims().getSubject().split("@")[2]).getAamAddress();
+            if (aamAddress != null)
+                try {
+                    return restTemplate.postForEntity(aamAddress + SecurityConstants.AAM_VALIDATE_CLIENT_CERTIFICATE,
+                            token,
+                            ValidationStatus.class).getBody();
+                } catch (HttpClientErrorException e) {
+                    log.error("HomeToken issuer not available");
+                    return ValidationStatus.WRONG_AAM;
+                }
+        }
         return ValidationStatus.WRONG_AAM;
     }
 }

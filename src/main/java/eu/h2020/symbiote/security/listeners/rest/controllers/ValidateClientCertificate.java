@@ -10,8 +10,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * @JT please review
+import java.security.cert.CertificateException;
+
+/** Spring controller to handle HTTPS requests related to the RESTful web services associated to validation of the client in database related to ForeignTokens.
+ * @author Dariusz Krajewski
+ * @author Jakub Toczek (PSNC)
+ * @see ValidationHelper
  */
 @RestController
 public class ValidateClientCertificate implements IValidateClientCertificate {
@@ -30,11 +34,9 @@ public class ValidateClientCertificate implements IValidateClientCertificate {
 
         try {
             ValidationStatus status = validationHelper.validateClientCertificate(foreignToken);
-
             return ResponseEntity.status(HttpStatus.OK).body(status);
-        } catch (Exception e) {
-            //TODO return proper information about occuring problem
-            return null;
+        } catch (CertificateException | MalformedJWTException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ValidationStatus.UNKNOWN);
         }
     }
 }
