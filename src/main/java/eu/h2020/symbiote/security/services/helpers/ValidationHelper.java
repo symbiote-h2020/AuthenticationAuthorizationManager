@@ -532,8 +532,9 @@ public class ValidationHelper {
         if (!token.getType().equals(Token.Type.FOREIGN)) {
             return ValidationStatus.VALID;
         }
-        if (!aamServices.getAvailableAAMs().values().isEmpty()) {
-            String aamAddress = aamServices.getAvailableAAMs().get(token.getClaims().getSubject().split("@")[2]).getAamAddress();
+        String platformId = token.getClaims().getSubject().split(illegalSign)[2];
+        if (aamServices.getAvailableAAMs().get(platformId) != null) {
+            String aamAddress = aamServices.getAvailableAAMs().get(platformId).getAamAddress();
             if (aamAddress != null)
                 try {
                     return restTemplate.postForEntity(aamAddress + SecurityConstants.AAM_VALIDATE_CLIENT_CERTIFICATE,
