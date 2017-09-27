@@ -619,6 +619,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         Token homeToken = getTokenService.getHomeToken(loginRequest);
         //verify that JWT was issued for user
         assertNotNull(homeToken);
+        assertEquals(componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID, homeToken.getClaims().getSubject());
     }
 
     @Test(expected = WrongCredentialsException.class)

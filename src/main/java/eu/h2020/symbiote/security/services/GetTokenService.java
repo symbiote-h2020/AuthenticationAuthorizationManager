@@ -96,7 +96,7 @@ public class GetTokenService {
 
                 User user = new User();
                 user.setRole(UserRole.NULL);
-                user.setUsername(AAMOwnerUsername);
+                user.setUsername("");
                 return tokenIssuer.getHomeToken(user, sub, componentCertificateRepository.findOne(componentOrClientId).getCertificate().getX509().getPublicKey());
             }
             // platform owner use case

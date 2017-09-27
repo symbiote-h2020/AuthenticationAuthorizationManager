@@ -149,37 +149,43 @@ public class ValidationHelper {
 
             // check if SPK is is in the revoked set for user token
             if (claims.getSubject().split("@").length == 2)
-                if (revokedKeysRepository.exists(userFromToken) &&
+                if (clientId.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)) {
+                    if (revokedKeysRepository.exists(clientId) && revokedKeysRepository.findOne(clientId).getRevokedKeysSet().contains(spk)) {
+                        return ValidationStatus.REVOKED_SPK;
+                    }
+                } else if (revokedKeysRepository.exists(userFromToken) &&
                         revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
                     return ValidationStatus.REVOKED_SPK;
                 }
 
-            // check if SPK is is in the revoked set for component token
-            if (claims.getSubject().split("@").length == 3)
-                if (revokedKeysRepository.exists(clientId) && revokedKeysRepository.findOne(clientId).getRevokedKeysSet().contains(spk)) {
-                    return ValidationStatus.REVOKED_SPK;
-                }
-
-
             // check if subject certificate is valid & matching the token SPK
             if (claims.get("ttyp").equals(Token.Type.HOME.toString())) {
+
+
                 if (claims.getSubject().split("@").length == 3) {
-                    // components use case
                     String platformId = claims.getSubject().split("@")[2];
                     Certificate componentCertificate = null;
-
-                    if (platformId.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)) {
-                        // core component case
-                        ComponentCertificate coreComponentCertificate = componentCertificatesRepository.findOne(clientId);
-                        if (coreComponentCertificate != null)
-                            componentCertificate = coreComponentCertificate.getCertificate();
-                    } else {
-                        // platform component case
-                        Platform platform = platformRepository.findOne(platformId);
-                        if (platform != null) {
-                            componentCertificate = platform.getComponentCertificates().get(clientId);
-                        }
+                    // platform component case
+                    Platform platform = platformRepository.findOne(platformId);
+                    if (platform != null) {
+                        componentCertificate = platform.getComponentCertificates().get(clientId);
                     }
+                    // if the token is to be valid, the certificate must not be null
+                    if (componentCertificate == null)
+                        return ValidationStatus.INVALID_TRUST_CHAIN;
+                    // check if subject certificate is not expired
+                    if (isExpired(componentCertificate.getX509())) {
+                        return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
+                    }
+                    // checking if SPK matches the components certificate
+                    if (!Base64.getEncoder().encodeToString(componentCertificate.getX509().getPublicKey().getEncoded()).equals(spk))
+                        return ValidationStatus.REVOKED_SPK;
+                } else if (clientId.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)) {
+                    Certificate componentCertificate = null;
+                    // core component case - userFromToken is component name, clientId is CoreAAM instanceId
+                    ComponentCertificate coreComponentCertificate = componentCertificatesRepository.findOne(userFromToken);
+                    if (coreComponentCertificate != null)
+                        componentCertificate = coreComponentCertificate.getCertificate();
                     // if the token is to be valid, the certificate must not be null
                     if (componentCertificate == null)
                         return ValidationStatus.INVALID_TRUST_CHAIN;

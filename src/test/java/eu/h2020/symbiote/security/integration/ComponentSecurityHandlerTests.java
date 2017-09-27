@@ -74,13 +74,13 @@ public class ComponentSecurityHandlerTests extends AbstractAAMTestSuite {
         String testPolicyId = "testPolicyId";
         Map<String, String> requiredClaims = new HashMap<>();
         requiredClaims.put(Claims.ISSUER, SecurityConstants.CORE_AAM_INSTANCE_ID);
-        requiredClaims.put(Claims.SUBJECT, AAMOwnerUsername);
+        //TODO what subject should be checked in case of Core component? AAMOwner isn't in sub in token
+        requiredClaims.put(Claims.SUBJECT, crmKey);
         SingleTokenAccessPolicySpecifier testPolicySpecifier =
                 new SingleTokenAccessPolicySpecifier(
                         SingleTokenAccessPolicySpecifier.SingleTokenAccessPolicyType.SLHTIBAP,
                         requiredClaims);
         testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier));
-
         // the policy should be there!
         assertTrue(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
     }

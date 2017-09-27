@@ -140,9 +140,17 @@ public class TokenIssuer {
             for (Map.Entry<String, String> entry : user.getAttributes().entrySet()) {
                 attributes.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + entry.getKey(), entry.getValue());
             }
+            //checking username - if empty we are dealing with Core Component and subject shouldn't contain admins name
+            String subject;
+            if (user.getUsername().isEmpty()) {
+                subject = sub;
+            } else {
+                subject = user.getUsername() + "@" + sub;
+            }
+
             return new Token(buildAuthorizationToken(
                     // HOME SUB: username@clientIdentifier
-                    user.getUsername() + "@" + sub,
+                    subject,
                     attributes,
                     issuerPublicKey.getEncoded(),
                     Token.Type.HOME,
