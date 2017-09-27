@@ -98,6 +98,15 @@ public class DummyPlatformAAM {
         return ValidationStatus.VALID;
     }
 
+    /**
+     * return valid status of client certificate
+     */
+    @PostMapping(path = PATH + SecurityConstants.AAM_VALIDATE_CLIENT_CERTIFICATE)
+    public ValidationStatus validateClientCertificate(@RequestBody String token) {
+        log.info("Validating client certificate " + token);
+        return ValidationStatus.VALID;
+    }
+
     @GetMapping(path = PATH + SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE)
     public String getRootCertificate() throws NoSuchProviderException, KeyStoreException, IOException,
             UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException {
