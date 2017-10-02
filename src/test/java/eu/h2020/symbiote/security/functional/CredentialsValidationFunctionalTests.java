@@ -20,7 +20,6 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.HttpServerErrorException;
 
@@ -258,8 +257,8 @@ public class CredentialsValidationFunctionalTests extends
     @Test
     public void validationOfForeignToken() {
         try {
-            ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(
-                    serverAddress + SecurityConstants.AAM_VALIDATE_CLIENT_CERTIFICATE,
+            restTemplate.postForEntity(
+                    serverAddress + SecurityConstants.AAM_VALIDATE_FOREIGN_TOKEN_ORIGIN_CREDENTIALS,
                     new Token(), ValidationStatus.class);
             fail("Validation passed with empty token");
         } catch (HttpServerErrorException e) {

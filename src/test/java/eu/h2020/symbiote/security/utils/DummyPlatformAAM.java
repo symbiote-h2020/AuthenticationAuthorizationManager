@@ -101,9 +101,9 @@ public class DummyPlatformAAM {
     /**
      * return valid status of client certificate
      */
-    @PostMapping(path = PATH + SecurityConstants.AAM_VALIDATE_CLIENT_CERTIFICATE)
-    public ValidationStatus validateClientCertificate(@RequestBody String token) {
-        log.info("Validating client certificate " + token);
+    @PostMapping(path = PATH + SecurityConstants.AAM_VALIDATE_FOREIGN_TOKEN_ORIGIN_CREDENTIALS)
+    public ValidationStatus validateForeignTokenOriginCredentials(@RequestBody String token) {
+        log.info("Dummy Platform AAM validating foreign token origin credentials for: " + token);
         return ValidationStatus.VALID;
     }
 

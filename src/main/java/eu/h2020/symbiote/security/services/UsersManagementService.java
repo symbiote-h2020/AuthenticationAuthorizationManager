@@ -106,13 +106,9 @@ public class UsersManagementService {
     private ManagementStatus manage(UserManagementRequest userManagementRequest)
             throws SecurityException {
     	
-    	log.info("Received a request for user management");
-    	
+    	log.debug("Received a request for user management");
         UserDetails userDetails = userManagementRequest.getUserDetails();
 
-    	log.info("User details are "+userDetails);	// Might be a bit problematic. 1. There is no adequat toString method for userDetails. 2. Will such a method reveil passowrds?
-
-        
         // Platform AAM does not support registering platform owners
         if (deploymentType == IssuingAuthorityType.PLATFORM
                 && userDetails.getRole() != UserRole.USER) {

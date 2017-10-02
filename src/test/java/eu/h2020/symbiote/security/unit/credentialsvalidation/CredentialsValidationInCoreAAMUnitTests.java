@@ -559,7 +559,15 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     }
 
     @Test
-    public void validateClientCertificateSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, OperatorCreationException, MalformedJWTException {
+    public void validateForeignTokenOriginCredentialsSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            KeyStoreException,
+            IOException,
+            OperatorCreationException,
+            MalformedJWTException {
 
         userRepository.deleteAll();
         KeyPair keyPair = CryptoHelper.createKeyPair();
@@ -597,11 +605,19 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 keyPair.getPublic(),
                 keyPair.getPrivate());
 
-        assertEquals(ValidationStatus.VALID, validationHelper.validateClientCertificate(foreignTokenString));
+        assertEquals(ValidationStatus.VALID, validationHelper.validateForeignTokenOriginCredentials(foreignTokenString));
     }
 
     @Test
-    public void validateClientCertificateFail() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, OperatorCreationException, MalformedJWTException {
+    public void validateForeignTokenOriginCredentialsFails() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            KeyStoreException,
+            IOException,
+            OperatorCreationException,
+            MalformedJWTException {
 
         userRepository.deleteAll();
         KeyPair keyPair = CryptoHelper.createKeyPair();
@@ -616,7 +632,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 keyPair.getPrivate());
 
         //no user in database
-        assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validateClientCertificate(foreignTokenString));
+        assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validateForeignTokenOriginCredentials(foreignTokenString));
 
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
@@ -628,7 +644,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         userRepository.save(user);
 
         //no client in database
-        assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validateClientCertificate(foreignTokenString));
+        assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validateForeignTokenOriginCredentials(foreignTokenString));
 
         KeyPair wrongKeyPair = CryptoHelper.createKeyPair();
         //create client certificate
@@ -648,11 +664,11 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         userRepository.save(user);
 
         //client public key not matching this in database
-        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validateClientCertificate(foreignTokenString));
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validateForeignTokenOriginCredentials(foreignTokenString));
     }
 
     @Test
-    public void validateForeignTokenPlatformProblems() throws
+    public void validateForeignTokenOriginCredentialsPlatformAAMProblems() throws
             IOException,
             ValidationException,
             CertificateException,
@@ -712,11 +728,11 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         dummyPlatform.setPlatformInterworkingInterfaceAddress(serverAddress + "/wrong/url");
         platformRepository.save(dummyPlatform);
         //checking if foreign token is valid
-        assertEquals(ValidationStatus.WRONG_AAM, validationHelper.validate(foreignToken.toString(), "", "", ""));
+        assertEquals(ValidationStatus.UNKNOWN, validationHelper.validate(foreignToken.toString(), "", "", ""));
         //deleting platform from database
         platformRepository.delete(dummyPlatform);
         //checking if foreign token is valid
-        assertEquals(ValidationStatus.WRONG_AAM, validationHelper.validate(foreignToken.toString(), "", "", ""));
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(foreignToken.toString(), "", "", ""));
 
     }
 
