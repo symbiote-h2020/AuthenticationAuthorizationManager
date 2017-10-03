@@ -89,16 +89,15 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
                 userId
         );
         SingleTokenAccessPolicySpecifier testPolicySpecifier =
-                new SingleTokenAccessPolicySpecifier(crmKey, SecurityConstants.CORE_AAM_INSTANCE_ID,
-                        clientSH);
-        testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier));
+                new SingleTokenAccessPolicySpecifier(crmKey, SecurityConstants.CORE_AAM_INSTANCE_ID);
+        testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier, clientSH));
         // the policy should be there!
         assertTrue(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
     }
 
 
     @Test
-    public void RegistrationHandlerIntegrationTest() throws SecurityHandlerException, InvalidArgumentsException {
+    public void RegistrationHandlerIntegrationTest() throws SecurityHandlerException, InvalidArgumentsException, CertificateException, WrongCredentialsException {
 
         //platformOwner and platform  registration
         User platformOwner = savePlatformOwner();
@@ -147,9 +146,7 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
                 new SingleTokenAccessPolicySpecifier(
                         SingleTokenAccessPolicySpecifier.SingleTokenAccessPolicyType.SLHTIBAP,
                         requiredClaims);
-        testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier));
-
-
+        testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier, null));
         // the policy should be there!
         assertTrue(rhCSH.getSatisfiedPoliciesIdentifiers(testAP, rhSecurityRequest).contains(testPolicyId));
     }
