@@ -404,7 +404,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         }
         assertNotNull(foreignToken);
         assertEquals(Token.Type.FOREIGN, foreignToken.getType());
-
         JWTClaims claims = JWTEngine.getClaimsFromToken(foreignToken.toString());
         assertTrue(claims.getAtt().containsKey("federation_1"));
     }

@@ -84,12 +84,35 @@ public class SignCertificateRequestService {
             PlatformManagementException,
             ValidationException {
 
-
+        String pem;
         User user = requestValidationCheck(certificateRequest);
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
 
-        X509Certificate certFromCSR = createCertificateFromCSR(certificateRequest, request);
 
+        // symbiote components
+        if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)(@)(([\\w-])+)$")) {
+            X509Certificate certFromCSR = createComponentCertFromCSR(certificateRequest, request);
+            pem = createPem(certFromCSR);
+            putComponentCertificateToRepository(request, certificateRequest, pem, certFromCSR);
+        }
+        //platform
+        else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)$")) {
+            X509Certificate certFromCSR = createPlatformCertFromCSR(certificateRequest, request);
+            pem = createPem(certFromCSR);
+            putPlatformCertificateToRepository(request, certificateRequest, pem, certFromCSR);
+        }
+        // user / platform owner
+        else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)(@)(([\\w-])+)(@)(([\\w-])+)$")) {
+            X509Certificate certFromCSR = createUserCertFromCSR(request);
+            pem = createPem(certFromCSR);
+            putUserCertificateToRepository(user, certificateRequest, certFromCSR, pem);
+        } else {
+            throw new InvalidArgumentsException();
+        }
+        return pem;
+    }
+
+    private String createPem(X509Certificate certFromCSR) {
         String pem;
         try {
             pem = CryptoHelper.convertX509ToPEM(certFromCSR);
@@ -97,19 +120,48 @@ public class SignCertificateRequestService {
             log.error(e);
             throw new SecurityException(e.getMessage(), e.getCause());
         }
-        // symbiote components
-        if (request.getSubject().toString().split("CN=")[1].split(illegalSign).length == 2) {
-            putComponentCertificateToRepository(request, certificateRequest, pem, certFromCSR);
-        }
-        //platform
-        else if (!request.getSubject().toString().split("CN=")[1].contains(illegalSign)) {
-            putPlatformCertificateToRepository(request, certificateRequest, pem, certFromCSR);
-        }
-        // user / platform owner
-        else {
-            putUserCertificateToRepository(user, certificateRequest, certFromCSR, pem);
-        }
         return pem;
+    }
+
+    private User requestValidationCheck(CertificateRequest certificateRequest) throws
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException {
+
+        User user = null;
+        PublicKey pubKey = null;
+        try {
+            PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
+            SubjectPublicKeyInfo pkInfo = request.getSubjectPublicKeyInfo();
+            JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
+            pubKey = converter.getPublicKey(pkInfo);
+        } catch (IOException e) {
+            throw new SecurityException();
+        }
+
+        // core component path
+        if (certificateRequest.getUsername().equals(AAMOwnerUsername)) {
+            // password check
+            if (!certificateRequest.getPassword().equals(AAMOwnerPassword))
+                throw new WrongCredentialsException();
+            if (revokedKeysRepository.exists(SecurityConstants.CORE_AAM_INSTANCE_ID)
+                    && revokedKeysRepository.findOne(SecurityConstants.CORE_AAM_INSTANCE_ID).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                throw new ValidationException("Using revoked key");
+            }
+        } else { // other path
+            user = userRepository.findOne(certificateRequest.getUsername());
+            if (user == null)
+                throw new NotExistingUserException();
+
+            if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
+                    !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
+                throw new WrongCredentialsException();
+            if (revokedKeysRepository.exists(user.getUsername())
+                    && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                throw new ValidationException("Using revoked key");
+            }
+        }
+        return user;
     }
 
     private void putComponentCertificateToRepository(PKCS10CertificationRequest req,
@@ -249,26 +301,6 @@ public class SignCertificateRequestService {
         userRepository.save(user);
     }
 
-    private X509Certificate createCertificateFromCSR(CertificateRequest certificateRequest, PKCS10CertificationRequest req) throws
-            InvalidArgumentsException, UserManagementException, PlatformManagementException {
-        X509Certificate certFromCSR;
-
-        // platform AAM
-        if (!req.getSubject().toString().split("CN=")[1].contains(illegalSign)) {
-            certFromCSR = createPlatformCertFromCSR(certificateRequest, req);
-        }
-        // component
-        // TODO review this check
-        else if (req.getSubject().toString().split("CN=")[1].split(illegalSign).length == 2) {
-            certFromCSR = createComponentCertFromCSR(certificateRequest, req);
-        }
-        // user's client
-        else {
-            certFromCSR = createUserCertFromCSR(req);
-        }
-        return certFromCSR;
-    }
-
     private X509Certificate createUserCertFromCSR(PKCS10CertificationRequest req)
             throws InvalidArgumentsException, UserManagementException {
         X509Certificate certFromCSR;
@@ -322,47 +354,6 @@ public class SignCertificateRequestService {
         }
 
         return certFromCSR;
-    }
-
-    private User requestValidationCheck(CertificateRequest certificateRequest) throws
-            WrongCredentialsException,
-            NotExistingUserException,
-            ValidationException {
-
-        User user = null;
-        PublicKey pubKey = null;
-        try {
-            PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
-            SubjectPublicKeyInfo pkInfo = request.getSubjectPublicKeyInfo();
-            JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
-            pubKey = converter.getPublicKey(pkInfo);
-        } catch (IOException e) {
-            throw new SecurityException();
-        }
-
-        // core component path
-        if (certificateRequest.getUsername().equals(AAMOwnerUsername)) {
-            // password check
-            if (!certificateRequest.getPassword().equals(AAMOwnerPassword))
-                throw new WrongCredentialsException();
-            if (revokedKeysRepository.exists(SecurityConstants.CORE_AAM_INSTANCE_ID)
-                    && revokedKeysRepository.findOne(SecurityConstants.CORE_AAM_INSTANCE_ID).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
-                throw new ValidationException("Using revoked key");
-            }
-        } else { // other path
-            user = userRepository.findOne(certificateRequest.getUsername());
-            if (user == null)
-                throw new NotExistingUserException();
-
-            if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
-                    !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
-                throw new WrongCredentialsException();
-            if (revokedKeysRepository.exists(user.getUsername())
-                    && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
-                throw new ValidationException("Using revoked key");
-            }
-        }
-        return user;
     }
 
     private void platformRequestCheck(CertificateRequest certificateRequest) throws

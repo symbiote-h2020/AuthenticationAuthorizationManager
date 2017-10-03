@@ -24,6 +24,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
@@ -32,8 +33,6 @@ import java.security.cert.*;
 import java.util.*;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
-
-import eu.h2020.symbiote.security.commons.Certificate;
 
 
 /**
@@ -213,8 +212,31 @@ public class ValidationHelper {
                         return ValidationStatus.REVOKED_SPK;
                 }
             }
-            if (!validateFederationAttributes(token)) {
-                return ValidationStatus.REVOKED_TOKEN;
+
+            // FOREIGN tokens extra handling
+            Token tokenForValidation = new Token(token);
+            if (tokenForValidation.getType().equals(Token.Type.FOREIGN)) {
+                // checking if the token is still valid against current federation definitions
+                if (!validateFederationAttributes(token)) {
+                    revokedTokensRepository.save(tokenForValidation);
+                    return ValidationStatus.REVOKED_TOKEN;
+                }
+
+                // check if the foreign token origin credentials are still valid
+                ValidationStatus originCredentialsValidationStatus = reachOutForeignTokenOriginCredentialsAAMToValidateThem(token);
+                switch (originCredentialsValidationStatus) {
+                    case VALID:
+                        // origin credentials are valid
+                        break;
+                    case UNKNOWN:
+                    case WRONG_AAM:
+                        // there was some issue with validating the origin credentials
+                        return originCredentialsValidationStatus;
+                    default:
+                        // we confirmed the origin credentials were invalidated and we need to invalidate our token
+                        revokedTokensRepository.save(tokenForValidation);
+                        return originCredentialsValidationStatus;
+                }
             }
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
@@ -494,10 +516,6 @@ public class ValidationHelper {
         } catch (MalformedJWTException e) {
             return false;
         }
-
-        if (!new Token(foreignToken).getType().equals(Token.Type.FOREIGN))
-            return true;
-
         for (String federationId : claims.getAtt().values()) {
             if (!federationRulesRepository.exists(federationId)
                     || claims.getSub().split(illegalSign).length != 3
@@ -508,5 +526,60 @@ public class ValidationHelper {
         return true;
     }
 
+    /**
+     * @param foreignToken issued in another AAM that needs confirmation that the HOME token used to issue it is still valid
+     */
+    public ValidationStatus validateForeignTokenOriginCredentials(String foreignToken) throws
+            CertificateException,
+            MalformedJWTException {
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(foreignToken);
+        // TODO consider component tokens in P2P L2 communication!
+        String userFromToken = claimsFromToken.getSub().split("@")[0];
+        String clientID = claimsFromToken.getSub().split("@")[1];
+        // SUB claim check (searching for user and client)
+        if (!userRepository.exists(userFromToken)
+                || userRepository.findOne(userFromToken).getClientCertificates().get(clientID) == null) {
+            return ValidationStatus.REVOKED_TOKEN;
+        }
+        // TODO check revoked JTI
+        if (revokedTokensRepository.exists("TODO get proper id from the SUB claim")) {
+            return ValidationStatus.REVOKED_TOKEN;
+        }
 
+        // SPK claim check
+        PublicKey userPublicKey = userRepository.findOne(userFromToken)
+                .getClientCertificates()
+                .get(clientID)
+                .getX509()
+                .getPublicKey();
+        if (!claimsFromToken.getSpk().equals(Base64.getEncoder().encodeToString(userPublicKey.getEncoded()))) {
+            return ValidationStatus.INVALID_TRUST_CHAIN;
+        }
+        return ValidationStatus.VALID;
+    }
+
+    private ValidationStatus reachOutForeignTokenOriginCredentialsAAMToValidateThem(String stringToken) throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            ValidationException {
+        Token token = new Token(stringToken);
+        String platformId = token.getClaims().getSubject().split(illegalSign)[2];
+        // fetching origin token AAM
+        if (aamServices.getAvailableAAMs().get(platformId) == null) {
+            return ValidationStatus.INVALID_TRUST_CHAIN;
+        }
+        String aamAddress = aamServices.getAvailableAAMs().get(platformId).getAamAddress();
+        try {
+            // issuing origin credentials check in the origin token HOME AAM
+            return restTemplate.postForEntity(aamAddress + SecurityConstants.AAM_VALIDATE_FOREIGN_TOKEN_ORIGIN_CREDENTIALS,
+                    token,
+                    ValidationStatus.class).getBody();
+        } catch (HttpClientErrorException e) {
+            log.error("HomeToken issuer not available");
+            return ValidationStatus.UNKNOWN;
+        }
+    }
 }

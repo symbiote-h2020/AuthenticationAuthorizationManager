@@ -98,6 +98,15 @@ public class DummyPlatformAAM {
         return ValidationStatus.VALID;
     }
 
+    /**
+     * return valid status of client certificate
+     */
+    @PostMapping(path = PATH + SecurityConstants.AAM_VALIDATE_FOREIGN_TOKEN_ORIGIN_CREDENTIALS)
+    public ValidationStatus validateForeignTokenOriginCredentials(@RequestBody String token) {
+        log.info("Dummy Platform AAM validating foreign token origin credentials for: " + token);
+        return ValidationStatus.VALID;
+    }
+
     @GetMapping(path = PATH + SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE)
     public String getRootCertificate() throws NoSuchProviderException, KeyStoreException, IOException,
             UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException {

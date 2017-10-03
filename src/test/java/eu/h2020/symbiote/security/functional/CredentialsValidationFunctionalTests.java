@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.functional;
 
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
@@ -12,11 +13,15 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsExce
 import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
+import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
+import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.io.IOException;
 import java.security.*;
@@ -35,6 +40,10 @@ public class CredentialsValidationFunctionalTests extends
 
     private static Log log = LogFactory.getLog(CredentialsValidationFunctionalTests.class);
 
+    @Bean
+    DummyPlatformAAM getDummyPlatformAAM() {
+        return new DummyPlatformAAM();
+    }
     /**
      * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
      * revocation),
@@ -242,6 +251,19 @@ public class CredentialsValidationFunctionalTests extends
 
         ValidationStatus status = aamClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.REVOKED_SPK, status);
+    }
+
+
+    @Test
+    public void validationOfForeignToken() {
+        try {
+            restTemplate.postForEntity(
+                    serverAddress + SecurityConstants.AAM_VALIDATE_FOREIGN_TOKEN_ORIGIN_CREDENTIALS,
+                    new Token(), ValidationStatus.class);
+            fail("Validation passed with empty token");
+        } catch (HttpServerErrorException e) {
+            assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatusCode());
+        }
     }
 
 }
