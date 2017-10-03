@@ -39,7 +39,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
@@ -78,22 +77,18 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
     @Autowired
+    ComponentCertificatesRepository componentCertificatesRepository;
+    @Autowired
+    DummyPlatformAAM dummyPlatformAAM;
+    @Autowired
     private TokenIssuer tokenIssuer;
     @Autowired
     private GetTokenService getTokenService;
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-
-    @Autowired
-    ComponentCertificatesRepository componentCertificatesRepository;
     @Autowired
     private SignCertificateRequestService signCertificateRequestService;
-
-    @Bean
-    DummyPlatformAAM dummyPlatformAAM() {
-        return new DummyPlatformAAM();
-    }
 
     @Override
     @Before
@@ -368,7 +363,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         try {
-            token = new Token(dummyPlatformAAM().getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+            token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -433,7 +428,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         try {
-            token = new Token(dummyPlatformAAM().getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+            token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -489,7 +484,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         try {
-            token = new Token(dummyPlatformAAM().getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+            token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -517,7 +512,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = null;
         try {
-            token = new Token(dummyPlatformAAM().getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
+            token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         } catch (Exception e) {
             fail("Exception thrown");
         }
@@ -671,6 +666,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
         Token homeToken = getTokenService.getHomeToken(loginRequest);
     }
+
     @Test
     public void getHomeTokenWithAttributesProvisionedToBeIssuedForLocalUser() throws IOException, TimeoutException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, JWTCreationException, MalformedJWTException {
 

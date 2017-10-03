@@ -23,7 +23,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
@@ -51,22 +50,18 @@ public class RevocationFunctionalTests extends
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     String coreInterfaceAddress;
     @Autowired
+    DummyPlatformAAM dummyPlatformAAM;
+    @Autowired
     private PlatformRepository platformRepository;
     @Autowired
     private TokenIssuer tokenIssuer;
     private RpcClient revocationOverAMQPClient;
     @Autowired
     private GetTokenService getTokenService;
-
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
-
-    @Bean
-    DummyPlatformAAM dummyPlatformAAM() {
-        return new DummyPlatformAAM();
-    }
 
     @Override
     @Before
@@ -333,7 +328,6 @@ public class RevocationFunctionalTests extends
         assertNotNull(userRepository.findOne(username));
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        DummyPlatformAAM dummyPlatformAAM = dummyPlatformAAM();
         Token token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         assertNotNull(token);
         User platformOwner = savePlatformOwner();

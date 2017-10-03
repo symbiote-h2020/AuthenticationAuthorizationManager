@@ -21,11 +21,9 @@ import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAM2;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -67,16 +65,8 @@ public class RevocationUnitTests extends
     private TokenIssuer tokenIssuer;
     @Autowired
     private GetTokenService getTokenService;
-
-    @Bean
-    DummyPlatformAAM dummyPlatformAAM() {
-        return new DummyPlatformAAM();
-    }
-
-    @Bean
-    DummyPlatformAAM2 dummyPlatformAAM2() {
-        return new DummyPlatformAAM2();
-    }
+    @Autowired
+    DummyPlatformAAM dummyPlatformAAM;
 
     //TODO @JT revokeCertificates unit tests
     @Test
@@ -595,7 +585,7 @@ public class RevocationUnitTests extends
         userRepository.save(platformOwner);
 
         KeyPair pair2 = CryptoHelper.createKeyPair();
-        DummyPlatformAAM dummyPlatformAAM = dummyPlatformAAM();
+
         platform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
         platformRepository.save(platform);
 
@@ -634,7 +624,7 @@ public class RevocationUnitTests extends
         HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, new Certificate(), pair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        ResponseEntity<?> loginResponse = dummyPlatformAAM().getHomeToken(loginRequest);
+        ResponseEntity<?> loginResponse = dummyPlatformAAM.getHomeToken(loginRequest);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -712,7 +702,6 @@ public class RevocationUnitTests extends
         assertNotNull(userRepository.findOne(username));
         HomeCredentials homeCredentials = new HomeCredentials(null, username, platformId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        DummyPlatformAAM dummyPlatformAAM = dummyPlatformAAM();
         Token token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         assertNotNull(token);
 
@@ -751,7 +740,6 @@ public class RevocationUnitTests extends
         assertNotNull(userRepository.findOne(username));
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        DummyPlatformAAM dummyPlatformAAM = dummyPlatformAAM();
         Token token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
         assertNotNull(token);
 

@@ -41,8 +41,13 @@ public class DummyCoreAAM {
     private static final Log log = LogFactory.getLog(DummyCoreAAM.class);
     private static final String CERTIFICATE_ALIAS = "core-2";
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/core.p12";
+    private static final String PLATFORM_CERTIFICATE_ALIAS = "platform-1-1-c1";
+    private static final String PLATFORM_CERTIFICATE_LOCATION = "./src/test/resources/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String PATH = "/test/caam";
+    private static final String platformId = "platform-1";
+    public int port;
+    private Certificate revokedCert;
     private AvailableAAMsCollection aams = new AvailableAAMsCollection();
 
     public DummyCoreAAM() throws
@@ -61,12 +66,7 @@ public class DummyCoreAAM {
         JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
         pemWriter.writeObject(certificate);
         pemWriter.close();
-        Certificate revokedCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
-
-        aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("irrelevant",
-                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                SecurityConstants.CORE_AAM_INSTANCE_ID,
-                revokedCert, new HashMap<>()));
+        revokedCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
     }
 
     /**
@@ -133,9 +133,34 @@ public class DummyCoreAAM {
         return signedCertificatePEMDataStringWriter.toString();
     }
 
+
     @GetMapping(path = PATH + SecurityConstants.AAM_GET_AVAILABLE_AAMS)
-    public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {
+    public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+        if (aams.getAvailableAAMs().isEmpty()) {
+            initializeAvailableAAMs();
+        }
         return new ResponseEntity<>(aams, HttpStatus.OK);
+    }
+
+    private void initializeAvailableAAMs() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+        aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("https://localhost:" + port + PATH,
+                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
+                SecurityConstants.CORE_AAM_INSTANCE_ID,
+                revokedCert, new HashMap<>()));
+
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream(PLATFORM_CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate(PLATFORM_CERTIFICATE_ALIAS);
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        revokedCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
+
+        aams.getAvailableAAMs().put(platformId, new AAM("https://localhost:" + port,
+                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
+                SecurityConstants.CORE_AAM_INSTANCE_ID,
+                revokedCert, new HashMap<>()));
     }
 }
 

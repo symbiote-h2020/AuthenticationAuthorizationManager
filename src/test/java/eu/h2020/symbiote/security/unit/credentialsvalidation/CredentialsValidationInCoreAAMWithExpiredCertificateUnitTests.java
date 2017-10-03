@@ -10,13 +10,11 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
@@ -47,11 +45,6 @@ public class CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests exten
     private ValidationHelper validationHelper;
     @LocalServerPort
     private int port;
-
-    @Bean
-    DummyPlatformAAM getDummyPlatformAAM() {
-        return new DummyPlatformAAM();
-    }
 
     @Override
     @Before

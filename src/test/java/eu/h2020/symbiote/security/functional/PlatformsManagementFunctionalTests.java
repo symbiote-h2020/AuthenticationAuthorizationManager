@@ -13,12 +13,10 @@ import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRespo
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -49,10 +47,6 @@ public class PlatformsManagementFunctionalTests extends
     @Autowired
     private PlatformRepository platformRepository;
 
-    @Bean
-    DummyPlatformAAM getDummyPlatformAAM() {
-        return new DummyPlatformAAM();
-    }
 
     @Override
     @Before

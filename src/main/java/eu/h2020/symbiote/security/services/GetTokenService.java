@@ -10,6 +10,7 @@ import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.logging.Log;
@@ -39,16 +40,18 @@ public class GetTokenService {
     private final UserRepository userRepository;
     private final ValidationHelper validationHelper;
     private final PlatformRepository platformRepository;
+    private final String deploymentId;
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
 
     @Autowired
-    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository, ValidationHelper validationHelper, ComponentCertificatesRepository componentCertificateRepository, PlatformRepository platformRepository) {
+    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository, ValidationHelper validationHelper, ComponentCertificatesRepository componentCertificateRepository, PlatformRepository platformRepository, CertificationAuthorityHelper certificationAuthorityHelper) {
         this.tokenIssuer = tokenIssuer;
         this.userRepository = userRepository;
         this.validationHelper = validationHelper;
         this.componentCertificateRepository = componentCertificateRepository;
         this.platformRepository = platformRepository;
+        this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
     }
 
     public Token getForeignToken(Token receivedRemoteHomeToken, String clientCertificate, String aamCertificate) throws
@@ -88,7 +91,8 @@ public class GetTokenService {
             String platformId = sub.split(illegalSign)[1];
 
             // core components use case
-            if (claims.getIss().equals(AAMOwnerUsername)) {
+            if (claims.getIss().equals(AAMOwnerUsername)
+                    && platformId.equals(deploymentId)) {
                 //authenticating
                 if (!componentCertificateRepository.exists(componentOrClientId)
                         || JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(componentOrClientId).getCertificate().getX509().getPublicKey()) != ValidationStatus.VALID)
