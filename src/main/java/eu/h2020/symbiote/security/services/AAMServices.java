@@ -3,6 +3,9 @@ package eu.h2020.symbiote.security.services;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.communication.AAMClient;
+import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
@@ -96,5 +99,28 @@ public class AAMServices {
         }
 
         return availableAAMs;
+    }
+
+    public String getComponentCertificate(String componentIdentifier, String platformIdentifier) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, AAMException {
+
+        String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
+
+        if (platformIdentifier.equals(deploymentId)) {
+            if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME)) {
+                return certificationAuthorityHelper.getAAMCert();
+            }
+            else {
+                return componentCertificatesRepository.findOne(componentIdentifier).getCertificate().getCertificateString();
+            }
+        }
+        else {
+            Map<String, AAM> availableAAMs = getAvailableAAMs();
+            if(availableAAMs.containsKey(platformIdentifier)) {
+                AAM aam = availableAAMs.get(platformIdentifier);
+                IAAMClient aamClient = new AAMClient(aam.getAamAddress());
+                return aamClient.getComponentCertificate(componentIdentifier, platformIdentifier);
+            }
+        }
+        return "";
     }
 }

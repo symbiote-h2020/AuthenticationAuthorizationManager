@@ -1,16 +1,11 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
-import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
-import eu.h2020.symbiote.security.communication.AAMClient;
-import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IAAMServices;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IGetComponentCertificate;
-import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.services.AAMServices;
-import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -41,15 +36,10 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
 
     private static final Log log = LogFactory.getLog(AAMServicesController.class);
     private AAMServices aamServices;
-    private final CertificationAuthorityHelper certificationAuthorityHelper;
-    private final ComponentCertificatesRepository componentCertificateRepository;
 
     @Autowired
-    public AAMServicesController(AAMServices aamServices, CertificationAuthorityHelper certificationAuthorityHelper,
-                                 ComponentCertificatesRepository componentCertificateRepository) {
+    public AAMServicesController(AAMServices aamServices) {
         this.aamServices = aamServices;
-        this.certificationAuthorityHelper = certificationAuthorityHelper;
-        this.componentCertificateRepository = componentCertificateRepository;
     }
 
     @ApiOperation(value = "Get component certificate", response = String.class)
@@ -59,26 +49,7 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
     public ResponseEntity<String> getComponentCertificate(@PathVariable String componentIdentifier,
                                                           @PathVariable String platformIdentifier) {
         try {
-
-            String certificate = "";
-            String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
-
-            if (platformIdentifier.equals(deploymentId)) {
-                if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME)) {
-                    certificate = certificationAuthorityHelper.getAAMCert();
-                }
-                else {
-                    certificate = componentCertificateRepository.findOne(componentIdentifier).getCertificate().getCertificateString();
-                }
-            }
-            else {
-                Map<String, AAM> availableAAMs = aamServices.getAvailableAAMs();
-                if(availableAAMs.containsKey(platformIdentifier)) {
-                    AAM aam = availableAAMs.get(platformIdentifier);
-                    IAAMClient aamClient = new AAMClient(aam.getAamAddress());
-                    certificate = aamClient.getComponentCertificate(componentIdentifier, platformIdentifier);
-                }
-            }
+            String certificate = aamServices.getComponentCertificate(componentIdentifier, platformIdentifier);
 
             // not found
             if (certificate.isEmpty())
