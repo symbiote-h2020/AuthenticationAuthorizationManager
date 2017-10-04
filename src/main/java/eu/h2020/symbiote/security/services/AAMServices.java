@@ -80,7 +80,21 @@ public class AAMServices {
             // a PAAM needs to fetch them from core
             availableAAMs = restTemplate.getForEntity(coreAAMAddress + SecurityConstants
                     .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class).getBody().getAvailableAAMs();
+
+            String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
+
+            AAM aam = availableAAMs.get(deploymentId);
+
+            Map<String, Certificate> componentsCertificatesMap = new HashMap<>();
+            List<ComponentCertificate> componentCertificatesFromRepository = componentCertificatesRepository.findAll();
+            for (ComponentCertificate certificate : componentCertificatesFromRepository) {
+                componentsCertificatesMap.put(certificate.getName(), certificate.getCertificate());
+            }
+            aam.setComponentCertificates(componentsCertificatesMap);
+            availableAAMs.put(deploymentId, aam);
+
         }
+
         return availableAAMs;
     }
 }
