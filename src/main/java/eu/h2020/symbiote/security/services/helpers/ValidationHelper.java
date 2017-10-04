@@ -34,6 +34,7 @@ import java.util.*;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 
+import eu.h2020.symbiote.security.commons.Certificate;
 
 /**
  * Used to validate given credentials against data in the AAMs
@@ -503,7 +504,7 @@ public class ValidationHelper {
         }
     }
 
-    private boolean validateFederationAttributes(String foreignToken) throws ValidationException {
+    private boolean validateFederationAttributes(String foreignToken) {
         JWTClaims claims;
         try {
             claims = JWTEngine.getClaimsFromToken(foreignToken);
@@ -512,7 +513,7 @@ public class ValidationHelper {
         }
         for (String federationId : claims.getAtt().values()) {
             if (!federationRulesRepository.exists(federationId)
-                    || claims.getSub().split(illegalSign).length != 3
+                    || claims.getSub().split(illegalSign).length != 4
                     || !federationRulesRepository.findOne(federationId).getPlatformIds().contains(claims.getSub().split(illegalSign)[2])) {
                 return false;
             }
@@ -528,15 +529,19 @@ public class ValidationHelper {
             MalformedJWTException {
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(foreignToken);
         // TODO consider component tokens in P2P L2 communication!
+        if (claimsFromToken.getSub().split("@").length != 4) {
+            throw new MalformedJWTException("Token subject has wrong structure");
+        }
+
         String userFromToken = claimsFromToken.getSub().split("@")[0];
         String clientID = claimsFromToken.getSub().split("@")[1];
+        String jti = claimsFromToken.getSub().split("@")[3];
         // SUB claim check (searching for user and client)
         if (!userRepository.exists(userFromToken)
                 || userRepository.findOne(userFromToken).getClientCertificates().get(clientID) == null) {
             return ValidationStatus.REVOKED_TOKEN;
         }
-        // TODO check revoked JTI
-        if (revokedTokensRepository.exists("TODO get proper id from the SUB claim")) {
+        if (revokedTokensRepository.exists(jti)) {
             return ValidationStatus.REVOKED_TOKEN;
         }
 

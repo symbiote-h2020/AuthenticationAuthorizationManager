@@ -185,8 +185,8 @@ public class TokenIssuer {
                 }
             }
             return new Token(buildAuthorizationToken(
-                    // FOREIGN SUB: username@clientIdentifier@homeAAMInstanceIdentifier
-                    claims.getSub() + "@" + claims.getIss(),
+                    // FOREIGN SUB: username@clientIdentifier@homeAAMInstanceIdentifier@originHomeTokenJTI
+                    claims.getSub() + "@" + claims.getIss() + "@" + claims.getJti(),
                     foreignAttributes,
                     Base64.getDecoder().decode(claims.getSpk()),
                     Token.Type.FOREIGN,
