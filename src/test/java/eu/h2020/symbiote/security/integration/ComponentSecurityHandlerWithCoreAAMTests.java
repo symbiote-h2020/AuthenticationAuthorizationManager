@@ -6,7 +6,6 @@ import eu.h2020.symbiote.security.ComponentSecurityHandlerFactory;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
-import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
@@ -14,10 +13,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsExce
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.security.handler.ISecurityHandler;
-import eu.h2020.symbiote.security.repositories.entities.Platform;
-import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.AAMServices;
-import io.jsonwebtoken.Claims;
 import org.junit.After;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -94,61 +90,4 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         // the policy should be there!
         assertTrue(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
     }
-
-
-    @Test
-    public void RegistrationHandlerIntegrationTest() throws SecurityHandlerException, InvalidArgumentsException, CertificateException, WrongCredentialsException {
-
-        //platformOwner and platform  registration
-        User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
-        userRepository.save(platformOwner);
-
-        // hack: injecting the AAM running port
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
-
-        // registration handler use case
-        String rhKey = "rh";
-        String regHandlerComponentId = rhKey + "@" + platformId;
-        // generating the CSH
-        IComponentSecurityHandler rhCSH = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
-                serverAddress,
-                KEY_STORE_PATH,
-                KEY_STORE_PASSWORD,
-                regHandlerComponentId,
-                serverAddress,
-                false,
-                platformOwnerUsername,
-                platformOwnerPassword
-        );
-
-        // getting a CRM service response
-        String regHandlerServiceResponse = rhCSH.generateServiceResponse();
-
-        // making sure it won't issue certs multiple times
-        regHandlerServiceResponse = rhCSH.generateServiceResponse();
-
-        // trying to validate the service response, yes we can use this SH as the operation is local
-        assertTrue(rhCSH.isReceivedServiceResponseVerified(regHandlerServiceResponse, rhKey, platformId));
-
-        SecurityRequest rhSecurityRequest = rhCSH.generateSecurityRequestUsingCoreCredentials();
-        assertFalse(rhSecurityRequest.getSecurityCredentials().isEmpty());
-
-        // building dummy access policy
-        Map<String, IAccessPolicy> testAP = new HashMap<>();
-        String testPolicyId = "testPolicyId";
-        Map<String, String> requiredClaims = new HashMap<>();
-        requiredClaims.put(Claims.ISSUER, SecurityConstants.CORE_AAM_INSTANCE_ID);
-        requiredClaims.put(Claims.SUBJECT, platformOwnerUsername);
-        SingleTokenAccessPolicySpecifier testPolicySpecifier =
-                new SingleTokenAccessPolicySpecifier(
-                        SingleTokenAccessPolicySpecifier.SingleTokenAccessPolicyType.SLHTIBAP,
-                        requiredClaims);
-        testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier, null));
-        // the policy should be there!
-        assertTrue(rhCSH.getSatisfiedPoliciesIdentifiers(testAP, rhSecurityRequest).contains(testPolicyId));
-    }
-
 }
