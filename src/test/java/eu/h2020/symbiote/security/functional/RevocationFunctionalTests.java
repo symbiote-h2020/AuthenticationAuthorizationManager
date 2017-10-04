@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
@@ -15,8 +16,8 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.CredentialsValidationService;
 import eu.h2020.symbiote.security.services.GetTokenService;
-import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Before;
@@ -52,8 +53,6 @@ public class RevocationFunctionalTests extends
     String coreInterfaceAddress;
     @Autowired
     private PlatformRepository platformRepository;
-    @Autowired
-    private TokenIssuer tokenIssuer;
     private RpcClient revocationOverAMQPClient;
     @Autowired
     private GetTokenService getTokenService;
@@ -62,6 +61,9 @@ public class RevocationFunctionalTests extends
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
+
+    @Autowired
+    private CredentialsValidationService credentialsValidationService;
 
     @Bean
     DummyPlatformAAM dummyPlatformAAM() {
@@ -366,6 +368,7 @@ public class RevocationFunctionalTests extends
 
         assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
         assertTrue(revokedTokensRepository.exists(foreignToken.getClaims().getId()));
+        assertEquals(ValidationStatus.REVOKED_TOKEN, credentialsValidationService.validate(foreignToken.getToken(), "", "", ""));
     }
 
     @Test(expected = InvalidArgumentsException.class)
