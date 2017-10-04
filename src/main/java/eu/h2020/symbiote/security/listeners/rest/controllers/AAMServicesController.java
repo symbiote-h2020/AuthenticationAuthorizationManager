@@ -1,11 +1,16 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.communication.AAMClient;
+import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IAAMServices;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IGetComponentCertificate;
+import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.services.AAMServices;
+import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiResponse;
@@ -36,10 +41,15 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
 
     private static final Log log = LogFactory.getLog(AAMServicesController.class);
     private AAMServices aamServices;
+    private final CertificationAuthorityHelper certificationAuthorityHelper;
+    private final ComponentCertificatesRepository componentCertificateRepository;
 
     @Autowired
-    public AAMServicesController(AAMServices aamServices) {
+    public AAMServicesController(AAMServices aamServices, CertificationAuthorityHelper certificationAuthorityHelper,
+                                 ComponentCertificatesRepository componentCertificateRepository) {
         this.aamServices = aamServices;
+        this.certificationAuthorityHelper = certificationAuthorityHelper;
+        this.componentCertificateRepository = componentCertificateRepository;
     }
 
     @ApiOperation(value = "Get component certificate", response = String.class)
@@ -49,17 +59,25 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
     public ResponseEntity<String> getComponentCertificate(@PathVariable String componentIdentifier,
                                                           @PathVariable String platformIdentifier) {
         try {
-            Map<String, AAM> availableAAMs = aamServices.getAvailableAAMs();
-            String certificate = "";
 
-            if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME)) {   // AAM CA cert
-                // trying to find the certificate for given AAM
-                if (availableAAMs.containsKey(platformIdentifier))
-                    certificate = availableAAMs.get(platformIdentifier).getAamCACertificate().getCertificateString();
-            } else {
-                // trying to find the certificate for given component
-                if (availableAAMs.containsKey(platformIdentifier) && availableAAMs.get(platformIdentifier).getComponentCertificates().containsKey(componentIdentifier))
-                    certificate = availableAAMs.get(platformIdentifier).getComponentCertificates().get(componentIdentifier).getCertificateString();
+            String certificate = "";
+            String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
+
+            if (platformIdentifier.equals(deploymentId)) {
+                if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME)) {
+                    certificate = certificationAuthorityHelper.getAAMCert();
+                }
+                else {
+                    certificate = componentCertificateRepository.findOne(componentIdentifier).getCertificate().getCertificateString();
+                }
+            }
+            else {
+                Map<String, AAM> availableAAMs = aamServices.getAvailableAAMs();
+                if(availableAAMs.containsKey(platformIdentifier)) {
+                    AAM aam = availableAAMs.get(platformIdentifier);
+                    IAAMClient aamClient = new AAMClient(aam.getAamAddress());
+                    certificate = aamClient.getComponentCertificate(componentIdentifier, platformIdentifier);
+                }
             }
 
             // not found
@@ -68,7 +86,7 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
             // found
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
         } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException |
-                NoSuchProviderException e) {
+                NoSuchProviderException | AAMException e) {
             log.error(e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
