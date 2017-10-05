@@ -130,8 +130,9 @@ public class SignCertificateRequestService {
 
         User user = null;
         PublicKey pubKey = null;
+        PKCS10CertificationRequest request;
         try {
-            PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
+            request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
             SubjectPublicKeyInfo pkInfo = request.getSubjectPublicKeyInfo();
             JcaPEMKeyConverter converter = new JcaPEMKeyConverter();
             pubKey = converter.getPublicKey(pkInfo);
@@ -139,16 +140,18 @@ public class SignCertificateRequestService {
             throw new SecurityException();
         }
 
-        // core component path
         if (certificateRequest.getUsername().equals(AAMOwnerUsername)) {
             // password check
             if (!certificateRequest.getPassword().equals(AAMOwnerPassword))
                 throw new WrongCredentialsException();
-            if (revokedKeysRepository.exists(SecurityConstants.CORE_AAM_INSTANCE_ID)
-                    && revokedKeysRepository.findOne(SecurityConstants.CORE_AAM_INSTANCE_ID).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+            //deployment id check
+            if (!request.getSubject().toString().split("CN=")[1].split("@")[1].equals(certificationAuthorityHelper.getAAMInstanceIdentifier()))
+                throw new ValidationException("Deployment id's mismatch");
+            if (revokedKeysRepository.exists(certificationAuthorityHelper.getAAMInstanceIdentifier())
+                    && revokedKeysRepository.findOne(certificationAuthorityHelper.getAAMInstanceIdentifier()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
                 throw new ValidationException("Using revoked key");
             }
-        } else { // other path
+        } else {
             user = userRepository.findOne(certificateRequest.getUsername());
             if (user == null)
                 throw new NotExistingUserException();
@@ -170,66 +173,31 @@ public class SignCertificateRequestService {
                                                      X509Certificate certFromCSR) {
 
         String componentId = req.getSubject().toString().split("CN=")[1].split("@")[0];
-        String platformId = req.getSubject().toString().split("CN=")[1].split("@")[1];
+        String deploymentId = req.getSubject().toString().split("CN=")[1].split("@")[1];
 
-        if (platformId.equals(CORE_AAM_INSTANCE_ID)) {
-            // core components
-            if (certificateRequest.getUsername().equals(AAMOwnerUsername) && certificateRequest.getPassword().equals(AAMOwnerPassword)) {
-                ComponentCertificate coreComponentCert = componentCertificatesRepository.findOne(componentId);
-                if (coreComponentCert != null) {
-                    X509Certificate x509CoreComponentCert;
-                    try {
-                        x509CoreComponentCert = coreComponentCert.getCertificate().getX509();
-                    } catch (CertificateException e) {
-                        log.error(e);
-                        throw new SecurityException(e.getMessage(), e.getCause());
-                    }
-                    if (x509CoreComponentCert.getPublicKey().equals(certFromCSR.getPublicKey())) {
-                        componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
-                    } else {
-                        RevocationRequest revocationRequest = new RevocationRequest();
-                        revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
-                        revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
-                        revocationRequest.setCertificateCommonName(componentId + illegalSign + platformId);
-                        if (!revocationService.revoke(revocationRequest).isRevoked()) {
-                            throw new SecurityException();
-                        }
-                        componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
-                    }
-                } else {
-                    componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
+        ComponentCertificate componentCert = componentCertificatesRepository.findOne(componentId);
+        if (componentCert != null) {
+            X509Certificate x509ComponentCert;
+            try {
+                x509ComponentCert = componentCert.getCertificate().getX509();
+            } catch (CertificateException e) {
+                log.error(e);
+                throw new SecurityException(e.getMessage(), e.getCause());
+            }
+            if (x509ComponentCert.getPublicKey().equals(certFromCSR.getPublicKey())) {
+                componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
+            } else {
+                RevocationRequest revocationRequest = new RevocationRequest();
+                revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
+                revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
+                revocationRequest.setCertificateCommonName(componentId + illegalSign + deploymentId);
+                if (!revocationService.revoke(revocationRequest).isRevoked()) {
+                    throw new SecurityException();
                 }
+                componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
             }
         } else {
-            // platform component
-            Platform platform = platformRepository.findOne(platformId);
-
-            Certificate platformComponentCert = platform.getComponentCertificates().get(componentId);
-            if (platformComponentCert != null) {
-                X509Certificate x509PlatformComponentCert;
-                try {
-                    x509PlatformComponentCert = platformComponentCert.getX509();
-                } catch (CertificateException e) {
-                    log.error(e);
-                    throw new SecurityException(e.getMessage(), e.getCause());
-                }
-                if (x509PlatformComponentCert.getPublicKey().equals(certFromCSR.getPublicKey())) {
-                    platform.getComponentCertificates().replace(componentId, new Certificate(pem));
-                } else {
-
-                    RevocationRequest revocationRequest = new RevocationRequest();
-                    revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
-                    revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
-                    revocationRequest.setCertificateCommonName(componentId + illegalSign + platformId);
-                    if (!revocationService.revoke(revocationRequest).isRevoked()) {
-                        throw new SecurityException();
-                    }
-                    platform.getComponentCertificates().put(componentId, new Certificate(pem));
-                }
-            } else {
-                platform.getComponentCertificates().put(componentId, new Certificate(pem));
-            }
-            platformRepository.save(platform);
+            componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
         }
     }
 

@@ -47,9 +47,9 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
             @ApiResponse(code = 500, message = "Could not retrieve Component Certificate"),
             @ApiResponse(code = 404, message = "Certificate could not be found")})
     public ResponseEntity<String> getComponentCertificate(@PathVariable String componentIdentifier,
-                                                          @PathVariable String platformIdentifier) {
+                                                          @PathVariable String deploymentIdentifier) {
         try {
-            String certificate = aamServices.getComponentCertificate(componentIdentifier, platformIdentifier);
+            String certificate = aamServices.getComponentCertificate(componentIdentifier, deploymentIdentifier);
 
             // not found
             if (certificate.isEmpty())
@@ -63,7 +63,7 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
         }
     }
 
-    @ApiOperation(value = "Returns collection of available platforms (their AAMs and components)", response = AvailableAAMsCollection.class)
+    @ApiOperation(value = "Returns collection of available deployments (their AAMs and components)", response = AvailableAAMsCollection.class)
     @ApiResponses({
             @ApiResponse(code = 500, message = "Internal AAM Error")})
     public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {

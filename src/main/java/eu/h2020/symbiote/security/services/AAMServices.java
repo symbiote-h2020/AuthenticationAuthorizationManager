@@ -59,18 +59,11 @@ public class AAMServices {
             // if Core AAM then we know the available AAMs
             Certificate coreCertificate = new Certificate(certificationAuthorityHelper.getAAMCert());
 
-            // adding component certificates
-            Map<String, Certificate> componentsCertificatesMap = new HashMap<>();
-            List<ComponentCertificate> componentCertificatesFromRepository = componentCertificatesRepository.findAll();
-            for (ComponentCertificate certificate : componentCertificatesFromRepository) {
-                componentsCertificatesMap.put(certificate.getName(), certificate.getCertificate());
-            }
-
             // adding core aam info to the response
             availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM(coreInterfaceAddress,
                     SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                     SecurityConstants.CORE_AAM_INSTANCE_ID,
-                    coreCertificate, componentsCertificatesMap));
+                    coreCertificate, fillComponentCertificatesMap()));
 
             // registered platforms' AAMs
             for (Platform platform : platformRepository.findAll()) {
@@ -85,21 +78,25 @@ public class AAMServices {
                     .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class).getBody().getAvailableAAMs();
 
             String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
-
             AAM aam = availableAAMs.get(deploymentId);
 
-            Map<String, Certificate> componentsCertificatesMap = new HashMap<>();
-            List<ComponentCertificate> componentCertificatesFromRepository = componentCertificatesRepository.findAll();
-            for (ComponentCertificate certificate : componentCertificatesFromRepository) {
-                componentsCertificatesMap.put(certificate.getName(), certificate.getCertificate());
-            }
-            aam.setComponentCertificates(componentsCertificatesMap);
+            aam.setComponentCertificates(fillComponentCertificatesMap());
             availableAAMs.put(deploymentId, aam);
 
         }
 
         return availableAAMs;
     }
+
+    private Map<String, Certificate> fillComponentCertificatesMap() {
+        Map<String, Certificate> componentsCertificatesMap = new HashMap<>();
+        List<ComponentCertificate> componentCertificatesFromRepository = componentCertificatesRepository.findAll();
+        for (ComponentCertificate certificate : componentCertificatesFromRepository) {
+            componentsCertificatesMap.put(certificate.getName(), certificate.getCertificate());
+        }
+        return componentsCertificatesMap;
+    }
+
 
     public String getComponentCertificate(String componentIdentifier, String platformIdentifier) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, AAMException {
 

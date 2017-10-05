@@ -148,11 +148,6 @@ public class OtherListenersFunctionalTests extends
         Certificate platformAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1")));
         platform.setPlatformAAMCertificate(platformAAMCertificate);
 
-        // inject a component certificate
-        Certificate platformComponentCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("core.p12",
-                "rap@platform-1-core-1")));
-        platform.getComponentCertificates().put("rap", platformComponentCertificate);
-
         // save the certs into the repo
         platformRepository.save(platform);
 
@@ -175,8 +170,7 @@ public class OtherListenersFunctionalTests extends
                 .getAamAddress());
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
         assertEquals(platformAAMCertificate.getCertificateString(), platformAAM.getAamCACertificate().getCertificateString());
-        assertEquals(1, platformAAM.getComponentCertificates().size());
-        assertEquals(platformComponentCertificate.getCertificateString(), platformAAM.getComponentCertificates().get("rap").getCertificateString());
+        assertEquals(0, platformAAM.getComponentCertificates().size()); //
     }
 
     /**
@@ -185,7 +179,7 @@ public class OtherListenersFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
+    public void getCoreComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException, AAMException {
         String componentCertificate = aamClient.getComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, SecurityConstants.CORE_AAM_INSTANCE_ID);
         assertEquals(certificationAuthorityHelper.getAAMCert(), componentCertificate);
