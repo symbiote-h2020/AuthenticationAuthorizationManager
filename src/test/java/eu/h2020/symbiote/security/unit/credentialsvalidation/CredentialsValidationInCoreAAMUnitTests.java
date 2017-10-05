@@ -246,37 +246,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     }
 
     @Test
-    public void validateRevokedIPK() throws SecurityException, CertificateException,
-            NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
-        // verify that app really is in repository
-        User user = userRepository.findOne(username);
-        assertNotNull(user);
-
-        // verify the user keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(username));
-
-        // acquiring valid token
-        Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
-        String issuer = JWTEngine.getClaims(homeToken.getToken()).getIssuer();
-
-        // verify the issuer keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(issuer));
-
-        // insert CoreAAM public key into set to be revoked
-        Certificate coreCertificate = new Certificate(certificationAuthorityHelper.getAAMCert());
-        Set<String> keySet = new HashSet<>();
-        keySet.add(Base64.getEncoder().encodeToString(coreCertificate.getX509().getPublicKey().getEncoded()));
-
-        // adding key to revoked repository
-        SubjectsRevokedKeys subjectsRevokedKeys = new SubjectsRevokedKeys(issuer, keySet);
-        revokedKeysRepository.save(subjectsRevokedKeys);
-
-        // check if home token is valid
-        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");
-        assertEquals(ValidationStatus.REVOKED_IPK, response);
-    }
-
-    @Test
     public void validateIssuerDiffersDeploymentIdAndRelayValidation() throws
             IOException,
             ValidationException,
@@ -374,7 +343,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         // check if platform token is is valid
         ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
-        assertEquals(ValidationStatus.REVOKED_IPK, response);
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
 
     @Test

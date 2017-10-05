@@ -97,7 +97,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
 
         // check if home token is valid
         ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
-        assertEquals(ValidationStatus.REVOKED_IPK, response);
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
 
     @Test

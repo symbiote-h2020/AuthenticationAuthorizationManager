@@ -91,52 +91,37 @@ public class ValidationHelper {
                 return validationStatus;
             }
 
-            Claims claims = JWTEngine.getClaims(token);
+            Token tokenForValidation = new Token(token);
+            Claims claims = tokenForValidation.getClaims();
             String spk = claims.get("spk").toString();
             String ipk = claims.get("ipk").toString();
 
-            // TODO review and improve this flow
-
-            // flow for Platform AAM
-            if (deploymentType != IssuingAuthorityType.CORE) {
-                if (!deploymentId.equals(claims.getIssuer())) {
-                    // relay validation to issuer
-                    return validateRemotelyIssuedToken(token, clientCertificate, clientCertificateSigningAAMCertificate, foreignTokenIssuingAAMCertificate);
+            // check if token issued by us
+            if (!deploymentId.equals(claims.getIssuer())) {
+                // not our token, but the Core AAM knows things ;)
+                if (deploymentType == IssuingAuthorityType.CORE) {
+                    // check if IPK is in the revoked set
+                    if (revokedKeysRepository.exists(claims.getIssuer()) &&
+                            revokedKeysRepository.findOne(claims.getIssuer()).getRevokedKeysSet().contains(ipk)) {
+                        return ValidationStatus.REVOKED_IPK;
+                    }
                 }
-
-                // check IPK is not equal to current AAM PK
-                if (!Base64.getEncoder().encodeToString(
-                        certificationAuthorityHelper.getAAMCertificate().getPublicKey().getEncoded()).equals(ipk)) {
-                    return ValidationStatus.REVOKED_IPK;
-                }
-
-                // check if issuer certificate is not expired
-                if (isExpired(certificationAuthorityHelper.getAAMCertificate())) {
-                    return ValidationStatus.EXPIRED_ISSUER_CERTIFICATE;
-                }
-                // TODO possibly throw runtime exception so that AAM crashes as it is no more valid
-            } else {
-                // check if IPK is in the revoked set
-                if (revokedKeysRepository.exists(claims.getIssuer()) &&
-                        revokedKeysRepository.findOne(claims.getIssuer()).getRevokedKeysSet().contains(ipk)) {
-                    return ValidationStatus.REVOKED_IPK;
-                }
-                // check if core is not an issuer
-                if (!deploymentId.equals(claims.getIssuer())) {
-                    // relay validation to issuer
-                    return validateRemotelyIssuedToken(token, clientCertificate, clientCertificateSigningAAMCertificate, foreignTokenIssuingAAMCertificate);
-                }
-
-                // check if issuer certificate is not expired
-                if (isExpired(certificationAuthorityHelper.getAAMCertificate()))
-                    return ValidationStatus.EXPIRED_ISSUER_CERTIFICATE;
-
-                // check if it is core but with not valid PK
-                if (!Base64.getEncoder().encodeToString(
-                        certificationAuthorityHelper.getAAMCertificate().getPublicKey().getEncoded()).equals(ipk)) {
-                    return ValidationStatus.INVALID_TRUST_CHAIN;
-                }
+                // relay validation to issuer
+                return validateRemotelyIssuedToken(token, clientCertificate, clientCertificateSigningAAMCertificate, foreignTokenIssuingAAMCertificate);
             }
+            // It is a token issued by us, so full checkup ahead.
+
+            // check if issuer certificate is not expired
+            if (isExpired(certificationAuthorityHelper.getAAMCertificate()))
+                return ValidationStatus.EXPIRED_ISSUER_CERTIFICATE;
+            // TODO possibly throw runtime exception so that AAM crashes as it is no more valid
+
+            // check IPK is not equal to current AAM PK
+            if (!Base64.getEncoder().encodeToString(
+                    certificationAuthorityHelper.getAAMCertificate().getPublicKey().getEncoded()).equals(ipk)) {
+                return ValidationStatus.INVALID_TRUST_CHAIN;
+            }
+
             // check revoked JTI
             if (revokedTokensRepository.exists(claims.getId())) {
                 return ValidationStatus.REVOKED_TOKEN;
@@ -148,69 +133,73 @@ public class ValidationHelper {
             if (revokedKeysRepository.exists(userFromToken) && revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
                 return ValidationStatus.REVOKED_SPK;
             }
-            // check if subject certificate is valid & matching the token SPK
-            if (claims.get("ttyp").equals(Token.Type.HOME.toString())) {
-                if (claims.getSubject().split("@").length == 2) { // user case
-                    String clientId = claims.getSubject().split("@")[1];
-                    // check if we have such a user and his certificate
-                    if (!userRepository.exists(userFromToken)
-                            || !userRepository.findOne(userFromToken).getClientCertificates().containsKey(clientId))
-                        return ValidationStatus.INVALID_TRUST_CHAIN;
-                    // expiry check
-                    if (isExpired(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509())) {
-                        return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
-                    }
-                    // and if it matches the client's currently assigned cert
-                    if (!userRepository.exists(userFromToken) || !userRepository.findOne(userFromToken).getClientCertificates().containsKey(clientId))
-                        return ValidationStatus.REVOKED_SPK;
-                    // checking match from token
-                    if (!Base64.getEncoder().encodeToString(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded()).equals(spk))
-                        return ValidationStatus.REVOKED_SPK;
-                }
-                //cleaning up non local components
-                if (claims.getSubject().split("@").length == 1) {
-                    Certificate certificate = null;
-                    // component case - SUB/userFromToken is component name, ISS is AAM instanceId
-                    ComponentCertificate localComponentCertificate = componentCertificatesRepository.findOne(userFromToken);
-                    if (localComponentCertificate != null)
-                        certificate = localComponentCertificate.getCertificate();
-                    // if the token is to be valid, the certificate must not be null
-                    if (certificate == null)
-                        return ValidationStatus.INVALID_TRUST_CHAIN;
-                    // check if subject certificate is not expired
-                    if (isExpired(certificate.getX509())) {
-                        return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
-                    }
-                    // checking if SPK matches the components certificate
-                    if (!Base64.getEncoder().encodeToString(certificate.getX509().getPublicKey().getEncoded()).equals(spk))
-                        return ValidationStatus.REVOKED_SPK;
-                }
-            }
 
-            // FOREIGN tokens extra handling
-            Token tokenForValidation = new Token(token);
-            if (tokenForValidation.getType().equals(Token.Type.FOREIGN)) {
-                // checking if the token is still valid against current federation definitions
-                if (!validateFederationAttributes(token)) {
-                    revokedTokensRepository.save(tokenForValidation);
-                    return ValidationStatus.REVOKED_TOKEN;
-                }
-
-                // check if the foreign token origin credentials are still valid
-                ValidationStatus originCredentialsValidationStatus = reachOutForeignTokenOriginCredentialsAAMToValidateThem(token);
-                switch (originCredentialsValidationStatus) {
-                    case VALID:
-                        // origin credentials are valid
-                        break;
-                    case UNKNOWN:
-                    case WRONG_AAM:
-                        // there was some issue with validating the origin credentials
-                        return originCredentialsValidationStatus;
-                    default:
-                        // we confirmed the origin credentials were invalidated and we need to invalidate our token
+            switch (tokenForValidation.getType()) {
+                case HOME:
+                    // check if subject certificate is valid & matching the token SPK
+                    switch (claims.getSubject().split("@").length) {
+                        case 1: // local components case
+                            Certificate certificate = null;
+                            // component case - SUB/userFromToken is component name, ISS is AAM instanceId
+                            ComponentCertificate localComponentCertificate = componentCertificatesRepository.findOne(userFromToken);
+                            if (localComponentCertificate != null)
+                                certificate = localComponentCertificate.getCertificate();
+                            // if the token is to be valid, the certificate must not be null
+                            if (certificate == null)
+                                return ValidationStatus.INVALID_TRUST_CHAIN;
+                            // check if subject certificate is not expired
+                            if (isExpired(certificate.getX509())) {
+                                return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
+                            }
+                            // checking if SPK matches the components certificate
+                            if (!Base64.getEncoder().encodeToString(certificate.getX509().getPublicKey().getEncoded()).equals(spk))
+                                return ValidationStatus.REVOKED_SPK;
+                            break;
+                        case 2: // user token case
+                            String clientId = claims.getSubject().split("@")[1];
+                            // check if we have such a user and his certificate
+                            if (!userRepository.exists(userFromToken)
+                                    || !userRepository.findOne(userFromToken).getClientCertificates().containsKey(clientId))
+                                return ValidationStatus.INVALID_TRUST_CHAIN;
+                            // expiry check
+                            if (isExpired(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509())) {
+                                return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
+                            }
+                            // and if it matches the client's currently assigned cert
+                            if (!userRepository.exists(userFromToken) || !userRepository.findOne(userFromToken).getClientCertificates().containsKey(clientId))
+                                return ValidationStatus.REVOKED_SPK;
+                            // checking match from token
+                            if (!Base64.getEncoder().encodeToString(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded()).equals(spk))
+                                return ValidationStatus.REVOKED_SPK;
+                            break;
+                    }
+                    break;
+                case FOREIGN:
+                    // checking if the token is still valid against current federation definitions
+                    if (!validateFederationAttributes(token)) {
                         revokedTokensRepository.save(tokenForValidation);
-                        return originCredentialsValidationStatus;
-                }
+                        return ValidationStatus.REVOKED_TOKEN;
+                    }
+
+                    // check if the foreign token origin credentials are still valid
+                    ValidationStatus originCredentialsValidationStatus = reachOutForeignTokenOriginCredentialsAAMToValidateThem(token);
+                    switch (originCredentialsValidationStatus) {
+                        case VALID:
+                            // origin credentials are valid
+                            break;
+                        case UNKNOWN:
+                        case WRONG_AAM:
+                            // there was some issue with validating the origin credentials
+                            return originCredentialsValidationStatus;
+                        default:
+                            // we confirmed the origin credentials were invalidated and we need to invalidate our token
+                            revokedTokensRepository.save(tokenForValidation);
+                            return originCredentialsValidationStatus;
+                    }
+                    break;
+                case GUEST:
+                case NULL:
+                    break;
             }
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
