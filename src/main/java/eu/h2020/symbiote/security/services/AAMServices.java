@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
@@ -74,17 +75,14 @@ public class AAMServices {
             }
         } else {
             // a PAAM needs to fetch them from core
-            availableAAMs = restTemplate.getForEntity(coreAAMAddress + SecurityConstants
+            availableAAMs = restTemplate.getForEntity(coreAAMAddress + SecurityConstants // TODO rework to use IAAMClient
                     .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class).getBody().getAvailableAAMs();
 
             String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
             AAM aam = availableAAMs.get(deploymentId);
 
             aam.setComponentCertificates(fillComponentCertificatesMap());
-            availableAAMs.put(deploymentId, aam);
-
         }
-
         return availableAAMs;
     }
 
@@ -97,27 +95,32 @@ public class AAMServices {
         return componentsCertificatesMap;
     }
 
-
-    public String getComponentCertificate(String componentIdentifier, String platformIdentifier) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, AAMException {
+    public String getComponentCertificate(String componentIdentifier, String platformIdentifier) throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            AAMException,
+            InvalidArgumentsException {
 
         String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
 
+        // our platform case
         if (platformIdentifier.equals(deploymentId)) {
-            if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME)) {
+            if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME))
                 return certificationAuthorityHelper.getAAMCert();
-            }
-            else {
-                return componentCertificatesRepository.findOne(componentIdentifier).getCertificate().getCertificateString();
-            }
+            if (!componentCertificatesRepository.exists(componentIdentifier))
+                throw new InvalidArgumentsException("Component doesn't exist in this platform");
+            return componentCertificatesRepository.findOne(componentIdentifier).getCertificate().getCertificateString();
         }
-        else {
-            Map<String, AAM> availableAAMs = getAvailableAAMs();
-            if(availableAAMs.containsKey(platformIdentifier)) {
-                AAM aam = availableAAMs.get(platformIdentifier);
-                IAAMClient aamClient = new AAMClient(aam.getAamAddress());
-                return aamClient.getComponentCertificate(componentIdentifier, platformIdentifier);
-            }
+        // not our platform
+        Map<String, AAM> availableAAMs = getAvailableAAMs();
+        if (availableAAMs.containsKey(platformIdentifier)) {
+            AAM aam = availableAAMs.get(platformIdentifier);
+            IAAMClient aamClient = new AAMClient(aam.getAamAddress());
+            return aamClient.getComponentCertificate(componentIdentifier, platformIdentifier);
         }
-        return "";
+        throw new AAMException("Selected certificate could not be found/retrieved");
     }
 }

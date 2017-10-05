@@ -70,7 +70,19 @@ public class RevocationUnitTests extends
 
     //TODO @JT revokeCertificates unit tests
     @Test
-    public void revokeUserCertyficateUsingCommonNameSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
+    public void revokeUserCertificateUsingCommonNameSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            KeyStoreException,
+            IOException,
+            WrongCredentialsException,
+            UserManagementException,
+            ValidationException,
+            PlatformManagementException,
+            InvalidArgumentsException,
+            NotExistingUserException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -95,7 +107,19 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokePlatformCertyficateUsingCommonNameSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
+    public void revokePlatformCertificateUsingCommonNameSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            KeyStoreException,
+            IOException,
+            WrongCredentialsException,
+            UserManagementException,
+            ValidationException,
+            PlatformManagementException,
+            InvalidArgumentsException,
+            NotExistingUserException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -128,38 +152,6 @@ public class RevocationUnitTests extends
 
         assertTrue(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
         assertTrue(revokedKeysRepository.findOne(platformId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
-    }
-
-    @Test
-    public void revokePlatformComponentCertyficateUsingCommonNameSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
-        User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
-        platformRepository.save(platform);
-        KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
-        assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateString = signCertificateRequestService.signCertificate(certRequest);
-        platform.getComponentCertificates().put(componentId, new Certificate(certificateString));
-        platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
-        userRepository.save(platformOwner);
-        //generate component certificate
-
-        String commonName = componentId + illegalSign + platformId;
-
-        assertNotNull(platformRepository.findOne(platformId).getComponentCertificates().get(componentId));
-        assertNull(revokedKeysRepository.findOne(platformId));
-
-        RevocationRequest revocationRequest = new RevocationRequest();
-        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
-        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
-        revocationRequest.setCertificateCommonName(commonName);
-
-        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
-
-        assertNull(platformRepository.findOne(platformId).getComponentCertificates().get(componentId));
-        assertTrue(revokedKeysRepository.findOne(componentId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
     }
 
     @Test
@@ -246,7 +238,19 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokeUserCertyficateUsingCertificateSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
+    public void revokeUserCertificateUsingCertificateSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            KeyStoreException,
+            IOException,
+            WrongCredentialsException,
+            UserManagementException,
+            ValidationException,
+            PlatformManagementException,
+            InvalidArgumentsException,
+            NotExistingUserException {
 
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -284,7 +288,18 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokePlatformCertyficateUsingCertificateSuccess() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
+    public void revokePlatformCertificateUsingCertificateSuccess() throws
+            WrongCredentialsException,
+            UserManagementException,
+            ValidationException,
+            PlatformManagementException,
+            InvalidArgumentsException,
+            NotExistingUserException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            CertificateException {
         User platformOwner = savePlatformOwner();
         KeyPair pair = CryptoHelper.createKeyPair();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
@@ -329,7 +344,18 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokePlatformCertyficateUsingCertificateFailWrongCertificate() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
+    public void revokePlatformCertificateUsingCertificateFailWrongCertificate() throws
+            WrongCredentialsException,
+            UserManagementException,
+            ValidationException,
+            PlatformManagementException,
+            InvalidArgumentsException,
+            NotExistingUserException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            CertificateException {
         User platformOwner = savePlatformOwner();
         KeyPair pair = CryptoHelper.createKeyPair();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
@@ -362,56 +388,19 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokePlatformComponentCertyficateUsingCertificateSuccess() throws WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException, InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, CertificateException {
-        User platformOwner = savePlatformOwner();
-        KeyPair pair = CryptoHelper.createKeyPair();
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
-        userRepository.save(platformOwner);
-        //create platform certificate
-        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificate = signCertificateRequestService.signCertificate(certRequest);
-        platform.getComponentCertificates().put(componentId, new Certificate(certificate));
-        platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
-        userRepository.save(platformOwner);
-        //revoke platform certificate
-        //check if there is component certificate in platform database
-        assertNotNull(platformRepository.findOne(platformId).getComponentCertificates().get(componentId));
-        //check if there is any revoked key for platformId
-        assertNull(revokedKeysRepository.findOne(platformId));
-        //check if revocation ended with success
-        RevocationRequest revocationRequest = new RevocationRequest();
-        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
-        revocationRequest.setCertificatePEMString(certificate);
-        revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
-        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
-        //check if there isn't component certificate in platform database
-        assertNull(platformRepository.findOne(platformId).getComponentCertificates().get(componentId));
-        //check if there is revoked key for platformId
-        assertTrue(revokedKeysRepository.findOne(componentId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
-
-        //create new certificate for platform
-        pair = CryptoHelper.createKeyPair();
-        csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
-        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateNew = signCertificateRequestService.signCertificate(certRequest);
-        platform.getComponentCertificates().put(componentId, new Certificate(certificateNew));
-        platformRepository.save(platform);
-
-        //revoke certificate using revoked certificate
-        //check if there is component certificate in database
-        assertNotNull(platformRepository.findOne(platformId).getComponentCertificates().get(componentId));
-        //check if revocation ended with success using certificate with revoked key
-        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
-
-    }
-
-
-    @Test
-    public void revokeUserCertyficateUsingCertificateFailWrongCertificate() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
+    public void revokeUserCertificateUsingCertificateFailWrongCertificate() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            KeyStoreException,
+            IOException,
+            WrongCredentialsException,
+            UserManagementException,
+            ValidationException,
+            PlatformManagementException,
+            InvalidArgumentsException,
+            NotExistingUserException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -440,7 +429,19 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokePlatformCertyficateUsingCertificateFailNoPlatformOrWrongRole() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, KeyStoreException, IOException, WrongCredentialsException, UserManagementException, ValidationException, PlatformManagementException, InvalidArgumentsException, NotExistingUserException {
+    public void revokePlatformCertificateUsingCertificateFailNoPlatformOrWrongRole() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            KeyStoreException,
+            IOException,
+            WrongCredentialsException,
+            UserManagementException,
+            ValidationException,
+            PlatformManagementException,
+            InvalidArgumentsException,
+            NotExistingUserException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -549,32 +550,7 @@ public class RevocationUnitTests extends
         assertTrue(revokedKeysRepository.exists(platformId));
     }
 
-    @Test
-    public void revokePlatformComponentCertificateUsingCertificateByAdminSuccess() throws SecurityException, CertificateException, InvalidKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, IOException, UnrecoverableKeyException, OperatorCreationException, JWTCreationException, WrongCredentialsException, NotExistingUserException, ValidationException, InvalidAlgorithmParameterException, InvalidArgumentsException, PlatformManagementException, UserManagementException {
-        User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
-        assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
-        String platformComponentCertificate = signCertificateRequestService.signCertificate(certRequest);
-        platform.getComponentCertificates().put(componentId, new Certificate(platformComponentCertificate));
-        platformRepository.save(platform);
-        assertNotNull(platformComponentCertificate);
 
-        RevocationRequest revocationRequest = new RevocationRequest();
-        revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
-        revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
-        revocationRequest.setCertificatePEMString(platformComponentCertificate);
-
-        assertFalse(revokedKeysRepository.exists(componentId));
-        RevocationResponse revocationResponse = revocationService.revoke(revocationRequest);
-
-        assertTrue(revocationResponse.isRevoked());
-        assertEquals(HttpStatus.OK, revocationResponse.getStatus());
-        assertTrue(revokedKeysRepository.exists(componentId));
-    }
 
     @Test
     public void revokeHomeTokenByPlatformSuccess() throws IOException, ValidationException, TimeoutException, NoSuchProviderException, KeyStoreException, CertificateException, NoSuchAlgorithmException, WrongCredentialsException, NotExistingUserException, InvalidKeyException, OperatorCreationException, UnrecoverableKeyException, JWTCreationException, InvalidAlgorithmParameterException, InvalidArgumentsException, PlatformManagementException, UserManagementException, MalformedJWTException, ClassNotFoundException {    // issuing dummy platform token
@@ -838,37 +814,18 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokePlatformComponentCertificateUsingCommonNameByAdminSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, ValidationException {
-        User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, null, new HashMap<>());
-        platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
-        userRepository.save(platformOwner);
-        //component revoking
-        KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
-        assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateString = signCertificateRequestService.signCertificate(certRequest);
-        platform.getComponentCertificates().put(componentId, new Certificate(certificateString));
-        platformRepository.save(platform);
-        String commonName = componentId + illegalSign + platformId;
-        RevocationRequest revocationRequest = new RevocationRequest();
-        revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
-        revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
-        revocationRequest.setCertificateCommonName(commonName);
-
-        assertNotNull(platformRepository.findOne(platformId).getComponentCertificates().get(componentId));
-        assertNull(revokedKeysRepository.findOne(platformId));
-
-        assertTrue(revocationService.revoke(revocationRequest).isRevoked());
-
-        assertNull(platformRepository.findOne(platformId).getComponentCertificates().get(componentId));
-        assertTrue(revokedKeysRepository.findOne(componentId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
-    }
-
-    @Test
-    public void revokeAAMComponentCertificateUsingCommonNameByAdminSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException {
+    public void revokeLocalComponentCertificateUsingCommonNameByAdminSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            InvalidArgumentsException,
+            UserManagementException,
+            PlatformManagementException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            CertificateException,
+            KeyStoreException {
         ComponentCertificate componentCertificate = new ComponentCertificate(
                 componentId,
                 new Certificate(
@@ -893,7 +850,18 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokeAAMComponentCertificateUsingCommonNameByAdminFailNoComponentInDatabase() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException {
+    public void revokeLocalComponentCertificateUsingCommonNameByAdminFailNoComponentInDatabase() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            InvalidArgumentsException,
+            UserManagementException,
+            PlatformManagementException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            CertificateException,
+            KeyStoreException {
         String commonName = componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID;
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
@@ -935,7 +903,20 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokeAAMComponentCertificateUsingCertificateByAdminSuccessKeyIsRevoked() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException, UnrecoverableKeyException, ValidationException {
+    public void revokeLocalComponentCertificateUsingCertificateByAdminSuccessKeyIsRevoked() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            InvalidArgumentsException,
+            UserManagementException,
+            PlatformManagementException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            CertificateException,
+            KeyStoreException,
+            UnrecoverableKeyException,
+            ValidationException {
         String cert = CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
                 "core.p12",
                 "registry-core-1"));
@@ -976,7 +957,18 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokeAAMComponentCertificateUsingCertificateByAdminSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException {
+    public void revokeLocalComponentCertificateUsingCertificateByAdminSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            InvalidArgumentsException,
+            UserManagementException,
+            PlatformManagementException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            CertificateException,
+            KeyStoreException {
         ComponentCertificate componentCertificate = new ComponentCertificate(
                 "registry",
                 new Certificate(
@@ -1002,7 +994,18 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokeAAMComponentCertificateUsingCertificateByAdminFailNoCertInDatabase() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException {
+    public void revokeLocalComponentCertificateUsingCertificateByAdminFailNoCertInDatabase() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            InvalidArgumentsException,
+            UserManagementException,
+            PlatformManagementException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            CertificateException,
+            KeyStoreException {
         componentCertificatesRepository.delete("registry");
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
@@ -1017,7 +1020,18 @@ public class RevocationUnitTests extends
     }
 
     @Test
-    public void revokeAAMComponentCertificateUsingCertificateByAdminFailNotCertSent() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, IOException, InvalidArgumentsException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, CertificateException, KeyStoreException {
+    public void revokeLocalComponentCertificateUsingCertificateByAdminFailNotCertSent() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            InvalidArgumentsException,
+            UserManagementException,
+            PlatformManagementException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            CertificateException,
+            KeyStoreException {
         componentCertificatesRepository.delete("registry");
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));

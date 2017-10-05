@@ -81,21 +81,18 @@ public class GetTokenService {
 
         // component use case
         if (userInDB == null) {
-            //sub is a componentId
-            String platformId = claims.getIss();
-            if (platformId.equals(deploymentId)) {
-                //authenticating
-                if (!componentCertificateRepository.exists(sub)
-                        || JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey()) != ValidationStatus.VALID)
-                    throw new WrongCredentialsException();
+            //authenticating
+            if (!claims.getIss().equals(deploymentId) // ISS is platform id
+                    || !componentCertificateRepository.exists(sub) //SUB is a componentId
+                    || JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey()) != ValidationStatus.VALID)
+                throw new WrongCredentialsException();
 
-                User user = new User();
-                user.setRole(UserRole.NULL);
-                user.setUsername("");
-                return tokenIssuer.getHomeToken(user, sub, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey());
-            }
+            User user = new User();
+            user.setRole(UserRole.NULL);
+            user.setUsername(""); // component case (We don't include AAMOwner/PO anymore!)
+            return tokenIssuer.getHomeToken(user, sub, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey());
         }
-        // ordinary user/po client
+        // ordinary user/po client authentication
         if (userInDB == null
                 || userInDB.getClientCertificates().get(sub) == null
                 || JWTEngine.validateTokenString(loginRequest, userInDB.getClientCertificates().get(sub).getX509().getPublicKey()) != ValidationStatus.VALID) {

@@ -36,7 +36,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 
-import static eu.h2020.symbiote.security.commons.SecurityConstants.CORE_AAM_INSTANCE_ID;
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 
 /**
@@ -140,12 +139,13 @@ public class SignCertificateRequestService {
             throw new SecurityException();
         }
 
+        // component path
         if (certificateRequest.getUsername().equals(AAMOwnerUsername)) {
             // password check
             if (!certificateRequest.getPassword().equals(AAMOwnerPassword))
                 throw new WrongCredentialsException();
             //deployment id check
-            if (!request.getSubject().toString().split("CN=")[1].split("@")[1].equals(certificationAuthorityHelper.getAAMInstanceIdentifier()))
+            if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split("@")[1]))
                 throw new ValidationException("Deployment id's mismatch");
             if (revokedKeysRepository.exists(certificationAuthorityHelper.getAAMInstanceIdentifier())
                     && revokedKeysRepository.findOne(certificationAuthorityHelper.getAAMInstanceIdentifier()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
@@ -173,7 +173,7 @@ public class SignCertificateRequestService {
                                                      X509Certificate certFromCSR) {
 
         String componentId = req.getSubject().toString().split("CN=")[1].split("@")[0];
-        String deploymentId = req.getSubject().toString().split("CN=")[1].split("@")[1];
+        String platformId = req.getSubject().toString().split("CN=")[1].split("@")[1];
 
         ComponentCertificate componentCert = componentCertificatesRepository.findOne(componentId);
         if (componentCert != null) {
@@ -190,7 +190,7 @@ public class SignCertificateRequestService {
                 RevocationRequest revocationRequest = new RevocationRequest();
                 revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
                 revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
-                revocationRequest.setCertificateCommonName(componentId + illegalSign + deploymentId);
+                revocationRequest.setCertificateCommonName(componentId + illegalSign + platformId);
                 if (!revocationService.revoke(revocationRequest).isRevoked()) {
                     throw new SecurityException();
                 }

@@ -140,7 +140,7 @@ public class TokenIssuer {
             for (Map.Entry<String, String> entry : user.getAttributes().entrySet()) {
                 attributes.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + entry.getKey(), entry.getValue());
             }
-            //checking username - if empty we are dealing with Core Component and subject shouldn't contain admins name
+            //checking username - if empty we are dealing with local Component and subject shouldn't contain admins name
             String subject;
             if (user.getUsername().isEmpty()) {
                 subject = sub;

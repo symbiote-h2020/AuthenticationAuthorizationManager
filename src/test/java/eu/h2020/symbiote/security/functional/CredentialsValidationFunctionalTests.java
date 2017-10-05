@@ -246,6 +246,7 @@ public class CredentialsValidationFunctionalTests extends
                 userKeyPair.getPublic().getEncoded()));
         // adding key to revoked repository
         revokedKeysRepository.save(new SubjectsRevokedKeys(username, keySet));
+
         assertNotNull(revokedKeysRepository.findOne(username));
 
         ValidationStatus status = aamClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());

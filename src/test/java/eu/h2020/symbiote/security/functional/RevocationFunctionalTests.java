@@ -151,34 +151,6 @@ public class RevocationFunctionalTests extends
         assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
     }
 
-    @Test
-    public void revokePlatformComponentCertificateUsingCertificateOverRESTSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException {
-
-        User user = createUser(username, password, recoveryMail, UserRole.PLATFORM_OWNER);
-        userRepository.save(user);
-        Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        user.getOwnedPlatforms().add(platformId);
-        userRepository.save(user);
-
-        KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
-
-        assertNotNull(csrString);
-
-        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String componentCertificate = aamClient.signCertificateRequest(certRequest);
-        platform.getComponentCertificates().put(componentId, new Certificate(componentCertificate));
-        platformRepository.save(platform);
-
-        assertNotNull(componentCertificate);
-        RevocationRequest revocationRequest = new RevocationRequest();
-        revocationRequest.setCredentials(new Credentials(username, password));
-        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
-        revocationRequest.setCertificatePEMString(componentCertificate);
-
-        assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
-    }
 
     @Test
     public void revokeUserCertificateUsingCertificateOverAMQPSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException, TimeoutException {
@@ -268,36 +240,6 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentials(new Credentials(username, password));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificateCommonName(platformId);
-
-        assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
-    }
-
-    @Test
-    public void revokePlatformComponentCertificateUsingCommonNameOverRESTSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException {
-
-        User user = createUser(username, password, recoveryMail, UserRole.PLATFORM_OWNER);
-        userRepository.save(user);
-        Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        user.getOwnedPlatforms().add(platformId);
-        userRepository.save(user);
-
-        KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
-
-        assertNotNull(csrString);
-
-        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String componentCertificate = aamClient.signCertificateRequest(certRequest);
-        platform.getComponentCertificates().put(componentId, new Certificate(componentCertificate));
-        platformRepository.save(platform);
-
-        assertNotNull(componentCertificate);
-        RevocationRequest revocationRequest = new RevocationRequest();
-        revocationRequest.setCredentials(new Credentials(username, password));
-        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
-        String commonName = componentId + illegalSign + platformId;
-        revocationRequest.setCertificateCommonName(commonName);
 
         assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
     }

@@ -35,7 +35,6 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 
 import eu.h2020.symbiote.security.commons.Certificate;
 
-
 /**
  * Used to validate given credentials against data in the AAMs
  * <p>
@@ -96,6 +95,8 @@ public class ValidationHelper {
             String spk = claims.get("spk").toString();
             String ipk = claims.get("ipk").toString();
 
+            // TODO review and improve this flow
+
             // flow for Platform AAM
             if (deploymentType != IssuingAuthorityType.CORE) {
                 if (!deploymentId.equals(claims.getIssuer())) {
@@ -113,7 +114,7 @@ public class ValidationHelper {
                 if (isExpired(certificationAuthorityHelper.getAAMCertificate())) {
                     return ValidationStatus.EXPIRED_ISSUER_CERTIFICATE;
                 }
-                // possibly throw runtime exception so that AAM crashes as it is no more valid
+                // TODO possibly throw runtime exception so that AAM crashes as it is no more valid
             } else {
                 // check if IPK is in the revoked set
                 if (revokedKeysRepository.exists(claims.getIssuer()) &&
@@ -144,18 +145,11 @@ public class ValidationHelper {
             String userFromToken = claims.getSubject().split(illegalSign)[0];
 
             // check if SPK is is in the revoked repository
-            if (claims.getSubject().split(illegalSign).length == 1)
-                if (revokedKeysRepository.exists(userFromToken) && revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
-                    return ValidationStatus.REVOKED_SPK;
-                }
-            if (claims.getSubject().split(illegalSign).length == 2) {
-                if (revokedKeysRepository.exists(userFromToken) && revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
-                    return ValidationStatus.REVOKED_SPK;
-                }
+            if (revokedKeysRepository.exists(userFromToken) && revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
+                return ValidationStatus.REVOKED_SPK;
             }
             // check if subject certificate is valid & matching the token SPK
             if (claims.get("ttyp").equals(Token.Type.HOME.toString())) {
-
                 if (claims.getSubject().split("@").length == 2) { // user case
                     String clientId = claims.getSubject().split("@")[1];
                     // check if we have such a user and his certificate
@@ -175,20 +169,20 @@ public class ValidationHelper {
                 }
                 //cleaning up non local components
                 if (claims.getSubject().split("@").length == 1) {
-                    Certificate componentCertificate = null;
-                    // component case - userFromToken is component name, iss is AAM instanceId
-                    ComponentCertificate coreComponentCertificate = componentCertificatesRepository.findOne(userFromToken);
-                    if (coreComponentCertificate != null)
-                        componentCertificate = coreComponentCertificate.getCertificate();
+                    Certificate certificate = null;
+                    // component case - SUB/userFromToken is component name, ISS is AAM instanceId
+                    ComponentCertificate localComponentCertificate = componentCertificatesRepository.findOne(userFromToken);
+                    if (localComponentCertificate != null)
+                        certificate = localComponentCertificate.getCertificate();
                     // if the token is to be valid, the certificate must not be null
-                    if (componentCertificate == null)
+                    if (certificate == null)
                         return ValidationStatus.INVALID_TRUST_CHAIN;
                     // check if subject certificate is not expired
-                    if (isExpired(componentCertificate.getX509())) {
+                    if (isExpired(certificate.getX509())) {
                         return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
                     }
                     // checking if SPK matches the components certificate
-                    if (!Base64.getEncoder().encodeToString(componentCertificate.getX509().getPublicKey().getEncoded()).equals(spk))
+                    if (!Base64.getEncoder().encodeToString(certificate.getX509().getPublicKey().getEncoded()).equals(spk))
                         return ValidationStatus.REVOKED_SPK;
                 }
             }

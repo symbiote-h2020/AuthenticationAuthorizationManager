@@ -170,7 +170,7 @@ public class OtherListenersFunctionalTests extends
                 .getAamAddress());
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
         assertEquals(platformAAMCertificate.getCertificateString(), platformAAM.getAamCACertificate().getCertificateString());
-        assertEquals(0, platformAAM.getComponentCertificates().size()); //
+        assertEquals(0, platformAAM.getComponentCertificates().size());
     }
 
     /**

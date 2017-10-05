@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IAAMServices;
@@ -47,9 +48,9 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
             @ApiResponse(code = 500, message = "Could not retrieve Component Certificate"),
             @ApiResponse(code = 404, message = "Certificate could not be found")})
     public ResponseEntity<String> getComponentCertificate(@PathVariable String componentIdentifier,
-                                                          @PathVariable String deploymentIdentifier) {
+                                                          @PathVariable String platformIdentifier) {
         try {
-            String certificate = aamServices.getComponentCertificate(componentIdentifier, deploymentIdentifier);
+            String certificate = aamServices.getComponentCertificate(componentIdentifier, platformIdentifier);
 
             // not found
             if (certificate.isEmpty())
@@ -60,10 +61,13 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
                 NoSuchProviderException | AAMException e) {
             log.error(e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        } catch (InvalidArgumentsException e) {
+            log.error(e);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 
-    @ApiOperation(value = "Returns collection of available deployments (their AAMs and components)", response = AvailableAAMsCollection.class)
+    @ApiOperation(value = "Returns collection of available platforms (their AAMs and components)", response = AvailableAAMsCollection.class)
     @ApiResponses({
             @ApiResponse(code = 500, message = "Internal AAM Error")})
     public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() {
