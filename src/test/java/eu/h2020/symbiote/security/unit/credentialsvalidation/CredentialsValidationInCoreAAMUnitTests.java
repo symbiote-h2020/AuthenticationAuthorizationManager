@@ -35,17 +35,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.web.client.RestTemplate;
 
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import javax.security.auth.x500.X500Principal;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -57,6 +51,7 @@ import java.util.*;
 import java.util.concurrent.TimeoutException;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
+import static eu.h2020.symbiote.security.services.helpers.TokenIssuer.buildAuthorizationToken;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
@@ -124,53 +119,18 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     String coreInterfaceAddress;
     @Autowired
     private ValidationHelper validationHelper;
-    @LocalServerPort
-    private int port;
     @Autowired
     private TokenIssuer tokenIssuer;
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
+    private static SecureRandom random = new SecureRandom();
 
 
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
-
-        serverAddress = "https://localhost:" + port;
-
-        // Create a trust manager that does not validate certificate chains
-        TrustManager[] trustAllCerts = new TrustManager[]{
-                new X509TrustManager() {
-                    public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                        return null;
-                    }
-
-                    public void checkClientTrusted(
-                            java.security.cert.X509Certificate[] certs, String authType) {
-                    }
-
-                    public void checkServerTrusted(
-                            java.security.cert.X509Certificate[] certs, String authType) {
-                    }
-                }
-        };
-
-        // Install the all-trusting trust manager
-        SSLContext sc = SSLContext.getInstance("SSL");
-        sc.init(null, trustAllCerts, new java.security.SecureRandom());
-        HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-
-        // Test rest template
-        restTemplate = new RestTemplate();
-
-        // cleanup db
-        //userRepository.deleteAll();
-        revokedKeysRepository.deleteAll();
-        revokedTokensRepository.deleteAll();
-        platformRepository.deleteAll();
-        userKeyPair = CryptoHelper.createKeyPair();
 
         // platform registration useful
         platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
@@ -565,6 +525,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         userRepository.deleteAll();
         KeyPair keyPair = CryptoHelper.createKeyPair();
+        String originHomeTokenJti = String.valueOf(random.nextInt());
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), "federatedId",
@@ -589,8 +550,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         user.getClientCertificates().put(clientId, cert);
         userRepository.save(user);
 
-        String foreignTokenString = TokenIssuer.buildAuthorizationToken(
-                username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID,
+        String foreignTokenString = buildAuthorizationToken(
+                username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID + illegalSign + originHomeTokenJti,
                 new HashMap<>(),
                 userKeyPair.getPublic().getEncoded(),
                 Token.Type.FOREIGN,
@@ -614,14 +575,16 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             MalformedJWTException {
 
         userRepository.deleteAll();
+
         KeyPair keyPair = CryptoHelper.createKeyPair();
-        String foreignTokenString = TokenIssuer.buildAuthorizationToken(
-                username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID,
+        String originHomeTokenJti = String.valueOf(random.nextInt());
+        String foreignTokenString = buildAuthorizationToken(
+                username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID + illegalSign + originHomeTokenJti,
                 new HashMap<>(),
                 userKeyPair.getPublic().getEncoded(),
                 Token.Type.FOREIGN,
                 new Date().getTime() + 60000,
-                "platform-1",
+                "coreClient-1",
                 keyPair.getPublic(),
                 keyPair.getPrivate());
 
@@ -632,7 +595,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), "federatedId",
                         "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
-
 
         User user = createUser(userManagementRequest.getUserDetails().getCredentials().getUsername(), userManagementRequest.getUserDetails().getCredentials().getPassword(), userManagementRequest.getUserDetails().getRecoveryMail(), userManagementRequest.getUserDetails().getRole());
         userRepository.save(user);
@@ -660,6 +622,73 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         //client public key not matching this in database
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validateForeignTokenOriginCredentials(foreignTokenString));
     }
+
+    @Test
+    public void validateForeignTokenOriginJtiFails() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            KeyStoreException,
+            IOException,
+            OperatorCreationException,
+            MalformedJWTException,
+            ValidationException {
+
+        userRepository.deleteAll();
+
+        KeyPair keyPair = CryptoHelper.createKeyPair();
+        Token homeToken = new Token(buildAuthorizationToken(
+                    username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID,
+                    new HashMap<>(),
+                    userKeyPair.getPublic().getEncoded(),
+                    Token.Type.HOME,
+                    new Date().getTime() + 60000,
+                    "coreClient-1",
+                    keyPair.getPublic(),
+                    keyPair.getPrivate()));
+
+        Token foreignToken = new Token(buildAuthorizationToken(
+                    username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID + illegalSign + homeToken.getClaims().getId(),
+                    new HashMap<>(),
+                    userKeyPair.getPublic().getEncoded(),
+                    Token.Type.FOREIGN,
+                    new Date().getTime() + 60000,
+                    "coreClient-1",
+                    keyPair.getPublic(),
+                    keyPair.getPrivate()));
+
+
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
+                new UserDetails(new Credentials(username, password), "federatedId",
+                        "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
+
+
+        User user = createUser(userManagementRequest.getUserDetails().getCredentials().getUsername(), userManagementRequest.getUserDetails().getCredentials().getPassword(), userManagementRequest.getUserDetails().getRecoveryMail(), userManagementRequest.getUserDetails().getRole());
+
+        //create client certificate
+        String cn = "CN=" + username + "@" + clientId + "@" + SecurityConstants.CORE_AAM_INSTANCE_ID;
+        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), userKeyPair.getPublic());
+        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
+        ContentSigner signer = csBuilder.build(userKeyPair.getPrivate());
+        PKCS10CertificationRequest csr = p10Builder.build(signer);
+        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
+        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
+        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
+        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
+        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
+        Certificate cert = new Certificate(pem);
+
+        user.getClientCertificates().put(clientId, cert);
+        userRepository.save(user);
+
+        revokedTokensRepository.save(homeToken);
+
+        //originHomeToken with JTI that foreign token is identified by is revoked
+        assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validateForeignTokenOriginCredentials(foreignToken.getToken()));
+    }
+
 
     @Test
     public void validateForeignTokenOriginCredentialsPlatformAAMProblems() throws
@@ -803,7 +832,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         log.info("root CA: " + certificationAuthorityHelper.getRootCACertificate().getSubjectDN());
 
-        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+        String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
@@ -838,7 +867,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
         X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
 
-        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+        String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
@@ -873,7 +902,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
         X509Certificate wrongAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-2-c1");
 
-        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+        String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
@@ -906,7 +935,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
         X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
 
-        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+        String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
@@ -939,7 +968,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
         X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
 
-        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+        String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
                 new HashMap<>(),
                 properAAMCert.getPublicKey().getEncoded(), // mismatch token SPK
@@ -973,7 +1002,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
         X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
 
-        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+        String testHomeToken = buildAuthorizationToken(
                 "bad_token_sub", // mismatch token SUB
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
@@ -1007,7 +1036,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
         X509Certificate wrongAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-2-c1");
 
-        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+        String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
@@ -1041,7 +1070,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
         X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
 
-        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+        String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
@@ -1083,7 +1112,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
         X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("platform_2.p12", "platform-2-1-c1");
 
-        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+        String testHomeToken = buildAuthorizationToken(
                 "userId@clientId@platform-1",
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
@@ -1128,7 +1157,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
         X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("platform_2.p12", "platform-2-1-c1");
 
-        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+        String testHomeToken = buildAuthorizationToken(
                 "userId@clientId@wrong-platform-id",
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
@@ -1162,7 +1191,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
         X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("platform_2.p12", "platform-2-1-c1");
 
-        String testHomeToken = TokenIssuer.buildAuthorizationToken(
+        String testHomeToken = buildAuthorizationToken(
                 "userId@clientId@platform-1",
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),

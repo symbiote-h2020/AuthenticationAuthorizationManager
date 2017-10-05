@@ -260,12 +260,13 @@ public class RevocationHelper {
             return false;
         }
         if (remoteHomeToken.getClaims().getSubject().split(illegalSign).length != 2
-                || foreignToken.getClaims().getSubject().split(illegalSign).length != 3) {
+                || foreignToken.getClaims().getSubject().split(illegalSign).length != 4) {
             return false;
         }
         if (!foreignTokenClaims.getSub().split(illegalSign)[0].equals(remoteHomeTokenClaims.getSub().split(illegalSign)[0])
                 || !foreignTokenClaims.getSub().split(illegalSign)[1].equals(remoteHomeTokenClaims.getSub().split(illegalSign)[1])
-                || !foreignTokenClaims.getSub().split(illegalSign)[2].equals(remoteHomeTokenClaims.getIss())) {
+                || !foreignTokenClaims.getSub().split(illegalSign)[2].equals(remoteHomeTokenClaims.getIss())
+                || !foreignTokenClaims.getSub().split(illegalSign)[3].equals(remoteHomeTokenClaims.getJti())) {
             return false;
         }
         return foreignToken.getClaims().get("spk").equals(remoteHomeToken.getClaims().get("spk"));
