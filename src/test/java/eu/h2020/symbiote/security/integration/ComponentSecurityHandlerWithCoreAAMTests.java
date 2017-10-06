@@ -50,6 +50,7 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
     @Test
     public void CoreResourceMonitorIntegrationTest() throws SecurityHandlerException, InvalidArgumentsException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, WrongCredentialsException {
         // hack: injecting the AAM running port
+        String oldCoreInterfaceAddress = (String) ReflectionTestUtils.getField(aamServices, "coreInterfaceAddress");
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
         String crmKey = "crm";
         String crmComponentId = crmKey + "@" + SecurityConstants.CORE_AAM_INSTANCE_ID;
@@ -71,7 +72,7 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         // trying to validate the service response, yes we can use this SH as the operation is local
         assertTrue(crmCSH.isReceivedServiceResponseVerified(crmServiceResponse, crmKey, SecurityConstants.CORE_AAM_INSTANCE_ID));
 
-        SecurityRequest crmSecurityRequest = crmCSH.generateSecurityRequestUsingCoreCredentials();
+        SecurityRequest crmSecurityRequest = crmCSH.generateSecurityRequestUsingLocalCredentials();
         assertFalse(crmSecurityRequest.getSecurityCredentials().isEmpty());
 
         // building test access policy
@@ -89,5 +90,7 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier, clientSH));
         // the policy should be there!
         assertTrue(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
+
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", oldCoreInterfaceAddress);
     }
 }

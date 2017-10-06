@@ -84,19 +84,18 @@ public class SignCertificateRequestService {
             ValidationException {
 
         String pem;
-        User user = requestValidationCheck(certificateRequest);
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
-
+        User user = validateRequest(certificateRequest);
 
         // symbiote components
         if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)(@)(([\\w-])+)$")) {
-            X509Certificate certFromCSR = createComponentCertFromCSR(certificateRequest, request);
+            X509Certificate certFromCSR = createComponentCertFromCSR(request);
             pem = createPem(certFromCSR);
             putComponentCertificateToRepository(request, certificateRequest, pem, certFromCSR);
         }
         //platform
         else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)$")) {
-            X509Certificate certFromCSR = createPlatformCertFromCSR(certificateRequest, request);
+            X509Certificate certFromCSR = createPlatformCertFromCSR(request);
             pem = createPem(certFromCSR);
             putPlatformCertificateToRepository(request, certificateRequest, pem, certFromCSR);
         }
@@ -122,10 +121,10 @@ public class SignCertificateRequestService {
         return pem;
     }
 
-    private User requestValidationCheck(CertificateRequest certificateRequest) throws
+    private User validateRequest(CertificateRequest certificateRequest) throws
             WrongCredentialsException,
             NotExistingUserException,
-            ValidationException {
+            ValidationException, PlatformManagementException {
 
         User user = null;
         PublicKey pubKey = null;
@@ -151,6 +150,9 @@ public class SignCertificateRequestService {
                     && revokedKeysRepository.findOne(certificationAuthorityHelper.getAAMInstanceIdentifier()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
                 throw new ValidationException("Using revoked key");
             }
+            componentRequestCheck(certificateRequest);
+        } else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)$")) {
+            platformRequestCheck(certificateRequest);
         } else {
             user = userRepository.findOne(certificateRequest.getUsername());
             if (user == null)
@@ -164,6 +166,7 @@ public class SignCertificateRequestService {
                 throw new ValidationException("Using revoked key");
             }
         }
+
         return user;
     }
 
@@ -297,10 +300,9 @@ public class SignCertificateRequestService {
     }
 
 
-    private X509Certificate createPlatformCertFromCSR(CertificateRequest certificateRequest, PKCS10CertificationRequest req)
+    private X509Certificate createPlatformCertFromCSR(PKCS10CertificationRequest req)
             throws PlatformManagementException {
         X509Certificate certFromCSR;
-        platformRequestCheck(certificateRequest);
         try {
             certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, true);
         } catch (CertificateException e) {
@@ -310,10 +312,9 @@ public class SignCertificateRequestService {
         return certFromCSR;
     }
 
-    private X509Certificate createComponentCertFromCSR(CertificateRequest certificateRequest, PKCS10CertificationRequest req)
+    private X509Certificate createComponentCertFromCSR(PKCS10CertificationRequest req)
             throws PlatformManagementException {
         X509Certificate certFromCSR;
-        componentRequestCheck(certificateRequest);
         try {
             certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
         } catch (CertificateException e) {
@@ -341,15 +342,5 @@ public class SignCertificateRequestService {
         // component id must not be AAM
         if (request.getSubject().toString().split("CN=")[1].split(illegalSign)[0].equals(SecurityConstants.AAM_COMPONENT_NAME))
             throw new PlatformManagementException("this is not the way to issue AAM certificate", HttpStatus.BAD_REQUEST);
-        String platformIdentifier = request.getSubject().toString().split("CN=")[1].split(illegalSign)[1];
-        // only platforms needs to be verified
-        if (!platformIdentifier.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)) {
-            if (userRepository.findOne(certificateRequest.getUsername()).getRole() != UserRole.PLATFORM_OWNER) {
-                throw new PlatformManagementException("User is not a Platform Owner", HttpStatus.UNAUTHORIZED);
-            }
-            if (!platformRepository.exists(platformIdentifier)) {
-                throw new PlatformManagementException("Platform doesn't exist", HttpStatus.UNAUTHORIZED);
-            }
-        }
     }
 }

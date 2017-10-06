@@ -155,12 +155,12 @@ public class DummyCoreAAM {
         JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
         pemWriter.writeObject(certificate);
         pemWriter.close();
-        revokedCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
+        Certificate platformCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
 
         aams.getAvailableAAMs().put(platformId, new AAM("https://localhost:" + port,
                 SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                SecurityConstants.CORE_AAM_INSTANCE_ID,
-                revokedCert, new HashMap<>()));
+                platformId,
+                platformCert, new HashMap<>()));
     }
 }
 
