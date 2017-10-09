@@ -1,6 +1,6 @@
 package eu.h2020.symbiote.security.utils;
 
-
+import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
@@ -8,10 +8,12 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTExceptio
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -44,6 +46,16 @@ public class DummyPlatformAAM {
 
     public DummyPlatformAAM() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+    }
+
+    @GetMapping(path = PATH + SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE + "/platform/{platformIdentifier}/component/{componentIdentifier}")
+    public ResponseEntity<?> getComponentCertificate(String componentIdentifier, String platformIdentifier) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+        Certificate cert = new Certificate(
+                CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
+                        "core.p12",
+                        "registry-core-1")));
+
+        return new ResponseEntity<>(cert.getCertificateString(), HttpStatus.OK);
     }
 
     /**
@@ -118,6 +130,15 @@ public class DummyPlatformAAM {
         pemWriter.writeObject(certificate);
         pemWriter.close();
         return signedCertificatePEMDataStringWriter.toString();
+    }
+
+    public static X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException, CertificateException, NoSuchAlgorithmException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), CERTIFICATE_PASSWORD.toCharArray());
+        return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
     }
 }
 

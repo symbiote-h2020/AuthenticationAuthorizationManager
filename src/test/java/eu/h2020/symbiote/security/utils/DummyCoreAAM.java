@@ -161,6 +161,11 @@ public class DummyCoreAAM {
                 SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                 platformId,
                 platformCert, new HashMap<>()));
+
+        aams.getAvailableAAMs().put("test-PlatformId", new AAM("https://localhost:" + port + "/test/paam",
+                "test-PlatformIdFriendly",
+                "test-PlatformId",
+                platformCert, new HashMap<>()));
     }
 }
 

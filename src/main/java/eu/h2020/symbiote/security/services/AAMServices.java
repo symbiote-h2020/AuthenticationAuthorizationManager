@@ -75,8 +75,8 @@ public class AAMServices {
             }
         } else {
             // a PAAM needs to fetch them from core
-            availableAAMs = restTemplate.getForEntity(coreAAMAddress + SecurityConstants // TODO rework to use IAAMClient
-                    .AAM_GET_AVAILABLE_AAMS, AvailableAAMsCollection.class).getBody().getAvailableAAMs();
+            IAAMClient aamClient = new AAMClient(coreAAMAddress);
+            availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
 
             String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
             AAM aam = availableAAMs.get(deploymentId);
@@ -105,11 +105,11 @@ public class AAMServices {
             InvalidArgumentsException {
 
         String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
-
         // our platform case
-        if (platformIdentifier.equals(deploymentId)) {
+         if (platformIdentifier.equals(deploymentId)) {
             if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME))
                 return certificationAuthorityHelper.getAAMCert();
+
             if (!componentCertificatesRepository.exists(componentIdentifier))
                 throw new InvalidArgumentsException("Component doesn't exist in this platform");
             return componentCertificatesRepository.findOne(componentIdentifier).getCertificate().getCertificateString();

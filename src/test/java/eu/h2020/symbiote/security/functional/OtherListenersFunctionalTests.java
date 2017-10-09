@@ -20,7 +20,9 @@ import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
@@ -179,12 +181,18 @@ public class OtherListenersFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getCoreComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
+    public void getLocalComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException, AAMException {
         String componentCertificate = aamClient.getComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, SecurityConstants.CORE_AAM_INSTANCE_ID);
         assertEquals(certificationAuthorityHelper.getAAMCert(), componentCertificate);
     }
 
+    @Test(expected = AAMException.class)
+    public void getLocalComponentCertificateOverRESTWrongComponentIdentifier() throws NoSuchAlgorithmException, CertificateException,
+            NoSuchProviderException, KeyStoreException, IOException, AAMException {
+        aamClient.getComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME+"wrong", SecurityConstants.CORE_AAM_INSTANCE_ID);
+
+    }
 
     @Test
     public void getOwnedPlatformDetailsForPlatformOwnerInAdministrationSuccess() throws IOException, TimeoutException {

@@ -25,6 +25,8 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -165,6 +167,9 @@ public abstract class AbstractAAMTestSuite {
         componentCertificatesRepository.deleteAll();
         localUsersAttributesRepository.deleteAll();
     }
+
+    @Rule
+    public ExpectedException expectedEx = ExpectedException.none();
 
     protected User createUser(String username, String password, String recoveryMail,
                          UserRole userRole) {
