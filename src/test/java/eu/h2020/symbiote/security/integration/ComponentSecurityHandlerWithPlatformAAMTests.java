@@ -98,7 +98,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
                 new SingleTokenAccessPolicySpecifier(
                         SingleTokenAccessPolicySpecifier.SingleTokenAccessPolicyType.SLHTIBAP,
                         requiredClaims);
-        testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier, null));
+        testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier));
         // the policy should be there!
         assertTrue(rhCSH.getSatisfiedPoliciesIdentifiers(testAP, rhSecurityRequest).contains(testPolicyId));
         ReflectionTestUtils.setField(aamServices, "coreAAMAddress", oldCoreAAMAddress);

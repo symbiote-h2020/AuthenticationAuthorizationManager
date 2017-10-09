@@ -1,7 +1,6 @@
 package eu.h2020.symbiote.security.integration;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import eu.h2020.symbiote.security.ClientSecurityHandlerFactory;
 import eu.h2020.symbiote.security.ComponentSecurityHandlerFactory;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
@@ -12,7 +11,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerExcep
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
-import eu.h2020.symbiote.security.handler.ISecurityHandler;
 import eu.h2020.symbiote.security.services.AAMServices;
 import org.junit.After;
 import org.junit.Test;
@@ -50,7 +48,6 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
     @Test
     public void CoreResourceMonitorIntegrationTest() throws SecurityHandlerException, InvalidArgumentsException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, WrongCredentialsException {
         // hack: injecting the AAM running port
-        String oldCoreInterfaceAddress = (String) ReflectionTestUtils.getField(aamServices, "coreInterfaceAddress");
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
         String crmKey = "crm";
         String crmComponentId = crmKey + "@" + SecurityConstants.CORE_AAM_INSTANCE_ID;
@@ -79,18 +76,16 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         Map<String, IAccessPolicy> testAP = new HashMap<>();
         String testPolicyId = "testPolicyId";
 
-        ISecurityHandler clientSH = ClientSecurityHandlerFactory.getSecurityHandler(
-                aamServices.getAvailableAAMs().get(SecurityConstants.CORE_AAM_INSTANCE_ID).getAamAddress(),
-                KEY_STORE_PATH,
-                KEY_STORE_PASSWORD,
-                userId
-        );
         SingleTokenAccessPolicySpecifier testPolicySpecifier =
                 new SingleTokenAccessPolicySpecifier(crmKey, SecurityConstants.CORE_AAM_INSTANCE_ID);
-        testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier, clientSH));
+        testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier));
         // the policy should be there!
         assertTrue(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
 
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", oldCoreInterfaceAddress);
+        // changing the component SPK by cleaning the current one
+        crmCSH.getSecurityHandler().getAcquiredCredentials().remove(SecurityConstants.CORE_AAM_INSTANCE_ID);
+        crmCSH.generateServiceResponse();
+        // attempting authenticate using invalid token
+        assertFalse(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
     }
 }
