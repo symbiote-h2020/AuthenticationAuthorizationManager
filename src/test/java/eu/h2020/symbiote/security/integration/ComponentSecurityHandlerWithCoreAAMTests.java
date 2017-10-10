@@ -12,6 +12,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsExce
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.security.services.AAMServices;
+import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.junit.After;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,8 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
     private final String userId = "testuserId";
     @Autowired
     private AAMServices aamServices;
+    @Autowired
+    private CertificationAuthorityHelper certificationAuthorityHelper;
 
     @After
     public void after() {
@@ -81,6 +84,14 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier));
         // the policy should be there!
         assertTrue(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
+
+        //changing platform IPK by changing platform certificate
+        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-2");
+        crmCSH.generateServiceResponse();
+        // attempting authenticate using invalid token
+        assertFalse(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
+        //returning old certificate
+        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-1");
 
         // changing the component SPK by cleaning the current one
         crmCSH.getSecurityHandler().getAcquiredCredentials().remove(SecurityConstants.CORE_AAM_INSTANCE_ID);
