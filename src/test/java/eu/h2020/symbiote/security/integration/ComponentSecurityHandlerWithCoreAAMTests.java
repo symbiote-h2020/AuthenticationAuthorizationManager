@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.credentials.BoundCredentials;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
@@ -35,7 +36,6 @@ import static org.junit.Assert.assertFalse;
 public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSuite {
     private final String KEY_STORE_PATH = "./src/test/resources/new.p12";
     private final String KEY_STORE_PASSWORD = "1234567";
-    private final String userId = "testuserId";
     @Autowired
     private AAMServices aamServices;
     @Autowired
@@ -46,6 +46,7 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         //cleanup
         File file = new File(KEY_STORE_PATH);
         assertTrue(file.delete());
+        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-1");
     }
 
     @Test
@@ -85,16 +86,18 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         // the policy should be there!
         assertTrue(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
 
-        //changing platform IPK by changing platform certificate
-        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-2");
+        //saving credentials to delete
+        BoundCredentials temp = crmCSH.getSecurityHandler().getAcquiredCredentials().get(SecurityConstants.CORE_AAM_INSTANCE_ID);
+        // changing the component SPK by cleaning the current one
+        crmCSH.getSecurityHandler().getAcquiredCredentials().remove(SecurityConstants.CORE_AAM_INSTANCE_ID);
         crmCSH.generateServiceResponse();
         // attempting authenticate using invalid token
         assertFalse(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
-        //returning old certificate
-        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-1");
+        //putting back old credentials
+        crmCSH.getSecurityHandler().getAcquiredCredentials().put(SecurityConstants.CORE_AAM_INSTANCE_ID, temp);
 
-        // changing the component SPK by cleaning the current one
-        crmCSH.getSecurityHandler().getAcquiredCredentials().remove(SecurityConstants.CORE_AAM_INSTANCE_ID);
+        //changing platform IPK by changing platform certificate
+        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-2");
         crmCSH.generateServiceResponse();
         // attempting authenticate using invalid token
         assertFalse(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
