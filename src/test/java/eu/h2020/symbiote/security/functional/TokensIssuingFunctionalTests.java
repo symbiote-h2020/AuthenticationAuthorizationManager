@@ -10,7 +10,10 @@ import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.*;
@@ -19,7 +22,6 @@ import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
@@ -74,8 +76,6 @@ public class TokensIssuingFunctionalTests extends
     private LocalAttributesManagementRequest localUsersLocalAttributesManagementRequest;
     @Autowired
     private PlatformRepository platformRepository;
-    @Autowired
-    private SignCertificateRequestService signCertificateRequestService;
 
 
     @Override
@@ -102,130 +102,6 @@ public class TokensIssuingFunctionalTests extends
 
         attributesAddingOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 attributeManagementRequestQueue, 5000);
-    }
-
-    /**
-     * Feature: 3 (Authentication of components/ and users registered in a platform)
-     * Interface: PAAM - 1 and CAAM (for Administration)
-     * CommunicationType AMQP
-     */
-    @Test
-    public void getHomeTokenForUserOverAMQPSuccessAndIssuesCoreTokenType() throws
-            IOException,
-            TimeoutException,
-            MalformedJWTException,
-            CertificateException,
-            UnrecoverableKeyException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            OperatorCreationException,
-            NoSuchProviderException,
-            InvalidKeyException,
-            JWTCreationException {
-        addTestUserWithClientCertificateToRepository();
-        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(loginRequest)
-                .getBytes());
-        Token token = mapper.readValue(response, Token.class);
-
-        log.info("Test Client received this Token: " + token.toString());
-        // check if token received
-        assertNotNull(token);
-        // check if issuing authority is core
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token.getToken());
-        assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
-    }
-
-
-    /**
-     * Feature: 3 (Authentication of components/ and users registered in a platform)
-     * Interface: PAAM - 1, CAAM (for Administration)
-     * CommunicationType AMQP
-     */
-    @Test
-    public void getHomeTokenForUserOverAMQPWrongCredentialsFailure() throws
-            IOException,
-            TimeoutException,
-            JWTCreationException {
-
-        // test combinations of wrong credentials
-        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        HomeCredentials homeCredentials = new HomeCredentials(null, wrongUsername, clientId, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(loginRequest)
-                .getBytes());
-        ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
-
-        log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
-
-        homeCredentials = new HomeCredentials(null, username, wrongClientId, null, userKeyPair.getPrivate());
-        loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        byte[] response2 = client.primitiveCall(mapper.writeValueAsString(loginRequest)
-                .getBytes());
-        ErrorResponseContainer noToken2 = mapper.readValue(response2, ErrorResponseContainer.class);
-
-        log.info("Test Client received this error message instead of token: " + noToken2.getErrorMessage());
-        homeCredentials = new HomeCredentials(null, wrongUsername, wrongClientId, null, userKeyPair.getPrivate());
-        loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        byte[] response3 = client.primitiveCall(mapper.writeValueAsString(loginRequest).getBytes());
-        ErrorResponseContainer noToken3 = mapper.readValue(response3, ErrorResponseContainer.class);
-
-        log.info("Test Client received this error message instead of token: " + noToken3.getErrorMessage());
-
-        String expectedErrorMessage = new WrongCredentialsException().getErrorMessage();
-
-        assertEquals(expectedErrorMessage, noToken.getErrorMessage());
-        assertEquals(expectedErrorMessage, noToken2.getErrorMessage());
-        assertEquals(expectedErrorMessage, noToken3.getErrorMessage());
-    }
-
-    /**
-     * Feature: 3 (Authentication of components/ and users registered in a platform)
-     * Interface: PAAM - 1, CAAM (for Administration)
-     * CommunicationType AMQP
-     */
-    @Test
-    public void getHomeTokenForUserOverAMQPMissingArgumentsFailure() throws
-            IOException,
-            TimeoutException,
-            JWTCreationException {
-
-        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        HomeCredentials homeCredentials = new HomeCredentials(null, "", "", null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(loginRequest).getBytes());
-        ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
-
-        log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
-
-        assertEquals(new InvalidArgumentsException().getErrorMessage(), noToken.getErrorMessage());
-    }
-
-    /**
-     * Feature: 3 (Authentication of components/ and users registered in a platform)
-     * Interface: PAAM - 1, CAAM (for Administration)
-     * CommunicationType AMQP
-     */
-    @Test
-    public void getHomeTokenForUserOverAMQPWrongSignFailure() throws
-            IOException,
-            TimeoutException,
-            InvalidAlgorithmParameterException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            JWTCreationException {
-
-        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "", loginRequestQueue, 5000);
-        KeyPair keyPair = CryptoHelper.createKeyPair();
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        byte[] response = client.primitiveCall(mapper.writeValueAsString(loginRequest).getBytes());
-        ErrorResponseContainer noToken = mapper.readValue(response, ErrorResponseContainer.class);
-
-        log.info("Test Client received this error message instead of token: " + noToken.getErrorMessage());
-        assertEquals(new WrongCredentialsException().getErrorMessage(), noToken.getErrorMessage());
     }
 
     @Test(expected = WrongCredentialsException.class)
@@ -466,11 +342,6 @@ public class TokensIssuingFunctionalTests extends
 
         FederationRule federationRule = new FederationRule("federationId", platformsId);
         federationRulesRepository.save(federationRule);
-
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
-        userRepository.save(user);
-
-        String aamcert = certificationAuthorityHelper.getAAMCert();
 
         // checking issuing of foreign token using the dummy platform token
         String token = aamClient.getForeignToken(dummyHomeToken.getToken(), Optional.of(clientCertificate), Optional.of(CryptoHelper.convertX509ToPEM(platformAAMCertificate)));

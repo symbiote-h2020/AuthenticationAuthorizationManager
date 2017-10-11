@@ -12,7 +12,7 @@ import java.util.Set;
  */
 public class SubjectsRevokedKeys {
     @Id
-    private String subjectId;
+    private final String subjectId;
     private Set<String> revokedKeysSet;
 
     public SubjectsRevokedKeys(String subjectId, Set<String> revokedKeysSet) {

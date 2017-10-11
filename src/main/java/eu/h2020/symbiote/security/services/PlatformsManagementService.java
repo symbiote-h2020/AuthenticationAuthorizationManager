@@ -150,11 +150,6 @@ public class PlatformsManagementService {
                 Set<String> keys = new HashSet<>();
                 try {
                     Platform platformForRemoval = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
-                    for (Certificate c : platformForRemoval.getComponentCertificates().values()) {
-                        keys.add(Base64.getEncoder().encodeToString(
-                                c.getX509().getPublicKey().getEncoded()));
-                    }
-
                     // adding platform AAM certificate for revocation
                     if (!platformForRemoval.getPlatformAAMCertificate().getCertificateString().isEmpty())
                         keys.add(Base64.getEncoder().encodeToString(

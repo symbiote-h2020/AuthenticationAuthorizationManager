@@ -333,6 +333,45 @@ public class PlatformsManagementFunctionalTests extends
         assertEquals(new PlatformManagementException().getErrorMessage(), errorResponse.getErrorMessage());
     }
 
+    /**
+     * Feature: CAAM - 3 (Platform Registration)
+     * Interface: CAAM - 2
+     * CommunicationType AMQP
+     */
+    @Test
+    public void platformRegistrationOverAMQPFailurePlatformInterworkingInterfaceInUse() throws
+            IOException,
+            TimeoutException {
+        // verify that our platform is not in repository and that our platformOwner is in repository
+        assertFalse(platformRepository.exists(preferredPlatformId));
+        assertTrue(userRepository.exists(platformOwnerUsername));
+
+        // issue platform registration over AMQP
+        byte[] response = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        // verify that platform with preferred id is in repository and is tied with the given PO
+        PlatformManagementResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
+                PlatformManagementResponse.class);
+        // verified that we received the preferred platformId
+        assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
+        assertNotNull(platformRepository.findOne(preferredPlatformId));
+
+        User user = createUser(platformOwnerUsername + "differentOne", platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
+        userRepository.save(user);
+        // issue registration request with the same preferred platform identifier but different PO
+        platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setUsername
+                (platformOwnerUsername + "differentOne");
+        platformRegistrationOverAMQPRequest.setPlatformInstanceId("differentId");
+        // we try to use the same Interworking Interface!
+
+        response = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
+        assertEquals(new PlatformManagementException().getErrorMessage(), errorResponse.getErrorMessage());
+    }
+
     @Test
     public void platformUpdateOverAMQPSuccess() throws IOException, TimeoutException {
         // verify that our platformOwner is in repository

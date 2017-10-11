@@ -8,7 +8,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsExce
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
-import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
@@ -17,7 +16,6 @@ import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.security.KeyStoreException;
@@ -35,7 +33,6 @@ public class AAMServices {
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PlatformRepository platformRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
     private String coreInterfaceAddress;

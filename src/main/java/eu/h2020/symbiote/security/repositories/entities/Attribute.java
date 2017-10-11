@@ -4,8 +4,8 @@ import org.springframework.data.annotation.Id;
 
 public class Attribute {
     @Id
-    private String key;
-    private String value;
+    private final String key;
+    private final String value;
 
     public Attribute(String key, String value) {
         this.key = key;
@@ -15,18 +15,7 @@ public class Attribute {
     public String getKey() {
         return key;
     }
-
-    public void setKey(String key) {
-        this.key = key;
-    }
-
     public String getValue() {
         return value;
     }
-
-    public void setValue(String value) {
-        this.value = value;
-    }
-
-
 }

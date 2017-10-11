@@ -542,7 +542,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             UnrecoverableKeyException,
             InvalidKeyException,
             JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException {
-        // issue platform registration over AMQP
 
         //component adding
         ComponentCertificate componentCertificate = new ComponentCertificate(
@@ -566,7 +565,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = WrongCredentialsException.class)
-    public void getHomeTokenForAdminForComponentFailWrongSign() throws
+    public void getHomeTokenForComponentFailWrongSignature() throws
             IOException,
             TimeoutException,
             MalformedJWTException,
@@ -578,7 +577,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             UnrecoverableKeyException,
             InvalidKeyException,
             JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException {
-        // issue platform registration over AMQP
 
         //platform owner adding
         ComponentCertificate componentCertificate = new ComponentCertificate(
@@ -589,30 +587,10 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
                                 "registry-core-1"))));
         componentCertificatesRepository.save(
                 componentCertificate);
-        HomeCredentials homeCredentials = new HomeCredentials(null, AAMOwnerUsername, componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID, null, userKeyPair.getPrivate());
+        HomeCredentials homeCredentials = new HomeCredentials(null, SecurityConstants.CORE_AAM_INSTANCE_ID, componentId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        Token homeToken = getTokenService.getHomeToken(loginRequest);
-    }
-
-    @Test(expected = WrongCredentialsException.class)
-    public void getHomeTokenComponentFailWrongCredentials() throws
-            IOException,
-            TimeoutException,
-            MalformedJWTException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException,
-            OperatorCreationException,
-            UnrecoverableKeyException,
-            InvalidKeyException,
-            JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException {
-
-        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-
-        Token homeToken = getTokenService.getHomeToken(loginRequest);
+        getTokenService.getHomeToken(loginRequest);
     }
 
     @Test

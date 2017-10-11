@@ -18,7 +18,10 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.security.PublicKey;
 import java.security.cert.CertificateException;
+import java.util.HashMap;
+import java.util.HashSet;
 
 /**
  * Spring service used to provide token related functionality of the AAM.
@@ -79,25 +82,31 @@ public class GetTokenService {
         String sub = claims.getSub();
         User userInDB = userRepository.findOne(claims.getIss());
 
-        // component use case
-        if (userInDB == null) {
-            //authenticating
-            if (!claims.getIss().equals(deploymentId) // ISS is platform id
-                    || !componentCertificateRepository.exists(sub) //SUB is a componentId
-                    || JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey()) != ValidationStatus.VALID)
-                throw new WrongCredentialsException();
+        User userForToken;
+        PublicKey keyForToken;
 
-            User user = new User();
-            user.setRole(UserRole.NULL);
-            user.setUsername(""); // component case (We don't include AAMOwner/PO anymore!)
-            return tokenIssuer.getHomeToken(user, sub, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey());
+        // authenticating
+        if (claims.getIss().equals(deploymentId)) { // in component use case ISS is platform id
+            if (!componentCertificateRepository.exists(sub) //SUB is a componentId
+                    || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey()))
+                throw new WrongCredentialsException();
+        } else { // ordinary user/po client
+            if (userInDB == null
+                    || !userInDB.getClientCertificates().containsKey(sub)
+                    || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, userInDB.getClientCertificates().get(sub).getX509().getPublicKey()))
+                throw new WrongCredentialsException();
         }
-        // ordinary user/po client authentication
-        if (userInDB == null
-                || userInDB.getClientCertificates().get(sub) == null
-                || JWTEngine.validateTokenString(loginRequest, userInDB.getClientCertificates().get(sub).getX509().getPublicKey()) != ValidationStatus.VALID) {
-            throw new WrongCredentialsException();
+
+        // preparing user and key for token
+        if (claims.getIss().equals(deploymentId)) { // component use case ISS is platform id
+            // component case (We don't include AAMOwner/PO anymore!)
+            userForToken = new User("", "", "", new HashMap<>(), UserRole.NULL, new HashMap<>(), new HashSet<>());
+            keyForToken = componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey();
+        } else {
+            // ordinary user/po client
+            userForToken = userInDB;
+            keyForToken = userInDB.getClientCertificates().get(sub).getX509().getPublicKey();
         }
-        return tokenIssuer.getHomeToken(userInDB, sub, userInDB.getClientCertificates().get(sub).getX509().getPublicKey());
+        return tokenIssuer.getHomeToken(userForToken, sub, keyForToken);
     }
 }

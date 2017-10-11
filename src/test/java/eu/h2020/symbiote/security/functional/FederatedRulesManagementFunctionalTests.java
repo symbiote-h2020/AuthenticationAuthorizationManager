@@ -132,10 +132,6 @@ public class FederatedRulesManagementFunctionalTests extends
         FederationRule receivedRule = responseMap.get(federationRuleId);
         assertTrue(receivedRule.getFederationId().contains(federationRuleId));
         assertTrue(receivedRule.getPlatformIds().contains(platformId + "2"));
-
-        receivedRule = federationRulesRepository.findOne(federationRuleId);
-        assertTrue(receivedRule.getFederationId().contains(federationRuleId));
-        assertTrue(receivedRule.getPlatformIds().contains(platformId + "2"));
     }
 
     @Test
@@ -155,10 +151,40 @@ public class FederatedRulesManagementFunctionalTests extends
                 (federationRuleManagementRequest).getBytes());
         HashMap<String, FederationRule> responseMap = mapper.readValue(response, new TypeReference<HashMap<String, FederationRule>>() {
         });
+        // verify response
         FederationRule receivedRule = responseMap.get(federationRuleId);
         assertTrue(receivedRule.getFederationId().contains(federationRuleId));
         assertTrue(receivedRule.getPlatformIds().contains(platformId));
+        // verify empty db
         assertNull(federationRulesRepository.findOne(federationRuleId));
+    }
+
+    @Test
+    public void federationRuleDeleteMembersOverAMQPSuccess() throws IOException, TimeoutException {
+        federationRulesRepository.deleteAll();
+        Set<String> platformsId = new HashSet<>();
+        platformsId.add(platformId);
+        platformsId.add(platformId + "2");
+        FederationRule federationRule = new FederationRule(federationRuleId, platformsId);
+        federationRulesRepository.save(federationRule);
+
+        Set<String> membersToRemove = new HashSet<>();
+        membersToRemove.add(platformId + "2");
+
+        FederationRuleManagementRequest federationRuleManagementRequest = new FederationRuleManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                federationRuleId,
+                membersToRemove,
+                FederationRuleManagementRequest.OperationType.DELETE);
+
+        byte[] response = federationRuleManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (federationRuleManagementRequest).getBytes());
+        HashMap<String, FederationRule> responseMap = mapper.readValue(response, new TypeReference<HashMap<String, FederationRule>>() {
+        });
+        FederationRule receivedRule = responseMap.get(federationRuleId);
+        assertTrue(receivedRule.getFederationId().contains(federationRuleId));
+        assertTrue(receivedRule.getPlatformIds().contains(platformId));
+        assertFalse(receivedRule.getPlatformIds().contains(platformId + "2"));
     }
 
     @Test

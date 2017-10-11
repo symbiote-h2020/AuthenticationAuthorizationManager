@@ -15,7 +15,7 @@ import java.util.Map;
 public class Platform {
 
     @Id
-    private String platformInstanceId = "";
+    private final String platformInstanceId;
     private String platformInterworkingInterfaceAddress = "";
     private String platformInstanceFriendlyName = "";
     private Certificate platformAAMCertificate = new Certificate();

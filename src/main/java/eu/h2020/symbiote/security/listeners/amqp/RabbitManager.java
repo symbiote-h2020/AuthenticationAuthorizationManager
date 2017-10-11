@@ -183,63 +183,30 @@ public class RabbitManager {
     /**
      * Method gathers all of the rabbit consumer starter methods
      */
-    private void startConsumers() throws SecurityMisconfigurationException {
-        try {
-            // common
-            // credentials validation/revocation
-            startConsumerOfValidationRequestMessages();
-            startConsumerOfRevocationRequestMessages();
+    private void startConsumers() throws SecurityMisconfigurationException, IOException {
+        // common
+        // credentials validation/revocation
+        startConsumerOfValidationRequestMessages();
+        startConsumerOfRevocationRequestMessages();
 
-            // tokens attributes management
-            startConsumerOfLocalAttributesManagementRequest();
-            startConsumerOfFederationRuleManagementRequest();
+        // tokens attributes management
+        startConsumerOfLocalAttributesManagementRequest();
+        startConsumerOfFederationRuleManagementRequest();
 
-            // users management
-            startConsumerOfUserManagementRequestMessages();
-            startConsumerOfGetUserDetails();
-            // TODO remove unused R4
-            startConsumerOfGetHomeTokenRequestMessages();
-            switch (deploymentType) {
-                case PLATFORM:
-                    break;
-                case CORE:
-                    // platforms/enablers management
-                    startConsumerOfGetOwnedPlatformDetailsRequestMessages();
-                    startConsumerOfGetPlatformOwnersNames();
-                    startConsumerOfPlatformManagementRequestMessages();
-                    break;
-                case NULL:
-                    throw new SecurityMisconfigurationException("Wrong deployment type");
-            }
-        } catch (IOException e) {
-            log.error(e);
-        }
-    }
-
-
-    /**
-     * Method creates queue and binds it globally available exchange and adequate Routing Key.
-     * It also creates a consumer for messages incoming to this queue, regarding to Login requests.
-     *
-     * @throws IOException
-     */
-    private void startConsumerOfGetHomeTokenRequestMessages() throws IOException {
-
-        String queueName = this.getHomeTokenRequestQueue;
-
-        Channel channel;
-
-        try {
-            channel = this.connection.createChannel();
-            channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.getHomeTokenRequestRoutingKey);
-
-            log.info("Authentication and Authorization Manager waiting for getHomeToken request messages....");
-
-            Consumer consumer = new GetHomeTokenRequestConsumerService(channel, getTokenService);
-            channel.basicConsume(queueName, false, consumer);
-        } catch (IOException e) {
-            log.error(e);
+        // users management
+        startConsumerOfUserManagementRequestMessages();
+        startConsumerOfGetUserDetails();
+        switch (deploymentType) {
+            case PLATFORM:
+                break;
+            case CORE:
+                // platforms/enablers management
+                startConsumerOfGetOwnedPlatformDetailsRequestMessages();
+                startConsumerOfGetPlatformOwnersNames();
+                startConsumerOfPlatformManagementRequestMessages();
+                break;
+            case NULL:
+                throw new SecurityMisconfigurationException("Wrong deployment type");
         }
     }
 
@@ -256,18 +223,14 @@ public class RabbitManager {
 
         Channel channel;
 
-        try {
-            channel = this.connection.createChannel();
-            channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.validateRequestRoutingKey);
+        channel = this.connection.createChannel();
+        channel.queueDeclare(queueName, true, false, false, null);
+        channel.queueBind(queueName, this.AAMExchangeName, this.validateRequestRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for token validation request messages");
+        log.info("Authentication and Authorization Manager waiting for token validation request messages");
 
-            Consumer consumer = new ValidationRequestConsumerService(channel, credentialsValidationService);
-            channel.basicConsume(queueName, false, consumer);
-        } catch (IOException e) {
-            log.error(e);
-        }
+        Consumer consumer = new ValidationRequestConsumerService(channel, credentialsValidationService);
+        channel.basicConsume(queueName, false, consumer);
     }
 
 
@@ -283,19 +246,15 @@ public class RabbitManager {
 
         Channel channel;
 
-        try {
-            channel = this.connection.createChannel();
-            channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.userManagementRequestRoutingKey);
+        channel = this.connection.createChannel();
+        channel.queueDeclare(queueName, true, false, false, null);
+        channel.queueBind(queueName, this.AAMExchangeName, this.userManagementRequestRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for users' management request messages");
+        log.info("Authentication and Authorization Manager waiting for users' management request messages");
 
-            Consumer consumer = new UserManagementRequestConsumerService(channel,
-                    usersManagementService);
-            channel.basicConsume(queueName, false, consumer);
-        } catch (IOException e) {
-            log.error(e);
-        }
+        Consumer consumer = new UserManagementRequestConsumerService(channel,
+                usersManagementService);
+        channel.basicConsume(queueName, false, consumer);
     }
 
     /**
@@ -310,19 +269,15 @@ public class RabbitManager {
 
         Channel channel;
 
-        try {
-            channel = this.connection.createChannel();
-            channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.getUserDetailsRoutingKey);
+        channel = this.connection.createChannel();
+        channel.queueDeclare(queueName, true, false, false, null);
+        channel.queueBind(queueName, this.AAMExchangeName, this.getUserDetailsRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for users' details requests messages");
+        log.info("Authentication and Authorization Manager waiting for users' details requests messages");
 
-            Consumer consumer = new GetUserDetailsConsumerService(channel, adminUsername, adminPassword,
-                    userRepository, passwordEncoder);
-            channel.basicConsume(queueName, false, consumer);
-        } catch (IOException e) {
-            log.error(e);
-        }
+        Consumer consumer = new GetUserDetailsConsumerService(channel, adminUsername, adminPassword,
+                userRepository, passwordEncoder);
+        channel.basicConsume(queueName, false, consumer);
     }
 
     /**
@@ -337,19 +292,15 @@ public class RabbitManager {
 
         Channel channel;
 
-        try {
-            channel = this.connection.createChannel();
-            channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.getPlatformOwnersNamesRoutingKey);
+        channel = this.connection.createChannel();
+        channel.queueDeclare(queueName, true, false, false, null);
+        channel.queueBind(queueName, this.AAMExchangeName, this.getPlatformOwnersNamesRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for platform owners requests messages");
+        log.info("Authentication and Authorization Manager waiting for platform owners requests messages");
 
-            Consumer consumer = new GetPlatformOwnersNamesConsumerService(channel, adminUsername, adminPassword,
-                    platformRepository);
-            channel.basicConsume(queueName, false, consumer);
-        } catch (IOException e) {
-            log.error(e);
-        }
+        Consumer consumer = new GetPlatformOwnersNamesConsumerService(channel, adminUsername, adminPassword,
+                platformRepository);
+        channel.basicConsume(queueName, false, consumer);
     }
 
     /**
@@ -364,19 +315,15 @@ public class RabbitManager {
 
         Channel channel;
 
-        try {
-            channel = this.connection.createChannel();
-            channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.ownedPlatformDetailsRequestRoutingKey);
+        channel = this.connection.createChannel();
+        channel.queueDeclare(queueName, true, false, false, null);
+        channel.queueBind(queueName, this.AAMExchangeName, this.ownedPlatformDetailsRequestRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for owned platforms' details requests messages");
+        log.info("Authentication and Authorization Manager waiting for owned platforms' details requests messages");
 
-            Consumer consumer = new OwnedPlatformDetailsRequestConsumerService(channel, userRepository, adminUsername, adminPassword, platformRepository);
+        Consumer consumer = new OwnedPlatformDetailsRequestConsumerService(channel, userRepository, adminUsername, adminPassword, platformRepository);
 
-            channel.basicConsume(queueName, false, consumer);
-        } catch (IOException e) {
-            log.error(e);
-        }
+        channel.basicConsume(queueName, false, consumer);
     }
 
 
@@ -391,19 +338,15 @@ public class RabbitManager {
         String queueName = this.platformManagementRequestQueue;
 
         Channel channel;
-        try {
-            channel = this.connection.createChannel();
-            channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.platformManagementRequestRoutingKey);
+        channel = this.connection.createChannel();
+        channel.queueDeclare(queueName, true, false, false, null);
+        channel.queueBind(queueName, this.AAMExchangeName, this.platformManagementRequestRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for platform management requests messages");
+        log.info("Authentication and Authorization Manager waiting for platform management requests messages");
 
-            Consumer consumer = new PlatformManagementRequestConsumerService(channel,
-                    platformsManagementService);
-            channel.basicConsume(queueName, false, consumer);
-        } catch (IOException e) {
-            log.error(e);
-        }
+        Consumer consumer = new PlatformManagementRequestConsumerService(channel,
+                platformsManagementService);
+        channel.basicConsume(queueName, false, consumer);
     }
 
     /**
@@ -417,20 +360,15 @@ public class RabbitManager {
         String queueName = this.revocationRequestQueue;
 
         Channel channel;
-        try {
-            channel = this.connection.createChannel();
-            channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.revocationRequestRoutingKey);
+        channel = this.connection.createChannel();
+        channel.queueDeclare(queueName, true, false, false, null);
+        channel.queueBind(queueName, this.AAMExchangeName, this.revocationRequestRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for credentials revocation requests messages");
+        log.info("Authentication and Authorization Manager waiting for credentials revocation requests messages");
 
-            Consumer consumer = new RevocationRequestConsumerService(channel,
-                    revocationService);
-            channel.basicConsume(queueName, false, consumer);
-        } catch (IOException e) {
-            log.error(e);
-        }
-
+        Consumer consumer = new RevocationRequestConsumerService(channel,
+                revocationService);
+        channel.basicConsume(queueName, false, consumer);
     }
 
     /**
@@ -444,20 +382,15 @@ public class RabbitManager {
         String queueName = this.localUsersAttributesManagementRequestQueue;
 
         Channel channel;
-        try {
-            channel = this.connection.createChannel();
-            channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.localUsersAttributesManagementRequestRoutingKey);
+        channel = this.connection.createChannel();
+        channel.queueDeclare(queueName, true, false, false, null);
+        channel.queueBind(queueName, this.AAMExchangeName, this.localUsersAttributesManagementRequestRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for localAttributesManagementRequests messages");
+        log.info("Authentication and Authorization Manager waiting for localAttributesManagementRequests messages");
 
-            Consumer consumer = new LocalAttributesManagementRequestConsumerService(channel,
-                    localUsersAttributesRepository, adminUsername, adminPassword);
-            channel.basicConsume(queueName, false, consumer);
-        } catch (IOException e) {
-            log.error(e);
-        }
-
+        Consumer consumer = new LocalAttributesManagementRequestConsumerService(channel,
+                localUsersAttributesRepository, adminUsername, adminPassword);
+        channel.basicConsume(queueName, false, consumer);
     }
 
     /**
@@ -471,19 +404,15 @@ public class RabbitManager {
         String queueName = this.manageFederationRuleQueue;
 
         Channel channel;
-        try {
-            channel = this.connection.createChannel();
-            channel.queueDeclare(queueName, true, false, false, null);
-            channel.queueBind(queueName, this.AAMExchangeName, this.manageFederationRuleRoutingKey);
+        channel = this.connection.createChannel();
+        channel.queueDeclare(queueName, true, false, false, null);
+        channel.queueBind(queueName, this.AAMExchangeName, this.manageFederationRuleRoutingKey);
 
-            log.info("Authentication and Authorization Manager waiting for FederationRuleManagementRequests messages");
+        log.info("Authentication and Authorization Manager waiting for FederationRuleManagementRequests messages");
 
-            Consumer consumer = new FederationRuleManagementRequestConsumerService(channel,
-                    federationRulesRepository, adminUsername, adminPassword);
-            channel.basicConsume(queueName, false, consumer);
-        } catch (IOException e) {
-            log.error(e);
-        }
+        Consumer consumer = new FederationRuleManagementRequestConsumerService(channel,
+                federationRulesRepository, adminUsername, adminPassword);
+        channel.basicConsume(queueName, false, consumer);
 
     }
 
@@ -492,31 +421,20 @@ public class RabbitManager {
      * Method creates channel and declares Rabbit exchanges for AAM features.
      * It triggers start of all consumers used in with AAM communication.
      */
-    public void init() throws SecurityMisconfigurationException {
-        Channel channel = null;
-
-        try {
-            getConnection();
-        } catch (IOException | TimeoutException e) {
-            log.error(e);
-        }
+    public void init() throws SecurityMisconfigurationException, IOException, TimeoutException {
+        Channel channel;
+        getConnection();
 
         if (connection != null) {
-            try {
-                channel = this.connection.createChannel();
+            channel = this.connection.createChannel();
 
-                channel.exchangeDeclare(this.AAMExchangeName,
-                        this.AAMExchangeType,
-                        this.AAMExchangeDurable,
-                        this.AAMExchangeAutodelete,
-                        this.AAMExchangeInternal,
-                        null);
-                startConsumers();
-            } catch (IOException e) {
-                log.error(e);
-            } finally {
-                closeChannel(channel);
-            }
+            channel.exchangeDeclare(this.AAMExchangeName,
+                    this.AAMExchangeType,
+                    this.AAMExchangeDurable,
+                    this.AAMExchangeAutodelete,
+                    this.AAMExchangeInternal,
+                    null);
+            startConsumers();
         }
     }
 
@@ -559,11 +477,6 @@ public class RabbitManager {
                 channel.queueUnbind(this.getUserDetailsQueue, this.AAMExchangeName, this
                         .getUserDetailsRoutingKey);
                 channel.queueDelete(this.getUserDetailsQueue);
-
-                // getHomeToken TODO probably drop in R4 completely
-                channel.queueUnbind(this.getHomeTokenRequestQueue, this.AAMExchangeName,
-                        this.getHomeTokenRequestRoutingKey);
-                channel.queueDelete(this.getHomeTokenRequestQueue);
 
                 // deployment dependent interfaces
                 switch (deploymentType) {

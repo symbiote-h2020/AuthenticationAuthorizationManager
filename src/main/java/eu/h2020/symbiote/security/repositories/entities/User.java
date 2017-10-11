@@ -20,10 +20,10 @@ import java.util.Set;
  */
 public class User {
 
+    @Id
+    private final String username;
     @Indexed
     private UserRole role = UserRole.NULL;
-    @Id
-    private String username = "";
     private String passwordEncrypted = "";
     private String recoveryMail = "";
     private Map<String, Certificate> clientCertificates = new HashMap<>();
@@ -36,13 +36,10 @@ public class User {
      */
     private Map<String, String> attributes = new HashMap<>();
 
-    public User() {
-        // required by org.springframework.data.mapping.model.MappingInstantiationException
-    }
-
     /**
      * Used to create a new user entity
-     *  @param username           selected username
+     *
+     * @param username           selected username
      * @param passwordEncrypted  encrypted password for authentication
      * @param recoveryMail       for password reset/recovery purposes
      * @param clientCertificates user's public certificates
@@ -77,10 +74,6 @@ public class User {
     @Id
     public String getUsername() {
         return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
     }
 
     public String getPasswordEncrypted() {

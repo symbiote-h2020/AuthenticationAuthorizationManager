@@ -58,11 +58,11 @@ public class ValidateCredentialsController implements IValidateCredentials {
     public ValidationStatus validate(
             @ApiParam(value = "Token to be validated", required = true)
             @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME) String token,
-            @ApiParam(value = "used for Offline scenarios", required = false)
+            @ApiParam(value = "used for Offline scenarios")
             @RequestHeader(name = SecurityConstants.CLIENT_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificate,
-            @ApiParam(value = "used for Offline scenarios", required = false)
+            @ApiParam(value = "used for Offline scenarios")
             @RequestHeader(name = SecurityConstants.AAM_CERTIFICATE_HEADER_NAME, defaultValue = "") String clientCertificateSigningAAMCertificate,
-            @ApiParam(value = "used for Offline scenarios", required = false)
+            @ApiParam(value = "used for Offline scenarios")
             @RequestHeader(name = SecurityConstants.FOREIGN_TOKEN_ISSUING_AAM_CERTIFICATE, defaultValue = "") String foreignTokenIssuingAAMCertificate) {
         try {
             // input sanity check

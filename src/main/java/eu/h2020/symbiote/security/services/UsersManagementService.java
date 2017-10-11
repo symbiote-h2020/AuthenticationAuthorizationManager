@@ -28,6 +28,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.cert.CertificateException;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -116,7 +117,6 @@ public class UsersManagementService {
             throw new InvalidArgumentsException();
         }
 
-        User user = new User();
         User userToManage = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
         switch (userManagementRequest.getOperationType()) {
             case CREATE:
@@ -159,11 +159,14 @@ public class UsersManagementService {
                     return ManagementStatus.ERROR;
                 }
 
-                user.setRole(userDetails.getRole());
-                user.setUsername(newUserUsername);
-                user.setPasswordEncrypted(passwordEncoder.encode(userDetails.getCredentials().getPassword()));
-                user.setRecoveryMail(userDetails.getRecoveryMail());
-                user.setAttributes(userDetails.getAttributes());
+                User user = new User(newUserUsername,
+                        passwordEncoder.encode(userDetails.getCredentials().getPassword()),
+                        userDetails.getRecoveryMail(),
+                        new HashMap<>(),
+                        userDetails.getRole(),
+                        userDetails.getAttributes(),
+                        new HashSet<>()
+                );
                 userRepository.save(user);
                 break;
             case UPDATE:
@@ -175,7 +178,6 @@ public class UsersManagementService {
                     throw new UserManagementException(HttpStatus.UNAUTHORIZED);
                 update(userManagementRequest, userToManage);
                 break;
-
             case FORCE_UPDATE:
                 if (userToManage == null)
                     throw new UserManagementException(HttpStatus.BAD_REQUEST);

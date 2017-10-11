@@ -51,6 +51,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.HashSet;
 
 /**
  * AAM test suite stub with possibly shareable fields.
@@ -74,6 +75,8 @@ public abstract class AbstractAAMTestSuite {
     protected final String platformOwnerUsername = "testPlatformOwnerUsername";
     protected final String platformOwnerPassword = "testPlatformOwnerPassword";
     protected final String recoveryMail = "null@dev.null";
+    @Rule
+    public ExpectedException expectedEx = ExpectedException.none();
     protected KeyPair userKeyPair;
     @Autowired
     protected FederationRulesRepository federationRulesRepository;
@@ -168,16 +171,15 @@ public abstract class AbstractAAMTestSuite {
         localUsersAttributesRepository.deleteAll();
     }
 
-    @Rule
-    public ExpectedException expectedEx = ExpectedException.none();
-
     protected User createUser(String username, String password, String recoveryMail,
-                         UserRole userRole) {
-        User user = new User();
-        user.setUsername(username);
-        user.setPasswordEncrypted(passwordEncoder.encode(password));
-        user.setRecoveryMail(recoveryMail);
-        user.setRole(userRole);
+                              UserRole userRole) {
+        User user = new User(username,
+                passwordEncoder.encode(password),
+                recoveryMail,
+                new HashMap<>(),
+                userRole,
+                new HashMap<>(),
+                new HashSet<>());
         return user;
     }
 
@@ -197,8 +199,8 @@ public abstract class AbstractAAMTestSuite {
     }
 
     protected void saveTwoDifferentUsers() {
-        User userOne = createUser("userOne", "Password", recoveryMail,UserRole.USER);
-        User userTwo = createUser("userTwo", "Password", recoveryMail,UserRole.USER);
+        User userOne = createUser("userOne", "Password", recoveryMail, UserRole.USER);
+        User userTwo = createUser("userTwo", "Password", recoveryMail, UserRole.USER);
 
         userRepository.save(userOne);
         userRepository.save(userTwo);
@@ -208,7 +210,16 @@ public abstract class AbstractAAMTestSuite {
         platformRepository.save(platformOne);
         platformRepository.save(platformTwo);
     }
-    protected void addTestUserWithClientCertificateToRepository() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException, UnrecoverableKeyException, InvalidKeyException {
+
+    protected void addTestUserWithClientCertificateToRepository() throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            OperatorCreationException,
+            UnrecoverableKeyException,
+            InvalidKeyException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), "federatedId",

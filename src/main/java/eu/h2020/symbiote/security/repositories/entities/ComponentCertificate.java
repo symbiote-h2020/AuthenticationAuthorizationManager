@@ -11,8 +11,8 @@ import org.springframework.data.annotation.Id;
  */
 public class ComponentCertificate {
     @Id
-    private String name;
-    private Certificate certificate;
+    private final String name;
+    private final Certificate certificate;
 
     /**
      * @param name        e.g. Registry, Search, RAP, etc.
@@ -30,18 +30,10 @@ public class ComponentCertificate {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     /**
      * @return the component certificate used in @{@link MutualAuthenticationHelper#isServiceResponseVerified(String, Certificate)}
      */
     public Certificate getCertificate() {
         return certificate;
-    }
-
-    public void setCertificate(Certificate certificate) {
-        this.certificate = certificate;
     }
 }

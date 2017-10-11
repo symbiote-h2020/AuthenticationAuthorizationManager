@@ -496,14 +496,19 @@ public class ValidationHelper {
             CertificateException,
             MalformedJWTException {
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(foreignToken);
-        // TODO consider component tokens in P2P L2 communication!
+        // TODO R4 consider component tokens in P2P L2 communication!
         if (claimsFromToken.getSub().split("@").length != 4) {
             throw new MalformedJWTException("Token subject has wrong structure");
         }
 
         String userFromToken = claimsFromToken.getSub().split("@")[0];
         String clientID = claimsFromToken.getSub().split("@")[1];
+        String platformId = claimsFromToken.getSub().split("@")[2];
         String jti = claimsFromToken.getSub().split("@")[3];
+
+        // checking if we issued the Home token
+        if (!deploymentId.equals(platformId))
+            return ValidationStatus.WRONG_AAM;
         // SUB claim check (searching for user and client)
         if (!userRepository.exists(userFromToken)
                 || userRepository.findOne(userFromToken).getClientCertificates().get(clientID) == null) {
