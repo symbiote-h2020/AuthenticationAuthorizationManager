@@ -10,11 +10,11 @@ import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.embedded.LocalServerPort;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -27,6 +27,7 @@ import static org.junit.Assert.assertTrue;
 
 
 @TestPropertySource("/platform.properties")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
 
     @Autowired
