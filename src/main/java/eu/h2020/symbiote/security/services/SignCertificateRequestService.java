@@ -28,9 +28,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -101,6 +98,9 @@ public class SignCertificateRequestService {
         }
         // user / platform owner
         else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)(@)(([\\w-])+)(@)(([\\w-])+)$")) {
+            if (user == null) {
+                throw new ValidationException("User not found in db");
+            }
             X509Certificate certFromCSR = createUserCertFromCSR(request);
             pem = createPem(certFromCSR);
             putUserCertificateToRepository(user, certificateRequest, certFromCSR, pem);
@@ -144,7 +144,7 @@ public class SignCertificateRequestService {
             if (!certificateRequest.getPassword().equals(AAMOwnerPassword))
                 throw new WrongCredentialsException();
             //deployment id check
-            if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split("@")[1]))
+            if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(illegalSign)[1]))
                 throw new ValidationException("Deployment id's mismatch");
             if (revokedKeysRepository.exists(certificationAuthorityHelper.getAAMInstanceIdentifier())
                     && revokedKeysRepository.findOne(certificationAuthorityHelper.getAAMInstanceIdentifier()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
@@ -157,10 +157,11 @@ public class SignCertificateRequestService {
             user = userRepository.findOne(certificateRequest.getUsername());
             if (user == null)
                 throw new NotExistingUserException();
-
             if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
                     !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
                 throw new WrongCredentialsException();
+            if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(illegalSign)[2]))
+                throw new ValidationException("Deployment id's mismatch");
             if (revokedKeysRepository.exists(user.getUsername())
                     && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
                 throw new ValidationException("Using revoked key");
@@ -195,7 +196,7 @@ public class SignCertificateRequestService {
                 revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
                 revocationRequest.setCertificateCommonName(componentId + illegalSign + platformId);
                 if (!revocationService.revoke(revocationRequest).isRevoked()) {
-                    throw new SecurityException();
+                    throw new SecurityException("Revocation of old certificate is not possible.");
                 }
                 componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
             }
@@ -273,22 +274,8 @@ public class SignCertificateRequestService {
     }
 
     private X509Certificate createUserCertFromCSR(PKCS10CertificationRequest req)
-            throws InvalidArgumentsException, UserManagementException {
+            throws UserManagementException {
         X509Certificate certFromCSR;
-        X509Certificate caCert;
-
-        try {
-            caCert = certificationAuthorityHelper.getAAMCertificate();
-        } catch (NoSuchAlgorithmException | CertificateException | NoSuchProviderException
-                | KeyStoreException | IOException e) {
-            log.error(e);
-            throw new SecurityException(e.getMessage(), e.getCause());
-        }
-
-        String platformIdFromCSR = req.getSubject().toString().split("CN=")[1].split("@")[2];
-        String aamId = caCert.getSubjectDN().getName().split("CN=")[1];
-        if (!platformIdFromCSR.equals(aamId))
-            throw new InvalidArgumentsException("CSR CN contains: "+platformIdFromCSR+ "which doesn't match this AAM: "+aamId);
 
         try {
             certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);

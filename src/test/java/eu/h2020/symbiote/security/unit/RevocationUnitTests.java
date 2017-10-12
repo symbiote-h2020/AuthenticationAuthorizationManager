@@ -928,16 +928,13 @@ public class RevocationUnitTests extends
                 CryptoHelper.convertPEMToX509(cert).getPublicKey().getEncoded()));
         revokedKeysRepository.save(new SubjectsRevokedKeys("registry", keySet));
 
+        //register component
         KeyPair keyPair = new KeyPair(CryptoHelper.convertPEMToX509(cert).getPublicKey(), (PrivateKey) getPrivateKeyFromTestKeystore(
                 "core.p12",
                 "registry-core-1"));
-
-        User platformOwner = savePlatformOwner();
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
-        platformRepository.save(platform);
-        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, keyPair);
+        String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier(), keyPair);
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csrString);
         String certificateString = signCertificateRequestService.signCertificate(certRequest);
 
         ComponentCertificate componentCertificate = new ComponentCertificate(
@@ -948,11 +945,9 @@ public class RevocationUnitTests extends
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
-
         revocationRequest.setCertificatePEMString(cert);
 
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
-
         assertTrue(revokedKeysRepository.findOne("registry").getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(componentCertificate.getCertificate().getX509().getPublicKey().getEncoded())));
     }
 

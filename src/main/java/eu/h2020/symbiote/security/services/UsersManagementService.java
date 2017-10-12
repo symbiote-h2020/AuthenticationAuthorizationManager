@@ -173,8 +173,7 @@ public class UsersManagementService {
                 if (userToManage == null)
                     throw new UserManagementException(HttpStatus.BAD_REQUEST);
                 // checking if request contains current password
-                if (!userManagementRequest.getUserCredentials().getPassword().equals(userToManage.getPasswordEncrypted())
-                        && !passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), userToManage.getPasswordEncrypted()))
+                if (!passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), userToManage.getPasswordEncrypted()))
                     throw new UserManagementException(HttpStatus.UNAUTHORIZED);
                 update(userManagementRequest, userToManage);
                 break;

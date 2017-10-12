@@ -71,6 +71,64 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertEquals(userRegistrationResponse, ManagementStatus.OK);
     }
 
+    @Test
+    public void userInternalForceUpdateSuccess() throws SecurityException {
+        // save user in db
+        User user = saveUser();
+        // verify that app is in the repository
+        User registeredUser = userRepository.findOne(appUsername);
+        assertNotNull(registeredUser);
+        //checking if new password is different from that in repo
+        assertFalse(passwordEncoder.matches("NewPassword", registeredUser.getPasswordEncrypted()));
+        // update user (new password), empty user password in credentials for validation
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, ""),
+                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
+                , OperationType.FORCE_UPDATE);
+        ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
+        assertEquals(ManagementStatus.OK, userRegistrationResponse);
+        // verify that app really is in repository
+        registeredUser = userRepository.findOne(appUsername);
+        assertNotNull(registeredUser);
+        // verify if password is changed
+        assertTrue(passwordEncoder.matches("NewPassword", registeredUser.getPasswordEncrypted()));
+    }
+
+    @Test(expected = UserManagementException.class)
+    public void userInternalForceUpdateFailForUserNotInDB() throws SecurityException {
+
+        assertNull(userRepository.findOne(appUsername));
+        // update user who doesn't exist in db
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, password),
+                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
+                , OperationType.FORCE_UPDATE);
+        usersManagementService.authManage(userManagementRequest);
+    }
+
+    @Test(expected = UserManagementException.class)
+    public void userInternalUpdateFailForUserNotInDB() throws SecurityException {
+
+        assertNull(userRepository.findOne(appUsername));
+        // update user who doesn't exist in db
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, password),
+                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
+                , OperationType.UPDATE);
+        usersManagementService.authManage(userManagementRequest);
+    }
+
+    @Test(expected = UserManagementException.class)
+    public void userInternalAttributesUpdateFailForUserNotInDB() throws SecurityException {
+
+        assertNull(userRepository.findOne(appUsername));
+        // update user who doesn't exist in db
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, password),
+                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
+                , OperationType.ATTRIBUTES_UPDATE);
+        usersManagementService.authManage(userManagementRequest);
+    }
 
     @Test
     public void userInternalCreateFailForAAMAdminRegistrationAttempt() throws SecurityException {
@@ -397,4 +455,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         //  Request existing user with incorrect password
         aamClient.getUserDetails(new Credentials(username, "WrongPassword"));
     }
+
+
 }
