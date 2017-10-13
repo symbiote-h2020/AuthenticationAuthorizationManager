@@ -22,6 +22,10 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.File;
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +38,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
     private final String KEY_STORE_PATH = "./src/test/resources/new.p12";
     private final String KEY_STORE_PASSWORD = "1234567";
     private final String userId = "testuserId";
+    private String oldCoreAAMAddress;
     @Autowired
     private AAMServices aamServices;
     @LocalServerPort
@@ -53,12 +58,13 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
         //cleanup
         File file = new File(KEY_STORE_PATH);
         assertTrue(file.delete());
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", oldCoreAAMAddress);
     }
 
     @Test
-    public void RegistrationHandlerIntegrationTest() throws SecurityHandlerException, InvalidArgumentsException, CertificateException, WrongCredentialsException {
+    public void RegistrationHandlerIntegrationTest() throws SecurityHandlerException, InvalidArgumentsException, CertificateException, WrongCredentialsException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
         // hack: injecting the AAM running port
-        String oldCoreAAMAddress = (String) ReflectionTestUtils.getField(aamServices, "coreAAMAddress");
+        oldCoreAAMAddress = (String) ReflectionTestUtils.getField(aamServices, "coreAAMAddress");
         ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/caam");
 
         // registration handler use case
@@ -101,7 +107,9 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
         testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier));
         // the policy should be there!
         assertTrue(rhCSH.getSatisfiedPoliciesIdentifiers(testAP, rhSecurityRequest).contains(testPolicyId));
-        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", oldCoreAAMAddress);
+        //change of the platform certificate in CoreAAM
+        dummyCoreAAM.changePlatformCertificate();
+        assertFalse(rhCSH.getSatisfiedPoliciesIdentifiers(testAP, rhSecurityRequest).contains(testPolicyId));
     }
 
 

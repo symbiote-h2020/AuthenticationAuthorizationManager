@@ -167,5 +167,21 @@ public class DummyCoreAAM {
                 "test-PlatformId",
                 platformCert, new HashMap<>()));
     }
+
+    public void changePlatformCertificate() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream(PLATFORM_CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate("platform-1-2-c1");
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        Certificate platformCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
+
+        aams.getAvailableAAMs().put(platformId, new AAM("https://localhost:" + port,
+                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
+                platformId,
+                platformCert, new HashMap<>()));
+    }
 }
 
