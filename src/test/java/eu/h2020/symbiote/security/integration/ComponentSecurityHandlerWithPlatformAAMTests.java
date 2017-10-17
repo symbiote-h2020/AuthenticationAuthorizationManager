@@ -5,14 +5,20 @@ import eu.h2020.symbiote.security.ComponentSecurityHandlerFactory;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
+import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+import eu.h2020.symbiote.security.handler.ISecurityHandler;
+import eu.h2020.symbiote.security.handler.SecurityHandler;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import io.jsonwebtoken.Claims;
+import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,15 +29,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
 
 import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 @TestPropertySource("/platform.properties")
 public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTestSuite {
@@ -51,6 +55,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
     public void setUp() throws Exception {
         super.setUp();
         dummyCoreAAM.port = port;
+        oldCoreAAMAddress = (String) ReflectionTestUtils.getField(aamServices, "coreAAMAddress");
     }
 
     @After
@@ -63,11 +68,9 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
 
     @Test
     public void RegistrationHandlerIntegrationTest() throws SecurityHandlerException, InvalidArgumentsException, CertificateException, WrongCredentialsException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
-        // hack: injecting the AAM running port
-        oldCoreAAMAddress = (String) ReflectionTestUtils.getField(aamServices, "coreAAMAddress");
-        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/caam");
-
         // registration handler use case
+        // hack: injecting the AAM running port
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/caam");
         String rhKey = "rh";
         String regHandlerComponentId = rhKey + "@" + "platform-1";
         // generating the CSH
@@ -111,6 +114,25 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
         dummyCoreAAM.changePlatformCertificate();
         assertFalse(rhCSH.getSatisfiedPoliciesIdentifiers(testAP, rhSecurityRequest).contains(testPolicyId));
     }
+
+    @Test
+    public void loginBySecurityHandlerIntegrationTest() throws SecurityHandlerException, ValidationException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, IOException {
+
+        addTestUserWithClientCertificateToRepository();
+        // hack: injecting the AAM running port
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/caam");
+        ISecurityHandler securityHandler = new SecurityHandler(KEY_STORE_PATH,
+                KEY_STORE_PASSWORD,
+                serverAddress,
+                username);
+        AAM localAAM = securityHandler.getAvailableAAMs().get("platform-1");
+        assertNotNull(localAAM);
+        securityHandler.getCertificate(localAAM, username, password, clientId);
+        Token token = securityHandler.login(localAAM);
+        assertNotNull(token);
+        assertEquals("platform-1", token.getClaims().getIssuer());
+    }
+
 
 
 }
