@@ -119,6 +119,11 @@ public class RabbitManager {
     @Value("${rabbit.routingKey.manage.federation.rule}")
     private String manageFederationRuleRoutingKey;
 
+    @Value("${rabbit.queue.event}")
+    private String eventLogQueue;
+    @Value("${rabbit.routingKey.event}")
+    private String eventLogRoutingKey;
+
 
     @Autowired
     public RabbitManager(UsersManagementService usersManagementService,
@@ -196,6 +201,7 @@ public class RabbitManager {
         // users management
         startConsumerOfUserManagementRequestMessages();
         startConsumerOfGetUserDetails();
+        startDummyConsumerEventLog();
         switch (deploymentType) {
             case PLATFORM:
                 break;
@@ -277,6 +283,21 @@ public class RabbitManager {
 
         Consumer consumer = new GetUserDetailsConsumerService(channel, adminUsername, adminPassword,
                 userRepository, passwordEncoder);
+        channel.basicConsume(queueName, false, consumer);
+    }
+
+    private void startDummyConsumerEventLog() throws IOException {
+        String queueName = this.eventLogQueue;
+
+        Channel channel;
+
+        channel = this.connection.createChannel();
+        channel.queueDeclare(queueName, true, false, false, null);
+        channel.queueBind(queueName, this.AAMExchangeName, this.eventLogRoutingKey);
+
+        log.info("Anomaly Detection Module waiting for login fail logs");
+
+        Consumer consumer = new DummyEventLogConsumerService(channel);
         channel.basicConsume(queueName, false, consumer);
     }
 
@@ -477,6 +498,10 @@ public class RabbitManager {
                 channel.queueUnbind(this.getUserDetailsQueue, this.AAMExchangeName, this
                         .getUserDetailsRoutingKey);
                 channel.queueDelete(this.getUserDetailsQueue);
+
+                channel.queueUnbind(this.eventLogQueue, this.AAMExchangeName, this
+                        .eventLogRoutingKey);
+                channel.queueDelete(this.eventLogQueue);
 
                 // deployment dependent interfaces
                 switch (deploymentType) {

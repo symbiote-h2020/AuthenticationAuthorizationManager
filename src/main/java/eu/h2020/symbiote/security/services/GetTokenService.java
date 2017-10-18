@@ -1,11 +1,14 @@
 package eu.h2020.symbiote.security.services;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
@@ -15,13 +18,17 @@ import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Spring service used to provide token related functionality of the AAM.
@@ -40,14 +47,22 @@ public class GetTokenService {
     private final UserRepository userRepository;
     private final ValidationHelper validationHelper;
     private final String deploymentId;
+    private final RabbitTemplate rabbitTemplate;
+    protected ObjectMapper mapper = new ObjectMapper();
+
+    @Value("${rabbit.queue.event}")
+    private String anomalyDetectionQueue;
+    @Value("${rabbit.routingKey.event}")
+    private String anomalyDetectionRoutingKey;
 
     @Autowired
-    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository, ValidationHelper validationHelper, ComponentCertificatesRepository componentCertificateRepository, PlatformRepository platformRepository, CertificationAuthorityHelper certificationAuthorityHelper) {
+    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository, ValidationHelper validationHelper, ComponentCertificatesRepository componentCertificateRepository, PlatformRepository platformRepository, CertificationAuthorityHelper certificationAuthorityHelper, RabbitTemplate rabbitTemplate) {
         this.tokenIssuer = tokenIssuer;
         this.userRepository = userRepository;
         this.validationHelper = validationHelper;
         this.componentCertificateRepository = componentCertificateRepository;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     public Token getForeignToken(Token receivedRemoteHomeToken, String clientCertificate, String aamCertificate) throws
@@ -71,7 +86,7 @@ public class GetTokenService {
             JWTCreationException,
             WrongCredentialsException,
             CertificateException,
-            ValidationException {
+            ValidationException, IOException, TimeoutException {
         // validate request
         JWTClaims claims = JWTEngine.getClaimsFromToken(loginRequest);
 
@@ -88,13 +103,19 @@ public class GetTokenService {
         // authenticating
         if (claims.getIss().equals(deploymentId)) { // in component use case ISS is platform id
             if (!componentCertificateRepository.exists(sub) //SUB is a componentId
-                    || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey()))
+                    || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey())) {
+                rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(
+                        new EventLogRequest(claims.getSub(), EventType.LOGIN_FAILED, System.currentTimeMillis())));
                 throw new WrongCredentialsException();
+            }
         } else { // ordinary user/po client
             if (userInDB == null
                     || !userInDB.getClientCertificates().containsKey(sub)
-                    || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, userInDB.getClientCertificates().get(sub).getX509().getPublicKey()))
+                    || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, userInDB.getClientCertificates().get(sub).getX509().getPublicKey())) {
+                rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(
+                        new EventLogRequest(claims.getSub(), EventType.LOGIN_FAILED, System.currentTimeMillis())));
                 throw new WrongCredentialsException();
+            }
         }
 
         // preparing user and key for token
@@ -109,4 +130,5 @@ public class GetTokenService {
         }
         return tokenIssuer.getHomeToken(userForToken, sub, keyForToken);
     }
+
 }

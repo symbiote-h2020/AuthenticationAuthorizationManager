@@ -155,7 +155,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             OperatorCreationException,
             InvalidKeyException,
             KeyStoreException,
-            UnrecoverableKeyException {
+            UnrecoverableKeyException, TimeoutException {
         addTestUserWithClientCertificateToRepository();
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
@@ -172,7 +172,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             WrongCredentialsException,
             JWTCreationException,
             MalformedJWTException,
-            ValidationException {
+            ValidationException, TimeoutException {
         //user is not in DB
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -188,7 +188,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             WrongCredentialsException,
             JWTCreationException,
             MalformedJWTException,
-            ValidationException {
+            ValidationException, TimeoutException {
         HomeCredentials homeCredentials = new HomeCredentials(null, null, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         getTokenService.getHomeToken(loginRequest);

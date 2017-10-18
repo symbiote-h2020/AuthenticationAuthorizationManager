@@ -1,17 +1,16 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.*;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.services.CredentialsValidationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
+import java.util.concurrent.TimeoutException;
 
 /**
  * RabbitMQ Consumer implementation used for credentials validation actions
@@ -64,12 +63,19 @@ public class ValidationRequestConsumerService extends DefaultConsumer {
                     .build();
             validationRequest = om.readValue(message, ValidationRequest.class);
 
-            ValidationStatus validationResponse = credentialsValidationService.validate(
-                    validationRequest.getToken(),
-                    validationRequest.getClientCertificate(),
-                    validationRequest.getClientCertificateSigningAAMCertificate(),
-                    validationRequest.getForeignTokenIssuingAAMCertificate()
-            );
+            ValidationStatus validationResponse = null;
+
+            try {
+                validationResponse = credentialsValidationService.validate(
+                        validationRequest.getToken(),
+                        validationRequest.getClientCertificate(),
+                        validationRequest.getClientCertificateSigningAAMCertificate(),
+                        validationRequest.getForeignTokenIssuingAAMCertificate()
+                );
+            } catch (TimeoutException | WrongCredentialsException ignored) {
+
+            }
+
             response = om.writeValueAsString(validationResponse);
             this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
 

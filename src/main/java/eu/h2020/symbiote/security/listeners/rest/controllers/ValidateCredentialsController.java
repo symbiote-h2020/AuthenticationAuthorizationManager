@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.IValidateCredentials;
 import eu.h2020.symbiote.security.services.CredentialsValidationService;
@@ -20,7 +21,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.io.IOException;
 import java.security.cert.CertificateException;
+import java.util.concurrent.TimeoutException;
 
 
 /**
@@ -74,7 +77,7 @@ public class ValidateCredentialsController implements IValidateCredentials {
             String parsedForeignTokenCert = (foreignTokenIssuingAAMCertificate.isEmpty()) ? foreignTokenIssuingAAMCertificate : rebuildPEMStringFromHeader(foreignTokenIssuingAAMCertificate);
             // real validation
             return credentialsValidationService.validate(token, parsedClientCert, parsedClientSigningCert, parsedForeignTokenCert);
-        } catch (ValidationException e) {
+        } catch (ValidationException | TimeoutException | IOException | WrongCredentialsException e) {
             log.error(e);
             return ValidationStatus.UNKNOWN;
         }
