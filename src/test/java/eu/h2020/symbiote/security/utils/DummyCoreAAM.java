@@ -133,7 +133,6 @@ public class DummyCoreAAM {
         return signedCertificatePEMDataStringWriter.toString();
     }
 
-
     @GetMapping(path = PATH + SecurityConstants.AAM_GET_AVAILABLE_AAMS)
     public ResponseEntity<AvailableAAMsCollection> getAvailableAAMs() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
         if (aams.getAvailableAAMs().isEmpty()) {

@@ -24,6 +24,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.embedded.LocalServerPort;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -37,6 +38,7 @@ import java.util.Map;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.*;
 
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 @TestPropertySource("/platform.properties")
 public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTestSuite {
     private final String KEY_STORE_PATH = "./src/test/resources/new.p12";
@@ -132,7 +134,6 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
         assertNotNull(token);
         assertEquals("platform-1", token.getClaims().getIssuer());
     }
-
 
 
 }

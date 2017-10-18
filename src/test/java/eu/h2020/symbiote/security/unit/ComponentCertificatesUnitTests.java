@@ -3,11 +3,11 @@ package eu.h2020.symbiote.security.unit;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
-import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +36,7 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
     AAMServices aamServices;
     @LocalServerPort
     private int port;
+    private CertificationAuthorityHelper oldCertificationAuthorityHelper;
 
     @Before
     @Override
@@ -43,7 +44,7 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
         super.setUp();
         dummyCoreAAM.port = port;
 
-        CertificationAuthorityHelper oldCertificationAuthorityHelper = certificationAuthorityHelper;
+        oldCertificationAuthorityHelper = certificationAuthorityHelper;
         certificationAuthorityHelper = mock(CertificationAuthorityHelper.class);
         when(certificationAuthorityHelper.getDeploymentType()).thenReturn(IssuingAuthorityType.PLATFORM);
         when(certificationAuthorityHelper.getAAMInstanceIdentifier()).thenReturn(oldCertificationAuthorityHelper.getAAMInstanceIdentifier());
@@ -52,11 +53,18 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", certificationAuthorityHelper);
     }
 
+    @After
+    public void after() {
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress);
+        ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", oldCertificationAuthorityHelper);
+
+    }
+
     @Test
     public void getLocalComponentCertificateOtherPlatformSuccess() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException, AAMException, TimeoutException, UnrecoverableKeyException, InvalidArgumentsException, InvalidAlgorithmParameterException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, ValidationException {
 
-        String component = aamServices.getComponentCertificate("componentId", "test-PlatformId");
+        String component = aamServices.getComponentCertificate(componentId, platformId);
 
         assertTrue(component.contains("BEGIN CERTIFICATE"));
 
@@ -68,7 +76,7 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
         expectedEx.expect(AAMException.class);
         expectedEx.expectMessage("Selected certificate could not be found/retrieved");
 
-        aamServices.getComponentCertificate("componentId", "non-existing-PlatformId");
+        aamServices.getComponentCertificate(componentId, "non-existing-PlatformId");
 
     }
 
