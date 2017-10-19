@@ -17,7 +17,6 @@ import eu.h2020.symbiote.security.handler.ISecurityHandler;
 import eu.h2020.symbiote.security.handler.SecurityHandler;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
-import io.jsonwebtoken.Claims;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.After;
 import org.junit.Before;
@@ -102,13 +101,8 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
         // building dummy access policy
         Map<String, IAccessPolicy> testAP = new HashMap<>();
         String testPolicyId = "testPolicyId";
-        Map<String, String> requiredClaims = new HashMap<>();
-        requiredClaims.put(Claims.ISSUER, "platform-1");
-        requiredClaims.put(Claims.SUBJECT, rhKey);
         SingleTokenAccessPolicySpecifier testPolicySpecifier =
-                new SingleTokenAccessPolicySpecifier(
-                        SingleTokenAccessPolicySpecifier.SingleTokenAccessPolicyType.SLHTIBAP,
-                        requiredClaims);
+                new SingleTokenAccessPolicySpecifier(rhKey, "platform-1");
         testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier));
         // the policy should be there!
         assertTrue(rhCSH.getSatisfiedPoliciesIdentifiers(testAP, rhSecurityRequest).contains(testPolicyId));
