@@ -28,7 +28,6 @@ import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Spring service used to provide token related functionality of the AAM.
@@ -86,7 +85,7 @@ public class GetTokenService {
             JWTCreationException,
             WrongCredentialsException,
             CertificateException,
-            ValidationException, IOException, TimeoutException {
+            ValidationException, IOException {
         // validate request
         JWTClaims claims = JWTEngine.getClaimsFromToken(loginRequest);
 
@@ -105,7 +104,7 @@ public class GetTokenService {
             if (!componentCertificateRepository.exists(sub) //SUB is a componentId
                     || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey())) {
                 rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(
-                        new EventLogRequest(claims.getSub(), EventType.LOGIN_FAILED, System.currentTimeMillis())));
+                        new EventLogRequest(claims.getIss(), claims.getSub(), claims.getJti(), EventType.ACQUISITION_FAILED, System.currentTimeMillis())));
                 throw new WrongCredentialsException();
             }
         } else { // ordinary user/po client
@@ -113,7 +112,7 @@ public class GetTokenService {
                     || !userInDB.getClientCertificates().containsKey(sub)
                     || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, userInDB.getClientCertificates().get(sub).getX509().getPublicKey())) {
                 rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(
-                        new EventLogRequest(claims.getSub(), EventType.LOGIN_FAILED, System.currentTimeMillis())));
+                        new EventLogRequest(claims.getIss(), claims.getSub(), claims.getJti(), EventType.ACQUISITION_FAILED, System.currentTimeMillis())));
                 throw new WrongCredentialsException();
             }
         }

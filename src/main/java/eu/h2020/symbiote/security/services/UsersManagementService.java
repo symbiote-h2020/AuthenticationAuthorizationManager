@@ -36,7 +36,6 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Spring service used to manage users in the AAM repository.
@@ -99,7 +98,7 @@ public class UsersManagementService {
         return this.manage(request);
     }
 
-    public UserDetails getUserDetails(Credentials credentials) throws UserManagementException, IOException, TimeoutException {
+    public UserDetails getUserDetails(Credentials credentials) throws UserManagementException, IOException {
         //  If requested user is not in database
         if (!userRepository.exists(credentials.getUsername()))
             throw new UserManagementException("User not in database", HttpStatus.BAD_REQUEST);
@@ -108,7 +107,7 @@ public class UsersManagementService {
         // If requested user IS in database but wrong password was provided
         if (!credentials.getPassword().equals(foundUser.getPasswordEncrypted()) &&
                 !passwordEncoder.matches(credentials.getPassword(), foundUser.getPasswordEncrypted())) {
-            rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(new EventLogRequest(credentials.getUsername(), null, null, EventType.ACQUISITION_FAILED,System.currentTimeMillis())));
+            rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(new EventLogRequest(credentials.getUsername(), null, null, EventType.LOGIN_FAILED, System.currentTimeMillis())));
 
             throw new UserManagementException("Incorrect login / password", HttpStatus.UNAUTHORIZED);
         }
