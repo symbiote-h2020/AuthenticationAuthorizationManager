@@ -24,7 +24,7 @@ plugins {
     id "java"
     // spring
     id "io.spring.dependency-management" version "1.0.3.RELEASE"
-    id 'org.springframework.boot' version '1.5.7.RELEASE'
+    id 'org.springframework.boot' version '1.5.8.RELEASE'
     // code quality
     id "jacoco"
     id "org.owasp.dependencycheck" version "2.1.1"
