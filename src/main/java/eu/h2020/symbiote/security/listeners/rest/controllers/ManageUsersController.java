@@ -19,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Spring controller to handle HTTPS requests related to the RESTful web services associated to users' management.
@@ -72,7 +71,7 @@ public class ManageUsersController implements IManageUsers {
                 return new ResponseEntity<>(new UserDetails(), e.getStatusCode());
             else
                 return new ResponseEntity<>(new UserDetails(), e.getStatusCode());
-        } catch (TimeoutException | IOException e) {
+        } catch (IOException e) {
             return null;
         }
     }
