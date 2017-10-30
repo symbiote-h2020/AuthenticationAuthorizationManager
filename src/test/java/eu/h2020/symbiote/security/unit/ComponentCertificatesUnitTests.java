@@ -49,13 +49,13 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
         when(certificationAuthorityHelper.getDeploymentType()).thenReturn(IssuingAuthorityType.PLATFORM);
         when(certificationAuthorityHelper.getAAMInstanceIdentifier()).thenReturn(oldCertificationAuthorityHelper.getAAMInstanceIdentifier());
 
-        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", certificationAuthorityHelper);
     }
 
     @After
     public void after() {
-        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress);
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", oldCertificationAuthorityHelper);
 
     }

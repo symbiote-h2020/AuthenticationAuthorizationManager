@@ -60,7 +60,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         super.setUp();
 
         // fixing the core AAM url to point to the dummyCoreAAM
-        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
     }
 
     @Test

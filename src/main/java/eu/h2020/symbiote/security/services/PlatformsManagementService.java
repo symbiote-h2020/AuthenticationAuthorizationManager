@@ -47,7 +47,7 @@ public class PlatformsManagementService {
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
 
-    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
+    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     private String coreInterfaceAddress;
 
     @Autowired

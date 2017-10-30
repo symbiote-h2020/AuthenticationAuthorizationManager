@@ -34,14 +34,12 @@ public class AAMServices {
     private final PlatformRepository platformRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
 
-    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
+    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     private String coreInterfaceAddress;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}")
     private String platformAAMSuffixAtInterWorkingInterface = "/paam";
     @Value("${aam.environment.interworkingInterfacePort::8101}")
     private String interworkingInterfacePort = ":8101";
-    @Value("${symbiote.coreaam.url:localhost}")
-    private String coreAAMAddress = "";
 
     @Autowired
     public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper, PlatformRepository platformRepository, ComponentCertificatesRepository componentCertificatesRepository) {
@@ -72,7 +70,7 @@ public class AAMServices {
             }
         } else {
             // a PAAM needs to fetch them from core
-            IAAMClient aamClient = new AAMClient(coreAAMAddress);
+            IAAMClient aamClient = new AAMClient(coreInterfaceAddress);
             availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
 
             String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();

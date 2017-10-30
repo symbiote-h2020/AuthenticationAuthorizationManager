@@ -39,7 +39,7 @@ public class UsersManagementFunctionalTests extends
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     protected String platformAAMSuffixAtInterWorkingInterface;
-    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
+    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     protected String coreInterfaceAddress;
     @Value("${rabbit.queue.get.user.details}")
     private String getUserDetailsQueue;

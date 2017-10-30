@@ -101,7 +101,7 @@ public abstract class AbstractAAMTestSuite {
     protected RestTemplate restTemplate = new RestTemplate();
     protected ObjectMapper mapper = new ObjectMapper();
     protected String serverAddress;
-    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
+    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     protected String coreInterfaceAddress;
     @Value("${rabbit.queue.getHomeToken.request}")
     protected String loginRequestQueue;
