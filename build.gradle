@@ -27,7 +27,7 @@ plugins {
     id 'org.springframework.boot' version '1.5.8.RELEASE'
     // code quality
     id "jacoco"
-    id "org.owasp.dependencycheck" version "2.1.1"
+    id "org.owasp.dependencycheck" version "3.0.1"
     // IDEs
     id "eclipse"
     id "idea"
