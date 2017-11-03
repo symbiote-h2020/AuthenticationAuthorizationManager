@@ -33,23 +33,29 @@ public class AAMServices {
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PlatformRepository platformRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
-
-    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
-    private String coreInterfaceAddress;
-    @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}")
-    private String platformAAMSuffixAtInterWorkingInterface = "/paam";
-    @Value("${aam.environment.interworkingInterfacePort::8101}")
-    private String interworkingInterfacePort = ":8101";
+    private final String coreInterfaceAddress;
+    private final String platformAAMSuffixAtInterWorkingInterface;
 
     @Autowired
-    public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper, PlatformRepository platformRepository, ComponentCertificatesRepository componentCertificatesRepository) {
+    public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper,
+                       PlatformRepository platformRepository,
+                       ComponentCertificatesRepository componentCertificatesRepository,
+                       @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
+                       @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}") String platformAAMSuffixAtInterWorkingInterface) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.platformRepository = platformRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
+        this.coreInterfaceAddress = coreInterfaceAddress;
+        this.platformAAMSuffixAtInterWorkingInterface = platformAAMSuffixAtInterWorkingInterface;
     }
 
 
-    public Map<String, AAM> getAvailableAAMs() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+    public Map<String, AAM> getAvailableAAMs() throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException {
         Map<String, AAM> availableAAMs = new TreeMap<>();
         if (certificationAuthorityHelper.getDeploymentType() == IssuingAuthorityType.CORE) {
             // if Core AAM then we know the available AAMs
@@ -101,7 +107,7 @@ public class AAMServices {
 
         String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         // our platform case
-         if (platformIdentifier.equals(deploymentId)) {
+        if (platformIdentifier.equals(deploymentId)) {
             if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME))
                 return certificationAuthorityHelper.getAAMCert();
 
