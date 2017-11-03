@@ -119,8 +119,13 @@ public class AAMServices {
         Map<String, AAM> availableAAMs = getAvailableAAMs();
         if (availableAAMs.containsKey(platformIdentifier)) {
             AAM aam = availableAAMs.get(platformIdentifier);
-            IAAMClient aamClient = new AAMClient(aam.getAamAddress());
-            return aamClient.getComponentCertificate(componentIdentifier, platformIdentifier);
+            if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME)) {
+                // AAM cert can be fetched without contacting the platform AAM itself
+                return aam.getAamCACertificate().getCertificateString();
+            } else {
+                IAAMClient aamClient = new AAMClient(aam.getAamAddress());
+                return aamClient.getComponentCertificate(componentIdentifier, platformIdentifier);
+            }
         }
         throw new AAMException("Selected certificate could not be found/retrieved");
     }
