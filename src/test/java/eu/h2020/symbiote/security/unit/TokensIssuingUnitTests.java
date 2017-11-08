@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
+import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
@@ -14,6 +15,7 @@ import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.FederationRule;
+import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
@@ -155,7 +157,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             OperatorCreationException,
             InvalidKeyException,
             KeyStoreException,
-            UnrecoverableKeyException, TimeoutException {
+            UnrecoverableKeyException, TimeoutException, BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
@@ -172,7 +174,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             WrongCredentialsException,
             JWTCreationException,
             MalformedJWTException,
-            ValidationException, TimeoutException {
+            ValidationException, TimeoutException, BlockedUserException {
         //user is not in DB
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -188,7 +190,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             WrongCredentialsException,
             JWTCreationException,
             MalformedJWTException,
-            ValidationException, TimeoutException {
+            ValidationException, TimeoutException, BlockedUserException {
         HomeCredentials homeCredentials = new HomeCredentials(null, null, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         getTokenService.getHomeToken(loginRequest);
@@ -206,7 +208,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             OperatorCreationException,
             UnrecoverableKeyException,
             InvalidKeyException,
-            JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException {
+            JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException, BlockedUserException {
 
         //component adding
         ComponentCertificate componentCertificate = new ComponentCertificate(
@@ -241,7 +243,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             OperatorCreationException,
             UnrecoverableKeyException,
             InvalidKeyException,
-            JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException {
+            JWTCreationException, WrongCredentialsException, InvalidAlgorithmParameterException, InvalidArgumentsException, NotExistingUserException, PlatformManagementException, UserManagementException, ValidationException, BlockedUserException {
 
         //platform owner adding
         ComponentCertificate componentCertificate = new ComponentCertificate(
@@ -275,6 +277,26 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         assertEquals(UserRole.USER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
         assertNotNull(attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
         assertEquals("attribute", attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
+    }
+
+    @Test(expected = BlockedUserException.class)
+    public void getHomeTokenForBlockedUser() throws
+            IOException,
+            CertificateException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            OperatorCreationException,
+            NoSuchProviderException,
+            InvalidKeyException,
+            JWTCreationException, MalformedJWTException, InvalidArgumentsException, WrongCredentialsException, BlockedUserException, ValidationException {
+        addTestUserWithClientCertificateToRepository();
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(username, clientId, "", EventType.ACQUISITION_FAILED, System.currentTimeMillis(), 100000));
+        assertTrue(inserted);
+        getTokenService.getHomeToken(loginRequest);
+
     }
 
     @Test

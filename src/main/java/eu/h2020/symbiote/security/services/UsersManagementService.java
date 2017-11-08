@@ -8,10 +8,7 @@ import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
@@ -21,6 +18,7 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import eu.h2020.symbiote.security.services.helpers.IAnomaliesHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -61,6 +59,7 @@ public class UsersManagementService {
     private final String adminUsername;
     private final String adminPassword;
     private final IssuingAuthorityType deploymentType;
+    private final IAnomaliesHelper anomaliesHelper;
 
     private final RabbitTemplate rabbitTemplate;
     protected ObjectMapper mapper = new ObjectMapper();
@@ -69,6 +68,7 @@ public class UsersManagementService {
     public UsersManagementService(UserRepository userRepository, RevokedKeysRepository revokedKeysRepository,
                                   CertificationAuthorityHelper certificationAuthorityHelper,
                                   PasswordEncoder passwordEncoder, RabbitTemplate rabbitTemplate,
+                                  IAnomaliesHelper anomaliesHelper,
                                   @Value("${aam.deployment.owner.username}") String adminUsername,
                                   @Value("${aam.deployment.owner.password}") String adminPassword) throws
             SecurityMisconfigurationException {
@@ -77,6 +77,7 @@ public class UsersManagementService {
         this.passwordEncoder = passwordEncoder;
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
         this.rabbitTemplate = rabbitTemplate;
+        this.anomaliesHelper = anomaliesHelper;
         this.adminUsername = adminUsername;
         this.adminPassword = adminPassword;
 
@@ -98,12 +99,15 @@ public class UsersManagementService {
         return this.manage(request);
     }
 
-    public UserDetails getUserDetails(Credentials credentials) throws UserManagementException, IOException {
+    public UserDetails getUserDetails(Credentials credentials) throws UserManagementException, IOException, BlockedUserException {
         //  If requested user is not in database
         if (!userRepository.exists(credentials.getUsername()))
             throw new UserManagementException("User not in database", HttpStatus.BAD_REQUEST);
 
         User foundUser = userRepository.findOne(credentials.getUsername());
+        if (anomaliesHelper.isBlocked(foundUser.getUsername(), EventType.LOGIN_FAILED))
+            throw new BlockedUserException();
+
         // If requested user IS in database but wrong password was provided
         if (!credentials.getPassword().equals(foundUser.getPasswordEncrypted()) &&
                 !passwordEncoder.matches(credentials.getPassword(), foundUser.getPasswordEncrypted())) {
@@ -124,56 +128,56 @@ public class UsersManagementService {
 
     private ManagementStatus manage(UserManagementRequest userManagementRequest)
             throws SecurityException {
-    	
-    	log.debug("Received a request for user management");
+
+        log.debug("Received a request for user management");
         UserDetails userDetails = userManagementRequest.getUserDetails();
 
         // Platform AAM does not support registering platform owners
         if (deploymentType == IssuingAuthorityType.PLATFORM
                 && userDetails.getRole() != UserRole.USER) {
-        	log.error("Platform AAM does not support registering platform owners");
+            log.error("Platform AAM does not support registering platform owners");
             throw new InvalidArgumentsException();
         }
 
         User userToManage = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
         switch (userManagementRequest.getOperationType()) {
             case CREATE:
-            	log.info("Request is a create request");
+                log.info("Request is a create request");
                 // validate request
                 String newUserUsername = userDetails.getCredentials().getUsername();
                 if (!newUserUsername.matches("^(([\\w-])+)$")) {
-                	log.error("Username "+newUserUsername+" contains invalid characters");
+                    log.error("Username " + newUserUsername + " contains invalid characters");
                     throw new InvalidArgumentsException("Could not create user with given Username");
                 }
                 if (newUserUsername.isEmpty()
                         || userDetails.getCredentials().getPassword().isEmpty()) {
-                	log.error("Username or password is empty");
+                    log.error("Username or password is empty");
                     throw new InvalidArgumentsException("Missing username or password");
                 }
                 if (deploymentType == IssuingAuthorityType.CORE
                         && (userDetails.getRecoveryMail().isEmpty()))
-                    // not used in R3
-                    // || userDetails.getFederatedId().isEmpty()))
+                // not used in R3
+                // || userDetails.getFederatedId().isEmpty()))
                 {
-                	log.error("Recovery information (email and OAuth) are both empty");
+                    log.error("Recovery information (email and OAuth) are both empty");
                     throw new InvalidArgumentsException("Missing recovery e-mail or OAuth identity");
                 }
 
                 // verify proper user role 
                 if (userDetails.getRole() == UserRole.NULL) {
-                	log.error("User Role is null");
+                    log.error("User Role is null");
                     throw new UserManagementException(HttpStatus.BAD_REQUEST);
                 }
 
                 // check if user already in repository
                 if (userRepository.exists(newUserUsername)) {
-                	log.error("Username "+newUserUsername+" already exists");
+                    log.error("Username " + newUserUsername + " already exists");
                     return ManagementStatus.USERNAME_EXISTS;
                 }
 
                 // blocking guest and AAMOwner registration, and aam component
                 if (adminUsername.equals(newUserUsername) || SecurityConstants.GUEST_NAME.equals(newUserUsername) || SecurityConstants.AAM_COMPONENT_NAME.equals(newUserUsername)) {
-                	log.error("Username "+newUserUsername+" would override a predefined username");
+                    log.error("Username " + newUserUsername + " would override a predefined username");
                     return ManagementStatus.ERROR;
                 }
 

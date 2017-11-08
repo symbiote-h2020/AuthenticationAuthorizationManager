@@ -14,6 +14,7 @@ import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import eu.h2020.symbiote.security.services.helpers.IAnomaliesHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.logging.Log;
@@ -47,6 +48,7 @@ public class GetTokenService {
     private final ValidationHelper validationHelper;
     private final String deploymentId;
     private final RabbitTemplate rabbitTemplate;
+    private final IAnomaliesHelper anomaliesHelper;
     protected ObjectMapper mapper = new ObjectMapper();
 
     @Value("${rabbit.queue.event}")
@@ -55,13 +57,14 @@ public class GetTokenService {
     private String anomalyDetectionRoutingKey;
 
     @Autowired
-    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository, ValidationHelper validationHelper, ComponentCertificatesRepository componentCertificateRepository, PlatformRepository platformRepository, CertificationAuthorityHelper certificationAuthorityHelper, RabbitTemplate rabbitTemplate) {
+    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository, ValidationHelper validationHelper, ComponentCertificatesRepository componentCertificateRepository, PlatformRepository platformRepository, CertificationAuthorityHelper certificationAuthorityHelper, RabbitTemplate rabbitTemplate, IAnomaliesHelper anomaliesHelper) {
         this.tokenIssuer = tokenIssuer;
         this.userRepository = userRepository;
         this.validationHelper = validationHelper;
         this.componentCertificateRepository = componentCertificateRepository;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.rabbitTemplate = rabbitTemplate;
+        this.anomaliesHelper = anomaliesHelper;
     }
 
     public Token getForeignToken(Token receivedRemoteHomeToken, String clientCertificate, String aamCertificate) throws
@@ -85,13 +88,17 @@ public class GetTokenService {
             JWTCreationException,
             WrongCredentialsException,
             CertificateException,
-            ValidationException, IOException {
+            ValidationException, IOException, BlockedUserException {
         // validate request
         JWTClaims claims = JWTEngine.getClaimsFromToken(loginRequest);
 
         if (claims.getIss() == null || claims.getSub() == null || claims.getIss().isEmpty() || claims.getSub().isEmpty()) {
             throw new InvalidArgumentsException();
         }
+
+        if (anomaliesHelper.isBlocked(claims.getIss(), EventType.ACQUISITION_FAILED))
+            throw new BlockedUserException();
+
         // try to find user
         String sub = claims.getSub();
         User userInDB = userRepository.findOne(claims.getIss());
@@ -126,6 +133,9 @@ public class GetTokenService {
             // ordinary user/po client
             userForToken = userInDB;
             keyForToken = userInDB.getClientCertificates().get(sub).getX509().getPublicKey();
+        }
+        if (anomaliesHelper.isBlocked(userForToken.getUsername(), EventType.ACQUISITION_FAILED)) {
+            throw new BlockedUserException();
         }
         return tokenIssuer.getHomeToken(userForToken, sub, keyForToken);
     }

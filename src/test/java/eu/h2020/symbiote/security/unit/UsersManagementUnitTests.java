@@ -3,15 +3,13 @@ package eu.h2020.symbiote.security.unit;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
-import eu.h2020.symbiote.security.commons.enums.OperationType;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.enums.*;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -436,6 +434,18 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         //  Request user with matching credentials
         UserDetails userDetails = aamClient.getUserDetails(new Credentials(username, password));
         assertNotNull(userDetails);
+    }
+
+    @Test(expected = UserManagementException.class)
+    public void getBlockedUserOverRestFailure() throws UserManagementException {
+        //  Register user in database
+        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
+        userRepository.save(platformOwner);
+        //  Request user with matching credentials
+        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(username, clientId, "", EventType.LOGIN_FAILED, System.currentTimeMillis(), 100000));
+        assertTrue(inserted);
+
+        aamClient.getUserDetails(new Credentials(username, password));
     }
 
     @Test(expected = UserManagementException.class)

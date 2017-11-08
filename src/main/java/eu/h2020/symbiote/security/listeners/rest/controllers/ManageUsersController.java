@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.BlockedUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
@@ -65,7 +66,7 @@ public class ManageUsersController implements IManageUsers {
                     Credentials credentials) {
         try {
             return new ResponseEntity<>(usersManagementService.getUserDetails(credentials), HttpStatus.OK);
-        } catch (UserManagementException e) {
+        } catch (UserManagementException | BlockedUserException e) {
             log.error(e);
             if (e.getStatusCode() == HttpStatus.BAD_REQUEST)
                 return new ResponseEntity<>(new UserDetails(), e.getStatusCode());

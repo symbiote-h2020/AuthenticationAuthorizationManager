@@ -3,8 +3,10 @@ package eu.h2020.symbiote.security.services.helpers;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.BlockedUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
@@ -59,6 +61,7 @@ public class ValidationHelper {
     private final UserRepository userRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final AAMServices aamServices;
+    private final IAnomaliesHelper anomaliesHelper;
 
     // usable
     private final RestTemplate restTemplate = new RestTemplate();
@@ -71,7 +74,7 @@ public class ValidationHelper {
     @Autowired
     public ValidationHelper(CertificationAuthorityHelper certificationAuthorityHelper,
                             RevokedKeysRepository revokedKeysRepository,
-                            RevokedTokensRepository revokedTokensRepository, FederationRulesRepository federationRulesRepository, UserRepository userRepository, PlatformRepository platformRepository, ComponentCertificatesRepository componentCertificatesRepository, AAMServices aamServices) {
+                            RevokedTokensRepository revokedTokensRepository, FederationRulesRepository federationRulesRepository, UserRepository userRepository, PlatformRepository platformRepository, ComponentCertificatesRepository componentCertificatesRepository, AAMServices aamServices, IAnomaliesHelper anomaliesHelper) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
@@ -81,6 +84,7 @@ public class ValidationHelper {
         this.userRepository = userRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.aamServices = aamServices;
+        this.anomaliesHelper = anomaliesHelper;
     }
 
     public ValidationStatus validate(String token, String clientCertificate, String clientCertificateSigningAAMCertificate, String foreignTokenIssuingAAMCertificate) {
@@ -95,6 +99,10 @@ public class ValidationHelper {
             Claims claims = tokenForValidation.getClaims();
             String spk = claims.get("spk").toString();
             String ipk = claims.get("ipk").toString();
+            String userFromToken = claims.getSubject().split(illegalSign)[0];
+
+            if (anomaliesHelper.isBlocked(userFromToken, EventType.VALIDATION_FAILED))
+                throw new BlockedUserException();
 
             // check if token issued by us
             if (!deploymentId.equals(claims.getIssuer())) {
@@ -127,7 +135,6 @@ public class ValidationHelper {
                 return ValidationStatus.REVOKED_TOKEN;
             }
 
-            String userFromToken = claims.getSubject().split(illegalSign)[0];
 
             // check if SPK is is in the revoked repository
             if (revokedKeysRepository.exists(userFromToken) && revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
@@ -202,7 +209,7 @@ public class ValidationHelper {
                     break;
             }
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
-                KeyStoreException | NoSuchProviderException e) {
+                KeyStoreException | NoSuchProviderException | BlockedUserException e) {
             log.error(e);
             return ValidationStatus.UNKNOWN;
         }
