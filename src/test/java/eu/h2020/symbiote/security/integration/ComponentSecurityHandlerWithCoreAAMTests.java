@@ -64,7 +64,9 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
                 serverAddress,
                 false,
                 AAMOwnerUsername,
-                AAMOwnerPassword
+                AAMOwnerPassword,
+                null,
+                0
         );
 
         // getting a CRM service response

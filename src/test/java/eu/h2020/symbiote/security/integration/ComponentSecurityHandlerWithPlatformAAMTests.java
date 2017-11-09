@@ -83,7 +83,9 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
                 serverAddress,
                 false,
                 AAMOwnerUsername,
-                AAMOwnerPassword
+                AAMOwnerPassword,
+                null,
+                0
         );
 
         // getting a CRM service response

@@ -87,6 +87,9 @@ dependencies {
     compile('com.github.symbiote-h2020:SymbIoTeSecurity:22.+:sources'){ changing = true }
     //compile project(':SymbIoTeSecurity')
 
+    //compile project(':AnomaliesListenerExtension')
+    compile files('./src/main/resources/AnomaliesListenerExtension-0.0.1-SNAPSHOT.jar')
+
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
     compile('org.springframework.cloud:spring-cloud-starter-config')
