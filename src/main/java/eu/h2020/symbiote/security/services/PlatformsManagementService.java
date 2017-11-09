@@ -60,7 +60,7 @@ public class PlatformsManagementService {
     }
 
     public PlatformManagementResponse manage(PlatformManagementRequest platformManagementRequest) throws
-            SecurityException {
+            SecurityException, CertificateException {
 
         Credentials platformOwnerCredentials = platformManagementRequest.getPlatformOwnerCredentials();
 
@@ -111,9 +111,12 @@ public class PlatformsManagementService {
                 // use PO preferred platform identifier
                 platformId = platformManagementRequest.getPlatformInstanceId();
 
-                Platform platform = new Platform(platformId, platformManagementRequest
-                        .getPlatformInterworkingInterfaceAddress(),
-                        platformManagementRequest.getPlatformInstanceFriendlyName(), platformOwner, new Certificate(), new HashMap<>());
+                Platform platform = new Platform(platformId,
+                        platformManagementRequest.getPlatformInterworkingInterfaceAddress(),
+                        platformManagementRequest.getPlatformInstanceFriendlyName(),
+                        platformOwner,
+                        new Certificate(),
+                        new HashMap<>());
                 platformRepository.save(platform);
                 platformOwner.getOwnedPlatforms().add(platformId);
                 userRepository.save(platformOwner);
@@ -174,6 +177,8 @@ public class PlatformsManagementService {
                 platformOwner.getOwnedPlatforms().remove(platformManagementRequest.getPlatformInstanceId());
                 userRepository.save(platformOwner);
                 break;
+            default:
+                throw new PlatformManagementException("Invalid operation", HttpStatus.BAD_REQUEST);
         }
 
         return new PlatformManagementResponse(platformManagementRequest.getPlatformInstanceId(), ManagementStatus.OK);
@@ -181,13 +186,14 @@ public class PlatformsManagementService {
 
 
     public PlatformManagementResponse authManage(PlatformManagementRequest request) throws
-            SecurityException {
+            SecurityException,
+            CertificateException {
         // check if we received required credentials
-        if (request.getAAMOwnerCredentials() == null || request.getPlatformOwnerCredentials() == null)
+        if (request.getAamOwnerCredentials() == null || request.getPlatformOwnerCredentials() == null)
             throw new InvalidArgumentsException("Missing credentials");
         // check if this operation is authorized
-        if (!request.getAAMOwnerCredentials().getUsername().equals(AAMOwnerUsername)
-                || !request.getAAMOwnerCredentials().getPassword().equals(AAMOwnerPassword))
+        if (!request.getAamOwnerCredentials().getUsername().equals(AAMOwnerUsername)
+                || !request.getAamOwnerCredentials().getPassword().equals(AAMOwnerPassword))
             throw new WrongCredentialsException();
         return this.manage(request);
     }

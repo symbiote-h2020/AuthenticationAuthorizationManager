@@ -198,7 +198,7 @@ public abstract class AbstractAAMTestSuite {
         return user;
     }
 
-    protected void saveTwoDifferentUsers() {
+    protected void saveTwoDifferentUsers() throws CertificateException {
         User userOne = createUser("userOne", "Password", recoveryMail, UserRole.USER);
         User userTwo = createUser("userTwo", "Password", recoveryMail, UserRole.USER);
 

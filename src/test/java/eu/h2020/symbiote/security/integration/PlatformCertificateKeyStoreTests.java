@@ -2,10 +2,7 @@ package eu.h2020.symbiote.security.integration;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.helpers.PlatformAAMCertificateKeyStoreFactory;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -40,7 +37,8 @@ public class PlatformCertificateKeyStoreTests extends AbstractAAMTestSuite {
             NotExistingUserException,
             WrongCredentialsException,
             NoSuchProviderException,
-            UnrecoverableKeyException {
+            UnrecoverableKeyException,
+            AAMException {
         //platformOwner and platform  registration
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, "", "", platformOwner, new Certificate(), new HashMap<>());

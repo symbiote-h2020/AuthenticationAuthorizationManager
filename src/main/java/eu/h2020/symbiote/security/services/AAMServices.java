@@ -55,7 +55,8 @@ public class AAMServices {
             KeyStoreException,
             IOException,
             CertificateException,
-            NoSuchAlgorithmException {
+            NoSuchAlgorithmException,
+            AAMException {
         Map<String, AAM> availableAAMs = new TreeMap<>();
         if (certificationAuthorityHelper.getDeploymentType() == IssuingAuthorityType.CORE) {
             // if Core AAM then we know the available AAMs
@@ -80,9 +81,7 @@ public class AAMServices {
             availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
 
             String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
-            AAM aam = availableAAMs.get(deploymentId);
-
-            aam.setComponentCertificates(fillComponentCertificatesMap());
+            availableAAMs.get(deploymentId).getComponentCertificates().putAll(fillComponentCertificatesMap());
         }
         return availableAAMs;
     }

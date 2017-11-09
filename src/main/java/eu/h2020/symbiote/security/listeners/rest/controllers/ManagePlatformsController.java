@@ -13,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.cert.CertificateException;
+
 /**
  * Spring controller to handle HTTPS requests related to the RESTful web services associated to users' management.
  *
@@ -40,7 +42,7 @@ public class ManagePlatformsController implements IManagePlatforms {
         try {
             PlatformManagementResponse platformManagementResponse = platformsManagementService.authManage(platformManagementRequest);
             return ResponseEntity.status(HttpStatus.OK).body(platformManagementResponse);
-        } catch (SecurityException e) {
+        } catch (SecurityException | CertificateException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new PlatformManagementResponse(null, ManagementStatus.ERROR));
         }
     }

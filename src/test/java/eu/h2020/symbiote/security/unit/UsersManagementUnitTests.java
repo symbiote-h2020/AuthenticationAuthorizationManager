@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
@@ -429,7 +430,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getExistingUserOverRestSuccess() throws UserManagementException {
+    public void getExistingUserOverRestSuccess() throws UserManagementException, AAMException {
         //  Register user in database
         User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
         userRepository.save(platformOwner);
@@ -439,7 +440,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = UserManagementException.class)
-    public void getNotExistingUserOverRestFailure() throws UserManagementException {
+    public void getNotExistingUserOverRestFailure() throws UserManagementException, AAMException {
         //  Register user in database
         User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
         userRepository.save(platformOwner);
@@ -448,7 +449,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = UserManagementException.class)
-    public void getUserOverRestFailsForwrongPassword() throws UserManagementException {
+    public void getUserOverRestFailsForWrongPassword() throws UserManagementException, AAMException {
         //  Register user in database
         User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
         userRepository.save(platformOwner);

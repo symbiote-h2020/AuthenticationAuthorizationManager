@@ -96,7 +96,7 @@ public class OtherListenersFunctionalTests extends
 
     @Test
     public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
-            CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+            CertificateException, NoSuchProviderException, KeyStoreException, IOException, AAMException {
 
         // injecting core component certificate
         String componentId = "registry";
@@ -250,8 +250,13 @@ public class OtherListenersFunctionalTests extends
 
 
         // issue second platform registration over AMQP
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId + "2");
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(platformInterworkingInterfaceAddress + "/second");
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress + "/second",
+                platformInstanceFriendlyName,
+                platformId + "2",
+                OperationType.CREATE);
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -270,8 +275,13 @@ public class OtherListenersFunctionalTests extends
 
 
         // issue second platform registration over AMQP
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId("");
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(platformInterworkingInterfaceAddress + "/third");
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress + "/third",
+                platformInstanceFriendlyName,
+                "",
+                OperationType.CREATE);
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -351,7 +361,7 @@ public class OtherListenersFunctionalTests extends
     }
 
     @Test
-    public void getPlatformOwnersNamesSuccess() throws IOException, TimeoutException {
+    public void getPlatformOwnersNamesSuccess() throws IOException, TimeoutException, CertificateException {
         saveTwoDifferentUsers();
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");
@@ -368,8 +378,10 @@ public class OtherListenersFunctionalTests extends
     }
 
     @Test
-    public void getPlatformOwnersNamesFailsForIncorrectAdminCredentials() throws IOException, TimeoutException {
-
+    public void getPlatformOwnersNamesFailsForIncorrectAdminCredentials() throws
+            IOException,
+            TimeoutException,
+            CertificateException {
         saveTwoDifferentUsers();
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");
@@ -383,8 +395,10 @@ public class OtherListenersFunctionalTests extends
     }
 
     @Test
-    public void getPlatformOwnersNamesFailsWithoutAdminCredentials() throws IOException, TimeoutException {
-
+    public void getPlatformOwnersNamesFailsWithoutAdminCredentials() throws
+            IOException,
+            TimeoutException,
+            CertificateException {
         saveTwoDifferentUsers();
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");

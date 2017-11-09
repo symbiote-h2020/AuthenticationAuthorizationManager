@@ -78,7 +78,8 @@ public class SignCertificateRequestService {
             InvalidArgumentsException,
             UserManagementException,
             PlatformManagementException,
-            ValidationException {
+            ValidationException,
+            CertificateException {
 
         String pem;
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
@@ -174,7 +175,7 @@ public class SignCertificateRequestService {
     private void putComponentCertificateToRepository(PKCS10CertificationRequest req,
                                                      CertificateRequest certificateRequest,
                                                      String pem,
-                                                     X509Certificate certFromCSR) {
+                                                     X509Certificate certFromCSR) throws CertificateException {
 
         String componentId = req.getSubject().toString().split("CN=")[1].split("@")[0];
         String platformId = req.getSubject().toString().split("CN=")[1].split("@")[1];
@@ -208,7 +209,7 @@ public class SignCertificateRequestService {
     private void putPlatformCertificateToRepository(PKCS10CertificationRequest req,
                                                     CertificateRequest certificateRequest,
                                                     String pem,
-                                                    X509Certificate certFromCSR) {
+                                                    X509Certificate certFromCSR) throws CertificateException {
 
         String platformId = req.getSubject().toString().split("CN=")[1];
         Platform platform = platformRepository.findOne(platformId);
@@ -225,13 +226,12 @@ public class SignCertificateRequestService {
             if (x509PlatformCert.getPublicKey().equals(certFromCSR.getPublicKey())) {
                 platform.setPlatformAAMCertificate(new Certificate(pem));
             } else {
-
                 RevocationRequest revocationRequest = new RevocationRequest();
                 revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
                 revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
                 revocationRequest.setCertificateCommonName(platformId);
                 if (!revocationService.revoke(revocationRequest).isRevoked()) {
-                    throw new SecurityException();
+                    throw new SecurityException("Failed to revoke existing platform certificate");
                 }
                 platform.setPlatformAAMCertificate(new Certificate(pem));
             }
@@ -244,7 +244,7 @@ public class SignCertificateRequestService {
     private void putUserCertificateToRepository(User user,
                                                 CertificateRequest certificateRequest,
                                                 X509Certificate certFromCSR,
-                                                String pem) {
+                                                String pem) throws CertificateException {
 
         Certificate userCert = user.getClientCertificates().get(certificateRequest.getClientId());
         if (userCert != null) {

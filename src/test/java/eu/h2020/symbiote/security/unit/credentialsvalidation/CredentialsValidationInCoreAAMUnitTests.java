@@ -10,6 +10,7 @@ import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
@@ -104,7 +105,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                     "yqWmjrYhosEiCUoVxIQVAiAwhZdM0XAeGGfTP2WsXGKFtcw/nL/gzvYSjAAGbkyx\n" +
                     "sw==\n" +
                     "-----END CERTIFICATE-----\n";
-
+    private static SecureRandom random = new SecureRandom();
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
@@ -124,8 +125,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-    private static SecureRandom random = new SecureRandom();
-
 
     @Override
     @Before
@@ -136,10 +135,13 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 platformManagementRequestQueue, 5000);
         platformOwnerUserCredentials = new Credentials(platformOwnerUsername, platformOwnerPassword);
-        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
-                preferredPlatformId, OperationType.CREATE);
+                preferredPlatformId,
+                OperationType.CREATE);
 
         addTestUserWithClientCertificateToRepository();
     }
@@ -271,9 +273,20 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         savePlatformOwner();
 
         // registering the platform to the Core AAM so it will be available for token revocation
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
-
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
+                preferredPlatformId,
+                OperationType.CREATE);
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                serverAddress + "/test",
+                platformInstanceFriendlyName,
+                platformId,
+                OperationType.CREATE);
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
@@ -389,7 +402,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             NoSuchAlgorithmException,
             KeyStoreException,
             NoSuchProviderException,
-            JWTCreationException {
+            JWTCreationException,
+            AAMException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -426,8 +440,13 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         savePlatformOwner();
         // registering the platform to the Core AAM so it will be available for token revocation
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId("platform-1");
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                serverAddress + "/test",
+                platformInstanceFriendlyName,
+                "platform-1",
+                OperationType.CREATE);
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -608,24 +627,24 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         KeyPair keyPair = CryptoHelper.createKeyPair();
         Token homeToken = new Token(buildAuthorizationToken(
-                    username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID,
-                    new HashMap<>(),
-                    userKeyPair.getPublic().getEncoded(),
-                    Token.Type.HOME,
-                    new Date().getTime() + 60000,
-                    "coreClient-1",
-                    keyPair.getPublic(),
-                    keyPair.getPrivate()));
+                username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID,
+                new HashMap<>(),
+                userKeyPair.getPublic().getEncoded(),
+                Token.Type.HOME,
+                new Date().getTime() + 60000,
+                "coreClient-1",
+                keyPair.getPublic(),
+                keyPair.getPrivate()));
 
         Token foreignToken = new Token(buildAuthorizationToken(
-                    username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID + illegalSign + homeToken.getClaims().getId(),
-                    new HashMap<>(),
-                    userKeyPair.getPublic().getEncoded(),
-                    Token.Type.FOREIGN,
-                    new Date().getTime() + 60000,
-                    "coreClient-1",
-                    keyPair.getPublic(),
-                    keyPair.getPrivate()));
+                username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID + illegalSign + homeToken.getClaims().getId(),
+                new HashMap<>(),
+                userKeyPair.getPublic().getEncoded(),
+                Token.Type.FOREIGN,
+                new Date().getTime() + 60000,
+                "coreClient-1",
+                keyPair.getPublic(),
+                keyPair.getPrivate()));
 
 
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
@@ -680,8 +699,13 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         savePlatformOwner();
         // registering the platform to the Core AAM so it will be available for token revocation
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId("platform-1");
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                serverAddress + "/test",
+                platformInstanceFriendlyName,
+                "platform-1",
+                OperationType.CREATE);
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -737,7 +761,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             KeyStoreException,
-            JWTCreationException {
+            JWTCreationException,
+            AAMException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -753,8 +778,13 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         savePlatformOwner();
         saveUser();
         // registering the platform to the Core AAM so it will be available for token revocation
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test/conn_err");
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                serverAddress + "/test/conn_err",
+                platformInstanceFriendlyName,
+                platformId,
+                OperationType.CREATE);
 
         // issue platform registration over AMQP
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString

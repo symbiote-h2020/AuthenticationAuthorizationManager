@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
@@ -99,13 +100,11 @@ public class ValidationHelper {
             // check if token issued by us
             if (!deploymentId.equals(claims.getIssuer())) {
                 // not our token, but the Core AAM knows things ;)
-                if (deploymentType == IssuingAuthorityType.CORE) {
-                    // check if IPK is in the revoked set
-                    if (revokedKeysRepository.exists(claims.getIssuer()) &&
-                            revokedKeysRepository.findOne(claims.getIssuer()).getRevokedKeysSet().contains(ipk)) {
-                        return ValidationStatus.REVOKED_IPK;
-                    }
-                }
+                if (deploymentType == IssuingAuthorityType.CORE
+                        && revokedKeysRepository.exists(claims.getIssuer()) // check if IPK is in the revoked set
+                        && revokedKeysRepository.findOne(claims.getIssuer()).getRevokedKeysSet().contains(ipk))
+                    return ValidationStatus.REVOKED_IPK;
+
                 // relay validation to issuer
                 return validateRemotelyIssuedToken(token, clientCertificate, clientCertificateSigningAAMCertificate, foreignTokenIssuingAAMCertificate);
             }
@@ -197,22 +196,28 @@ public class ValidationHelper {
                             return originCredentialsValidationStatus;
                     }
                     break;
-                case GUEST:
-                case NULL:
+                default:
                     break;
             }
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
-                KeyStoreException | NoSuchProviderException e) {
+                KeyStoreException | NoSuchProviderException | AAMException e) {
             log.error(e);
             return ValidationStatus.UNKNOWN;
         }
         return ValidationStatus.VALID;
     }
 
-    public ValidationStatus validateRemotelyIssuedToken(String tokenString, String clientCertificate, String clientCertificateSigningAAMCertificate, String foreignTokenIssuingAAMCertificate) throws
+    public ValidationStatus validateRemotelyIssuedToken(String tokenString,
+                                                        String clientCertificate,
+                                                        String clientCertificateSigningAAMCertificate,
+                                                        String foreignTokenIssuingAAMCertificate) throws
             CertificateException,
-            ValidationException, NoSuchAlgorithmException, NoSuchProviderException,
-            KeyStoreException, IOException {
+            ValidationException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            AAMException {
         // if the certificate is not empty, then check the trust chain
         if (!clientCertificate.isEmpty() && !clientCertificateSigningAAMCertificate.isEmpty()) {
             try {
@@ -536,7 +541,8 @@ public class ValidationHelper {
             NoSuchProviderException,
             KeyStoreException,
             IOException,
-            ValidationException {
+            ValidationException,
+            AAMException {
         Token token = new Token(stringToken);
         String platformId = token.getClaims().getSubject().split(illegalSign)[2];
         // fetching origin token AAM

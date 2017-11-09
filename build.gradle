@@ -9,7 +9,6 @@ buildscript {
     repositories {
         mavenCentral()
         jcenter()
-        maven { url 'http://oss.jfrog.org/artifactory/oss-snapshot-local/' }
     }
     dependencies {
         classpath("io.github.swagger2markup:swagger2markup-spring-restdocs-ext:1.2.0")
@@ -46,7 +45,6 @@ targetCompatibility = 1.8
 // dependencies section
 repositories {
     mavenCentral()
-    jcenter()
     maven { url "https://jitpack.io" }
 }
 // Spring related configs
@@ -82,9 +80,9 @@ dependencies {
             3) project dependency requires changes in settings.gradle file in this project
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:22.+'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:23.+'){ changing = true }
     // allows to select the downloaded matching sources in IntelliJ Idea as it fails to do so automatically from jitpack repo
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:22.+:sources'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:23.+:sources'){ changing = true }
     //compile project(':SymbIoTeSecurity')
 
     // Spring

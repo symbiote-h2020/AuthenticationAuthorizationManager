@@ -533,7 +533,7 @@ public class RevocationUnitTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
         String platformCertificate = signCertificateRequestService.signCertificate(certRequest);
-        platform.getPlatformAAMCertificate().setCertificateString(platformCertificate);
+        platform.setPlatformAAMCertificate(new Certificate(platformCertificate));
         platformRepository.save(platform);
         assertNotNull(platformCertificate);
 

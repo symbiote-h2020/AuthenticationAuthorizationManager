@@ -48,7 +48,7 @@ public class DummyCoreAAM {
     private static final String platformId = "platform-1";
     public int port;
     private Certificate revokedCert;
-    private AvailableAAMsCollection aams = new AvailableAAMsCollection();
+    private AvailableAAMsCollection aams = new AvailableAAMsCollection(new HashMap<>());
 
     public DummyCoreAAM() throws
             CertificateException,
