@@ -75,8 +75,13 @@ public class CertificationAuthorityHelper {
             case NULL:
                 throw new CertificateException("Failed to initialize AAM using given symbiote keystore");
         }
-        if (!getAAMPrivateKey().getAlgorithm().equals("EC"))
-            throw new SecurityMisconfigurationException("configuration points to a Cerfiticate that doesn't match the symbiote requirements. Please check SymbioteCloud readme on PAAM certificate.");
+        PrivateKey aamPrivateKey = getAAMPrivateKey();
+        if (aamPrivateKey == null
+                || aamPrivateKey.getAlgorithm() == null)
+            throw new SecurityMisconfigurationException("Can't find AAM private key using the given configuration. Please check SymbioteCloud readme on PAAM certificate.");
+        if (!aamPrivateKey.getAlgorithm().equals("EC"))
+            throw new SecurityMisconfigurationException("Configuration points to a certificate that doesn't match the symbiote requirements. Please check SymbioteCloud readme on PAAM certificate.");
+
     }
 
     /**
