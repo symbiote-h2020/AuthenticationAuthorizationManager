@@ -1,7 +1,6 @@
 package eu.h2020.symbiote.security.services.helpers;
 
 import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
@@ -320,7 +319,7 @@ public class RevocationHelper {
                     }
                     String componentId = certificateCommonName.split(illegalSign)[0];
                     String platformId = certificateCommonName.split(illegalSign)[1];
-                    if (!platformId.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)) {
+                    if (!platformId.equals(certificationAuthorityHelper.getAAMInstanceIdentifier())) {
                         throw new WrongCredentialsException();
                     }
                     return revokeLocalComponentUsingCommonName(componentId);
@@ -378,7 +377,7 @@ public class RevocationHelper {
                 return revokePlatformCertificateUsingCertificate(certificate, platform);
             case 2:
                 String platformId = certificateCommonName.split(illegalSign)[1];
-                if (!platformId.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)) {
+                if (!platformId.equals(certificationAuthorityHelper.getAAMInstanceIdentifier())) {
                     throw new CertificateException();
                 }
                 return revokeLocalComponentUsingCertificate(certificate);
