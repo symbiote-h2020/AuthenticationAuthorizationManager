@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -52,6 +53,8 @@ public class CertificatesIssuingUnitTests extends
     private CertificationAuthorityHelper certificationAuthorityHelper;
     @Autowired
     private SignCertificateRequestService signCertificateRequestService;
+    @Autowired
+    private RevokedKeysRepository revokedKeysRepository;
 
     @Test
     public void generateCertificateFromCSRSuccess() throws OperatorCreationException, CertificateException,
@@ -278,6 +281,7 @@ public class CertificatesIssuingUnitTests extends
             UserManagementException,
             PlatformManagementException {
 
+        // initial issue
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
         assertNotNull(csrString);
@@ -291,6 +295,16 @@ public class CertificatesIssuingUnitTests extends
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
         assertNotNull(componentCertificatesRepository.findOne(componentId));
+
+        // override check
+        pair = CryptoHelper.createKeyPair();
+        csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
+        assertNotNull(csrString);
+        certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csrString);
+        certificate = signCertificateRequestService.signCertificate(certRequest);
+        assertTrue(componentCertificatesRepository.exists(componentId));
+        assertEquals(componentCertificatesRepository.findOne(componentId).getCertificate().getCertificateString(), certificate);
+        assertTrue(revokedKeysRepository.exists(componentId));
     }
 
     @Test(expected = WrongCredentialsException.class)

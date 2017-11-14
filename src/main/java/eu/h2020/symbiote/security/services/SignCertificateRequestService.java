@@ -196,8 +196,9 @@ public class SignCertificateRequestService {
                 revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
                 revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
                 revocationRequest.setCertificateCommonName(componentId + illegalSign + platformId);
+                // TODO R4 investigate as this causes errors...
                 if (!revocationService.revoke(revocationRequest).isRevoked()) {
-                    throw new SecurityException("Revocation of old certificate is not possible.");
+                    throw new SecurityException("Revocation of component's: " + componentId + illegalSign + platformId + " old certificate is not possible.");
                 }
                 componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
             }
