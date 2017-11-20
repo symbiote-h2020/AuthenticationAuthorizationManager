@@ -28,6 +28,7 @@ import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
@@ -65,8 +66,7 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
                 false,
                 AAMOwnerUsername,
                 AAMOwnerPassword,
-                null,
-                0
+                Optional.empty()
         );
 
         // getting a CRM service response

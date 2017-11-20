@@ -42,7 +42,7 @@ public class CredentialsValidationService {
         ValidationStatus responseStatus = validationHelper.validate(tokenString, clientCertificate, clientCertificateSigningAAMCertificate, foreignTokenIssuingAAMCertificate);
 
         if(responseStatus != ValidationStatus.VALID){
-            rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(new EventLogRequest(tokenString, EventType.VALIDATION_FAILED,System.currentTimeMillis())));
+            rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(new EventLogRequest(tokenString, EventType.VALIDATION_FAILED,System.currentTimeMillis(), null)));
         }
         return responseStatus;
     }
