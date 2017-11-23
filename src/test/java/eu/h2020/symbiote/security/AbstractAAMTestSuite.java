@@ -127,6 +127,9 @@ public abstract class AbstractAAMTestSuite {
     protected String CERTIFICATE_ALIAS;
     @Value("${aam.deployment.token.validityMillis}")
     protected Long tokenValidityPeriod;
+    @Value("${aam.cache.expireMillis}")
+    protected Long cacheExpirationTime;
+
     protected IAAMClient aamClient;
     @LocalServerPort
     private int port;

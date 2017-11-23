@@ -14,7 +14,9 @@ import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.*;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
+import eu.h2020.symbiote.security.repositories.entities.RevokedRemoteToken;
 import eu.h2020.symbiote.security.services.AAMServices;
+import eu.h2020.symbiote.security.services.ValidTokensService;
 import io.jsonwebtoken.Claims;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -44,6 +46,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
  * @author Nemanja Ignjatov (UNIVIE)
  * @author Mikołaj Dobski (PSNC)
  * @author Piotr Kicki (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 @Component
 public class ValidationHelper {
@@ -56,10 +59,12 @@ public class ValidationHelper {
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final RevokedKeysRepository revokedKeysRepository;
     private final RevokedTokensRepository revokedTokensRepository;
+    private final RevokedRemoteTokensRepository revokedRemoteTokensRepository;
     private final FederationRulesRepository federationRulesRepository;
     private final UserRepository userRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final AAMServices aamServices;
+    private final ValidTokensService validTokensService;
 
     // usable
     private final RestTemplate restTemplate = new RestTemplate();
@@ -72,16 +77,24 @@ public class ValidationHelper {
     @Autowired
     public ValidationHelper(CertificationAuthorityHelper certificationAuthorityHelper,
                             RevokedKeysRepository revokedKeysRepository,
-                            RevokedTokensRepository revokedTokensRepository, FederationRulesRepository federationRulesRepository, UserRepository userRepository, PlatformRepository platformRepository, ComponentCertificatesRepository componentCertificatesRepository, AAMServices aamServices) {
+                            RevokedTokensRepository revokedTokensRepository,
+                            RevokedRemoteTokensRepository revokedRemoteTokensRepository,
+                            FederationRulesRepository federationRulesRepository,
+                            UserRepository userRepository,
+                            ComponentCertificatesRepository componentCertificatesRepository,
+                            AAMServices aamServices,
+                            ValidTokensService validTokensService) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
         this.revokedKeysRepository = revokedKeysRepository;
         this.revokedTokensRepository = revokedTokensRepository;
+        this.revokedRemoteTokensRepository = revokedRemoteTokensRepository;
         this.federationRulesRepository = federationRulesRepository;
         this.userRepository = userRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.aamServices = aamServices;
+        this.validTokensService = validTokensService;
     }
 
     public ValidationStatus validate(String token, String clientCertificate, String clientCertificateSigningAAMCertificate, String foreignTokenIssuingAAMCertificate) {
@@ -185,6 +198,7 @@ public class ValidationHelper {
                     switch (originCredentialsValidationStatus) {
                         case VALID:
                             // origin credentials are valid
+                            validTokensService.save(tokenForValidation);
                             break;
                         case UNKNOWN:
                         case WRONG_AAM:
@@ -218,6 +232,15 @@ public class ValidationHelper {
             KeyStoreException,
             IOException,
             AAMException {
+
+        Claims claims = JWTEngine.getClaims(tokenString);
+        //checking if token is revoked
+        if (revokedRemoteTokensRepository.exists(claims.getIssuer() + illegalSign + claims.getId())) {
+            return ValidationStatus.REVOKED_TOKEN;
+        }
+        if (validTokensService.exists(new Token(tokenString))) {
+            return ValidationStatus.VALID;
+        }
         // if the certificate is not empty, then check the trust chain
         if (!clientCertificate.isEmpty() && !clientCertificateSigningAAMCertificate.isEmpty()) {
             try {
@@ -247,10 +270,8 @@ public class ValidationHelper {
                 return ValidationStatus.INVALID_TRUST_CHAIN;
             }
         }
-
         // resolving available AAMs in search of the token issuer
         Map<String, AAM> availableAAMs = aamServices.getAvailableAAMs();
-        Claims claims = JWTEngine.getClaims(tokenString);
         String issuer = claims.getIssuer();
         // Core does not know such an issuer and therefore this might be a forfeit
         if (!availableAAMs.containsKey(issuer))
@@ -274,7 +295,19 @@ public class ValidationHelper {
             ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(
                     aamAddress + SecurityConstants.AAM_VALIDATE_CREDENTIALS,
                     entity, ValidationStatus.class);
-            return status.getBody();
+            switch (status.getBody()) {
+                case VALID:
+                    validTokensService.save(new Token(tokenString));
+                    return status.getBody();
+                case UNKNOWN:
+                case WRONG_AAM:
+                    // there was some issue with validating the origin credentials
+                    return status.getBody();
+                default:
+                    // we need to invalidate our token
+                    revokedRemoteTokensRepository.save(new RevokedRemoteToken(claims.getIssuer() + illegalSign + claims.getId()));
+                    return status.getBody();
+            }
         } catch (Exception e) {
             log.error(e);
             // when there is problem with request
@@ -544,6 +577,9 @@ public class ValidationHelper {
             ValidationException,
             AAMException {
         Token token = new Token(stringToken);
+        if (validTokensService.exists(token)) {
+            return ValidationStatus.VALID;
+        }
         String platformId = token.getClaims().getSubject().split(illegalSign)[2];
         // fetching origin token AAM
         if (aamServices.getAvailableAAMs().get(platformId) == null) {

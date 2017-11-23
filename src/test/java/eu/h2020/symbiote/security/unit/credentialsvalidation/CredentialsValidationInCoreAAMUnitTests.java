@@ -17,6 +17,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.RevokedRemoteTokensRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
@@ -122,6 +123,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     private ValidationHelper validationHelper;
     @Autowired
     private TokenIssuer tokenIssuer;
+    @Autowired
+    protected RevokedRemoteTokensRepository revokedRemoteTokensRepository;
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
@@ -560,7 +563,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             KeyStoreException,
             IOException,
             OperatorCreationException,
-            MalformedJWTException {
+            MalformedJWTException, ValidationException {
 
         userRepository.deleteAll();
 
@@ -589,7 +592,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         //no client in database
         assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validateForeignTokenOriginCredentials(foreignTokenString));
-
         KeyPair wrongKeyPair = CryptoHelper.createKeyPair();
         //create client certificate
         String cn = "CN=" + username + "@" + clientId + "@" + SecurityConstants.CORE_AAM_INSTANCE_ID;
@@ -686,7 +688,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             NoSuchAlgorithmException,
             KeyStoreException,
             NoSuchProviderException,
-            JWTCreationException, TimeoutException {
+            JWTCreationException, TimeoutException, InterruptedException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -743,6 +745,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         //changing platforms address to make it not available
         dummyPlatform.setPlatformInterworkingInterfaceAddress(serverAddress + "/wrong/url");
         platformRepository.save(dummyPlatform);
+        Thread.sleep(cacheExpirationTime);
         //checking if foreign token is valid
         assertEquals(ValidationStatus.UNKNOWN, validationHelper.validate(foreignToken.toString(), "", "", ""));
         //deleting platform from database
@@ -1262,5 +1265,291 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         return (PrivateKey) pkcs12Store.getKey(certificateAlias, PV_KEY_PASSWORD.toCharArray());
+    }
+
+    @Test
+    public void validateRemoteTokenInvalidAndRevoked() throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            UnrecoverableKeyException,
+            ValidationException,
+            TimeoutException {
+
+
+        savePlatformOwner();
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        log.info("proper AAM: " + properAAMCert.getSubjectDN());
+        log.info("proper AAM sign: " + properAAMCert.getIssuerDN());
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                serverAddress + "/test/failvalidation",
+                platformInstanceFriendlyName,
+                "platform-1",
+                OperationType.CREATE);
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        //inject platform PEM Certificate to the database
+        String dummyPlatformAAMPEMCertString = CryptoHelper.convertX509ToPEM(properAAMCert);
+        Platform dummyPlatform = platformRepository.findOne("platform-1");
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
+        //put any valid certificate as client cert to pass validation
+        dummyPlatform.getComponentCertificates().put(clientId, new Certificate(dummyPlatformAAMPEMCertString));
+        platformRepository.save(dummyPlatform);
+
+
+        String testHomeToken = buildAuthorizationToken(
+                "userId@clientId",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.HOME,
+                100000l,
+                "platform-1",
+                properAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
+        );
+        Token homeToken = new Token(testHomeToken);
+        assertFalse(revokedTokensRepository.exists(homeToken.getId()));
+        // valid remote home token chain (INVALID_TRUST_CHAIN returned by dummyPlatformAAM)
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        "",
+                        "",
+                        "")
+        );
+        // check, if invalid token saved in local repo
+        assertTrue(revokedRemoteTokensRepository.exists(homeToken.getClaims().getIssuer() + illegalSign + homeToken.getId()));
+        // check, if token was recognized as revoked during remote validation
+        assertEquals(
+                ValidationStatus.REVOKED_TOKEN,
+                validationHelper.validate(
+                        testHomeToken,
+                        "",
+                        "",
+                        "")
+        );
+
+    }
+
+    @Test
+    public void validateForeignTokenOriginCredentialsInvalidAndRevoked() throws
+            IOException,
+            ValidationException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            JWTCreationException, TimeoutException {
+        // issuing dummy platform token
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
+                        SecurityConstants
+                                .AAM_GET_HOME_TOKEN,
+                loginRequest, String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
+
+        savePlatformOwner();
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                serverAddress + "/test/failvalidation",
+                platformInstanceFriendlyName,
+                "platform-1",
+                OperationType.CREATE);
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        //inject platform PEM Certificate to the database
+        String dummyPlatformAAMPEMCertString = CryptoHelper.convertX509ToPEM(properAAMCert);
+        Platform dummyPlatform = platformRepository.findOne("platform-1");
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
+        //put any valid certificate as client cert to pass validation
+        dummyPlatform.getComponentCertificates().put(clientId, new Certificate(dummyPlatformAAMPEMCertString));
+        platformRepository.save(dummyPlatform);
+
+        FederationRule federationRule = new FederationRule("federationId", new HashSet<>());
+        federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
+        federationRule.addPlatform("testPlatform");
+        federationRule.addPlatform("testPlatform2");
+        federationRulesRepository.save(federationRule);
+
+        Token foreignToken = null;
+        try {
+            foreignToken = tokenIssuer.getForeignToken(dummyHomeToken);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e.getCause());
+            fail("Exception thrown");
+        }
+        assertNotNull(foreignToken);
+        //checking if foreign token is valid
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(foreignToken.toString(), "", "", ""));
+        //checking, if token saved as revoked
+        assertTrue(revokedTokensRepository.exists(foreignToken.getId()));
+        //checking if foreign token is valid - validation should recognize token as revoked
+        assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validate(foreignToken.toString(), "", "", ""));
+    }
+
+    @Test
+    public void validateRemoteTokenValidAndCached() throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            UnrecoverableKeyException,
+            ValidationException,
+            TimeoutException, InterruptedException {
+
+
+        savePlatformOwner();
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        log.info("proper AAM: " + properAAMCert.getSubjectDN());
+        log.info("proper AAM sign: " + properAAMCert.getIssuerDN());
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                serverAddress + "/test",
+                platformInstanceFriendlyName,
+                "platform-1",
+                OperationType.CREATE);
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        //inject platform PEM Certificate to the database
+        String dummyPlatformAAMPEMCertString = CryptoHelper.convertX509ToPEM(properAAMCert);
+        Platform dummyPlatform = platformRepository.findOne("platform-1");
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
+        //put any valid certificate as client cert to pass validation
+        dummyPlatform.getComponentCertificates().put(clientId, new Certificate(dummyPlatformAAMPEMCertString));
+        platformRepository.save(dummyPlatform);
+
+
+        String testHomeToken = buildAuthorizationToken(
+                "userId@clientId",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.HOME,
+                100000l,
+                "platform-1",
+                properAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
+        );
+        Token homeToken = new Token(testHomeToken);
+        assertFalse(revokedTokensRepository.exists(homeToken.getId()));
+        // valid remote home token chain, token will be cached
+        assertEquals(
+                ValidationStatus.VALID,
+                validationHelper.validate(
+                        testHomeToken,
+                        "",
+                        "",
+                        "")
+        );
+        // set dummy platform, which returns ValidationStatus.INVALID_TRUST_CHAIN
+        dummyPlatform.setPlatformInterworkingInterfaceAddress(serverAddress + "/test/failvalidation");
+        platformRepository.save(dummyPlatform);
+        assertFalse(revokedRemoteTokensRepository.exists(homeToken.getClaims().getIssuer() + illegalSign + homeToken.getId()));
+        // check, if token was properly cached (no checked by dummy platform)
+        assertEquals(
+                ValidationStatus.VALID,
+                validationHelper.validate(
+                        testHomeToken,
+                        "",
+                        "",
+                        "")
+        );
+        Thread.sleep(cacheExpirationTime);
+        // check, if token was removed from cache
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        "",
+                        "",
+                        "")
+        );
+
+
+    }
+
+    @Test
+    public void validateForeignTokenOriginCredentialsValidAndCached() throws
+            IOException,
+            ValidationException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            JWTCreationException, TimeoutException, InterruptedException {
+        // issuing dummy platform token
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
+                        SecurityConstants
+                                .AAM_GET_HOME_TOKEN,
+                loginRequest, String.class);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
+
+        savePlatformOwner();
+        // registering the platform to the Core AAM so it will be available for token revocation
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                serverAddress + "/test",
+                platformInstanceFriendlyName,
+                "platform-1",
+                OperationType.CREATE);
+        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+                (platformRegistrationOverAMQPRequest).getBytes());
+
+        //inject platform PEM Certificate to the database
+        String dummyPlatformAAMPEMCertString = CryptoHelper.convertX509ToPEM(properAAMCert);
+        Platform dummyPlatform = platformRepository.findOne("platform-1");
+        dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAMPEMCertString));
+        //put any valid certificate as client cert to pass validation
+        dummyPlatform.getComponentCertificates().put(clientId, new Certificate(dummyPlatformAAMPEMCertString));
+        platformRepository.save(dummyPlatform);
+
+        FederationRule federationRule = new FederationRule("federationId", new HashSet<>());
+        federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
+        federationRule.addPlatform("testPlatform");
+        federationRule.addPlatform("testPlatform2");
+        federationRulesRepository.save(federationRule);
+
+        Token foreignToken = null;
+        try {
+            foreignToken = tokenIssuer.getForeignToken(dummyHomeToken);
+        } catch (Exception e) {
+            log.error(e.getMessage(), e.getCause());
+            fail("Exception thrown");
+        }
+        assertNotNull(foreignToken);
+        //checking if foreign token is valid including client certificate - dummyplatformaam always confirms.
+        assertEquals(ValidationStatus.VALID, validationHelper.validate(foreignToken.toString(), "", "", dummyPlatformAAMPEMCertString));
+        //changing platforms address to make it return INVALID_TRUST_CHAIN during validation
+        dummyPlatform.setPlatformInterworkingInterfaceAddress(serverAddress + "/test/failvalidation");
+        platformRepository.save(dummyPlatform);
+        // check, if token was properly cached (no checked by dummy platform)
+        assertEquals(ValidationStatus.VALID, validationHelper.validate(foreignToken.toString(), "", "", ""));
+        //wait for cleaning cache
+        Thread.sleep(cacheExpirationTime);
+        // check, if token was removed from cache
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(foreignToken.toString(), "", "", ""));
     }
 }
