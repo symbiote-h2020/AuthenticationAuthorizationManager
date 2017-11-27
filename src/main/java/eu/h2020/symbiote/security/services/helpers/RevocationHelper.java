@@ -73,18 +73,18 @@ public class RevocationHelper {
         switch (commonName.split(illegalSign).length) {
             case 1:
                 if (user.getRole() != UserRole.PLATFORM_OWNER || !user.getOwnedPlatforms().contains(commonName)) {
-                    throw new SecurityException();
+                    throw new SecurityException("User has no rights to this platform");
                 }
                 Platform platform = platformRepository.findOne(commonName);
                 return revokePlatformCertificateUsingCommonName(commonName, platform);
             case 2:
                 if (!commonName.split(illegalSign)[0].equals(user.getUsername())) {
-                    throw new SecurityException();
+                    throw new SecurityException("User has no rights to this client");
                 }
                 String clientId = commonName.split(illegalSign)[1];
                 return revokeUserCertificateUsingCommonName(user, clientId);
             default:
-                throw new WrongCredentialsException();
+                throw new WrongCredentialsException("Common name is wrong");
         }
     }
 
@@ -92,11 +92,11 @@ public class RevocationHelper {
             WrongCredentialsException,
             CertificateException {
         if (user.getClientCertificates().get(clientId) == null) {
-            throw new WrongCredentialsException();
+            throw new WrongCredentialsException("Client doesn't exist");
         }
         if (user.getClientCertificates().get(clientId).getCertificateString().isEmpty()
                 || !isMyCertificate(user.getClientCertificates().get(clientId).getX509())) {
-            throw new CertificateException();
+            throw new CertificateException("Clients certificate is empty or issuer does not equals with this AAM");
         }
         revokeKey(user.getUsername(), user.getClientCertificates().get(clientId));
         user.getClientCertificates().remove(clientId);
@@ -108,12 +108,12 @@ public class RevocationHelper {
             WrongCredentialsException,
             CertificateException {
         if (platform == null) {
-            throw new WrongCredentialsException();
+            throw new WrongCredentialsException("There is no such platform");
         }
         if (platform.getPlatformAAMCertificate() == null
                 || platform.getPlatformAAMCertificate().getCertificateString().isEmpty()
                 || !isMyCertificate(platform.getPlatformAAMCertificate().getX509())) {
-            throw new CertificateException();
+            throw new CertificateException("Platforms certificate is empty or issuer does not equals with this AAM");
         }
         revokeKey(commonName, platform.getPlatformAAMCertificate());
         platform.setPlatformAAMCertificate(new Certificate());
@@ -127,10 +127,10 @@ public class RevocationHelper {
             IOException {
 
         if (!isMyCertificate(certificate)) {
-            throw new CertificateException();
+            throw new CertificateException("Issuer does not equals with this AAM");
         }
         if (certificate.getSubjectDN().getName().split("CN=").length != 2) {
-            throw new CertificateException();
+            throw new CertificateException("Wrong structure of Subject item");
         }
 
         Set<String> ownedPlatforms = user.getOwnedPlatforms();
@@ -171,7 +171,7 @@ public class RevocationHelper {
         String clientId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[1];
         if (user.getClientCertificates().get(clientId) == null
                 || user.getClientCertificates().get(clientId).getCertificateString().isEmpty()) {
-            throw new CertificateException();
+            throw new CertificateException("Client or his certificate doesn't exist");
         }
         //certificate to revoke is equal to this in db
         if (user.getClientCertificates().get(clientId).getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
@@ -184,7 +184,7 @@ public class RevocationHelper {
         if (isRevoked(user.getUsername(), certificate.getPublicKey())) {
             return true;
         }
-        throw new WrongCredentialsException();
+        throw new WrongCredentialsException("Passed certificate do not equals with this in DB");
     }
 
     private boolean revokePlatformCertificateUsingCertificate(X509Certificate certificate, Platform platform) throws
@@ -193,11 +193,11 @@ public class RevocationHelper {
             IOException {
         String platformId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
         if (platform == null) {
-            throw new WrongCredentialsException();
+            throw new WrongCredentialsException("Platform doesn't exist");
         }
         if (platform.getPlatformAAMCertificate() == null
                 || platform.getPlatformAAMCertificate().getCertificateString().isEmpty()) {
-            throw new CertificateException();
+            throw new CertificateException("There is no certificate to revoke");
         }
         if (platform.getPlatformAAMCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
             revokeKey(platformId, platform.getPlatformAAMCertificate());
@@ -208,7 +208,7 @@ public class RevocationHelper {
         if (isRevoked(platformId, certificate.getPublicKey())) {
             return true;
         }
-        throw new WrongCredentialsException();
+        throw new WrongCredentialsException("Passed certificate do not equals with this in DB");
     }
 
     public boolean revokeCertificate(User user, Certificate certificate, String commonName)
@@ -222,7 +222,7 @@ public class RevocationHelper {
             try {
                 x509Certificate = certificate.getX509();
             } catch (Exception e) {
-                throw new CertificateException();
+                throw new CertificateException("Error during conversion to X509Certificate occurred");
             }
 
             return revokeCertificateUsingCertificate(user, x509Certificate);
@@ -293,7 +293,7 @@ public class RevocationHelper {
             revokedTokensRepository.save(foreignToken);
             return true;
         }
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Foreign token is invalid and does not mach remote Home Token");
     }
 
     public boolean revokeCertificateByAdmin(Certificate certificate, String certificateCommonName) throws
@@ -313,32 +313,32 @@ public class RevocationHelper {
                         User user = userRepository.findOne(username);
                         if (user == null
                                 || user.getClientCertificates().get(clientId) == null) {
-                            throw new WrongCredentialsException();
+                            throw new WrongCredentialsException("User or client doesn't exist");
                         }
                         return revokeUserCertificateUsingCommonName(user, clientId);
                     }
                     String componentId = certificateCommonName.split(illegalSign)[0];
                     String platformId = certificateCommonName.split(illegalSign)[1];
                     if (!platformId.equals(certificationAuthorityHelper.getAAMInstanceIdentifier())) {
-                        throw new WrongCredentialsException();
+                        throw new WrongCredentialsException("AAM can revoke only local components certificates");
                     }
                     return revokeLocalComponentUsingCommonName(componentId);
                 default:
-                    throw new WrongCredentialsException();
+                    throw new WrongCredentialsException("Certificate common name is wrong");
 
             }
 
 
         }
         if (certificate == null) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("Certificate and common name are empty");
         }
 
         X509Certificate x509Certificate;
         try {
             x509Certificate = certificate.getX509();
         } catch (Exception e) {
-            throw new CertificateException();
+            throw new CertificateException("Error during conversion to X509Certificate occurred");
         }
         return revokeCertificateUsingCertificateByAdmin(x509Certificate);
 
@@ -352,7 +352,7 @@ public class RevocationHelper {
                 || componentCertificate.getCertificate() == null
                 || componentCertificate.getCertificate().getCertificateString().isEmpty()
                 || !isMyCertificate(componentCertificate.getCertificate().getX509())) {
-            throw new WrongCredentialsException();
+            throw new WrongCredentialsException("Component certificate is empty or issuer does not equals with this AAM");
         }
         revokeKey(componentId, componentCertificate.getCertificate());
         componentCertificatesRepository.delete(componentId);
@@ -365,10 +365,10 @@ public class RevocationHelper {
             WrongCredentialsException,
             NotExistingUserException {
         if (!isMyCertificate(certificate)) {
-            throw new CertificateException();
+            throw new CertificateException("Issuer does not equal with this AAM");
         }
         if (certificate.getSubjectDN().getName().split("CN=").length != 2) {
-            throw new CertificateException();
+            throw new CertificateException("Wrong structure of Subject item");
         }
         String certificateCommonName = certificate.getSubjectDN().getName().split("CN=")[1];
         switch (certificateCommonName.split(illegalSign).length) {
@@ -378,7 +378,7 @@ public class RevocationHelper {
             case 2:
                 String platformId = certificateCommonName.split(illegalSign)[1];
                 if (!platformId.equals(certificationAuthorityHelper.getAAMInstanceIdentifier())) {
-                    throw new CertificateException();
+                    throw new CertificateException("AAM can revoke only local components certificates");
                 }
                 return revokeLocalComponentUsingCertificate(certificate);
             case 3:
@@ -389,7 +389,7 @@ public class RevocationHelper {
                 }
                 return revokeUserCertificateUsingCertificate(user, certificate);
             default:
-                throw new CertificateException();
+                throw new CertificateException("Wrong length of certificates CN");
         }
     }
 
@@ -402,7 +402,7 @@ public class RevocationHelper {
         if (componentCertificate == null
                 || componentCertificate.getCertificate() == null
                 || componentCertificate.getCertificate().getCertificateString().isEmpty()) {
-            throw new WrongCredentialsException();
+            throw new WrongCredentialsException("There is no components certificate in DB");
         }
         if (componentCertificate.getCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
             revokeKey(componentId, componentCertificate.getCertificate());
@@ -412,7 +412,7 @@ public class RevocationHelper {
         if (isRevoked(componentId, certificate.getPublicKey())) {
             return true;
         }
-        throw new WrongCredentialsException();
+        throw new WrongCredentialsException("Passed components certificate does not match this in DB");
     }
 
     public boolean revokeHomeTokenByAdmin(String token) throws
