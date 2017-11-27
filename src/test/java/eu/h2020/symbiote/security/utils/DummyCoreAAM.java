@@ -141,12 +141,8 @@ public class DummyCoreAAM {
         return new ResponseEntity<>(aams, HttpStatus.OK);
     }
 
-    private void initializeAvailableAAMs() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
-        aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("https://localhost:" + port + PATH,
-                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                SecurityConstants.CORE_AAM_INSTANCE_ID,
-                revokedCert, new HashMap<>()));
-
+    public void initializeAvailableAAMs() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+        clearAvailablePlatformAAMs();
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         ks.load(new FileInputStream(PLATFORM_CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
         X509Certificate certificate = (X509Certificate) ks.getCertificate(PLATFORM_CERTIFICATE_ALIAS);
@@ -182,5 +178,15 @@ public class DummyCoreAAM {
                 platformId,
                 platformCert, new HashMap<>()));
     }
+
+    public void clearAvailablePlatformAAMs() {
+        this.aams.getAvailableAAMs().clear();
+        aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("https://localhost:" + port + PATH,
+                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
+                SecurityConstants.CORE_AAM_INSTANCE_ID,
+                revokedCert, new HashMap<>()));
+    }
+
+
 }
 

@@ -24,7 +24,6 @@ import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
@@ -32,7 +31,6 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -161,7 +159,7 @@ public class RevocationUnitTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String certificate = signCertificateRequestService.signCertificate(certRequest);
+        signCertificateRequestService.signCertificate(certRequest);
         User user = userRepository.findOne(appUsername);
         assertNotNull(user.getClientCertificates().get(clientId));
         String commonName = appUsername + illegalSign + clientId;
@@ -183,7 +181,7 @@ public class RevocationUnitTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String certificate = signCertificateRequestService.signCertificate(certRequest);
+        signCertificateRequestService.signCertificate(certRequest);
         User user = userRepository.findOne(appUsername);
         assertNotNull(user.getClientCertificates().get(clientId));
         String commonName = wrongUsername + illegalSign + clientId;
@@ -278,7 +276,7 @@ public class RevocationUnitTests extends
         assertFalse(revokedKeysRepository.findOne(appUsername).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
         csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String certificateNew = signCertificateRequestService.signCertificate(certRequest);
+        signCertificateRequestService.signCertificate(certRequest);
         //revoke certificate using revoked certificate
         //check if there is user certificate in database
         assertNotNull(userRepository.findOne(appUsername).getClientCertificates().get(clientId));
@@ -929,7 +927,7 @@ public class RevocationUnitTests extends
         revokedKeysRepository.save(new SubjectsRevokedKeys("registry", keySet));
 
         //register component
-        KeyPair keyPair = new KeyPair(CryptoHelper.convertPEMToX509(cert).getPublicKey(), (PrivateKey) getPrivateKeyFromTestKeystore(
+        KeyPair keyPair = new KeyPair(CryptoHelper.convertPEMToX509(cert).getPublicKey(), getPrivateKeyFromKeystore(
                 "core.p12",
                 "registry-core-1"));
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier(), keyPair);
@@ -1069,23 +1067,5 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
 
-    }
-
-    private X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException, CertificateException, NoSuchAlgorithmException {
-        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
-    }
-
-    private Key getPrivateKeyFromTestKeystore(String keyStoreName, String certificateAlias) throws
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
-        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        return pkcs12Store.getKey(certificateAlias, KEY_STORE_PASSWORD.toCharArray());
     }
 }

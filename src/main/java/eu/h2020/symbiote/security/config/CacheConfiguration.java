@@ -24,12 +24,19 @@ import java.util.concurrent.TimeUnit;
 @EnableScheduling
 public class CacheConfiguration extends CachingConfigurerSupport {
 
-    private long timeToExpire;
-    private long cacheSize;
+    private long validTokenTimeToExpire;
+    private long validTokenCacheSize;
+    private long componentCertificateTimeToExpire;
+    private long availableAAMsTimeToExpire;
 
-    public CacheConfiguration(@Value("${aam.cache.expireMillis}") long timeToExpire, @Value("${aam.cache.size}") long cacheSize) {
-        this.timeToExpire = timeToExpire;
-        this.cacheSize = cacheSize;
+    public CacheConfiguration(@Value("${aam.cache.validToken.expireMillis}") long validTokenTimeToExpire,
+                              @Value("${aam.cache.validToken.size}") long validTokenCacheSize,
+                              @Value("${aam.cache.componentCertificate.expireSeconds}") long componentCertificateTimeToExpire,
+                              @Value("${aam.cache.availableAAMs.expireSeconds}") long availableAAMsTimeToExpire) {
+        this.validTokenTimeToExpire = validTokenTimeToExpire;
+        this.validTokenCacheSize = validTokenCacheSize;
+        this.componentCertificateTimeToExpire = componentCertificateTimeToExpire;
+        this.availableAAMsTimeToExpire = availableAAMsTimeToExpire;
     }
 
     @Override
@@ -39,12 +46,22 @@ public class CacheConfiguration extends CachingConfigurerSupport {
 
             @Override
             protected Cache createConcurrentMapCache(final String name) {
-                if (cacheSize == -1) {
-                    return new ConcurrentMapCache(name,
-                            CacheBuilder.newBuilder().expireAfterWrite(timeToExpire, TimeUnit.MILLISECONDS).build().asMap(), false);
-                } else return new ConcurrentMapCache(name,
-                        CacheBuilder.newBuilder().expireAfterWrite(timeToExpire, TimeUnit.MILLISECONDS).maximumSize(cacheSize).build().asMap(), false);
-
+                switch (name) {
+                    case "getComponentCertificate":
+                        return new ConcurrentMapCache(name,
+                                CacheBuilder.newBuilder().expireAfterWrite(componentCertificateTimeToExpire, TimeUnit.SECONDS).build().asMap(), false);
+                    case "getAvailableAAMs":
+                        return new ConcurrentMapCache(name,
+                                CacheBuilder.newBuilder().expireAfterWrite(availableAAMsTimeToExpire, TimeUnit.SECONDS).build().asMap(), false);
+                    case "validTokens":
+                        if (validTokenCacheSize == -1) {
+                            return new ConcurrentMapCache(name,
+                                    CacheBuilder.newBuilder().expireAfterWrite(validTokenTimeToExpire, TimeUnit.MILLISECONDS).build().asMap(), false);
+                        } else return new ConcurrentMapCache(name,
+                                CacheBuilder.newBuilder().expireAfterWrite(validTokenTimeToExpire, TimeUnit.MILLISECONDS).maximumSize(validTokenCacheSize).build().asMap(), false);
+                    default:
+                        throw new SecurityException("There is no configuration for cache named: " + name);
+                }
             }
         };
     }

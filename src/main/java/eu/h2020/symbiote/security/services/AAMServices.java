@@ -15,6 +15,7 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -49,7 +50,7 @@ public class AAMServices {
         this.platformAAMSuffixAtInterWorkingInterface = platformAAMSuffixAtInterWorkingInterface;
     }
 
-
+    @Cacheable(cacheNames = "getAvailableAAMs", key = "#root.method")
     public Map<String, AAM> getAvailableAAMs() throws
             NoSuchProviderException,
             KeyStoreException,
@@ -95,6 +96,7 @@ public class AAMServices {
         return componentsCertificatesMap;
     }
 
+    @Cacheable(cacheNames = "getComponentCertificate", key = "#componentIdentifier + '@' +#platformIdentifier")
     public String getComponentCertificate(String componentIdentifier, String platformIdentifier) throws
             NoSuchAlgorithmException,
             CertificateException,

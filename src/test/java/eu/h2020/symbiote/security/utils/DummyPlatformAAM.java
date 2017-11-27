@@ -43,19 +43,19 @@ public class DummyPlatformAAM {
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String PATH = "/test/paam";
+    public boolean certificateFlag = true;
 
     public DummyPlatformAAM() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
     }
 
-    @GetMapping(path = PATH + SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE + "/platform/{platformIdentifier}/component/{componentIdentifier}")
-    public ResponseEntity<?> getComponentCertificate(String componentIdentifier, String platformIdentifier) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        Certificate cert = new Certificate(
-                CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
-                        "core.p12",
-                        "registry-core-1")));
-
-        return new ResponseEntity<>(cert.getCertificateString(), HttpStatus.OK);
+    private static X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException, CertificateException, NoSuchAlgorithmException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), CERTIFICATE_PASSWORD.toCharArray());
+        return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
     }
 
     /**
@@ -132,13 +132,23 @@ public class DummyPlatformAAM {
         return signedCertificatePEMDataStringWriter.toString();
     }
 
-    public static X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException, CertificateException, NoSuchAlgorithmException {
-        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), CERTIFICATE_PASSWORD.toCharArray());
-        return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
+    @GetMapping(path = PATH + SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE + "/platform/{platformIdentifier}/component/{componentIdentifier}")
+    public ResponseEntity<?> getComponentCertificate(String componentIdentifier, String platformIdentifier) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+        if (certificateFlag) {
+            Certificate cert = new Certificate(
+                    CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
+                            "core.p12",
+                            "registry-core-1")));
+
+            return new ResponseEntity<>(cert.getCertificateString(), HttpStatus.OK);
+        } else {
+            Certificate cert = new Certificate(
+                    CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
+                            "core.p12",
+                            "rap@platform-1-core-1")));
+
+            return new ResponseEntity<>(cert.getCertificateString(), HttpStatus.OK);
+        }
     }
 }
 

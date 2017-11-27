@@ -6,21 +6,21 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 /**
- * Spring service used to cache valid tokens.
+ * Spring service used for caching.
  * <p>
  *
  * @author Jakub Toczek (PSNC)
  */
 @Service
-public class ValidTokensService {
+public class CacheService {
 
-    @CachePut(cacheNames = "validTokens", key = "#token.getClaims().getIssuer() + #token.id")
-    public boolean save(Token token) {
+    @CachePut(cacheNames = "validTokens", key = "#token.getClaims().getIssuer() + '@' + #token.id")
+    public boolean cacheValidToken(Token token) {
         return true;
     }
 
-    @Cacheable(cacheNames = "validTokens", key = "#token.getClaims().getIssuer() + #token.id")
-    public boolean exists(Token token) {
+    @Cacheable(cacheNames = "validTokens", key = "#token.getClaims().getIssuer()+ '@' +#token.id")
+    public boolean isValidTokenCached(Token token) {
         // we assume that the cache is already populated
         return false;
     }

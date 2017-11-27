@@ -16,7 +16,7 @@ import eu.h2020.symbiote.security.repositories.*;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.RevokedRemoteToken;
 import eu.h2020.symbiote.security.services.AAMServices;
-import eu.h2020.symbiote.security.services.ValidTokensService;
+import eu.h2020.symbiote.security.services.CacheService;
 import io.jsonwebtoken.Claims;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -64,7 +64,7 @@ public class ValidationHelper {
     private final UserRepository userRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final AAMServices aamServices;
-    private final ValidTokensService validTokensService;
+    private final CacheService cacheService;
 
     // usable
     private final RestTemplate restTemplate = new RestTemplate();
@@ -83,7 +83,7 @@ public class ValidationHelper {
                             UserRepository userRepository,
                             ComponentCertificatesRepository componentCertificatesRepository,
                             AAMServices aamServices,
-                            ValidTokensService validTokensService) {
+                            CacheService cacheService) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
@@ -94,7 +94,7 @@ public class ValidationHelper {
         this.userRepository = userRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.aamServices = aamServices;
-        this.validTokensService = validTokensService;
+        this.cacheService = cacheService;
     }
 
     public ValidationStatus validate(String token, String clientCertificate, String clientCertificateSigningAAMCertificate, String foreignTokenIssuingAAMCertificate) {
@@ -198,7 +198,7 @@ public class ValidationHelper {
                     switch (originCredentialsValidationStatus) {
                         case VALID:
                             // origin credentials are valid
-                            validTokensService.save(tokenForValidation);
+                            cacheService.cacheValidToken(tokenForValidation);
                             break;
                         case UNKNOWN:
                         case WRONG_AAM:
@@ -209,6 +209,10 @@ public class ValidationHelper {
                             revokedTokensRepository.save(tokenForValidation);
                             return originCredentialsValidationStatus;
                     }
+                    break;
+                case GUEST:
+                    break;
+                case NULL:
                     break;
                 default:
                     break;
@@ -238,7 +242,7 @@ public class ValidationHelper {
         if (revokedRemoteTokensRepository.exists(claims.getIssuer() + illegalSign + claims.getId())) {
             return ValidationStatus.REVOKED_TOKEN;
         }
-        if (validTokensService.exists(new Token(tokenString))) {
+        if (cacheService.isValidTokenCached(new Token(tokenString))) {
             return ValidationStatus.VALID;
         }
         // if the certificate is not empty, then check the trust chain
@@ -297,7 +301,7 @@ public class ValidationHelper {
                     entity, ValidationStatus.class);
             switch (status.getBody()) {
                 case VALID:
-                    validTokensService.save(new Token(tokenString));
+                    cacheService.cacheValidToken(new Token(tokenString));
                     return status.getBody();
                 case UNKNOWN:
                 case WRONG_AAM:
@@ -577,7 +581,7 @@ public class ValidationHelper {
             ValidationException,
             AAMException {
         Token token = new Token(stringToken);
-        if (validTokensService.exists(token)) {
+        if (cacheService.isValidTokenCached(token)) {
             return ValidationStatus.VALID;
         }
         String platformId = token.getClaims().getSubject().split(illegalSign)[2];

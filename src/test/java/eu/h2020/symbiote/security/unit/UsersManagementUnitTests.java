@@ -22,12 +22,10 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Test;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
-import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -75,7 +73,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test
     public void userInternalForceUpdateSuccess() throws SecurityException {
         // save user in db
-        User user = saveUser();
+        saveUser();
         // verify that app is in the repository
         User registeredUser = userRepository.findOne(appUsername);
         assertNotNull(registeredUser);
@@ -394,15 +392,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new UserDetails(new Credentials(username, ""), "", "", UserRole.NULL, new HashMap<>(), new HashMap<>()),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
-    }
-
-    private X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException, CertificateException, NoSuchAlgorithmException {
-        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
     }
 
     @Test(expected = InvalidArgumentsException.class)

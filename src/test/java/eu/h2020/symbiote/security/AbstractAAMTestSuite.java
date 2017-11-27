@@ -34,6 +34,7 @@ import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ContextConfiguration;
@@ -127,8 +128,12 @@ public abstract class AbstractAAMTestSuite {
     protected String CERTIFICATE_ALIAS;
     @Value("${aam.deployment.token.validityMillis}")
     protected Long tokenValidityPeriod;
-    @Value("${aam.cache.expireMillis}")
-    protected Long cacheExpirationTime;
+    @Value("${aam.cache.validToken.expireMillis}")
+    protected Long validTokenCacheExpirationTime;
+    @Value("${aam.cache.componentCertificate.expireSeconds}")
+    protected Long componentCertificateCacheExpirationTime;
+    @Value("${aam.cache.availableAAMs.expireSeconds}")
+    protected Long availableAAMsCacheExpirationTime;
 
     protected IAAMClient aamClient;
     @LocalServerPort
@@ -176,14 +181,13 @@ public abstract class AbstractAAMTestSuite {
 
     protected User createUser(String username, String password, String recoveryMail,
                               UserRole userRole) {
-        User user = new User(username,
+        return new User(username,
                 passwordEncoder.encode(password),
                 recoveryMail,
                 new HashMap<>(),
                 userRole,
                 new HashMap<>(),
                 new HashSet<>());
-        return user;
     }
 
     protected User savePlatformOwner() {
@@ -250,6 +254,27 @@ public abstract class AbstractAAMTestSuite {
     @Configuration
     @ComponentScan(basePackages = {"eu.h2020.symbiote.security"})
     static class ContextConfiguration {
+    }
+
+    public X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException, CertificateException, NoSuchAlgorithmException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
+    }
+
+    public PrivateKey getPrivateKeyFromKeystore(String keyStoreName, String certificateAlias) throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            UnrecoverableKeyException {
+        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
+        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        return (PrivateKey) pkcs12Store.getKey(certificateAlias, PV_KEY_PASSWORD.toCharArray());
     }
 
 }
