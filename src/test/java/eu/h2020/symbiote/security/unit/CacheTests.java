@@ -60,6 +60,8 @@ public class CacheTests extends AbstractAAMTestSuite {
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        // to make sure caches are reset
+        Thread.sleep(1100);
         User platformOwner = savePlatformOwner();
         addTestUserWithClientCertificateToRepository();
         X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
@@ -69,9 +71,10 @@ public class CacheTests extends AbstractAAMTestSuite {
                 "friendlyPlatformName",
                 platformOwner,
                 new Certificate(CryptoHelper.convertX509ToPEM(properAAMCert)),
-                new HashMap<>()
-        );
+                new HashMap<>());
         platformRepository.save(dummyPlatform);
+
+
     }
 
     @Test
