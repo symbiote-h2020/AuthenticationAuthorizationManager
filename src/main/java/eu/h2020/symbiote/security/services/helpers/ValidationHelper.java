@@ -106,6 +106,10 @@ public class ValidationHelper {
             }
 
             Token tokenForValidation = new Token(token);
+            if (cacheService.isValidTokenCached(tokenForValidation)) {
+                return ValidationStatus.VALID;
+            }
+
             Claims claims = tokenForValidation.getClaims();
             String spk = claims.get("spk").toString();
             String ipk = claims.get("ipk").toString();
@@ -237,14 +241,17 @@ public class ValidationHelper {
             IOException,
             AAMException {
 
+        // check if already cached
+        if (cacheService.isValidTokenCached(new Token(tokenString))) {
+            return ValidationStatus.VALID;
+        }
+
         Claims claims = JWTEngine.getClaims(tokenString);
         //checking if token is revoked
         if (revokedRemoteTokensRepository.exists(claims.getIssuer() + illegalSign + claims.getId())) {
             return ValidationStatus.REVOKED_TOKEN;
         }
-        if (cacheService.isValidTokenCached(new Token(tokenString))) {
-            return ValidationStatus.VALID;
-        }
+
         // if the certificate is not empty, then check the trust chain
         if (!clientCertificate.isEmpty() && !clientCertificateSigningAAMCertificate.isEmpty()) {
             try {
@@ -581,9 +588,6 @@ public class ValidationHelper {
             ValidationException,
             AAMException {
         Token token = new Token(stringToken);
-        if (cacheService.isValidTokenCached(token)) {
-            return ValidationStatus.VALID;
-        }
         String platformId = token.getClaims().getSubject().split(illegalSign)[2];
         // fetching origin token AAM
         if (aamServices.getAvailableAAMs().get(platformId) == null) {
@@ -593,7 +597,7 @@ public class ValidationHelper {
         try {
             // issuing origin credentials check in the origin token HOME AAM
             return restTemplate.postForEntity(aamAddress + SecurityConstants.AAM_VALIDATE_FOREIGN_TOKEN_ORIGIN_CREDENTIALS,
-                    token,
+                    token.getToken(),
                     ValidationStatus.class).getBody();
         } catch (HttpClientErrorException e) {
             log.error("HomeToken issuer not available");
