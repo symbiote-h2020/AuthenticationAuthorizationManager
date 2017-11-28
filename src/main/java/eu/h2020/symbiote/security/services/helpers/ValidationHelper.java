@@ -288,7 +288,7 @@ public class ValidationHelper {
         if (!Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(claims.get("ipk"))) {
             return ValidationStatus.REVOKED_IPK;
         }
-
+        // TODO use the AAMClient
         // rest check revocation
         // preparing request
         HttpHeaders httpHeaders = new HttpHeaders();

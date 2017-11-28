@@ -126,7 +126,7 @@ public class CacheTokensTests extends AbstractAAMTestSuite {
         dummyPlatform.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
         platformRepository.save(dummyPlatform);
         //wait till cache ends
-        Thread.sleep(availableAAMsCacheExpirationTime * 1000);
+        Thread.sleep(availableAAMsCacheExpirationTime * 1000 + 100);
 
         FederationRule federationRule = new FederationRule("federationId", new HashSet<>());
         federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
@@ -149,12 +149,12 @@ public class CacheTokensTests extends AbstractAAMTestSuite {
         dummyPlatform.setPlatformInterworkingInterfaceAddress(serverAddress + "/test/failvalidation");
         platformRepository.save(dummyPlatform);
         //wait till cache ends
-        Thread.sleep(availableAAMsCacheExpirationTime * 1000);
+        Thread.sleep(availableAAMsCacheExpirationTime * 1000 + 100);
         // check, if token was properly cached (no checked by dummy platform)
 
         assertEquals(ValidationStatus.VALID, validationHelper.validate(foreignToken.toString(), "", "", ""));
         //wait for cleaning cache
-        Thread.sleep(validTokenCacheExpirationTime);
+        Thread.sleep(validTokenCacheExpirationTime + 100);
         // check, if token was removed from cache
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(foreignToken.toString(), "", "", ""));
     }
@@ -182,7 +182,7 @@ public class CacheTokensTests extends AbstractAAMTestSuite {
         dummyPlatform.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
         platformRepository.save(dummyPlatform);
 
-        Thread.sleep(availableAAMsCacheExpirationTime * 1000);
+        Thread.sleep(availableAAMsCacheExpirationTime * 1000 + 100);
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
@@ -209,8 +209,9 @@ public class CacheTokensTests extends AbstractAAMTestSuite {
         dummyPlatform.setPlatformInterworkingInterfaceAddress(serverAddress + "/test/failvalidation");
         platformRepository.save(dummyPlatform);
         assertFalse(revokedRemoteTokensRepository.exists(homeToken.getClaims().getIssuer() + illegalSign + homeToken.getId()));
+        // wait for updated platform interworking interface
+        Thread.sleep(availableAAMsCacheExpirationTime * 1000 + 100);
         // check, if token was properly cached (no checked by dummy platform)
-        Thread.sleep(availableAAMsCacheExpirationTime * 1000);
         assertEquals(
                 ValidationStatus.VALID,
                 validationHelper.validate(
@@ -219,7 +220,7 @@ public class CacheTokensTests extends AbstractAAMTestSuite {
                         "",
                         "")
         );
-        Thread.sleep(validTokenCacheExpirationTime);
+        Thread.sleep(validTokenCacheExpirationTime + 100);
         // check, if token was removed from cache
         assertEquals(
                 ValidationStatus.INVALID_TRUST_CHAIN,

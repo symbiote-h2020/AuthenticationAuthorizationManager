@@ -29,10 +29,10 @@ public class CacheConfiguration extends CachingConfigurerSupport {
     private long componentCertificateTimeToExpire;
     private long availableAAMsTimeToExpire;
 
-    public CacheConfiguration(@Value("${aam.cache.validToken.expireMillis}") long validTokenTimeToExpire,
-                              @Value("${aam.cache.validToken.size}") long validTokenCacheSize,
-                              @Value("${aam.cache.componentCertificate.expireSeconds}") long componentCertificateTimeToExpire,
-                              @Value("${aam.cache.availableAAMs.expireSeconds}") long availableAAMsTimeToExpire) {
+    public CacheConfiguration(@Value("${aam.cache.validToken.expireMillis:60000}") long validTokenTimeToExpire,
+                              @Value("${aam.cache.validToken.size:1000}") long validTokenCacheSize,
+                              @Value("${aam.cache.componentCertificate.expireSeconds:60}") long componentCertificateTimeToExpire,
+                              @Value("${aam.cache.availableAAMs.expireSeconds:60}") long availableAAMsTimeToExpire) {
         this.validTokenTimeToExpire = validTokenTimeToExpire;
         this.validTokenCacheSize = validTokenCacheSize;
         this.componentCertificateTimeToExpire = componentCertificateTimeToExpire;

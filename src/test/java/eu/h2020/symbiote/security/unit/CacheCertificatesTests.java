@@ -62,7 +62,12 @@ public class CacheCertificatesTests extends AbstractAAMTestSuite {
     }
 
     @After
-    public void after() throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+    public void after() throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException {
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", oldCertificationAuthorityHelper);
         dummyPlatformAAM.certificateFlag = true;
@@ -71,27 +76,57 @@ public class CacheCertificatesTests extends AbstractAAMTestSuite {
 
 
     @Test
-    public void getComponentCertificateCached() throws NoSuchAlgorithmException, CertificateException,
-            NoSuchProviderException, KeyStoreException, IOException, AAMException, TimeoutException, UnrecoverableKeyException, InvalidArgumentsException, InvalidAlgorithmParameterException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, ValidationException, InterruptedException {
+    public void getComponentCertificateCached() throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            AAMException,
+            TimeoutException,
+            UnrecoverableKeyException,
+            InvalidArgumentsException,
+            InvalidAlgorithmParameterException,
+            UserManagementException,
+            PlatformManagementException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            InterruptedException {
 
         String component = aamServices.getComponentCertificate(componentId, platformId);
         dummyPlatformAAM.certificateFlag = false;
         String newComponent = aamServices.getComponentCertificate(componentId, platformId);
         assertEquals(component, newComponent);
-        Thread.sleep(componentCertificateCacheExpirationTime * 1000);
+        Thread.sleep(componentCertificateCacheExpirationTime * 1000 + 100);
         newComponent = aamServices.getComponentCertificate(componentId, platformId);
         assertNotEquals(component, newComponent);
     }
 
     @Test
-    public void getAvailableAAMsCached() throws NoSuchAlgorithmException, CertificateException,
-            NoSuchProviderException, KeyStoreException, IOException, AAMException, TimeoutException, UnrecoverableKeyException, InvalidArgumentsException, InvalidAlgorithmParameterException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, ValidationException, InterruptedException {
+    public void getAvailableAAMsCached() throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            AAMException,
+            TimeoutException,
+            UnrecoverableKeyException,
+            InvalidArgumentsException,
+            InvalidAlgorithmParameterException,
+            UserManagementException,
+            PlatformManagementException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            InterruptedException {
 
         Map<String, AAM> aams = aamServices.getAvailableAAMs();
         dummyCoreAAM.clearAvailablePlatformAAMs();
         Map<String, AAM> newaams = aamServices.getAvailableAAMs();
         assertEquals(aams.size(), newaams.size());
-        Thread.sleep(availableAAMsCacheExpirationTime * 1000);
+        Thread.sleep(availableAAMsCacheExpirationTime * 1000 + 100);
         newaams = aamServices.getAvailableAAMs();
         assertNotEquals(aams.size(), newaams.size());
     }
