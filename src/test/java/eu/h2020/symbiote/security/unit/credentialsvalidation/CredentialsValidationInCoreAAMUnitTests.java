@@ -810,51 +810,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         assertEquals(ValidationStatus.WRONG_AAM, response);
     }
 
-    @Test
-    public void validateRemoteHomeTokenRequestUsingCertificateSuccess() throws
-            ValidationException,
-            IOException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException, UnrecoverableKeyException {
-
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        log.info("user: " + userCertificate.getSubjectDN());
-        log.info("user sign: " + userCertificate.getIssuerDN());
-
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
-        log.info("proper AAM: " + properAAMCert.getSubjectDN());
-        log.info("proper AAM sign: " + properAAMCert.getIssuerDN());
-
-        X509Certificate wrongAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-2-c1");
-        log.info("wrong AAM: " + wrongAAMCert.getSubjectDN());
-        log.info("wrong AAM sign: " + wrongAAMCert.getIssuerDN());
-
-        log.info("root CA: " + certificationAuthorityHelper.getRootCACertificate().getSubjectDN());
-
-        String testHomeToken = buildAuthorizationToken(
-                "userId@clientId",
-                new HashMap<>(),
-                userCertificate.getPublicKey().getEncoded(),
-                Token.Type.HOME,
-                100000l,
-                "platform-1",
-                properAAMCert.getPublicKey(),
-                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
-        );
-
-        // valid remote home token chain
-        assertEquals(
-                ValidationStatus.VALID,
-                validationHelper.validate(
-                        testHomeToken,
-                        CryptoHelper.convertX509ToPEM(userCertificate),
-                        CryptoHelper.convertX509ToPEM(properAAMCert),
-                        "")
-        );
-    }
-
 
     @Test
     public void validateRemoteHomeTokenRequestUsingCertificateISSMismatch() throws
@@ -1099,51 +1054,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                         "",
                         "")
         );
-    }
-
-    @Test
-    public void validateRemoteForeignTokenRequestUsingCertificateSuccess() throws
-            ValidationException,
-            NoSuchAlgorithmException,
-            CertificateException,
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException, UnrecoverableKeyException {
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
-        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("platform_2.p12", "platform-2-1-c1");
-
-        String testHomeToken = buildAuthorizationToken(
-                "userId@clientId@platform-1",
-                new HashMap<>(),
-                userCertificate.getPublicKey().getEncoded(),
-                Token.Type.FOREIGN,
-                100000l,
-                "platform-2",
-                tokenIssuerAAMCert.getPublicKey(),
-                getPrivateKeyFromKeystore("platform_2.p12", "platform-2-1-c1")
-        );
-
-        // valid remote foreign token chain
-        assertEquals(
-                ValidationStatus.VALID,
-                validationHelper.validate(
-                        testHomeToken,
-                        CryptoHelper.convertX509ToPEM(userCertificate),
-                        CryptoHelper.convertX509ToPEM(properAAMCert),
-                        CryptoHelper.convertX509ToPEM(tokenIssuerAAMCert))
-        );
-
-        // just for foreignTokenIssuerCert check check
-        assertEquals(
-                ValidationStatus.INVALID_TRUST_CHAIN,
-                validationHelper.validate(
-                        testHomeToken,
-                        CryptoHelper.convertX509ToPEM(userCertificate),
-                        CryptoHelper.convertX509ToPEM(properAAMCert),
-                        certificationAuthorityHelper.getRootCACert())
-        );
-
     }
 
     @Test

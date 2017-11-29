@@ -272,17 +272,22 @@ public class ValidationHelper {
                         clientCertificateSigningAAMCertificate,
                         foreignTokenIssuingAAMCertificate))
                     return ValidationStatus.INVALID_TRUST_CHAIN;
-
-                // end procedure if offline validation is enough
-                if (isOfflineEnough)
-                    return ValidationStatus.VALID;
             } catch (NullPointerException npe) {
                 log.error("Problem with parsing the given PEMs string");
                 return ValidationStatus.INVALID_TRUST_CHAIN;
             }
         }
         // resolving available AAMs in search of the token issuer
-        Map<String, AAM> availableAAMs = aamServices.getAvailableAAMs();
+        Map<String, AAM> availableAAMs = null;
+        try {
+            availableAAMs = aamServices.getAvailableAAMs();
+        } catch (AAMException e) {
+            // end procedure if offline validation is enough, certificates are ok, no connection with CoreAAM
+            if (isOfflineEnough
+                    && !clientCertificate.isEmpty()
+                    && !clientCertificateSigningAAMCertificate.isEmpty())
+                return ValidationStatus.VALID;
+        }
         String issuer = claims.getIssuer();
         // Core does not know such an issuer and therefore this might be a forfeit
         if (!availableAAMs.containsKey(issuer))
@@ -322,6 +327,11 @@ public class ValidationHelper {
         } catch (Exception e) {
             log.error(e);
             // when there is problem with request
+            // end procedure if offline validation is enough, certificates are ok, no connection with certificate Issuers
+            if (isOfflineEnough
+                    && !clientCertificate.isEmpty()
+                    && !clientCertificateSigningAAMCertificate.isEmpty())
+                return ValidationStatus.VALID;
             return ValidationStatus.WRONG_AAM;
         }
     }

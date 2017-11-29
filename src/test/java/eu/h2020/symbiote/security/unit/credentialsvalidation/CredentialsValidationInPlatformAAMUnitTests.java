@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -15,7 +16,9 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
+import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.TimeoutException;
 
+import static eu.h2020.symbiote.security.services.helpers.TokenIssuer.buildAuthorizationToken;
 import static org.junit.Assert.*;
 
 /**
@@ -51,6 +55,8 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     private TokenIssuer tokenIssuer;
     @Autowired
     private AAMServices aamServices;
+    @Autowired
+    private DummyCoreAAM dummyCoreAAM;
 
 
 
@@ -58,6 +64,14 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     @Before
     public void setUp() throws Exception {
         super.setUp();
+        //setting dummyCoreAAM to return basic set of Platform AAMs
+        dummyCoreAAM.initializeAvailableAAMs();
+        // fixing the core AAM url to point to the dummyCoreAAM
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
+    }
+
+    @After
+    public void after() throws Exception {
 
         // fixing the core AAM url to point to the dummyCoreAAM
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
@@ -160,5 +174,174 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         // check if home token is valid
         ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.REVOKED_IPK, response);
+    }
+
+    @Test
+    public void validateRemoteHomeTokenRequestUsingCertificateOfflineCoreAAMSuccess() throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            UnrecoverableKeyException,
+            ValidationException,
+            AAMException {
+        //setting wrong core AAM url to make it offline
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", "wrong AAM url");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        //X509Certificate wrongAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-2-c1");
+
+        String testHomeToken = buildAuthorizationToken(
+                "userId@clientId",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.HOME,
+                100000l,
+                "platform-1",
+                properAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
+        );
+
+        // valid remote home token chain
+        assertEquals(
+                ValidationStatus.VALID,
+                validationHelper.validateRemotelyIssuedToken(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        "")
+        );
+    }
+
+    @Test
+    public void validateRemoteHomeTokenRequestUsingCertificateOfflineIssuerAAMSuccess() throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            UnrecoverableKeyException,
+            ValidationException,
+            AAMException {
+
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        //X509Certificate wrongAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-2-c1");
+
+        String testHomeToken = buildAuthorizationToken(
+                "userId@clientId",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.HOME,
+                100000l,
+                "platform-1",
+                properAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
+        );
+
+        // valid remote home token chain
+        assertEquals(
+                ValidationStatus.VALID,
+                validationHelper.validateRemotelyIssuedToken(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        "")
+        );
+    }
+
+    @Test
+    public void validateRemoteForeignTokenRequestUsingCertificateOfflineCoreAAMSuccess() throws
+            ValidationException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException, UnrecoverableKeyException {
+        //setting wrong core AAM url to make it offline
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", "wrong AAM url");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("platform_2.p12", "platform-2-1-c1");
+
+        String testHomeToken = buildAuthorizationToken(
+                "userId@clientId@platform-1",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.FOREIGN,
+                100000l,
+                "platform-2",
+                tokenIssuerAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_2.p12", "platform-2-1-c1")
+        );
+
+        // valid remote foreign token chain
+        assertEquals(
+                ValidationStatus.VALID,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        CryptoHelper.convertX509ToPEM(tokenIssuerAAMCert))
+        );
+
+        // just for foreignTokenIssuerCert check check
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        certificationAuthorityHelper.getRootCACert())
+        );
+
+    }
+
+    @Test
+    public void validateRemoteForeignTokenRequestUsingCertificateOfflineIssuerAAMSuccess() throws
+            ValidationException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException, UnrecoverableKeyException {
+        //set dummy Core AAM to return valid platform 2 certificate
+        dummyCoreAAM.addPlatform2Certificate();
+        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("platform_2.p12", "platform-2-1-c1");
+
+        String testHomeToken = buildAuthorizationToken(
+                "userId@clientId@platform-1",
+                new HashMap<>(),
+                userCertificate.getPublicKey().getEncoded(),
+                Token.Type.FOREIGN,
+                100000l,
+                "platform-2",
+                tokenIssuerAAMCert.getPublicKey(),
+                getPrivateKeyFromKeystore("platform_2.p12", "platform-2-1-c1")
+        );
+
+        // valid remote foreign token chain
+        assertEquals(
+                ValidationStatus.VALID,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        CryptoHelper.convertX509ToPEM(tokenIssuerAAMCert))
+        );
+
+        // just for foreignTokenIssuerCert check check
+        assertEquals(
+                ValidationStatus.INVALID_TRUST_CHAIN,
+                validationHelper.validate(
+                        testHomeToken,
+                        CryptoHelper.convertX509ToPEM(userCertificate),
+                        CryptoHelper.convertX509ToPEM(properAAMCert),
+                        certificationAuthorityHelper.getRootCACert())
+        );
+
     }
 }

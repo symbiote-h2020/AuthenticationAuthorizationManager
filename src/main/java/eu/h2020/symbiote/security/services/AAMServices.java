@@ -117,6 +117,12 @@ public class AAMServices {
             return componentCertificatesRepository.findOne(componentIdentifier).getCertificate().getCertificateString();
         }
         // not our platform
+        if (platformIdentifier.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)
+                && componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME)) {
+            // Core cert can be fetched from keystore
+            return certificationAuthorityHelper.getRootCACert();
+        }
+
         Map<String, AAM> availableAAMs = getAvailableAAMs();
         if (availableAAMs.containsKey(platformIdentifier)) {
             AAM aam = availableAAMs.get(platformIdentifier);
