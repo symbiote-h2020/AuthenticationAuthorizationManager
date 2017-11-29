@@ -88,6 +88,7 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
         //setting AAM instance Identifier different than Core AAM and recognizable RootCaCert
         when(certificationAuthorityHelper.getAAMInstanceIdentifier()).thenReturn("newTestPlatform");
         when(certificationAuthorityHelper.getRootCACert()).thenReturn("Keystore Root Cert");
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", "wrong adress");
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", certificationAuthorityHelper);
 
         String coreCertificate = aamServices.getComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, SecurityConstants.CORE_AAM_INSTANCE_ID);
