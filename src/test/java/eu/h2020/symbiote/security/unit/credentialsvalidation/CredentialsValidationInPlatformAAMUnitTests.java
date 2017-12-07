@@ -72,7 +72,6 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
 
     @After
     public void after() throws Exception {
-
         // fixing the core AAM url to point to the dummyCoreAAM
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
     }
