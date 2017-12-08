@@ -59,6 +59,7 @@ public class UsersManagementService {
     private final String adminUsername;
     private final String adminPassword;
     private final IssuingAuthorityType deploymentType;
+    private final String aamIdentifier;
     private final IAnomaliesHelper anomaliesHelper;
 
     private final RabbitTemplate rabbitTemplate;
@@ -76,6 +77,7 @@ public class UsersManagementService {
         this.revokedKeysRepository = revokedKeysRepository;
         this.passwordEncoder = passwordEncoder;
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
+        this.aamIdentifier = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.rabbitTemplate = rabbitTemplate;
         this.anomaliesHelper = anomaliesHelper;
         this.adminUsername = adminUsername;
@@ -111,7 +113,7 @@ public class UsersManagementService {
         // If requested user IS in database but wrong password was provided
         if (!credentials.getPassword().equals(foundUser.getPasswordEncrypted()) &&
                 !passwordEncoder.matches(credentials.getPassword(), foundUser.getPasswordEncrypted())) {
-            rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(new EventLogRequest(credentials.getUsername(), null, null, EventType.LOGIN_FAILED, System.currentTimeMillis(), null, null)));
+            rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(new EventLogRequest(credentials.getUsername(), null, null, aamIdentifier, EventType.LOGIN_FAILED, System.currentTimeMillis(), null, null)));
 
             throw new UserManagementException("Incorrect login / password", HttpStatus.UNAUTHORIZED);
         }
