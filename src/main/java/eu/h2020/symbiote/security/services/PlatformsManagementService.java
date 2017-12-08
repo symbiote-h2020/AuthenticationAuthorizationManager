@@ -19,6 +19,7 @@ import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -33,6 +34,7 @@ import java.util.*;
  * @author Maksymilian Marcinowski (PSNC)
  * @author Mikołaj Dobski (PSNC)
  */
+@Profile("core")
 @Service
 public class PlatformsManagementService {
 
@@ -60,7 +62,7 @@ public class PlatformsManagementService {
     }
 
     public PlatformManagementResponse manage(PlatformManagementRequest platformManagementRequest) throws
-            SecurityException, CertificateException {
+            SecurityException {
 
         Credentials platformOwnerCredentials = platformManagementRequest.getPlatformOwnerCredentials();
 

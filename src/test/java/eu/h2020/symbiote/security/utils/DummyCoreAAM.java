@@ -55,7 +55,6 @@ public class DummyCoreAAM {
 
     public DummyCoreAAM() throws
             CertificateException,
-            UnrecoverableKeyException,
             NoSuchAlgorithmException,
             KeyStoreException,
             NoSuchProviderException,
@@ -78,8 +77,6 @@ public class DummyCoreAAM {
     @PostMapping(path = PATH + SecurityConstants.AAM_GET_HOME_TOKEN, produces = "application/json", consumes =
             "text/plain")
     public ResponseEntity<?> getHomeToken(@RequestBody String loginRequest) throws
-            IOException,
-            ClassNotFoundException,
             MalformedJWTException {
 
         JWTClaims claims = JWTEngine.getClaimsFromToken(loginRequest);
@@ -125,7 +122,7 @@ public class DummyCoreAAM {
 
     @GetMapping(path = PATH + SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE)
     public String getRootCertificate() throws NoSuchProviderException, KeyStoreException, IOException,
-            UnrecoverableKeyException, NoSuchAlgorithmException, CertificateException {
+            NoSuchAlgorithmException, CertificateException {
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         ks.load(new FileInputStream(CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
         X509Certificate certificate = (X509Certificate) ks.getCertificate(CERTIFICATE_ALIAS);

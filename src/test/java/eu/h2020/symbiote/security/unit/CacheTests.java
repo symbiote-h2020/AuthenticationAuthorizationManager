@@ -6,10 +6,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.FederationRule;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
@@ -36,7 +33,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.concurrent.TimeoutException;
 
 import static eu.h2020.symbiote.security.services.helpers.TokenIssuer.buildAuthorizationToken;
 import static org.junit.Assert.assertEquals;
@@ -73,27 +69,20 @@ public class CacheTests extends AbstractAAMTestSuite {
                 new Certificate(CryptoHelper.convertX509ToPEM(properAAMCert)),
                 new HashMap<>());
         platformRepository.save(dummyPlatform);
-
-
     }
 
     @Test
     public void verifyThatValidationHelperUsesCachedValidResultsForForeignTokenOriginTokens() throws
-            IOException,
             ValidationException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException,
-            JWTCreationException, TimeoutException, InterruptedException {
+            JWTCreationException,
+            MalformedJWTException,
+            IOException,
+            ClassNotFoundException {
 
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         // issuing dummy platform token
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
-                        SecurityConstants
-                                .AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
+        ResponseEntity<?> loginResponse = dummyPlatformAAM.getHomeToken(loginRequest);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -118,9 +107,7 @@ public class CacheTests extends AbstractAAMTestSuite {
             NoSuchProviderException,
             KeyStoreException,
             IOException,
-            UnrecoverableKeyException,
-            ValidationException,
-            TimeoutException, InterruptedException {
+            UnrecoverableKeyException {
 
 
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
@@ -134,7 +121,7 @@ public class CacheTests extends AbstractAAMTestSuite {
                 100000l,
                 "platform-1",
                 properAAMCert.getPublicKey(),
-                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
+                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-1-c1")
         );
 
         // valid remote home token chain, token will be cached

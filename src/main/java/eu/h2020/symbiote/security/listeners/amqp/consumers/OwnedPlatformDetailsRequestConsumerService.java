@@ -1,10 +1,6 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
@@ -17,9 +13,18 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.amqp.rabbit.annotation.Exchange;
+import org.springframework.amqp.rabbit.annotation.Queue;
+import org.springframework.amqp.rabbit.annotation.QueueBinding;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -28,108 +33,97 @@ import java.util.Set;
  * through Administration module
  * <p>
  */
-public class OwnedPlatformDetailsRequestConsumerService extends DefaultConsumer {
+@Profile("core")
+@Component
+public class OwnedPlatformDetailsRequestConsumerService {
 
     private static Log log = LogFactory.getLog(OwnedPlatformDetailsRequestConsumerService.class);
-    private final UserRepository userRepository;
-    private final String adminUsername;
-    private final String adminPassword;
+    @Autowired
+    private UserRepository userRepository;
+    @Value("${aam.deployment.owner.username}")
+    private String adminUsername;
+    @Value("${aam.deployment.owner.password}")
+    private String adminPassword;
+    @Autowired
     private PlatformRepository platformRepository;
 
-    /**
-     * Constructs a new instance and records its association to the passed-in channel.
-     * Managers beans passed as parameters because of lack of possibility to inject it to consumer.
-     *
-     * @param channel            the channel to which this consumer is attached
-     * @param adminUsername
-     * @param adminPassword
-     * @param platformRepository
-     */
-    public OwnedPlatformDetailsRequestConsumerService(Channel channel,
-                                                      UserRepository userRepository, String adminUsername, String adminPassword, PlatformRepository platformRepository) {
-        super(channel);
-        this.userRepository = userRepository;
-        this.adminUsername = adminUsername;
-        this.adminPassword = adminPassword;
-        this.platformRepository = platformRepository;
-    }
+    @RabbitListener(bindings = @QueueBinding(
+            value = @Queue(
+                    value = "${rabbit.queue.ownedplatformdetails.request}",
+                    durable = "${rabbit.exchange.aam.durable}",
+                    autoDelete = "${rabbit.exchange.aam.autodelete}",
+                    exclusive = "false"),
+            exchange = @Exchange(
+                    value = "${rabbit.exchange.aam.name}",
+                    ignoreDeclarationExceptions = "true",
+                    durable = "${rabbit.exchange.aam.durable}",
+                    autoDelete = "${rabbit.exchange.aam.autodelete}",
+                    internal = "${rabbit.exchange.aam.internal}",
+                    type = "${rabbit.exchange.aam.type}"),
+            key = "rabbit.routingKey.ownedplatformdetails.request"))
+    public Object ownedPlatformDetailsRequest(byte[] body) {
 
-    /**
-     * Called when a <code><b>basic.deliver</b></code> is received for this consumer.
-     *
-     * @param consumerTag the <i>consumer tag</i> associated with the consumer
-     * @param envelope    packaging data for the message
-     * @param properties  content header data for the message
-     * @param body        the message body (opaque, client-specific byte array)
-     * @throws IOException if the consumer encounters an I/O error while processing the message
-     * @see Envelope
-     */
-    @Override
-    public void handleDelivery(String consumerTag, Envelope envelope,
-                               AMQP.BasicProperties properties, byte[] body)
-            throws IOException {
-
-        String message = new String(body, "UTF-8");
-        ObjectMapper om = new ObjectMapper();
-        String response;
-
-        if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
-
-            AMQP.BasicProperties replyProps = new AMQP.BasicProperties
-                    .Builder()
-                    .correlationId(properties.getCorrelationId())
-                    .build();
-            try {
-                UserManagementRequest userManagementRequest = om.readValue(message, UserManagementRequest.class);
-                Credentials administratorCredentials = userManagementRequest.getAdministratorCredentials();
-
-                // check if we received required administrator credentials for API auth
-                if (administratorCredentials == null || userManagementRequest.getUserCredentials().getUsername().isEmpty())
-                    throw new InvalidArgumentsException();
-                // and if they match the admin credentials from properties
-                if (!administratorCredentials.getUsername().equals(adminUsername)
-                        || !administratorCredentials.getPassword().equals(adminPassword))
-                    throw new UserManagementException(HttpStatus.UNAUTHORIZED);
-
-                // preparing collections
-                Set<OwnedPlatformDetails> ownedPlatformDetailsSet = new HashSet<>();
-                Set<String> ownedPlatformsIdentifiers = new HashSet<>();
-
-                // do it
-                User platformOwner = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
-                if (platformOwner != null)
-                    ownedPlatformsIdentifiers = platformOwner.getOwnedPlatforms();
-
-                if (!ownedPlatformsIdentifiers.isEmpty()) {
-                    Set<Platform> ownedPlatforms = new HashSet<>();
-                    for (String platformIdentifier : ownedPlatformsIdentifiers) {
-                        Platform platform = platformRepository.findOne(platformIdentifier);
-                        if (platform != null)
-                            ownedPlatforms.add(platform);
-                    }
-                    for (Platform ownedPlatform : ownedPlatforms) {
-                        OwnedPlatformDetails ownedPlatformDetails = new OwnedPlatformDetails(
-                                ownedPlatform.getPlatformInstanceId(),
-                                ownedPlatform.getPlatformInterworkingInterfaceAddress(),
-                                ownedPlatform.getPlatformInstanceFriendlyName(),
-                                ownedPlatform.getPlatformAAMCertificate(),
-                                ownedPlatform.getComponentCertificates()
-                        );
-                        ownedPlatformDetailsSet.add(ownedPlatformDetails);
-                    }
-                }
-                // replying with the whole set
-                response = om.writeValueAsString(ownedPlatformDetailsSet);
-                this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-                log.debug("Owned Platforms Details response: sent back");
-            } catch (UserManagementException | InvalidArgumentsException e) {
-                log.error(e);
-                response = (new ErrorResponseContainer(e.getMessage(), HttpStatus.UNAUTHORIZED.value()).toJson());
-                this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-            }
-        } else {
-            log.error("Received RPC message without ReplyTo or CorrelationId properties.");
+        Object response;
+        String message;
+        try {
+            message = new String(body, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            log.error(e);
+            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());
+            return response;
         }
-        this.getChannel().basicAck(envelope.getDeliveryTag(), false);
+        ObjectMapper om = new ObjectMapper();
+
+        try {
+            UserManagementRequest userManagementRequest = om.readValue(message, UserManagementRequest.class);
+            Credentials administratorCredentials = userManagementRequest.getAdministratorCredentials();
+
+            // check if we received required administrator credentials for API auth
+            if (administratorCredentials == null || userManagementRequest.getUserCredentials().getUsername().isEmpty())
+                throw new InvalidArgumentsException();
+            // and if they match the admin credentials from properties
+            if (!administratorCredentials.getUsername().equals(adminUsername)
+                    || !administratorCredentials.getPassword().equals(adminPassword))
+                throw new UserManagementException(HttpStatus.UNAUTHORIZED);
+
+            // preparing collections
+            Set<OwnedPlatformDetails> ownedPlatformDetailsSet = new HashSet<>();
+            Set<String> ownedPlatformsIdentifiers = new HashSet<>();
+
+            // do it
+            User platformOwner = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
+            if (platformOwner != null)
+                ownedPlatformsIdentifiers = platformOwner.getOwnedPlatforms();
+
+            if (!ownedPlatformsIdentifiers.isEmpty()) {
+                Set<Platform> ownedPlatforms = new HashSet<>();
+                for (String platformIdentifier : ownedPlatformsIdentifiers) {
+                    Platform platform = platformRepository.findOne(platformIdentifier);
+                    if (platform != null)
+                        ownedPlatforms.add(platform);
+                }
+                for (Platform ownedPlatform : ownedPlatforms) {
+                    OwnedPlatformDetails ownedPlatformDetails = new OwnedPlatformDetails(
+                            ownedPlatform.getPlatformInstanceId(),
+                            ownedPlatform.getPlatformInterworkingInterfaceAddress(),
+                            ownedPlatform.getPlatformInstanceFriendlyName(),
+                            ownedPlatform.getPlatformAAMCertificate(),
+                            ownedPlatform.getComponentCertificates()
+                    );
+                    ownedPlatformDetailsSet.add(ownedPlatformDetails);
+                }
+            }
+            // replying with the whole set
+            response = ownedPlatformDetailsSet;
+        } catch (UserManagementException | InvalidArgumentsException e) {
+            log.error(e);
+            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.UNAUTHORIZED.ordinal());
+            return response;
+        } catch (IOException e) {
+            log.error(e);
+            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());
+            return response;
+        }
+        return response;
     }
 }

@@ -5,9 +5,11 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
+import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -23,19 +25,19 @@ public class CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests exten
 
     @Autowired
     private ValidationHelper validationHelper;
+    @Autowired
+    private DummyCoreAAM dummyCoreAAM;
 
     @Test
-    public void validateIssuerCertificateExpired() throws ValidationException {
+    public void validateIssuerCertificateExpired() throws
+            ValidationException,
+            MalformedJWTException {
         // issuing dummy core token from CoreAAM with expired certificate
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" +
-                        SecurityConstants
-                                .AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
+        ResponseEntity<?> loginResponse = dummyCoreAAM.getHomeToken(loginRequest);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
-
 
         ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
         // check if platform token is not revoked

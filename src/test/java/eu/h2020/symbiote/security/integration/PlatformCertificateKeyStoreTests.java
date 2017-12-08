@@ -37,7 +37,6 @@ public class PlatformCertificateKeyStoreTests extends AbstractAAMTestSuite {
             NotExistingUserException,
             WrongCredentialsException,
             NoSuchProviderException,
-            UnrecoverableKeyException,
             AAMException {
         //platformOwner and platform  registration
         User platformOwner = savePlatformOwner();

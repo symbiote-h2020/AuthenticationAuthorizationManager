@@ -25,6 +25,7 @@ class AppConfig extends AbstractMongoConfiguration {
     private String databaseName;
     private MongoClient mongoClient = null;
 
+
     AppConfig(@Value("${aam.database.name}") String databaseName) {
         this.databaseName = databaseName;
     }
@@ -48,4 +49,6 @@ class AppConfig extends AbstractMongoConfiguration {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
+
 }

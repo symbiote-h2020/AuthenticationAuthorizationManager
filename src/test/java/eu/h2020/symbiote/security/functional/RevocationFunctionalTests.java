@@ -1,6 +1,5 @@
 package eu.h2020.symbiote.security.functional;
 
-import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
@@ -20,8 +19,8 @@ import eu.h2020.symbiote.security.services.CredentialsValidationService;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.bouncycastle.operator.OperatorCreationException;
-import org.junit.Before;
 import org.junit.Test;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -33,7 +32,6 @@ import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 import static org.junit.Assert.*;
@@ -54,7 +52,6 @@ public class RevocationFunctionalTests extends
     DummyPlatformAAM dummyPlatformAAM;
     @Autowired
     private PlatformRepository platformRepository;
-    private RpcClient revocationOverAMQPClient;
     @Autowired
     private GetTokenService getTokenService;
     @Value("${aam.deployment.owner.username}")
@@ -64,20 +61,8 @@ public class RevocationFunctionalTests extends
 
     @Autowired
     private CredentialsValidationService credentialsValidationService;
-
-    @Override
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-
-        // db cleanup
-        platformRepository.deleteAll();
-        userRepository.deleteAll();
-
-        // platform registration useful
-        revocationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                revocationRequestQueue, 5000);
-    }
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     @Test
     public void revokeUserCertificateUsingCertificateOverRESTSuccess() throws
@@ -172,7 +157,6 @@ public class RevocationFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            TimeoutException,
             AAMException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER);
@@ -196,9 +180,9 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCertificatePEMString(clientCertificate);
 
         assertFalse(revokedKeysRepository.exists(username));
-        byte[] response = revocationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+        Object response = rabbitTemplate.convertSendAndReceive(revocationRequestQueue, mapper.writeValueAsString
                 (revocationRequest).getBytes());
-        RevocationResponse revocationResponse = mapper.readValue(response,
+        RevocationResponse revocationResponse = mapper.convertValue(response,
                 RevocationResponse.class);
 
         assertTrue(revocationResponse.isRevoked());
@@ -292,19 +276,15 @@ public class RevocationFunctionalTests extends
 
     @Test
     public void revokeHomeTokenOverRESTSuccess() throws
-            InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
             IOException,
             InvalidArgumentsException,
             WrongCredentialsException,
-            NotExistingUserException,
             ValidationException,
             OperatorCreationException,
-            InvalidKeyException,
             KeyStoreException,
-            UnrecoverableKeyException,
             JWTCreationException,
             MalformedJWTException,
             AAMException {
@@ -334,12 +314,9 @@ public class RevocationFunctionalTests extends
             KeyStoreException,
             OperatorCreationException,
             NoSuchProviderException,
-            InvalidKeyException,
             IOException,
-            TimeoutException,
             JWTCreationException,
             ValidationException,
-            NotExistingUserException,
             InvalidArgumentsException,
             WrongCredentialsException,
             MalformedJWTException,
@@ -410,7 +387,7 @@ public class RevocationFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            TimeoutException, AAMException {
+            AAMException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
@@ -433,9 +410,9 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCertificatePEMString(clientCertificate);
 
         assertFalse(revokedKeysRepository.exists(username));
-        byte[] response = revocationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+        Object response = rabbitTemplate.convertSendAndReceive(revocationRequestQueue, mapper.writeValueAsString
                 (revocationRequest).getBytes());
-        RevocationResponse revocationResponse = mapper.readValue(response,
+        RevocationResponse revocationResponse = mapper.convertValue(response,
                 RevocationResponse.class);
 
         assertTrue(revocationResponse.isRevoked());
@@ -445,20 +422,14 @@ public class RevocationFunctionalTests extends
 
     @Test
     public void revokeHomeTokenOverAMQPByAdminSuccess() throws
-            InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
             IOException,
-            InvalidArgumentsException,
             WrongCredentialsException,
-            NotExistingUserException,
             ValidationException,
-            TimeoutException,
             OperatorCreationException,
-            InvalidKeyException,
             KeyStoreException,
-            UnrecoverableKeyException,
             JWTCreationException,
             MalformedJWTException,
             AAMException {
@@ -477,9 +448,9 @@ public class RevocationFunctionalTests extends
         revocationRequest.setHomeTokenString(homeToken);
 
         assertFalse(revokedTokensRepository.exists(new Token(homeToken).getId()));
-        byte[] response = revocationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+        Object response = rabbitTemplate.convertSendAndReceive(revocationRequestQueue, mapper.writeValueAsString
                 (revocationRequest).getBytes());
-        RevocationResponse revocationResponse = mapper.readValue(response,
+        RevocationResponse revocationResponse = mapper.convertValue(response,
                 RevocationResponse.class);
 
         assertTrue(revocationResponse.isRevoked());
@@ -489,40 +460,24 @@ public class RevocationFunctionalTests extends
 
     @Test
     public void revokeOverAMQPByAdminFailEmptyRequestOrBadAdminCredentials() throws
-            InvalidAlgorithmParameterException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            CertificateException,
-            IOException,
-            InvalidArgumentsException,
-            WrongCredentialsException,
-            NotExistingUserException,
-            ValidationException,
-            TimeoutException,
-            OperatorCreationException,
-            InvalidKeyException,
-            KeyStoreException,
-            UnrecoverableKeyException,
-            JWTCreationException,
-            MalformedJWTException {
-
+            IOException {
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
 
-        byte[] response = revocationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+        Object response = rabbitTemplate.convertSendAndReceive(revocationRequestQueue, mapper.writeValueAsString
                 (revocationRequest).getBytes());
-        RevocationResponse revocationResponse = mapper.readValue(response,
+        RevocationResponse revocationResponse = mapper.convertValue(response,
                 RevocationResponse.class);
 
         assertFalse(revocationResponse.isRevoked());
         assertEquals(HttpStatus.BAD_REQUEST, revocationResponse.getStatus());
 
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, password));
-        response = revocationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+        response = rabbitTemplate.convertSendAndReceive(revocationRequestQueue, mapper.writeValueAsString
                 (revocationRequest).getBytes());
-        revocationResponse = mapper.readValue(response,
+        revocationResponse = mapper.convertValue(response,
                 RevocationResponse.class);
 
         assertFalse(revocationResponse.isRevoked());

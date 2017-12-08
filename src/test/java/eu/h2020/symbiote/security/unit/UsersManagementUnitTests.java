@@ -45,7 +45,8 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     private final String recoveryMail = "null@dev.null";
 
     @Test
-    public void userInternalCreateSuccess() throws SecurityException {
+    public void userInternalCreateSuccess() throws
+            SecurityException {
         String appUsername = "NewApplication";
 
         // verify that app is not in the repository
@@ -56,9 +57,15 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         attributes.put("key", "attribute");
 
         // manage new user to db
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
-                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, attributes, new HashMap<>())
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(appUsername, "NewPassword"),
+                new UserDetails(
+                        new Credentials(appUsername, "NewPassword"),
+                        "nullId",
+                        "nullMail",
+                        UserRole.USER,
+                        attributes,
+                        new HashMap<>())
                 , OperationType.CREATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
 
@@ -67,7 +74,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertNotNull(registeredUser);
         assertEquals(UserRole.USER, registeredUser.getRole());
         assertEquals(1, registeredUser.getAttributes().size());
-        assertEquals(userRegistrationResponse, ManagementStatus.OK);
+        assertEquals(ManagementStatus.OK, userRegistrationResponse);
     }
 
     @Test
@@ -80,10 +87,16 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         //checking if new password is different from that in repo
         assertFalse(passwordEncoder.matches("NewPassword", registeredUser.getPasswordEncrypted()));
         // update user (new password), empty user password in credentials for validation
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, ""),
-                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
-                , OperationType.FORCE_UPDATE);
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(appUsername, ""),
+                new UserDetails(
+                        new Credentials(appUsername, "NewPassword"),
+                        "nullId",
+                        "nullMail",
+                        UserRole.USER,
+                        new HashMap<>(),
+                        new HashMap<>()),
+                OperationType.FORCE_UPDATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.OK, userRegistrationResponse);
         // verify that app really is in repository
@@ -98,10 +111,16 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
         assertNull(userRepository.findOne(appUsername));
         // update user who doesn't exist in db
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, password),
-                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
-                , OperationType.FORCE_UPDATE);
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(appUsername, password),
+                new UserDetails(
+                        new Credentials(appUsername, "NewPassword"),
+                        "nullId",
+                        "nullMail",
+                        UserRole.USER,
+                        new HashMap<>(),
+                        new HashMap<>()),
+                OperationType.FORCE_UPDATE);
         usersManagementService.authManage(userManagementRequest);
     }
 
@@ -110,10 +129,16 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
         assertNull(userRepository.findOne(appUsername));
         // update user who doesn't exist in db
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, password),
-                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
-                , OperationType.UPDATE);
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(appUsername, password),
+                new UserDetails(
+                        new Credentials(appUsername, "NewPassword"),
+                        "nullId",
+                        "nullMail",
+                        UserRole.USER,
+                        new HashMap<>(),
+                        new HashMap<>()),
+                OperationType.UPDATE);
         usersManagementService.authManage(userManagementRequest);
     }
 
@@ -122,37 +147,56 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
         assertNull(userRepository.findOne(appUsername));
         // update user who doesn't exist in db
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, password),
-                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
-                , OperationType.ATTRIBUTES_UPDATE);
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(appUsername, password),
+                new UserDetails(
+                        new Credentials(appUsername, "NewPassword"),
+                        "nullId",
+                        "nullMail",
+                        UserRole.USER,
+                        new HashMap<>(),
+                        new HashMap<>()),
+                OperationType.ATTRIBUTES_UPDATE);
         usersManagementService.authManage(userManagementRequest);
     }
 
     @Test
     public void userInternalCreateFailForAAMAdminRegistrationAttempt() throws SecurityException {
         // manage new user to db
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
-                new UserDetails(new Credentials(AAMOwnerUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
-                , OperationType.CREATE);
+        UserManagementRequest userManagementRequest = new UserManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(appUsername, "NewPassword"),
+                new UserDetails(
+                        new Credentials(AAMOwnerUsername, "NewPassword"),
+                        "nullId",
+                        "nullMail",
+                        UserRole.USER,
+                        new HashMap<>(),
+                        new HashMap<>()),
+                OperationType.CREATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
 
         // verify that we got an error
-        assertEquals(userRegistrationResponse, ManagementStatus.ERROR);
+        assertEquals(ManagementStatus.ERROR, userRegistrationResponse);
     }
 
     @Test
     public void userInternalCreateFailForGuestAttempt() throws SecurityException {
         // managePlatform new user to db
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
-                new UserDetails(new Credentials(SecurityConstants.GUEST_NAME, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
-                , OperationType.CREATE);
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(appUsername, "NewPassword"),
+                new UserDetails(
+                        new Credentials(SecurityConstants.GUEST_NAME, "NewPassword"),
+                        "nullId",
+                        "nullMail",
+                        UserRole.USER,
+                        new HashMap<>(),
+                        new HashMap<>()),
+                OperationType.CREATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
 
         // verify that we got an error
-        assertEquals(userRegistrationResponse, ManagementStatus.ERROR);
+        assertEquals(ManagementStatus.ERROR, userRegistrationResponse);
     }
 
     @Test
@@ -163,12 +207,18 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         attributes.put("key", "attribute");
         // update attributes - new values of mail and federatedId to check, if they change too
         //wrong password used to check, if it is checked (should not be)
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, password),
-                new UserDetails(new Credentials(appUsername, wrongPassword), "newId", "newMail", UserRole.USER, attributes, new HashMap<>())
-                , OperationType.ATTRIBUTES_UPDATE);
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(appUsername, password),
+                new UserDetails(
+                        new Credentials(appUsername, wrongPassword),
+                        "newId",
+                        "newMail",
+                        UserRole.USER,
+                        attributes,
+                        new HashMap<>()),
+                OperationType.ATTRIBUTES_UPDATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
-        assertEquals(userRegistrationResponse, ManagementStatus.OK);
+        assertEquals(ManagementStatus.OK, userRegistrationResponse);
         // verify that app really is in repository
         User newUser = userRepository.findOne(appUsername);
         assertNotNull(newUser);
@@ -192,9 +242,15 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertNull(registeredUser);
 
         // manage new user to db
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(appUsername, "NewPassword"),
-                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.PLATFORM_OWNER, new HashMap<>(), new HashMap<>()),
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(appUsername, "NewPassword"),
+                new UserDetails(
+                        new Credentials(appUsername, "NewPassword"),
+                        "nullId",
+                        "nullMail",
+                        UserRole.PLATFORM_OWNER,
+                        new HashMap<>(),
+                        new HashMap<>()),
                 OperationType.CREATE);
         try {
             // hack: make sure the AAM thinks it is a platform AAM
@@ -223,7 +279,14 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
         Map<String, Certificate> clientCertificates = new HashMap<>();
         clientCertificates.put("clientId", new Certificate(CryptoHelper.convertX509ToPEM(userCertificate)));
-        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, new HashMap<>(), new HashSet<>()));
+        userRepository.save(
+                new User(username,
+                        passwordEncoder.encode(password),
+                        recoveryMail,
+                        clientCertificates,
+                        UserRole.USER,
+                        new HashMap<>(),
+                        new HashSet<>()));
 
         // verify that app really is in repository
         User user = userRepository.findOne(username);
@@ -233,9 +296,16 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertFalse(revokedKeysRepository.exists(username));
 
         // delete the user
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
-                new UserDetails(new Credentials(username, password), "", "", UserRole.NULL, new HashMap<>(), new HashMap<>()),
+        UserManagementRequest userManagementRequest = new UserManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(),
+                new UserDetails(
+                        new Credentials(username, password),
+                        "",
+                        "",
+                        UserRole.NULL,
+                        new HashMap<>(),
+                        new HashMap<>()),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
         log.debug("User successfully unregistered!");
@@ -284,9 +354,15 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertFalse(revokedKeysRepository.exists(username));
 
         // delete the user
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
-                new UserDetails(new Credentials(username, password), "", "", UserRole.USER, new HashMap<>(), new HashMap<>()),
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(),
+                new UserDetails(
+                        new Credentials(username, password),
+                        "",
+                        "",
+                        UserRole.USER,
+                        new HashMap<>(),
+                        new HashMap<>()),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
         log.debug("User successfully unregistered!");
@@ -307,9 +383,15 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertTrue(revokedKeys.getRevokedKeysSet().containsAll(testCertificatesSet));
 
         // add user again
-        userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, "NewPassword"),
-                new UserDetails(new Credentials(username, "NewPassword"), "nullId", "nullMail", UserRole.PLATFORM_OWNER, new HashMap<>(), new HashMap<>()),
+        userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(username, "NewPassword"),
+                new UserDetails(
+                        new Credentials(username, "NewPassword"),
+                        "nullId",
+                        "nullMail",
+                        UserRole.PLATFORM_OWNER,
+                        new HashMap<>(),
+                        new HashMap<>()),
                 OperationType.CREATE);
         assertEquals(ManagementStatus.OK, usersManagementService.authManage(userManagementRequest));
 
@@ -341,9 +423,15 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test(expected = InvalidArgumentsException.class)
     public void userInternalDeleteFailMissingUsername() throws SecurityException {
         // delete the user
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
-                new UserDetails(new Credentials("", password), "", "", UserRole.NULL, new HashMap<>(), new HashMap<>()),
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(),
+                new UserDetails(
+                        new Credentials("", password),
+                        "",
+                        "",
+                        UserRole.NULL,
+                        new HashMap<>(),
+                        new HashMap<>()),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -354,21 +442,22 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertFalse(userRepository.exists(username));
 
         // delete the user
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
-                new UserDetails(new Credentials(username, password), "", "", UserRole.NULL, new HashMap<>(), new HashMap<>()),
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(),
+                new UserDetails(
+                        new Credentials(username, password),
+                        "",
+                        "",
+                        UserRole.NULL,
+                        new HashMap<>(),
+                        new HashMap<>()),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
     }
 
     @Test(expected = UserManagementException.class)
     public void userInternalDeleteFailForOwnedPlatformsNotEmpty() throws
-            SecurityException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException {
+            SecurityException {
 
         // save PO
         User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
@@ -387,9 +476,15 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertNotNull(user);
 
         // delete the user
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
-                new UserDetails(new Credentials(username, ""), "", "", UserRole.NULL, new HashMap<>(), new HashMap<>()),
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(),
+                new UserDetails(
+                        new Credentials(username, ""),
+                        "",
+                        "",
+                        UserRole.NULL,
+                        new HashMap<>(),
+                        new HashMap<>()),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -400,7 +495,13 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         // attempt adding new user to database using invalid request
         UserManagementRequest userManagementRequest = new UserManagementRequest(null,
                 new Credentials(appUsername, "NewPassword"),
-                new UserDetails(new Credentials(appUsername, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()),
+                new UserDetails(
+                        new Credentials(appUsername, "NewPassword"),
+                        "nullId",
+                        "nullMail",
+                        UserRole.USER,
+                        new HashMap<>(),
+                        new HashMap<>()),
                 OperationType.CREATE);
         usersManagementService.authManage(userManagementRequest);
 
@@ -411,10 +512,16 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         String incorrectName = "@#$%^";
 
         // manage new user to db
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(incorrectName, "NewPassword"),
-                new UserDetails(new Credentials(incorrectName, "NewPassword"), "nullId", "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>())
-                , OperationType.CREATE);
+        UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(incorrectName, "NewPassword"),
+                new UserDetails(
+                        new Credentials(incorrectName, "NewPassword"),
+                        "nullId",
+                        "nullMail",
+                        UserRole.USER,
+                        new HashMap<>(),
+                        new HashMap<>()),
+                OperationType.CREATE);
         usersManagementService.authManage(userManagementRequest);
     }
 

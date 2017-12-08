@@ -2,10 +2,8 @@ package eu.h2020.symbiote.security.integration;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.ClientSecurityHandlerFactory;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.handler.ISecurityHandler;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
@@ -16,11 +14,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.File;
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertificateException;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
@@ -44,14 +37,7 @@ public class ClientSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSuite 
 
     @Test
     public void ClientIntegrationTest() throws
-            SecurityHandlerException,
-            InvalidArgumentsException,
-            NoSuchAlgorithmException,
-            CertificateException,
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException,
-            WrongCredentialsException {
+            SecurityHandlerException {
         // hack: injecting the AAM running port
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
 

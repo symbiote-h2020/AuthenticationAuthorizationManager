@@ -40,7 +40,8 @@ public class Swagger2MarkupTest {
     private MockMvc mockMvc;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws
+            Exception {
         // Create a trust manager that does not validate certificate chains
         TrustManager[] trustAllCerts = new TrustManager[]{
                 new X509TrustManager() {
@@ -65,7 +66,8 @@ public class Swagger2MarkupTest {
     }
 
     @Test
-    public void createSpringfoxSwaggerJson() throws Exception {
+    public void createSpringfoxSwaggerJson() throws
+            Exception {
         String outputDir = "build/swagger";
         MvcResult mvcResult = this.mockMvc.perform(get("/swagger/v2/api-docs")
                 .header("Origin", "localhost")

@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.listeners.rest.interfaces.IManagePlatforms;
 import eu.h2020.symbiote.security.services.PlatformsManagementService;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +22,7 @@ import java.security.cert.CertificateException;
  * @author Maks Marcinowski (PSNC)
  * @see PlatformsManagementService
  */
+@Profile("core")
 @Api(value = "/docs/platformmanagement", description = "Exposes a service that allows platforms' management")
 @RestController
 public class ManagePlatformsController implements IManagePlatforms {

@@ -57,9 +57,12 @@ public class CertificatesIssuingUnitTests extends
     private RevokedKeysRepository revokedKeysRepository;
 
     @Test
-    public void generateCertificateFromCSRSuccess() throws OperatorCreationException, CertificateException,
-            UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException,
-            InvalidKeyException, IOException, InvalidAlgorithmParameterException {
+    public void generateCertificateFromCSRSuccess() throws
+            OperatorCreationException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            InvalidAlgorithmParameterException {
         KeyPairGenerator g = KeyPairGenerator.getInstance(SecurityConstants.KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
         ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(SecurityConstants.CURVE_NAME);
         g.initialize(ecGenSpec, new SecureRandom());
@@ -76,9 +79,12 @@ public class CertificatesIssuingUnitTests extends
     }
 
     @Test
-    public void generateCertificateFromCSRCorrectSubjectTest() throws OperatorCreationException,
-            CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException,
-            NoSuchProviderException, InvalidKeyException, IOException, InvalidAlgorithmParameterException {
+    public void generateCertificateFromCSRCorrectSubjectTest() throws
+            OperatorCreationException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            InvalidAlgorithmParameterException {
         KeyPairGenerator g = KeyPairGenerator.getInstance(SecurityConstants.KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
         ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(SecurityConstants.CURVE_NAME);
         g.initialize(ecGenSpec, new SecureRandom());
@@ -95,9 +101,12 @@ public class CertificatesIssuingUnitTests extends
     }
 
     @Test
-    public void generateCertificateFromCSRPublicKeyTest() throws OperatorCreationException, CertificateException,
-            UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException,
-            InvalidKeyException, IOException, InvalidAlgorithmParameterException {
+    public void generateCertificateFromCSRPublicKeyTest() throws
+            OperatorCreationException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            InvalidAlgorithmParameterException {
         KeyPairGenerator g = KeyPairGenerator.getInstance(SecurityConstants.KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
         ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(SecurityConstants.CURVE_NAME);
         g.initialize(ecGenSpec, new SecureRandom());
@@ -114,7 +123,8 @@ public class CertificatesIssuingUnitTests extends
     }
 
     @Test
-    public void generatedCertificateCreationAndVerification() throws Exception {
+    public void generatedCertificateCreationAndVerification() throws
+            Exception {
         KeyPairGenerator g = KeyPairGenerator.getInstance(SecurityConstants.KEY_PAIR_GEN_ALGORITHM, PROVIDER_NAME);
         ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(SecurityConstants.CURVE_NAME);
         g.initialize(ecGenSpec, new SecureRandom());
@@ -178,7 +188,6 @@ public class CertificatesIssuingUnitTests extends
             PlatformManagementException {
 
         saveUser();
-
         KeyPair pair = CryptoHelper.createKeyPair();
 
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
@@ -313,7 +322,6 @@ public class CertificatesIssuingUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
-            KeyStoreException,
             IOException,
             InvalidArgumentsException,
             WrongCredentialsException,
@@ -332,7 +340,6 @@ public class CertificatesIssuingUnitTests extends
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
-            KeyStoreException,
             IOException,
             InvalidArgumentsException,
             WrongCredentialsException,
@@ -352,7 +359,6 @@ public class CertificatesIssuingUnitTests extends
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
-            KeyStoreException,
             IOException,
             InvalidArgumentsException,
             WrongCredentialsException,
@@ -375,7 +381,6 @@ public class CertificatesIssuingUnitTests extends
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
-            KeyStoreException,
             IOException,
             InvalidArgumentsException,
             WrongCredentialsException,
@@ -426,15 +431,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
-            CertificateException,
-            KeyStoreException,
             IOException,
-            InvalidArgumentsException,
-            UserManagementException,
-            PlatformManagementException,
-            WrongCredentialsException,
-            NotExistingUserException,
-            ValidationException {
+            InvalidArgumentsException {
         User platformOwner = savePlatformOwner();
         User user = saveUser();
         savePlatform(platformOwner);
@@ -456,15 +454,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
-            CertificateException,
-            KeyStoreException,
             IOException,
-            InvalidArgumentsException,
-            UserManagementException,
-            PlatformManagementException,
-            WrongCredentialsException,
-            NotExistingUserException,
-            ValidationException {
+            InvalidArgumentsException {
         //ensure that platform repo is empty
         platformRepository.deleteAll();
 
@@ -760,7 +751,7 @@ public class CertificatesIssuingUnitTests extends
     }
 
 
-    private void savePlatform(User platformOwner) throws CertificateException {
+    private void savePlatform(User platformOwner) {
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
         platformOwner.getOwnedPlatforms().add(platformId);

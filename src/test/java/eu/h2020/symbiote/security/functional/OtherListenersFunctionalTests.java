@@ -1,38 +1,37 @@
 package eu.h2020.symbiote.security.functional;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.codehaus.jettison.json.JSONException;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
-import java.security.*;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
 
@@ -43,7 +42,6 @@ import static org.junit.Assert.*;
 public class OtherListenersFunctionalTests extends
         AbstractAAMTestSuite {
 
-    private final Log log = LogFactory.getLog(OtherListenersFunctionalTests.class);
     private final String recoveryMail = "null@dev.null";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
@@ -59,11 +57,12 @@ public class OtherListenersFunctionalTests extends
     private String getPlatformOwnersNamesQueue;
     @Value("${rabbit.routingKey.get.platform.owners.names}")
     private String getPlatformOwnersNamesRoutingKey;
-    private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-    private RpcClient getPlatformsOwnersClient;
+    private User platformOwner;
 
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
     @Autowired
     private ComponentCertificatesRepository componentCertificatesRepository;
 
@@ -73,14 +72,10 @@ public class OtherListenersFunctionalTests extends
         super.setUp();
 
         //user registration useful
-        User user = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
-        userRepository.save(user);
-        getPlatformsOwnersClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                getPlatformOwnersNamesQueue, 5000);
+        platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
+        userRepository.save(platformOwner);
         // platform registration useful
-        platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                platformManagementRequestQueue, 5000);
-        platformOwnerUserCredentials = new Credentials(user.getUsername(), user.getPasswordEncrypted());
+        platformOwnerUserCredentials = new Credentials(platformOwner.getUsername(), platformOwner.getPasswordEncrypted());
         platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
@@ -131,21 +126,16 @@ public class OtherListenersFunctionalTests extends
      */
     @Test
     public void getAvailableAAMsOverRESTWithRegisteredPlatform() throws SecurityException, IOException,
-            TimeoutException,
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
             KeyStoreException {
 
-        // issue platform registration over AMQP
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
+        // issue platform registration
+        Platform platform = new Platform(preferredPlatformId, platformInterworkingInterfaceAddress, platformInstanceFriendlyName, platformOwner, new Certificate(), new HashMap<>());
         // inject platform AAM Cert
-        Platform platform = platformRepository.findOne(preferredPlatformId);
         Certificate platformAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1")));
         platform.setPlatformAAMCertificate(platformAAMCertificate);
-
         // save the certs into the repo
         platformRepository.save(platform);
 
@@ -184,14 +174,14 @@ public class OtherListenersFunctionalTests extends
     }
 
     @Test(expected = AAMException.class)
-    public void getLocalComponentCertificateOverRESTWrongComponentIdentifier() throws NoSuchAlgorithmException, CertificateException,
-            NoSuchProviderException, KeyStoreException, IOException, AAMException {
+    public void getLocalComponentCertificateOverRESTWrongComponentIdentifier() throws
+            AAMException {
         aamClient.getComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME+"wrong", SecurityConstants.CORE_AAM_INSTANCE_ID);
 
     }
 
     @Test
-    public void getOwnedPlatformDetailsForPlatformOwnerInAdministrationSuccess() throws IOException, TimeoutException {
+    public void getOwnedPlatformDetailsForPlatformOwnerInAdministrationSuccess() throws IOException {
 
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
@@ -207,30 +197,27 @@ public class OtherListenersFunctionalTests extends
         userManagementRequest.setUserCredentials(new Credentials(platformOwnerUsername, ""));
 
         // issue owned platform details request
-        RpcClient ownedPlatformsDetailsRPCClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                ownedPlatformDetailsRequestQueue, 5000);
-        byte[] ownedPlatformRawResponse = ownedPlatformsDetailsRPCClient.primitiveCall(mapper.writeValueAsString
-                (userManagementRequest).getBytes());
 
-        Set<OwnedPlatformDetails> responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
+        Object response = rabbitTemplate.convertSendAndReceive(ownedPlatformDetailsRequestQueue, mapper.writeValueAsString(userManagementRequest).getBytes());
+        Set<OwnedPlatformDetails> responseSet = mapper.convertValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
         });
-
         // no platforms there yet
         assertTrue(responseSet.isEmpty());
 
         // issue platform registration over AMQP
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+        response = rabbitTemplate.convertSendAndReceive(platformManagementRequestQueue, mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
-
+        PlatformManagementResponse platformManagementResponse = mapper.convertValue(response, PlatformManagementResponse.class);
+        assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
         platformOwner = userRepository.findOne(platformOwnerUsername);
         // platform owner should have a platform bound to him by now
         assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
 
         // issue owned platform details request
-        ownedPlatformRawResponse = ownedPlatformsDetailsRPCClient.primitiveCall(mapper.writeValueAsString
+        response = rabbitTemplate.convertSendAndReceive(ownedPlatformDetailsRequestQueue, mapper.writeValueAsString
                 (userManagementRequest).getBytes());
 
-        responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
+        responseSet = mapper.convertValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
         });
 
         // there should be a platform
@@ -255,75 +242,40 @@ public class OtherListenersFunctionalTests extends
                 platformInstanceFriendlyName,
                 platformId + "2",
                 OperationType.CREATE);
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+        // issue platform registration over AMQP
+        response = rabbitTemplate.convertSendAndReceive(platformManagementRequestQueue, mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
+        platformManagementResponse = mapper.convertValue(response, PlatformManagementResponse.class);
+        assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
 
         platformOwner = userRepository.findOne(platformOwnerUsername);
         // platform owner should have a platform bound to him by now
         assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
 
         // issue owned platform details request
-        ownedPlatformRawResponse = ownedPlatformsDetailsRPCClient.primitiveCall(mapper.writeValueAsString
+        response = rabbitTemplate.convertSendAndReceive(ownedPlatformDetailsRequestQueue, mapper.writeValueAsString
                 (userManagementRequest).getBytes());
 
-        responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
+        responseSet = mapper.convertValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
         });
-
         assertEquals(2, responseSet.size());
-
-
-        // issue second platform registration over AMQP
-        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
-                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                platformOwnerUserCredentials,
-                platformInterworkingInterfaceAddress + "/third",
-                platformInstanceFriendlyName,
-                "",
-                OperationType.CREATE);
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-
-        platformOwner = userRepository.findOne(platformOwnerUsername);
-        // platform owner should have a platform bound to him by now
-        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
-
-        // issue owned platform details request
-        ownedPlatformRawResponse = ownedPlatformsDetailsRPCClient.primitiveCall(mapper.writeValueAsString
-                (userManagementRequest).getBytes());
-
-        responseSet = mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
-        });
-
-        assertEquals(3, responseSet.size());
     }
 
 
     @Test
     public void getOwnedPlatformDetailsForPlatformOwnerInAdministrationUnauthorized()
             throws
-            IOException,
-            TimeoutException,
-            MalformedJWTException,
-            JSONException,
-            CertificateException,
-            ValidationException,
-            InterruptedException,
-            InvalidAlgorithmParameterException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            KeyStoreException,
-            OperatorCreationException,
-            UnrecoverableKeyException,
-            InvalidKeyException,
-            JWTCreationException, WrongCredentialsException {
+            IOException {
 
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+        Object response = rabbitTemplate.convertSendAndReceive(platformManagementRequestQueue, mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
+        PlatformManagementResponse platformManagementResponse = mapper.convertValue(response, PlatformManagementResponse.class);
+        assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
 
         User platformOwner = userRepository.findOne(platformOwnerUsername);
         // platform owner should have a platform bound to him by now
@@ -334,33 +286,31 @@ public class OtherListenersFunctionalTests extends
         userManagementRequest.setUserCredentials(new Credentials(platformOwnerUsername, ""));
 
         // issue owned platform details request with the given token
-        RpcClient rpcClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                ownedPlatformDetailsRequestQueue, 5000);
-        byte[] ownedPlatformRawResponse = rpcClient.primitiveCall(mapper.writeValueAsString
+        response = rabbitTemplate.convertSendAndReceive(ownedPlatformDetailsRequestQueue, mapper.writeValueAsString
                 (userManagementRequest).getBytes());
 
         try {
-            mapper.readValue(ownedPlatformRawResponse, new TypeReference<Set<OwnedPlatformDetails>>() {
+            mapper.convertValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
             });
             assert false;
         } catch (Exception e) {
-            ErrorResponseContainer error = mapper.readValue(ownedPlatformRawResponse, ErrorResponseContainer.class);
-            assertEquals(HttpStatus.UNAUTHORIZED.value(), error.getErrorCode());
+            ErrorResponseContainer error = mapper.convertValue(response, ErrorResponseContainer.class);
+            assertEquals(HttpStatus.UNAUTHORIZED.ordinal(), error.getErrorCode());
         }
     }
 
     @Test
-    public void getPlatformOwnersNamesSuccess() throws IOException, TimeoutException, CertificateException {
+    public void getPlatformOwnersNamesSuccess() throws IOException {
         saveTwoDifferentUsers();
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");
         requested.add(platformId + "Two");
-        byte[] response = getPlatformsOwnersClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(getPlatformOwnersNamesQueue, mapper.writeValueAsString(new
                 GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), requested)).getBytes());
 
-        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
+        GetPlatformOwnersResponse platformOwners = mapper.convertValue(response,
                 GetPlatformOwnersResponse.class);
-        assertEquals(platformOwners.getHttpStatus().value(), 200);
+        assertEquals(200, platformOwners.getHttpStatus().value());
         assertNotNull(platformOwners.getplatformsOwners());
         assertEquals("userOne", platformOwners.getplatformsOwners().get(platformId + "One"));
         assertEquals("userTwo", platformOwners.getplatformsOwners().get(platformId + "Two"));
@@ -368,34 +318,28 @@ public class OtherListenersFunctionalTests extends
 
     @Test
     public void getPlatformOwnersNamesFailsForIncorrectAdminCredentials() throws
-            IOException,
-            TimeoutException,
-            CertificateException {
+            IOException {
         saveTwoDifferentUsers();
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");
         requested.add(platformId + "Two");
-        byte[] response = getPlatformsOwnersClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(getPlatformOwnersNamesQueue, mapper.writeValueAsString(new
                 GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, wrongPassword), requested)).getBytes());
-
-        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
+        GetPlatformOwnersResponse platformOwners = mapper.convertValue(response,
                 GetPlatformOwnersResponse.class);
         assertEquals(401, platformOwners.getHttpStatus().value());
     }
 
     @Test
     public void getPlatformOwnersNamesFailsWithoutAdminCredentials() throws
-            IOException,
-            TimeoutException,
-            CertificateException {
+            IOException {
         saveTwoDifferentUsers();
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");
         requested.add(platformId + "Two");
-        byte[] response = getPlatformsOwnersClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(getPlatformOwnersNamesQueue, mapper.writeValueAsString(new
                 GetPlatformOwnersRequest(null, requested)).getBytes());
-
-        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
+        GetPlatformOwnersResponse platformOwners = mapper.convertValue(response,
                 GetPlatformOwnersResponse.class);
         assertEquals(401, platformOwners.getHttpStatus().value());
     }

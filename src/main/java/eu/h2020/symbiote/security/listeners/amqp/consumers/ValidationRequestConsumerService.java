@@ -1,82 +1,72 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
-import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.services.CredentialsValidationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.amqp.rabbit.annotation.Exchange;
+import org.springframework.amqp.rabbit.annotation.Queue;
+import org.springframework.amqp.rabbit.annotation.QueueBinding;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 /**
  * RabbitMQ Consumer implementation used for credentials validation actions
  */
-public class ValidationRequestConsumerService extends DefaultConsumer {
+@Component
+public class ValidationRequestConsumerService {
 
     private static Log log = LogFactory.getLog(ValidationRequestConsumerService.class);
+    @Autowired
     private CredentialsValidationService credentialsValidationService;
 
+    @RabbitListener(bindings = @QueueBinding(
+            value = @Queue(
+                    value = "${rabbit.queue.validate.request}",
+                    durable = "${rabbit.exchange.aam.durable}",
+                    autoDelete = "${rabbit.exchange.aam.autodelete}",
+                    exclusive = "false"),
+            exchange = @Exchange(
+                    value = "${rabbit.exchange.aam.name}",
+                    ignoreDeclarationExceptions = "true",
+                    durable = "${rabbit.exchange.aam.durable}",
+                    autoDelete = "${rabbit.exchange.aam.autodelete}",
+                    internal = "${rabbit.exchange.aam.internal}",
+                    type = "${rabbit.exchange.aam.type}"),
+            key = "${rabbit.routingKey.validate.request}"))
+    public Object validation(byte[] body) {
 
-    /**
-     * Constructs a new instance and records its association to the passed-in channel.
-     * Managers beans passed as parameters because of lack of possibility to inject it to consumer.
-     *
-     * @param channel the channel to which this consumer is attached
-     */
-    public ValidationRequestConsumerService(Channel channel,
-                                            CredentialsValidationService credentialsValidationService) {
-        super(channel);
-        this.credentialsValidationService = credentialsValidationService;
-    }
-
-    /**
-     * Called when a <code><b>basic.deliver</b></code> is received for this consumer.
-     *
-     * @param consumerTag the <i>consumer tag</i> associated with the consumer
-     * @param envelope    packaging data for the message
-     * @param properties  content header data for the message
-     * @param body        the message body (opaque, client-specific byte array)
-     * @throws IOException if the consumer encounters an I/O error while processing the message
-     * @see Envelope
-     */
-    @Override
-    public void handleDelivery(String consumerTag, Envelope envelope,
-                               AMQP.BasicProperties properties, byte[] body)
-            throws IOException {
-
-        String message = new String(body, "UTF-8");
+        String message;
+        try {
+            message = new String(body, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            log.error(e);
+            return new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value());
+        }
         ObjectMapper om = new ObjectMapper();
         ValidationRequest validationRequest;
-        String response;
-
         log.debug("[x] Received Validation Request");
 
-        if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
-
-            AMQP.BasicProperties replyProps = new AMQP.BasicProperties
-                    .Builder()
-                    .correlationId(properties.getCorrelationId())
-                    .build();
+        try {
             validationRequest = om.readValue(message, ValidationRequest.class);
-
-            ValidationStatus validationResponse = credentialsValidationService.validate(
-                    validationRequest.getToken(),
-                    validationRequest.getClientCertificate(),
-                    validationRequest.getClientCertificateSigningAAMCertificate(),
-                    validationRequest.getForeignTokenIssuingAAMCertificate()
-            );
-            response = om.writeValueAsString(validationResponse);
-            this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-
-            log.debug("Validation Status Response: sent back");
-        } else {
-            log.error("Received RPC message without ReplyTo or CorrelationId properties.");
+        } catch (IOException e) {
+            log.error(e);
+            return new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value());
         }
-        this.getChannel().basicAck(envelope.getDeliveryTag(), false);
+
+        return credentialsValidationService.validate(
+                validationRequest.getToken(),
+                validationRequest.getClientCertificate(),
+                validationRequest.getClientCertificateSigningAAMCertificate(),
+                validationRequest.getForeignTokenIssuingAAMCertificate()
+        );
+
     }
 }

@@ -1,20 +1,17 @@
 package eu.h2020.symbiote.security.functional;
 
-import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
+import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.payloads.FederationRule;
-import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
-import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
+import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
@@ -24,21 +21,25 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
-import org.springframework.context.annotation.Bean;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.*;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
 
@@ -47,11 +48,11 @@ public class CredentialsValidationFunctionalTests extends
         AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(CredentialsValidationFunctionalTests.class);
-
-    @Bean
-    DummyPlatformAAM getDummyPlatformAAM() {
-        return new DummyPlatformAAM();
-    }
+    @Autowired
+    RabbitTemplate rabbitTemplate;
+    private RestTemplate restTemplate = new RestTemplate();
+    @Autowired
+    private DummyPlatformAAM dummyPlatformAAM;
 
     /**
      * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
@@ -63,14 +64,11 @@ public class CredentialsValidationFunctionalTests extends
     @Test
     public void validationOverAMQPRequestReplyValid() throws
             IOException,
-            TimeoutException,
             CertificateException,
-            UnrecoverableKeyException,
             NoSuchAlgorithmException,
             KeyStoreException,
             OperatorCreationException,
             NoSuchProviderException,
-            InvalidKeyException,
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
@@ -81,14 +79,8 @@ public class CredentialsValidationFunctionalTests extends
 
         String token = aamClient.getHomeToken(loginRequest);
         assertNotNull(token);
-
-        RpcClient client = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                validateRequestQueue,
-                10000);
-        byte[] amqpResponse = client.primitiveCall(mapper.writeValueAsString(new ValidationRequest(token, "", "", "")).getBytes());
-        ValidationStatus validationStatus = mapper.readValue(amqpResponse,
-                ValidationStatus.class);
-
+        Object response = rabbitTemplate.convertSendAndReceive(validateRequestQueue, mapper.writeValueAsString(new ValidationRequest(token, "", "", "")).getBytes());
+        ValidationStatus validationStatus = mapper.convertValue(response, ValidationStatus.class);
         log.info("Test Client received this ValidationStatus: " + validationStatus);
 
         assertEquals(ValidationStatus.VALID, validationStatus);
@@ -105,12 +97,10 @@ public class CredentialsValidationFunctionalTests extends
     public void validationOverRESTValid() throws
             IOException,
             CertificateException,
-            UnrecoverableKeyException,
             NoSuchAlgorithmException,
             KeyStoreException,
             OperatorCreationException,
             NoSuchProviderException,
-            InvalidKeyException,
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
@@ -142,12 +132,10 @@ public class CredentialsValidationFunctionalTests extends
             IOException,
             InterruptedException,
             CertificateException,
-            UnrecoverableKeyException,
             NoSuchAlgorithmException,
             KeyStoreException,
             OperatorCreationException,
             NoSuchProviderException,
-            InvalidKeyException,
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
@@ -173,17 +161,11 @@ public class CredentialsValidationFunctionalTests extends
     @Test
     public void validationOverRESTWrongToken() throws
             IOException,
-            InterruptedException,
             CertificateException,
-            UnrecoverableKeyException,
             NoSuchAlgorithmException,
             KeyStoreException,
             OperatorCreationException,
             NoSuchProviderException,
-            InvalidKeyException,
-            JWTCreationException,
-            MalformedJWTException,
-            WrongCredentialsException,
             AAMException {
         addTestUserWithClientCertificateToRepository();
         String homeToken = "WrongTokenString";
@@ -202,12 +184,10 @@ public class CredentialsValidationFunctionalTests extends
     public void validationOverRESTRevokedToken() throws
             IOException,
             CertificateException,
-            UnrecoverableKeyException,
             NoSuchAlgorithmException,
             KeyStoreException,
             OperatorCreationException,
             NoSuchProviderException,
-            InvalidKeyException,
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
@@ -240,16 +220,13 @@ public class CredentialsValidationFunctionalTests extends
     public void validationOverRESTRevokedKey() throws
             IOException,
             CertificateException,
-            UnrecoverableKeyException,
             NoSuchAlgorithmException,
             KeyStoreException,
             OperatorCreationException,
             NoSuchProviderException,
-            InvalidKeyException,
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
-            ValidationException,
             AAMException {
 
         addTestUserWithClientCertificateToRepository();
@@ -286,26 +263,22 @@ public class CredentialsValidationFunctionalTests extends
     public void validateOriginOfForeignTokenFailNotOurToken() throws
             IOException,
             ValidationException,
-            TimeoutException,
             NoSuchProviderException,
             KeyStoreException,
             CertificateException,
             NoSuchAlgorithmException,
             MalformedJWTException,
             JWTCreationException,
-            AAMException {
+            AAMException,
+            ClassNotFoundException {
         // issuing dummy platform token
         String username = "userId";
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/paam" +
-                        SecurityConstants
-                                .AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
+        ResponseEntity<?> loginResponse = dummyPlatformAAM.getHomeToken(loginRequest);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
-
 
         String platformId = "platform-1";
 
@@ -313,21 +286,18 @@ public class CredentialsValidationFunctionalTests extends
         User platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
         userRepository.save(platformOwner);
 
-
         // platform registration useful
-        RpcClient platformRegistrationOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                platformManagementRequestQueue, 5000);
         Credentials platformOwnerUserCredentials = new Credentials(platformOwner.getUsername(), platformOwner.getPasswordEncrypted());
         PlatformManagementRequest platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
                 AAMOwnerPassword), platformOwnerUserCredentials, serverAddress + "/test",
                 "irrelevant",
                 platformId, OperationType.CREATE);
 
-
         // registering the platform to the Core AAM so it will be available for token revocation
-        platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
+        Object response = rabbitTemplate.convertSendAndReceive(platformManagementRequestQueue, mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
-
+        PlatformManagementResponse platformManagementResponse = mapper.convertValue(response, PlatformManagementResponse.class);
+        assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
         //inject platform PEM Certificate to the database
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());

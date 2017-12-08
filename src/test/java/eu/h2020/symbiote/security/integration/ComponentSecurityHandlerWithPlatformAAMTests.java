@@ -9,7 +9,6 @@ import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
@@ -29,7 +28,9 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.*;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,7 +43,6 @@ import static org.junit.Assert.*;
 public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTestSuite {
     private final String KEY_STORE_PATH = "./src/test/resources/new.p12";
     private final String KEY_STORE_PASSWORD = "1234567";
-    private final String userId = "testuserId";
     private String oldCoreAAMAddress;
     @Autowired
     private AAMServices aamServices;
@@ -53,7 +53,8 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
 
     @Before
     @Override
-    public void setUp() throws Exception {
+    public void setUp() throws
+            Exception {
         super.setUp();
         dummyCoreAAM.port = port;
         oldCoreAAMAddress = (String) ReflectionTestUtils.getField(aamServices, "coreInterfaceAddress");
@@ -68,7 +69,14 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
     }
 
     @Test
-    public void RegistrationHandlerIntegrationTest() throws SecurityHandlerException, InvalidArgumentsException, CertificateException, WrongCredentialsException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
+    public void RegistrationHandlerIntegrationTest() throws
+            SecurityHandlerException,
+            InvalidArgumentsException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException {
         // registration handler use case
         // hack: injecting the AAM running port
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
@@ -134,7 +142,15 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
     }
 
     @Test
-    public void loginBySecurityHandlerIntegrationTest() throws SecurityHandlerException, ValidationException, CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, IOException {
+    public void loginBySecurityHandlerIntegrationTest() throws
+            SecurityHandlerException,
+            ValidationException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            OperatorCreationException,
+            NoSuchProviderException,
+            IOException {
 
         addTestUserWithClientCertificateToRepository();
         // hack: injecting the AAM running port

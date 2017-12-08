@@ -1,10 +1,6 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
@@ -13,9 +9,17 @@ import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
 import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.amqp.rabbit.annotation.Exchange;
+import org.springframework.amqp.rabbit.annotation.Queue;
+import org.springframework.amqp.rabbit.annotation.QueueBinding;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -27,45 +31,45 @@ import java.util.Map;
  *
  * @author Jakub Toczek
  */
-public class LocalAttributesManagementRequestConsumerService extends DefaultConsumer {
+@Component
+public class LocalAttributesManagementRequestConsumerService {
 
     private static Log log = LogFactory.getLog(LocalAttributesManagementRequestConsumerService.class);
-    private final LocalUsersAttributesRepository localUsersAttributesRepository;
-    private final String adminUsername;
-    private final String adminPassword;
+    @Autowired
+    private LocalUsersAttributesRepository localUsersAttributesRepository;
+    @Value("${aam.deployment.owner.username}")
+    private String adminUsername;
+    @Value("${aam.deployment.owner.password}")
+    private String adminPassword;
 
-    public LocalAttributesManagementRequestConsumerService(Channel channel, LocalUsersAttributesRepository localUsersAttributesRepository, String adminUsername, String adminPassword) {
-        super(channel);
-        this.localUsersAttributesRepository = localUsersAttributesRepository;
-        this.adminUsername = adminUsername;
-        this.adminPassword = adminPassword;
-    }
+    @RabbitListener(bindings = @QueueBinding(
+            value = @Queue(
+                    value = "${rabbit.queue.manage.attributes}",
+                    durable = "${rabbit.exchange.aam.durable}",
+                    autoDelete = "${rabbit.exchange.aam.autodelete}",
+                    exclusive = "false"),
+            exchange = @Exchange(
+                    value = "${rabbit.exchange.aam.name}",
+                    ignoreDeclarationExceptions = "true",
+                    durable = "${rabbit.exchange.aam.durable}",
+                    autoDelete = "${rabbit.exchange.aam.autodelete}",
+                    internal = "${rabbit.exchange.aam.internal}",
+                    type = "${rabbit.exchange.aam.type}"),
+            key = "${rabbit.routingKey.manage.attributes}"))
+    public Object localAttributesManagementRequest(byte[] body) {
 
-    /**
-     * Called when a <code><b>basic.deliver</b></code> is received for this consumer.
-     *
-     * @param consumerTag the <i>consumer tag</i> associated with the consumer
-     * @param envelope    packaging data for the message
-     * @param properties  content header data for the message
-     * @param body        the message body (opaque, client-specific byte array)
-     * @throws IOException if the consumer encounters an I/O error while processing the message
-     * @see Envelope
-     */
-    @Override
-    public void handleDelivery(String consumerTag, Envelope envelope,
-                               AMQP.BasicProperties properties, byte[] body)
-            throws IOException {
-
-        String message = new String(body, "UTF-8");
+        String message;
+        Object response;
+        try {
+            message = new String(body, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            log.error(e);
+            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());
+            return response;
+        }
         ObjectMapper om = new ObjectMapper();
         LocalAttributesManagementRequest request;
-        String response;
 
-        if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
-            AMQP.BasicProperties replyProps = new AMQP.BasicProperties
-                    .Builder()
-                    .correlationId(properties.getCorrelationId())
-                    .build();
             try {
                 request = om.readValue(message, LocalAttributesManagementRequest.class);
 
@@ -83,28 +87,28 @@ public class LocalAttributesManagementRequestConsumerService extends DefaultCons
                         for (Attribute attr : localUsersAttributesRepository.findAll()) {
                             localAttributes.put(attr.getKey(), attr.getValue());
                         }
-                        response = om.writeValueAsString(localAttributes);
+                        response = localAttributes;
                         break;
                     case WRITE:
                         localUsersAttributesRepository.deleteAll();
                         for (Map.Entry<String, String> entry : request.getAttributes().entrySet()) {
                             localUsersAttributesRepository.save(new Attribute(entry.getKey(), entry.getValue()));
                         }
-                        response = om.writeValueAsString(request.getAttributes());
+                        response = request.getAttributes();
                         break;
                     default:
                         throw new InvalidArgumentsException();
                 }
-                this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-                log.debug("Local Attributes Management Response: sent back");
             } catch (InvalidArgumentsException | UserManagementException e) {
-                response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
-                this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
+                log.error(e);
+                response = new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal());
+                return response;
+            } catch (IOException e) {
+                log.error(e);
+                response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());
+                return response;
             }
-        } else {
-            log.error("Received RPC message without ReplyTo or CorrelationId properties.");
-        }
-        this.getChannel().basicAck(envelope.getDeliveryTag(), false);
+        return response;
 
     }
 }

@@ -1,6 +1,5 @@
 package eu.h2020.symbiote.security.functional;
 
-import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
@@ -8,24 +7,21 @@ import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
-import java.security.*;
-import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.*;
 
@@ -47,37 +43,34 @@ public class UsersManagementFunctionalTests extends
     private String getUserDetailsRoutingKey;
     private UserManagementRequest appUserRegistrationRequest;
     private UserManagementRequest appUserUpdateRequest;
-    private RpcClient appManagementClient;
     private UserDetails appUserDetails;
-    private RpcClient getUserDetailsClient;
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     @Override
     @Before
-    public void setUp() throws Exception {
+    public void setUp() throws
+            Exception {
         super.setUp();
 
         // user registration useful
-        appManagementClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
-                userManagementRequestQueue, 5000);
         appUserDetails = new UserDetails(new Credentials(
                 username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>());
         appUserRegistrationRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 new Credentials(username, password), appUserDetails, OperationType.CREATE);
         appUserUpdateRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 new Credentials(username, password), appUserDetails, OperationType.UPDATE);
-
-        getUserDetailsClient = new RpcClient(rabbitManager.getConnection().createChannel(), "", getUserDetailsQueue, 5000);
-
         // verify that our app is not in repository
         assertNull(userRepository.findOne(username));
 
     }
 
     @Test
-    public void userRegistrationOverAMQPFailureUnauthorized() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureUnauthorized() throws
+            IOException {
 
         // issue the app registration over AMQP expecting with wrong AAMOwnerUsername
-        byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername + "wrongString", AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
@@ -87,11 +80,11 @@ public class UsersManagementFunctionalTests extends
         assertNull(userRepository.findOne(username));
 
         // verify error response
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
+        ErrorResponseContainer errorResponse = mapper.convertValue(response, ErrorResponseContainer.class);
         assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
 
         // issue the same app registration over AMQP expecting with wrong AAMOwnerPassword
-        response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
+        response = rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword + "wrongString"), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
@@ -101,7 +94,7 @@ public class UsersManagementFunctionalTests extends
         assertNull(userRepository.findOne(username));
 
         // verify error response
-        errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
+        errorResponse = mapper.convertValue(response, ErrorResponseContainer.class);
         assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
     }
 
@@ -111,10 +104,11 @@ public class UsersManagementFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void userRegistrationOverAMQPFailureWrongUserRole() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureWrongUserRole() throws
+            IOException {
 
         // issue the same app registration over AMQP expecting with wrong UserRole
-        byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.NULL, new HashMap<>(), new HashMap<>()),
@@ -124,7 +118,7 @@ public class UsersManagementFunctionalTests extends
         assertNull(userRepository.findOne(username));
 
         // verify error response
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
+        ErrorResponseContainer errorResponse = mapper.convertValue(response, ErrorResponseContainer.class);
         assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
     }
 
@@ -135,10 +129,11 @@ public class UsersManagementFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void userRegistrationOverAMQPFailureUsernameExists() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureUsernameExists() throws
+            IOException {
 
         // issue app registration over AMQP
-        appManagementClient.primitiveCall(mapper.writeValueAsString(new
+        rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
@@ -149,13 +144,13 @@ public class UsersManagementFunctionalTests extends
         assertNotNull(userRepository.findOne(username));
 
         // issue the same app registration over AMQP expecting refusal
-        byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
                 OperationType.CREATE)).getBytes());
 
-        ManagementStatus errorResponse = mapper.readValue(response, ManagementStatus.class);
+        ManagementStatus errorResponse = mapper.convertValue(response, ManagementStatus.class);
         assertEquals(ManagementStatus.USERNAME_EXISTS, errorResponse);
     }
 
@@ -165,14 +160,15 @@ public class UsersManagementFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void userRegistrationOverAMQPFailureMissingAppUsername() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureMissingAppUsername() throws
+            IOException {
 
         // issue app registration over AMQP with missing username
         appUserDetails.getCredentials().setUsername("");
-        byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
+        Object response = rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(appUserRegistrationRequest)
                 .getBytes());
 
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
+        ErrorResponseContainer errorResponse = mapper.convertValue(response, ErrorResponseContainer.class);
         assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
     }
 
@@ -183,14 +179,15 @@ public class UsersManagementFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void userRegistrationOverAMQPFailureMissingAppPassword() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureMissingAppPassword() throws
+            IOException {
 
         // issue app registration over AMQP with missing password
         appUserDetails.getCredentials().setPassword("");
-        byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
+        Object response = rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(appUserRegistrationRequest)
                 .getBytes());
 
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
+        ErrorResponseContainer errorResponse = mapper.convertValue(response, ErrorResponseContainer.class);
         assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
     }
 
@@ -200,14 +197,15 @@ public class UsersManagementFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void userRegistrationOverAMQPFailureMissingRecoveryMail() throws IOException, TimeoutException {
+    public void userRegistrationOverAMQPFailureMissingRecoveryMail() throws
+            IOException {
 
         // issue app registration over AMQP with missing recovery mail
         appUserDetails.setRecoveryMail("");
-        byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(appUserRegistrationRequest)
+        Object response = rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(appUserRegistrationRequest)
                 .getBytes());
 
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
+        ErrorResponseContainer errorResponse = mapper.convertValue(response, ErrorResponseContainer.class);
         assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
     }
 
@@ -218,23 +216,21 @@ public class UsersManagementFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void userRegistrationOverAMQPSuccess() throws IOException, TimeoutException, CertificateException,
-            NoSuchAlgorithmException, UnrecoverableKeyException, InvalidArgumentsException, KeyStoreException,
-            InvalidAlgorithmParameterException, NoSuchProviderException, OperatorCreationException,
-            WrongCredentialsException {
+    public void userRegistrationOverAMQPSuccess() throws
+            IOException {
 
         Map<String, String> attributesMap = new HashMap<>();
         attributesMap.put("testKey", "testAttribute");
         // issue app registration over AMQP
-        byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, attributesMap, new HashMap<>()),
                 OperationType.CREATE)).getBytes());
 
-        ManagementStatus appRegistrationResponse = mapper.readValue(response,
+        ManagementStatus appRegistrationResponse = mapper.convertValue(response,
                 ManagementStatus.class);
-        assertEquals(appRegistrationResponse, ManagementStatus.OK);
+        assertEquals(ManagementStatus.OK, appRegistrationResponse);
 
         // verify that app really is in repository
         User registeredUser = userRepository.findOne(username);
@@ -246,16 +242,17 @@ public class UsersManagementFunctionalTests extends
     }
 
     @Test
-    public void userUpdateOverAMQPSuccess() throws IOException, TimeoutException {
+    public void userUpdateOverAMQPSuccess() throws
+            IOException {
 
         // issue app registration over AMQP
-        byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
                 OperationType.CREATE)).getBytes());
-        ManagementStatus appRegistrationResponse = mapper.readValue(response, ManagementStatus.class);
-        assertEquals(appRegistrationResponse, ManagementStatus.OK);
+        ManagementStatus appRegistrationResponse = mapper.convertValue(response, ManagementStatus.class);
+        assertEquals(ManagementStatus.OK, appRegistrationResponse);
 
         //creating new attributes map
         Map<String, String> attributes = new HashMap<>();
@@ -263,8 +260,9 @@ public class UsersManagementFunctionalTests extends
 
         appUserUpdateRequest.getUserDetails().setRecoveryMail(recoveryMail + "differentOne");
         appUserUpdateRequest.getUserDetails().getCredentials().setPassword(password + "differentOne");
-        byte[] response2 = appManagementClient.primitiveCall(mapper.writeValueAsString(appUserUpdateRequest).getBytes());
-        ManagementStatus appRegistrationResponse2 = mapper.readValue(response2, ManagementStatus.class);
+        appUserUpdateRequest.getUserDetails().setAttributes(attributes);
+        Object response2 = rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(appUserUpdateRequest).getBytes());
+        ManagementStatus appRegistrationResponse2 = mapper.convertValue(response2, ManagementStatus.class);
         assertEquals(ManagementStatus.OK, appRegistrationResponse2);
         User user = userRepository.findOne(username);
         //attributes map should not be updated during UPDATE operationType
@@ -273,20 +271,21 @@ public class UsersManagementFunctionalTests extends
 
 
     @Test
-    public void userUpdateOverAMQFailurewrongPassword() throws IOException, TimeoutException {
+    public void userUpdateOverAMQFailurewrongPassword() throws
+            IOException {
 
         // issue app registration over AMQP
-        byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
                 OperationType.CREATE)).getBytes());
-        ManagementStatus appRegistrationResponse = mapper.readValue(response, ManagementStatus.class);
-        assertEquals(appRegistrationResponse, ManagementStatus.OK);
+        ManagementStatus appRegistrationResponse = mapper.convertValue(response, ManagementStatus.class);
+        assertEquals(ManagementStatus.OK, appRegistrationResponse);
 
         appUserUpdateRequest.getUserCredentials().setPassword(wrongPassword);
-        byte[] response2 = appManagementClient.primitiveCall(mapper.writeValueAsString(appUserUpdateRequest).getBytes());
-        ErrorResponseContainer errorResponse = mapper.readValue(response2, ErrorResponseContainer.class);
+        Object response2 = rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(appUserUpdateRequest).getBytes());
+        ErrorResponseContainer errorResponse = mapper.convertValue(response2, ErrorResponseContainer.class);
         assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
     }
 
@@ -296,21 +295,19 @@ public class UsersManagementFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void platformOwnerRegistrationOverAMQPSuccess() throws IOException, TimeoutException, CertificateException,
-            NoSuchAlgorithmException, UnrecoverableKeyException, InvalidArgumentsException, KeyStoreException,
-            InvalidAlgorithmParameterException, NoSuchProviderException, OperatorCreationException,
-            WrongCredentialsException {
+    public void platformOwnerRegistrationOverAMQPSuccess() throws
+            IOException {
 
         // issue app registration over AMQP
-        byte[] response = appManagementClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(userManagementRequestQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail,
                         UserRole.PLATFORM_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes());
 
-        ManagementStatus platformOwnerRegistrationResponse = mapper.readValue(response,
+        ManagementStatus platformOwnerRegistrationResponse = mapper.convertValue(response,
                 ManagementStatus.class);
-        assertEquals(platformOwnerRegistrationResponse, ManagementStatus.OK);
+        assertEquals(ManagementStatus.OK, platformOwnerRegistrationResponse);
 
         // verify that app really is in repository
         User registeredUser = userRepository.findOne(username);
@@ -322,7 +319,8 @@ public class UsersManagementFunctionalTests extends
     }
 
     @Test
-    public void userRegistrationOverRESTSuccess() throws AAMException {
+    public void userRegistrationOverRESTSuccess() throws
+            AAMException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), "federatedId",
@@ -332,7 +330,8 @@ public class UsersManagementFunctionalTests extends
     }
 
     @Test(expected = AAMException.class)
-    public void userRegistrationOverRESTFailureWithIncorrectRequest() throws AAMException {
+    public void userRegistrationOverRESTFailureWithIncorrectRequest() throws
+            AAMException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, wrongPassword), new Credentials(username, wrongPassword),
                 new UserDetails(new Credentials(username, wrongPassword), "federatedId",
@@ -341,19 +340,20 @@ public class UsersManagementFunctionalTests extends
     }
 
     @Test
-    public void requestUserDetailsOverAMQPSuccess() throws IOException, TimeoutException {
+    public void requestUserDetailsOverAMQPSuccess() throws
+            IOException {
         //  Registering user in database
         User User = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 
-        byte[] response = getUserDetailsClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(getUserDetailsQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 null, null
         )).getBytes());
 
-        UserDetailsResponse userDetails = mapper.readValue(response,
+        UserDetailsResponse userDetails = mapper.convertValue(response,
                 UserDetailsResponse.class);
 
         log.info("Retrieved username is: " + userDetails.getUserDetails().getCredentials().getUsername());
@@ -362,71 +362,75 @@ public class UsersManagementFunctionalTests extends
     }
 
     @Test
-    public void requestUserDetailsOverAMQPFailsForNotExistingUser() throws IOException, TimeoutException {
+    public void requestUserDetailsOverAMQPFailsForNotExistingUser() throws
+            IOException {
         //  Registering user in database
         User User = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 
-        byte[] response = getUserDetailsClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(getUserDetailsQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials("NotExistingUser", "Password"),
                 null, null
         )).getBytes());
 
-        UserDetailsResponse userDetails = mapper.readValue(response,
+        UserDetailsResponse userDetails = mapper.convertValue(response,
                 UserDetailsResponse.class);
 
         assertEquals(HttpStatus.BAD_REQUEST, userDetails.getHttpStatus());
     }
 
     @Test
-    public void requestUserDetailsOverAMQPFailsForwrongPassword() throws IOException, TimeoutException {
+    public void requestUserDetailsOverAMQPFailsForwrongPassword() throws
+            IOException {
         //  Registering user in database
         User User = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 
-        byte[] response = getUserDetailsClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(getUserDetailsQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, "wrongPassword"),
                 null, null
         )).getBytes());
 
-        UserDetailsResponse userDetails = mapper.readValue(response,
+        UserDetailsResponse userDetails = mapper.convertValue(response,
                 UserDetailsResponse.class);
 
         assertEquals(HttpStatus.UNAUTHORIZED, userDetails.getHttpStatus());
     }
 
     @Test
-    public void requestUserDetailsOverAMQPFailsForRequestWithoutUserCredentials() throws IOException, TimeoutException {
+    public void requestUserDetailsOverAMQPFailsForRequestWithoutUserCredentials() throws
+            IOException {
         //  Registering user in database
         User User = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 
-        byte[] response = getUserDetailsClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(getUserDetailsQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), null,
                 null, null
         )).getBytes());
 
-        UserDetailsResponse userDetails = mapper.readValue(response,
+        UserDetailsResponse userDetails = mapper.convertValue(response,
                 UserDetailsResponse.class);
         assertEquals(HttpStatus.UNAUTHORIZED, userDetails.getHttpStatus());
     }
 
     @Test
-    public void getUserDetailsFailsForIncorrectAdminPassword() throws IOException, TimeoutException {
+    public void getUserDetailsFailsForIncorrectAdminPassword() throws
+            IOException {
 
-        byte[] response = getUserDetailsClient.primitiveCall(mapper.writeValueAsString(new
+        Object response = rabbitTemplate.convertSendAndReceive(getUserDetailsQueue, mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, "wrongPassword"), new Credentials(username, password),
                 null, null
         )).getBytes());
 
-        UserDetailsResponse userDetails = mapper.readValue(response,
+        UserDetailsResponse userDetails = mapper.convertValue(response,
                 UserDetailsResponse.class);
         assertEquals(HttpStatus.FORBIDDEN, userDetails.getHttpStatus());
     }

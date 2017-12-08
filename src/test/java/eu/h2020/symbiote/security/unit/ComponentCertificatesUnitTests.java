@@ -3,8 +3,8 @@ package eu.h2020.symbiote.security.unit;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
-import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
@@ -18,10 +18,10 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
-import java.security.*;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
-import java.util.HashMap;
-import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -46,7 +46,6 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
     public void setUp() throws Exception {
         super.setUp();
         dummyCoreAAM.port = port;
-        Platform platform = new Platform("testNewPlatform", null, null, null, null, new HashMap<>());
         oldCertificationAuthorityHelper = certificationAuthorityHelper;
         certificationAuthorityHelper = mock(CertificationAuthorityHelper.class);
         when(certificationAuthorityHelper.getDeploymentType()).thenReturn(IssuingAuthorityType.PLATFORM);
@@ -64,8 +63,14 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getLocalComponentCertificateOtherPlatformSuccess() throws NoSuchAlgorithmException, CertificateException,
-            NoSuchProviderException, KeyStoreException, IOException, AAMException, TimeoutException, UnrecoverableKeyException, InvalidArgumentsException, InvalidAlgorithmParameterException, UserManagementException, PlatformManagementException, WrongCredentialsException, NotExistingUserException, ValidationException {
+    public void getLocalComponentCertificateOtherPlatformSuccess() throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            AAMException,
+            InvalidArgumentsException {
 
         String component = aamServices.getComponentCertificate(componentId, platformId);
 
@@ -74,7 +79,14 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getLocalComponentCertificateNonExistingOtherPlatform() throws CertificateException, AAMException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidArgumentsException, IOException {
+    public void getLocalComponentCertificateNonExistingOtherPlatform() throws
+            CertificateException,
+            AAMException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            InvalidArgumentsException,
+            IOException {
 
         expectedEx.expect(AAMException.class);
         expectedEx.expectMessage("Selected certificate could not be found/retrieved");
@@ -84,7 +96,14 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getCoreCertificateFromKeystore() throws CertificateException, AAMException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidArgumentsException, IOException {
+    public void getCoreCertificateFromKeystore() throws
+            CertificateException,
+            AAMException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            InvalidArgumentsException,
+            IOException {
         //setting AAM instance Identifier different than Core AAM and recognizable RootCaCert
         when(certificationAuthorityHelper.getAAMInstanceIdentifier()).thenReturn("newTestPlatform");
         when(certificationAuthorityHelper.getRootCACert()).thenReturn("Keystore Root Cert");

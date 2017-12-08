@@ -10,7 +10,6 @@ import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
 import org.springframework.test.context.TestPropertySource;
 
@@ -34,7 +33,6 @@ public class CertificatesIssuingFunctionalTests extends
             CertificateException,
             KeyStoreException,
             IOException,
-            OperatorCreationException,
             InvalidArgumentsException,
             WrongCredentialsException,
             NotExistingUserException,
@@ -56,7 +54,6 @@ public class CertificatesIssuingFunctionalTests extends
             CertificateException,
             KeyStoreException,
             IOException,
-            OperatorCreationException,
             InvalidArgumentsException,
             AAMException {
 

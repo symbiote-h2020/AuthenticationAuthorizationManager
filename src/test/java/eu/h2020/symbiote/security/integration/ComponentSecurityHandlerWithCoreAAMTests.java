@@ -9,7 +9,6 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.credentials.BoundCredentials;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.security.services.AAMServices;
@@ -21,11 +20,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.File;
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,7 +44,9 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
     }
 
     @Test
-    public void CoreResourceMonitorIntegrationTest() throws SecurityHandlerException, InvalidArgumentsException, NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException, WrongCredentialsException {
+    public void CoreResourceMonitorIntegrationTest() throws
+            SecurityHandlerException,
+            InvalidArgumentsException {
         // hack: injecting the AAM running port
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
         String crmKey = "crm";

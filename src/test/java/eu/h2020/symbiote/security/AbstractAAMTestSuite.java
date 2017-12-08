@@ -12,7 +12,6 @@ import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.listeners.amqp.RabbitManager;
 import eu.h2020.symbiote.security.repositories.*;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -39,7 +38,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -94,12 +92,9 @@ public abstract class AbstractAAMTestSuite {
     @Autowired
     protected ComponentCertificatesRepository componentCertificatesRepository;
     @Autowired
-    protected RabbitManager rabbitManager;
-    @Autowired
     protected CertificationAuthorityHelper certificationAuthorityHelper;
     @Autowired
     protected UsersManagementService usersManagementService;
-    protected RestTemplate restTemplate = new RestTemplate();
     protected ObjectMapper mapper = new ObjectMapper();
     protected String serverAddress;
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
@@ -108,8 +103,12 @@ public abstract class AbstractAAMTestSuite {
     protected String loginRequestQueue;
     @Value("${rabbit.queue.manage.user.request}")
     protected String userManagementRequestQueue;
+
     @Value("${rabbit.queue.manage.platform.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String platformManagementRequestQueue;
+    @Value("${rabbit.routingKey.manage.platform.request:defaultOverridenBySpringConfigInCoreEnvironment}")
+    protected String platformManagementRoutingKey;
+
     @Value("${rabbit.queue.manage.revocation.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String revocationRequestQueue;
     @Value("${rabbit.queue.validate.request}")
@@ -134,6 +133,12 @@ public abstract class AbstractAAMTestSuite {
     protected Long componentCertificateCacheExpirationTime;
     @Value("${aam.cache.availableAAMs.expireSeconds}")
     protected Long availableAAMsCacheExpirationTime;
+    @Value("${rabbit.host}")
+    private String rabbitHost;
+    @Value("${rabbit.username}")
+    private String rabbitUsername;
+    @Value("${rabbit.password}")
+    private String rabbitPassword;
 
     protected IAAMClient aamClient;
     @LocalServerPort
@@ -167,8 +172,6 @@ public abstract class AbstractAAMTestSuite {
         sc.init(null, trustAllCerts, new java.security.SecureRandom());
         HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
         userKeyPair = CryptoHelper.createKeyPair();
-        // Test rest template
-        restTemplate = new RestTemplate();
 
         // cleanup db
         userRepository.deleteAll();
@@ -205,7 +208,7 @@ public abstract class AbstractAAMTestSuite {
         return user;
     }
 
-    protected void saveTwoDifferentUsers() throws CertificateException {
+    protected void saveTwoDifferentUsers() {
         User userOne = createUser("userOne", "Password", recoveryMail, UserRole.USER);
         User userTwo = createUser("userTwo", "Password", recoveryMail, UserRole.USER);
 
@@ -224,16 +227,17 @@ public abstract class AbstractAAMTestSuite {
             NoSuchProviderException,
             KeyStoreException,
             IOException,
-            OperatorCreationException,
-            UnrecoverableKeyException,
-            InvalidKeyException {
+            OperatorCreationException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), "federatedId",
                         "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
 
 
-        User user = createUser(userManagementRequest.getUserDetails().getCredentials().getUsername(), userManagementRequest.getUserDetails().getCredentials().getPassword(), userManagementRequest.getUserDetails().getRecoveryMail(), userManagementRequest.getUserDetails().getRole());
+        User user = createUser(userManagementRequest.getUserDetails().getCredentials().getUsername(),
+                userManagementRequest.getUserDetails().getCredentials().getPassword(),
+                userManagementRequest.getUserDetails().getRecoveryMail(),
+                userManagementRequest.getUserDetails().getRole());
 
         String cn = "CN=" + username + "@" + clientId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
         PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), userKeyPair.getPublic());
@@ -259,13 +263,15 @@ public abstract class AbstractAAMTestSuite {
     public X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
             NoSuchProviderException,
             KeyStoreException,
-            IOException, CertificateException, NoSuchAlgorithmException {
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
     }
 
-    public PrivateKey getPrivateKeyFromKeystore(String keyStoreName, String certificateAlias) throws
+    public PrivateKey getPrivateKeyTestFromKeystore(String keyStoreName, String certificateAlias) throws
             NoSuchProviderException,
             KeyStoreException,
             IOException,

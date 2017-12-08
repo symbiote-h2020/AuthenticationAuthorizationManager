@@ -9,7 +9,7 @@ import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -17,6 +17,8 @@ import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
+import eu.h2020.symbiote.security.utils.DummyPlatformAAM2;
+import eu.h2020.symbiote.security.utils.DummyPlatformAAMRevokedIPK;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.After;
 import org.junit.Before;
@@ -34,7 +36,6 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.concurrent.TimeoutException;
 
 import static eu.h2020.symbiote.security.services.helpers.TokenIssuer.buildAuthorizationToken;
 import static org.junit.Assert.*;
@@ -57,6 +58,10 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     private AAMServices aamServices;
     @Autowired
     private DummyCoreAAM dummyCoreAAM;
+    @Autowired
+    private DummyPlatformAAMRevokedIPK dummyPlatformAAMRevokedIPK;
+    @Autowired
+    private DummyPlatformAAM2 dummyPlatformAAM2;
 
 
 
@@ -71,13 +76,20 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     }
 
     @After
-    public void after() throws Exception {
+    public void after() {
         // fixing the core AAM url to point to the dummyCoreAAM
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
     }
 
     @Test
-    public void validateValidPlatform() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException, UnrecoverableKeyException, OperatorCreationException, InvalidKeyException {
+    public void validateValidPlatform() throws
+            SecurityException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            OperatorCreationException {
 
         // prepare the user in db
         addTestUserWithClientCertificateToRepository();
@@ -97,14 +109,15 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     }
 
     @Test
-    public void validateRevokedIPK() throws IOException, ValidationException, JWTCreationException {
+    public void validateRevokedIPK() throws
+            ValidationException,
+            MalformedJWTException,
+            IOException,
+            ClassNotFoundException {
         // issuing dummy platform token from platform with revoked certificate
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/rev_ipk/paam" +
-                        SecurityConstants
-                                .AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
+        ResponseEntity<?> loginResponse = dummyPlatformAAMRevokedIPK.getHomeToken(loginRequest);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -114,14 +127,15 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws IOException, ValidationException, JWTCreationException {
+    public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws
+            ValidationException,
+            MalformedJWTException,
+            IOException,
+            ClassNotFoundException {
         // issuing dummy platform token from unregistered platform
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/second/paam" +
-                        SecurityConstants
-                                .AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
+        ResponseEntity<?> loginResponse = dummyPlatformAAM2.getHomeToken(loginRequest);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -131,7 +145,13 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     }
 
     @Test
-    public void validateExpiredSubjectCertificate() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, TimeoutException, InvalidAlgorithmParameterException, UnrecoverableKeyException, OperatorCreationException {
+    public void validateExpiredSubjectCertificate() throws
+            SecurityException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException {
         // prepare the user in db
         userRepository.save(new User(username, passwordEncoder.encode(password), "", new HashMap<>(), UserRole.USER, new HashMap<>(), new HashSet<>()));
         // verify that app really is in repository
@@ -158,15 +178,14 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMsButRevoked() throws IOException, ValidationException, JWTCreationException {
+    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMsButRevoked() throws
+            ValidationException,
+            MalformedJWTException {
         // issuing dummy platform token
         // acquiring valid token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        ResponseEntity<String> loginResponse = restTemplate.postForEntity(serverAddress + "/test/caam" +
-                        SecurityConstants
-                                .AAM_GET_HOME_TOKEN,
-                loginRequest, String.class);
+        ResponseEntity<?> loginResponse = dummyCoreAAM.getHomeToken(loginRequest);
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
@@ -199,7 +218,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 100000l,
                 "platform-1",
                 properAAMCert.getPublicKey(),
-                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
+                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-1-c1")
         );
 
         // valid remote home token chain
@@ -226,7 +245,6 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
 
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
         X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
-        //X509Certificate wrongAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-2-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
@@ -236,7 +254,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 100000l,
                 "platform-1",
                 properAAMCert.getPublicKey(),
-                getPrivateKeyFromKeystore("platform_1.p12", "platform-1-1-c1")
+                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-1-c1")
         );
 
         // valid remote home token chain
@@ -252,12 +270,12 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
 
     @Test
     public void validateRemoteForeignTokenRequestUsingCertificateOfflineCoreAAMSuccess() throws
-            ValidationException,
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
             KeyStoreException,
-            IOException, UnrecoverableKeyException {
+            IOException,
+            UnrecoverableKeyException {
         //setting wrong core AAM url to make it offline
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", "wrong AAM url");
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
@@ -272,7 +290,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 100000l,
                 "platform-2",
                 tokenIssuerAAMCert.getPublicKey(),
-                getPrivateKeyFromKeystore("platform_2.p12", "platform-2-1-c1")
+                getPrivateKeyTestFromKeystore("platform_2.p12", "platform-2-1-c1")
         );
 
         // valid remote foreign token chain
@@ -299,12 +317,12 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
 
     @Test
     public void validateRemoteForeignTokenRequestUsingCertificateOfflineIssuerAAMSuccess() throws
-            ValidationException,
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
             KeyStoreException,
-            IOException, UnrecoverableKeyException {
+            IOException,
+            UnrecoverableKeyException {
         //set dummy Core AAM to return valid platform 2 certificate
         dummyCoreAAM.addPlatform2Certificate();
         X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
@@ -319,7 +337,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 100000l,
                 "platform-2",
                 tokenIssuerAAMCert.getPublicKey(),
-                getPrivateKeyFromKeystore("platform_2.p12", "platform-2-1-c1")
+                getPrivateKeyTestFromKeystore("platform_2.p12", "platform-2-1-c1")
         );
 
         // valid remote foreign token chain

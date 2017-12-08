@@ -1,17 +1,21 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
+import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
-import eu.h2020.symbiote.security.communication.payloads.RevocationResponse;
 import eu.h2020.symbiote.security.services.RevocationService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.amqp.rabbit.annotation.Exchange;
+import org.springframework.amqp.rabbit.annotation.Queue;
+import org.springframework.amqp.rabbit.annotation.QueueBinding;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 /**
  * RabbitMQ Consumer implementation used for Revocation actions
@@ -19,62 +23,50 @@ import java.io.IOException;
  * @author Jakub Toczek (PSNC)
  * <p>
  */
-public class RevocationRequestConsumerService extends DefaultConsumer {
+@Component
+public class RevocationRequestConsumerService {
 
     private static Log log = LogFactory.getLog(RevocationRequestConsumerService.class);
+    @Autowired
     private RevocationService revocationService;
 
 
-    /**
-     * Constructs a new instance and records its association to the passed-in channel.
-     * Managers beans passed as parameters because of lack of possibility to inject it to consumer.
-     *
-     * @param channel the channel to which this consumer is attached
-     */
-    public RevocationRequestConsumerService(Channel channel,
-                                            RevocationService
-                                                    revocationService) {
-        super(channel);
-        this.revocationService = revocationService;
-    }
-
-    /**
-     * Called when a <code><b>basic.deliver</b></code> is received for this consumer.
-     *
-     * @param consumerTag the <i>consumer tag</i> associated with the consumer
-     * @param envelope    packaging data for the message
-     * @param properties  content header data for the message
-     * @param body        the message body (opaque, client-specific byte array)
-     * @throws IOException if the consumer encounters an I/O error while processing the message
-     * @see Envelope
-     */
-    @Override
-    public void handleDelivery(String consumerTag, Envelope envelope,
-                               AMQP.BasicProperties properties, byte[] body)
-            throws IOException {
-
-        String message = new String(body, "UTF-8");
+    @RabbitListener(bindings = @QueueBinding(
+            value = @Queue(
+                    value = "${rabbit.queue.manage.revocation.request}",
+                    durable = "${rabbit.exchange.aam.durable}",
+                    autoDelete = "${rabbit.exchange.aam.autodelete}",
+                    exclusive = "false"),
+            exchange = @Exchange(
+                    value = "${rabbit.exchange.aam.name}",
+                    ignoreDeclarationExceptions = "true",
+                    durable = "${rabbit.exchange.aam.durable}",
+                    autoDelete = "${rabbit.exchange.aam.autodelete}",
+                    internal = "${rabbit.exchange.aam.internal}",
+                    type = "${rabbit.exchange.aam.type}"),
+            key = "${rabbit.routingKey.manage.revocation.request}"))
+    public Object revocation(byte[] body) {
+        Object response;
+        String message;
+        try {
+            message = new String(body, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            log.error(e);
+            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value());
+            return response;
+        }
         ObjectMapper om = new ObjectMapper();
         RevocationRequest request;
-        String response;
-
-        if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
-
-            AMQP.BasicProperties replyProps = new AMQP.BasicProperties
-                    .Builder()
-                    .correlationId(properties.getCorrelationId())
-                    .build();
+        try {
             request = om.readValue(message, RevocationRequest.class);
-            log.debug("[x] Received RevocationRequest for: " + request.getCredentials()
-                    .getUsername());
-            RevocationResponse revocationResponse = revocationService.revoke
-                    (request);
-            response = om.writeValueAsString(revocationResponse);
-            this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-            log.debug("Revocation Response: sent back");
-        } else {
-            log.error("Received RPC message without ReplyTo or CorrelationId properties.");
+        } catch (IOException e) {
+            log.error(e);
+            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value());
+            return response;
         }
-        this.getChannel().basicAck(envelope.getDeliveryTag(), false);
+        log.debug("[x] Received RevocationRequest for: " + request.getCredentials()
+                .getUsername());
+        response = revocationService.revoke(request);
+        return response;
     }
 }

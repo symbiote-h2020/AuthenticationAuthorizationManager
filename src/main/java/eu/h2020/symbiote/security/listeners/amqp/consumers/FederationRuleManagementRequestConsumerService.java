@@ -1,10 +1,6 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.rabbitmq.client.AMQP;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.DefaultConsumer;
-import com.rabbitmq.client.Envelope;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
@@ -13,135 +9,144 @@ import eu.h2020.symbiote.security.communication.payloads.FederationRuleManagemen
 import eu.h2020.symbiote.security.repositories.FederationRulesRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.amqp.rabbit.annotation.Exchange;
+import org.springframework.amqp.rabbit.annotation.Queue;
+import org.springframework.amqp.rabbit.annotation.QueueBinding;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
 
-public class FederationRuleManagementRequestConsumerService extends DefaultConsumer {
+@Component
+public class FederationRuleManagementRequestConsumerService {
 
     private static Log log = LogFactory.getLog(FederationRuleManagementRequestConsumerService.class);
-    private final FederationRulesRepository federationRulesRepository;
-    private final String adminUsername;
-    private final String adminPassword;
+    @Autowired
+    private FederationRulesRepository federationRulesRepository;
+    @Value("${aam.deployment.owner.username}")
+    private String adminUsername;
+    @Value("${aam.deployment.owner.password}")
+    private String adminPassword;
 
-    public FederationRuleManagementRequestConsumerService(Channel channel, FederationRulesRepository federationRulesRepository, String adminUsername, String adminPassword) {
-        super(channel);
-        this.federationRulesRepository = federationRulesRepository;
-        this.adminUsername = adminUsername;
-        this.adminPassword = adminPassword;
-    }
+    @RabbitListener(bindings = @QueueBinding(
+            value = @Queue(
+                    value = "${rabbit.queue.manage.federation.rule}",
+                    durable = "${rabbit.exchange.aam.durable}",
+                    autoDelete = "${rabbit.exchange.aam.autodelete}",
+                    exclusive = "false"),
+            exchange = @Exchange(
+                    value = "${rabbit.exchange.aam.name}",
+                    ignoreDeclarationExceptions = "true",
+                    durable = "${rabbit.exchange.aam.durable}",
+                    autoDelete = "${rabbit.exchange.aam.autodelete}",
+                    internal = "${rabbit.exchange.aam.internal}",
+                    type = "${rabbit.exchange.aam.type}"),
+            key = "${rabbit.routingKey.manage.federation.rule}"))
+    public Object federationRuleManagement(byte[] body) {
 
-    /**
-     * Called when a <code><b>basic.deliver</b></code> is received for this consumer.
-     *
-     * @param consumerTag the <i>consumer tag</i> associated with the consumer
-     * @param envelope    packaging data for the message
-     * @param properties  content header data for the message
-     * @param body        the message body (opaque, client-specific byte array)
-     * @throws IOException if the consumer encounters an I/O error while processing the message
-     * @see Envelope
-     */
-    @Override
-    public void handleDelivery(String consumerTag, Envelope envelope,
-                               AMQP.BasicProperties properties, byte[] body)
-            throws IOException {
-
-        String message = new String(body, "UTF-8");
+        String message;
+        Object response;
+        try {
+            message = new String(body, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            log.error(e);
+            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());
+            return response;
+        }
         ObjectMapper om = new ObjectMapper();
         FederationRuleManagementRequest request;
-        String response;
 
-        if (properties.getReplyTo() != null || properties.getCorrelationId() != null) {
-            AMQP.BasicProperties replyProps = new AMQP.BasicProperties
-                    .Builder()
-                    .correlationId(properties.getCorrelationId())
-                    .build();
-            try {
-                request = om.readValue(message, FederationRuleManagementRequest.class);
-                if (request.getAdminCredentials() == null
-                        || request.getFederationRuleId() == null
-                        || request.getOperationType() == null
-                        || request.getPlatformIds() == null)
-                    throw new InvalidArgumentsException();
-                // and if they don't match the admin credentials from properties
-                if (!request.getAdminCredentials().getUsername().equals(adminUsername)
-                        || !request.getAdminCredentials().getPassword().equals(adminPassword))
-                    throw new UserManagementException(HttpStatus.UNAUTHORIZED);
 
-                Map<String, FederationRule> federationRulesList = new HashMap<>();
+        try {
+            request = om.readValue(message, FederationRuleManagementRequest.class);
+            if (request.getAdminCredentials() == null
+                    || request.getFederationRuleId() == null
+                    || request.getOperationType() == null
+                    || request.getPlatformIds() == null)
+                throw new InvalidArgumentsException();
+            // and if they don't match the admin credentials from properties
+            if (!request.getAdminCredentials().getUsername().equals(adminUsername)
+                    || !request.getAdminCredentials().getPassword().equals(adminPassword))
+                throw new UserManagementException(HttpStatus.UNAUTHORIZED);
 
-                switch (request.getOperationType()) {
-                    case READ:
-                        if (request.getFederationRuleId().isEmpty()) {
-                            for (FederationRule federationRule : federationRulesRepository.findAll()) {
-                                federationRulesList.put(federationRule.getFederationId(), federationRule);
-                            }
-                        } else {
-                            FederationRule federationRule = federationRulesRepository.findOne(request.getFederationRuleId());
-                            if (federationRule != null) {
-                                federationRulesList.put(federationRule.getFederationId(), federationRule);
-                            }
-                        }
-                        response = om.writeValueAsString(federationRulesList);
-                        break;
-                    case CREATE:
-                        if (request.getFederationRuleId().isEmpty()) {
-                            throw new InvalidArgumentsException();
-                        }
-                        if (federationRulesRepository.exists(request.getFederationRuleId())) {
-                            throw new InvalidArgumentsException("Rule with this id already exists");
-                        }
-                        FederationRule federationRule = new FederationRule(request.getFederationRuleId(), request.getPlatformIds());
-                        federationRulesList.put(request.getFederationRuleId(), federationRule);
-                        federationRulesRepository.save(federationRule);
-                        response = om.writeValueAsString(federationRulesList);
-                        break;
+            Map<String, FederationRule> federationRulesList = new HashMap<>();
 
-                    case DELETE:
-                        if (request.getFederationRuleId().isEmpty()) {
-                            throw new InvalidArgumentsException();
+            switch (request.getOperationType()) {
+                case READ:
+                    if (request.getFederationRuleId().isEmpty()) {
+                        for (FederationRule federationRule : federationRulesRepository.findAll()) {
+                            federationRulesList.put(federationRule.getFederationId(), federationRule);
                         }
-                        federationRule = federationRulesRepository.findOne(request.getFederationRuleId());
+                    } else {
+                        FederationRule federationRule = federationRulesRepository.findOne(request.getFederationRuleId());
                         if (federationRule != null) {
-                            if (request.getPlatformIds().isEmpty()) {
-                                federationRulesList.put(request.getFederationRuleId(), federationRule);
-                                federationRulesRepository.delete(request.getFederationRuleId());
-                            } else {
-                                for (String id : request.getPlatformIds()) {
-                                    federationRule.deletePlatform(id);
-                                }
-                                federationRulesList.put(request.getFederationRuleId(), federationRule);
-                                federationRulesRepository.save(federationRule);
-                            }
+                            federationRulesList.put(federationRule.getFederationId(), federationRule);
                         }
-                        response = om.writeValueAsString(federationRulesList);
-                        break;
-                    case UPDATE:
-                        if (request.getFederationRuleId().isEmpty()
-                                || !federationRulesRepository.exists(request.getFederationRuleId())) {
-                            throw new InvalidArgumentsException();
-                        }
-                        federationRule = new FederationRule(request.getFederationRuleId(), request.getPlatformIds());
-                        federationRulesList.put(request.getFederationRuleId(), federationRule);
-                        federationRulesRepository.save(federationRule);
-                        response = om.writeValueAsString(federationRulesList);
-                        break;
-
-                    default:
+                    }
+                    response = federationRulesList;
+                    break;
+                case CREATE:
+                    if (request.getFederationRuleId().isEmpty()) {
                         throw new InvalidArgumentsException();
-                }
-                this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
-                log.debug("Federation rules management response: sent back");
-            } catch (InvalidArgumentsException | UserManagementException e) {
-                response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
-                this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
+                    }
+                    if (federationRulesRepository.exists(request.getFederationRuleId())) {
+                        throw new InvalidArgumentsException("Rule with this id already exists");
+                    }
+                    FederationRule federationRule = new FederationRule(request.getFederationRuleId(), request.getPlatformIds());
+                    federationRulesList.put(request.getFederationRuleId(), federationRule);
+                    federationRulesRepository.save(federationRule);
+                    response = federationRulesList;
+                    break;
+
+                case DELETE:
+                    if (request.getFederationRuleId().isEmpty()) {
+                        throw new InvalidArgumentsException();
+                    }
+                    federationRule = federationRulesRepository.findOne(request.getFederationRuleId());
+                    if (federationRule != null) {
+                        if (request.getPlatformIds().isEmpty()) {
+                            federationRulesList.put(request.getFederationRuleId(), federationRule);
+                            federationRulesRepository.delete(request.getFederationRuleId());
+                        } else {
+                            for (String id : request.getPlatformIds()) {
+                                federationRule.deletePlatform(id);
+                            }
+                            federationRulesList.put(request.getFederationRuleId(), federationRule);
+                            federationRulesRepository.save(federationRule);
+                        }
+                    }
+                    response = federationRulesList;
+                    break;
+                case UPDATE:
+                    if (request.getFederationRuleId().isEmpty()
+                            || !federationRulesRepository.exists(request.getFederationRuleId())) {
+                        throw new InvalidArgumentsException();
+                    }
+                    federationRule = new FederationRule(request.getFederationRuleId(), request.getPlatformIds());
+                    federationRulesList.put(request.getFederationRuleId(), federationRule);
+                    federationRulesRepository.save(federationRule);
+                    response = federationRulesList;
+                    break;
+
+                default:
+                    throw new InvalidArgumentsException();
             }
-        } else {
-            log.error("Received RPC message without ReplyTo or CorrelationId properties.");
+        } catch (InvalidArgumentsException | UserManagementException e) {
+            log.error(e);
+            response = new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal());
+            return response;
+        } catch (IOException e) {
+            log.error(e);
+            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());
+            return response;
         }
-        this.getChannel().basicAck(envelope.getDeliveryTag(), false);
+        return response;
 
     }
 }
