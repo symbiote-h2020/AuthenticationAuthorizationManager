@@ -47,7 +47,7 @@ public class PlatformsManagementService {
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
 
-    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
+    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     private String coreInterfaceAddress;
 
     @Autowired
@@ -60,7 +60,7 @@ public class PlatformsManagementService {
     }
 
     public PlatformManagementResponse manage(PlatformManagementRequest platformManagementRequest) throws
-            SecurityException {
+            SecurityException, CertificateException {
 
         Credentials platformOwnerCredentials = platformManagementRequest.getPlatformOwnerCredentials();
 
@@ -111,9 +111,12 @@ public class PlatformsManagementService {
                 // use PO preferred platform identifier
                 platformId = platformManagementRequest.getPlatformInstanceId();
 
-                Platform platform = new Platform(platformId, platformManagementRequest
-                        .getPlatformInterworkingInterfaceAddress(),
-                        platformManagementRequest.getPlatformInstanceFriendlyName(), platformOwner, new Certificate(), new HashMap<>());
+                Platform platform = new Platform(platformId,
+                        platformManagementRequest.getPlatformInterworkingInterfaceAddress(),
+                        platformManagementRequest.getPlatformInstanceFriendlyName(),
+                        platformOwner,
+                        new Certificate(),
+                        new HashMap<>());
                 platformRepository.save(platform);
                 platformOwner.getOwnedPlatforms().add(platformId);
                 userRepository.save(platformOwner);
@@ -174,6 +177,8 @@ public class PlatformsManagementService {
                 platformOwner.getOwnedPlatforms().remove(platformManagementRequest.getPlatformInstanceId());
                 userRepository.save(platformOwner);
                 break;
+            default:
+                throw new PlatformManagementException("Invalid operation", HttpStatus.BAD_REQUEST);
         }
 
         return new PlatformManagementResponse(platformManagementRequest.getPlatformInstanceId(), ManagementStatus.OK);
@@ -181,7 +186,8 @@ public class PlatformsManagementService {
 
 
     public PlatformManagementResponse authManage(PlatformManagementRequest request) throws
-            SecurityException {
+            SecurityException,
+            CertificateException {
         // check if we received required credentials
         if (request.getAAMOwnerCredentials() == null || request.getPlatformOwnerCredentials() == null)
             throw new InvalidArgumentsException("Missing credentials");

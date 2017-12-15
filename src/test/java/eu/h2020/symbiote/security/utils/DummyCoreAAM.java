@@ -43,12 +43,15 @@ public class DummyCoreAAM {
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/core.p12";
     private static final String PLATFORM_CERTIFICATE_ALIAS = "platform-1-1-c1";
     private static final String PLATFORM_CERTIFICATE_LOCATION = "./src/test/resources/platform_1.p12";
+    private static final String PLATFORM_2_CERTIFICATE_ALIAS = "platform-2-1-c1";
+    private static final String PLATFORM_2_CERTIFICATE_LOCATION = "./src/test/resources/platform_2.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String PATH = "/test/caam";
-    private static final String platformId = "platform-1";
+    private static final String platform1Id = "platform-1";
+    private static final String platform2Id = "platform-2";
     public int port;
     private Certificate revokedCert;
-    private AvailableAAMsCollection aams = new AvailableAAMsCollection();
+    private AvailableAAMsCollection aams = new AvailableAAMsCollection(new HashMap<>());
 
     public DummyCoreAAM() throws
             CertificateException,
@@ -141,12 +144,8 @@ public class DummyCoreAAM {
         return new ResponseEntity<>(aams, HttpStatus.OK);
     }
 
-    private void initializeAvailableAAMs() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
-        aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("https://localhost:" + port + PATH,
-                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                SecurityConstants.CORE_AAM_INSTANCE_ID,
-                revokedCert, new HashMap<>()));
-
+    public void initializeAvailableAAMs() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+        clearAvailablePlatformAAMs();
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         ks.load(new FileInputStream(PLATFORM_CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
         X509Certificate certificate = (X509Certificate) ks.getCertificate(PLATFORM_CERTIFICATE_ALIAS);
@@ -156,9 +155,9 @@ public class DummyCoreAAM {
         pemWriter.close();
         Certificate platformCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
 
-        aams.getAvailableAAMs().put(platformId, new AAM("https://localhost:" + port,
+        aams.getAvailableAAMs().put(platform1Id, new AAM("https://localhost:" + port,
                 SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                platformId,
+                platform1Id,
                 platformCert, new HashMap<>()));
 
         aams.getAvailableAAMs().put("test-PlatformId", new AAM("https://localhost:" + port + "/test/paam",
@@ -167,6 +166,22 @@ public class DummyCoreAAM {
                 platformCert, new HashMap<>()));
     }
 
+    public void addPlatform2Certificate() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
+        ks.load(new FileInputStream(PLATFORM_2_CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
+        X509Certificate certificate = (X509Certificate) ks.getCertificate(PLATFORM_2_CERTIFICATE_ALIAS);
+        StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
+        pemWriter.writeObject(certificate);
+        pemWriter.close();
+        Certificate platformCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
+
+        aams.getAvailableAAMs().put(platform2Id, new AAM("https://localhost:" + port,
+                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
+                platform2Id,
+                platformCert, new HashMap<>()));
+
+    }
     public void changePlatformCertificate() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         ks.load(new FileInputStream(PLATFORM_CERTIFICATE_LOCATION), CERTIFICATE_PASSWORD.toCharArray());
@@ -177,10 +192,20 @@ public class DummyCoreAAM {
         pemWriter.close();
         Certificate platformCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
 
-        aams.getAvailableAAMs().put(platformId, new AAM("https://localhost:" + port,
+        aams.getAvailableAAMs().put(platform1Id, new AAM("https://localhost:" + port,
                 SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                platformId,
+                platform1Id,
                 platformCert, new HashMap<>()));
     }
+
+    public void clearAvailablePlatformAAMs() {
+        this.aams.getAvailableAAMs().clear();
+        aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("https://localhost:" + port + PATH,
+                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
+                SecurityConstants.CORE_AAM_INSTANCE_ID,
+                revokedCert, new HashMap<>()));
+    }
+
+
 }
 

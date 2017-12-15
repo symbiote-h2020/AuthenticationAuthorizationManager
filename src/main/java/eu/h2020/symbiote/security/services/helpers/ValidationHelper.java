@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.BlockedUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
@@ -15,7 +16,9 @@ import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.*;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
+import eu.h2020.symbiote.security.repositories.entities.RevokedRemoteToken;
 import eu.h2020.symbiote.security.services.AAMServices;
+import eu.h2020.symbiote.security.services.CacheService;
 import io.jsonwebtoken.Claims;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -45,6 +48,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
  * @author Nemanja Ignjatov (UNIVIE)
  * @author Mikołaj Dobski (PSNC)
  * @author Piotr Kicki (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 @Component
 public class ValidationHelper {
@@ -57,11 +61,13 @@ public class ValidationHelper {
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final RevokedKeysRepository revokedKeysRepository;
     private final RevokedTokensRepository revokedTokensRepository;
+    private final RevokedRemoteTokensRepository revokedRemoteTokensRepository;
     private final FederationRulesRepository federationRulesRepository;
     private final UserRepository userRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final AAMServices aamServices;
     private final IAnomaliesHelper anomaliesHelper;
+    private final CacheService cacheService;
 
     // usable
     private final RestTemplate restTemplate = new RestTemplate();
@@ -74,17 +80,26 @@ public class ValidationHelper {
     @Autowired
     public ValidationHelper(CertificationAuthorityHelper certificationAuthorityHelper,
                             RevokedKeysRepository revokedKeysRepository,
-                            RevokedTokensRepository revokedTokensRepository, FederationRulesRepository federationRulesRepository, UserRepository userRepository, PlatformRepository platformRepository, ComponentCertificatesRepository componentCertificatesRepository, AAMServices aamServices, IAnomaliesHelper anomaliesHelper) {
+                            RevokedTokensRepository revokedTokensRepository,
+                            RevokedRemoteTokensRepository revokedRemoteTokensRepository,
+                            FederationRulesRepository federationRulesRepository,
+                            UserRepository userRepository,
+                            ComponentCertificatesRepository componentCertificatesRepository,
+                            AAMServices aamServices,
+                            IAnomaliesHelper anomaliesHelper,
+                            CacheService cacheService) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
         this.revokedKeysRepository = revokedKeysRepository;
         this.revokedTokensRepository = revokedTokensRepository;
+        this.revokedRemoteTokensRepository = revokedRemoteTokensRepository;
         this.federationRulesRepository = federationRulesRepository;
         this.userRepository = userRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.aamServices = aamServices;
         this.anomaliesHelper = anomaliesHelper;
+        this.cacheService = cacheService;
     }
 
     public ValidationStatus validate(String token, String clientCertificate, String clientCertificateSigningAAMCertificate, String foreignTokenIssuingAAMCertificate) {
@@ -96,6 +111,10 @@ public class ValidationHelper {
             }
 
             Token tokenForValidation = new Token(token);
+            if (cacheService.isValidTokenCached(tokenForValidation)) {
+                return ValidationStatus.VALID;
+            }
+
             Claims claims = tokenForValidation.getClaims();
             String spk = claims.get("spk").toString();
             String ipk = claims.get("ipk").toString();
@@ -107,13 +126,11 @@ public class ValidationHelper {
             // check if token issued by us
             if (!deploymentId.equals(claims.getIssuer())) {
                 // not our token, but the Core AAM knows things ;)
-                if (deploymentType == IssuingAuthorityType.CORE) {
-                    // check if IPK is in the revoked set
-                    if (revokedKeysRepository.exists(claims.getIssuer()) &&
-                            revokedKeysRepository.findOne(claims.getIssuer()).getRevokedKeysSet().contains(ipk)) {
-                        return ValidationStatus.REVOKED_IPK;
-                    }
-                }
+                if (deploymentType == IssuingAuthorityType.CORE
+                        && revokedKeysRepository.exists(claims.getIssuer()) // check if IPK is in the revoked set
+                        && revokedKeysRepository.findOne(claims.getIssuer()).getRevokedKeysSet().contains(ipk))
+                    return ValidationStatus.REVOKED_IPK;
+
                 // relay validation to issuer
                 return validateRemotelyIssuedToken(token, clientCertificate, clientCertificateSigningAAMCertificate, foreignTokenIssuingAAMCertificate);
             }
@@ -193,6 +210,7 @@ public class ValidationHelper {
                     switch (originCredentialsValidationStatus) {
                         case VALID:
                             // origin credentials are valid
+                            cacheService.cacheValidToken(tokenForValidation);
                             break;
                         case UNKNOWN:
                         case WRONG_AAM:
@@ -205,21 +223,43 @@ public class ValidationHelper {
                     }
                     break;
                 case GUEST:
+                    break;
                 case NULL:
+                    break;
+                default:
                     break;
             }
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
-                KeyStoreException | NoSuchProviderException | BlockedUserException e) {
-            log.error(e);
-            return ValidationStatus.UNKNOWN;
+            KeyStoreException | NoSuchProviderException | AAMException | BlockedUserException e){
+                log.error(e);
+                return ValidationStatus.UNKNOWN;
+            }
+            return ValidationStatus.VALID;
         }
-        return ValidationStatus.VALID;
-    }
 
-    public ValidationStatus validateRemotelyIssuedToken(String tokenString, String clientCertificate, String clientCertificateSigningAAMCertificate, String foreignTokenIssuingAAMCertificate) throws
+    public ValidationStatus validateRemotelyIssuedToken(String tokenString,
+                                                        String clientCertificate,
+                                                        String clientCertificateSigningAAMCertificate,
+                                                        String foreignTokenIssuingAAMCertificate) throws
             CertificateException,
-            ValidationException, NoSuchAlgorithmException, NoSuchProviderException,
-            KeyStoreException, IOException {
+            ValidationException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            AAMException {
+
+        // check if already cached
+        if (cacheService.isValidTokenCached(new Token(tokenString))) {
+            return ValidationStatus.VALID;
+        }
+
+        Claims claims = JWTEngine.getClaims(tokenString);
+        //checking if token is revoked
+        if (revokedRemoteTokensRepository.exists(claims.getIssuer() + illegalSign + claims.getId())) {
+            return ValidationStatus.REVOKED_TOKEN;
+        }
+
         // if the certificate is not empty, then check the trust chain
         if (!clientCertificate.isEmpty() && !clientCertificateSigningAAMCertificate.isEmpty()) {
             try {
@@ -240,19 +280,22 @@ public class ValidationHelper {
                         clientCertificateSigningAAMCertificate,
                         foreignTokenIssuingAAMCertificate))
                     return ValidationStatus.INVALID_TRUST_CHAIN;
-
-                // end procedure if offline validation is enough
-                if (isOfflineEnough)
-                    return ValidationStatus.VALID;
             } catch (NullPointerException npe) {
                 log.error("Problem with parsing the given PEMs string");
                 return ValidationStatus.INVALID_TRUST_CHAIN;
             }
         }
-
         // resolving available AAMs in search of the token issuer
-        Map<String, AAM> availableAAMs = aamServices.getAvailableAAMs();
-        Claims claims = JWTEngine.getClaims(tokenString);
+        Map<String, AAM> availableAAMs = null;
+        try {
+            availableAAMs = aamServices.getAvailableAAMs();
+        } catch (AAMException e) {
+            // end procedure if offline validation is enough, certificates are ok, no connection with CoreAAM
+            if (isOfflineEnough
+                    && !clientCertificate.isEmpty()
+                    && !clientCertificateSigningAAMCertificate.isEmpty())
+                return ValidationStatus.VALID;
+        }
         String issuer = claims.getIssuer();
         // Core does not know such an issuer and therefore this might be a forfeit
         if (!availableAAMs.containsKey(issuer))
@@ -265,7 +308,7 @@ public class ValidationHelper {
         if (!Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(claims.get("ipk"))) {
             return ValidationStatus.REVOKED_IPK;
         }
-
+        // TODO use the AAMClient
         // rest check revocation
         // preparing request
         HttpHeaders httpHeaders = new HttpHeaders();
@@ -276,10 +319,27 @@ public class ValidationHelper {
             ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(
                     aamAddress + SecurityConstants.AAM_VALIDATE_CREDENTIALS,
                     entity, ValidationStatus.class);
-            return status.getBody();
+            switch (status.getBody()) {
+                case VALID:
+                    cacheService.cacheValidToken(new Token(tokenString));
+                    return status.getBody();
+                case UNKNOWN:
+                case WRONG_AAM:
+                    // there was some issue with validating the origin credentials
+                    return status.getBody();
+                default:
+                    // we need to invalidate our token
+                    revokedRemoteTokensRepository.save(new RevokedRemoteToken(claims.getIssuer() + illegalSign + claims.getId()));
+                    return status.getBody();
+            }
         } catch (Exception e) {
             log.error(e);
             // when there is problem with request
+            // end procedure if offline validation is enough, certificates are ok, no connection with certificate Issuers
+            if (isOfflineEnough
+                    && !clientCertificate.isEmpty()
+                    && !clientCertificateSigningAAMCertificate.isEmpty())
+                return ValidationStatus.VALID;
             return ValidationStatus.WRONG_AAM;
         }
     }
@@ -543,7 +603,8 @@ public class ValidationHelper {
             NoSuchProviderException,
             KeyStoreException,
             IOException,
-            ValidationException {
+            ValidationException,
+            AAMException {
         Token token = new Token(stringToken);
         String platformId = token.getClaims().getSubject().split(illegalSign)[2];
         // fetching origin token AAM
@@ -554,7 +615,7 @@ public class ValidationHelper {
         try {
             // issuing origin credentials check in the origin token HOME AAM
             return restTemplate.postForEntity(aamAddress + SecurityConstants.AAM_VALIDATE_FOREIGN_TOKEN_ORIGIN_CREDENTIALS,
-                    token,
+                    token.getToken(),
                     ValidationStatus.class).getBody();
         } catch (HttpClientErrorException e) {
             log.error("HomeToken issuer not available");

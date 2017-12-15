@@ -12,6 +12,8 @@ import eu.h2020.symbiote.security.communication.payloads.RevocationResponse;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.RevocationHelper;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -34,6 +36,7 @@ public class RevocationService {
     private final RevocationHelper revocationHelper;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private static Log log = LogFactory.getLog(RevocationService.class);
 
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
@@ -60,8 +63,10 @@ public class RevocationService {
                     return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
             }
         } catch (CertificateException | NoSuchAlgorithmException | KeyStoreException | NoSuchProviderException | IOException | IllegalArgumentException | SecurityException e) {
+            log.error(e.getMessage());
             return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
         } catch (WrongCredentialsException | ValidationException | NotExistingUserException | MalformedJWTException e) {
+            log.error(e.getMessage());
             return new RevocationResponse(false, e.getStatusCode());
         }
     }
@@ -69,6 +74,7 @@ public class RevocationService {
     private RevocationResponse noCredentialTypeRevoke(RevocationRequest revocationRequest) throws ValidationException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, MalformedJWTException, IOException {
         if (revocationRequest.getHomeTokenString().isEmpty()
                 || revocationRequest.getForeignTokenString().isEmpty()) {
+            log.error("Acquired Revocation Request is incorrectly built");
             return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
         }
         return new RevocationResponse(revocationHelper.revokeForeignToken(new Token(revocationRequest.getHomeTokenString()), new Token(revocationRequest.getForeignTokenString())), HttpStatus.OK);
@@ -77,6 +83,7 @@ public class RevocationService {
     private RevocationResponse adminRevoke(RevocationRequest revocationRequest) throws ValidationException, WrongCredentialsException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, MalformedJWTException, IOException, NotExistingUserException {
         if (!revocationRequest.getCredentials().getUsername().equals(AAMOwnerUsername)
                 || !passwordEncoder.matches(revocationRequest.getCredentials().getPassword(), passwordEncoder.encode(AAMOwnerPassword))) {
+            log.error("Authentication of AAM owner failed");
             return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
         }
         if (!revocationRequest.getHomeTokenString().isEmpty()) {
@@ -86,19 +93,20 @@ public class RevocationService {
                 || !revocationRequest.getCertificateCommonName().isEmpty()) {
             return new RevocationResponse(this.revocationHelper.revokeCertificateByAdmin(new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificateCommonName()), HttpStatus.OK);
         }
+        log.error("Acquired Revocation Request is incorrectly built");
         return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
     }
 
     private RevocationResponse userRevoke(RevocationRequest revocationRequest) throws CertificateException, NotExistingUserException, WrongCredentialsException, ValidationException, IOException {
         if (revocationRequest.getCredentials().getUsername().isEmpty()) {
-            throw new WrongCredentialsException();
+            throw new WrongCredentialsException("Authentication of user failed");
         }
         User user = userRepository.findOne(revocationRequest.getCredentials().getUsername());
         if (user == null || user.getRole() == UserRole.NULL) {
-            throw new NotExistingUserException();
+            throw new NotExistingUserException("Authentication of user failed");
         }
         if (!passwordEncoder.matches(revocationRequest.getCredentials().getPassword(), user.getPasswordEncrypted())) {
-            throw new WrongCredentialsException();
+            throw new WrongCredentialsException("Authentication of user failed");
         }
         if (!revocationRequest.getCertificatePEMString().isEmpty() ||
                 !revocationRequest.getCertificateCommonName().isEmpty()) {
@@ -107,7 +115,8 @@ public class RevocationService {
         if (!revocationRequest.getHomeTokenString().isEmpty()) {
             return new RevocationResponse(revocationHelper.revokeHomeToken(user, new Token(revocationRequest.getHomeTokenString())), HttpStatus.OK);
         }
-        throw new WrongCredentialsException();
+
+        throw new WrongCredentialsException("Acquired Revocation Request is incorrectly built");
     }
 
 }

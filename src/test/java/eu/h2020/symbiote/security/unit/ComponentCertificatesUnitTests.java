@@ -1,8 +1,10 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
@@ -18,6 +20,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.HashMap;
 import java.util.concurrent.TimeoutException;
 
 import static org.junit.Assert.assertTrue;
@@ -43,19 +46,19 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
     public void setUp() throws Exception {
         super.setUp();
         dummyCoreAAM.port = port;
-
+        Platform platform = new Platform("testNewPlatform", null, null, null, null, new HashMap<>());
         oldCertificationAuthorityHelper = certificationAuthorityHelper;
         certificationAuthorityHelper = mock(CertificationAuthorityHelper.class);
         when(certificationAuthorityHelper.getDeploymentType()).thenReturn(IssuingAuthorityType.PLATFORM);
         when(certificationAuthorityHelper.getAAMInstanceIdentifier()).thenReturn(oldCertificationAuthorityHelper.getAAMInstanceIdentifier());
 
-        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", certificationAuthorityHelper);
     }
 
     @After
     public void after() {
-        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress);
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", oldCertificationAuthorityHelper);
 
     }
@@ -78,6 +81,19 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
 
         aamServices.getComponentCertificate(componentId, "non-existing-PlatformId");
 
+    }
+
+    @Test
+    public void getCoreCertificateFromKeystore() throws CertificateException, AAMException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, InvalidArgumentsException, IOException {
+        //setting AAM instance Identifier different than Core AAM and recognizable RootCaCert
+        when(certificationAuthorityHelper.getAAMInstanceIdentifier()).thenReturn("newTestPlatform");
+        when(certificationAuthorityHelper.getRootCACert()).thenReturn("Keystore Root Cert");
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", "wrong adress");
+        ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", certificationAuthorityHelper);
+
+        String coreCertificate = aamServices.getComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, SecurityConstants.CORE_AAM_INSTANCE_ID);
+        //check if returned mocked value
+        assertTrue(coreCertificate.contains("Keystore Root Cert"));
     }
 
 }

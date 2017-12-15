@@ -57,7 +57,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
     public void setUp() throws Exception {
         super.setUp();
         dummyCoreAAM.port = port;
-        oldCoreAAMAddress = (String) ReflectionTestUtils.getField(aamServices, "coreAAMAddress");
+        oldCoreAAMAddress = (String) ReflectionTestUtils.getField(aamServices, "coreInterfaceAddress");
     }
 
     @After
@@ -65,14 +65,14 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
         //cleanup
         File file = new File(KEY_STORE_PATH);
         assertTrue(file.delete());
-        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", oldCoreAAMAddress);
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", oldCoreAAMAddress);
     }
 
     @Test
     public void RegistrationHandlerIntegrationTest() throws SecurityHandlerException, InvalidArgumentsException, CertificateException, WrongCredentialsException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException {
         // registration handler use case
         // hack: injecting the AAM running port
-        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
         String rhKey = "rh";
         String regHandlerComponentId = rhKey + "@" + "platform-1";
         // generating the CSH
@@ -90,12 +90,35 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
 
         // getting a CRM service response
         String regHandlerServiceResponse = rhCSH.generateServiceResponse();
-
         // making sure it won't issue certs multiple times
-        regHandlerServiceResponse = rhCSH.generateServiceResponse();
+        String newRegHandlerServiceResponse = rhCSH.generateServiceResponse();
 
         // trying to validate the service response, yes we can use this SH as the operation is local
         assertTrue(rhCSH.isReceivedServiceResponseVerified(regHandlerServiceResponse, rhKey, "platform-1"));
+
+
+        // trying to recreate the CSH with lost keystore
+        File file = new File(KEY_STORE_PATH);
+        assertTrue(file.delete());
+
+        rhCSH = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
+                serverAddress + "/test/caam",
+                KEY_STORE_PATH,
+                KEY_STORE_PASSWORD,
+                regHandlerComponentId,
+                serverAddress,
+                false,
+                AAMOwnerUsername,
+                AAMOwnerPassword,
+                Optional.empty()
+        );
+
+        // fetching the security response once more time
+        newRegHandlerServiceResponse = rhCSH.generateServiceResponse();
+
+        // trying to validate the service response, yes we can use this SH as the operation is local
+        assertTrue(rhCSH.isReceivedServiceResponseVerified(newRegHandlerServiceResponse, rhKey, "platform-1"));
+        assertFalse(rhCSH.isReceivedServiceResponseVerified(regHandlerServiceResponse, rhKey, "platform-1"));
 
         SecurityRequest rhSecurityRequest = rhCSH.generateSecurityRequestUsingLocalCredentials();
         assertFalse(rhSecurityRequest.getSecurityCredentials().isEmpty());
@@ -118,7 +141,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
 
         addTestUserWithClientCertificateToRepository();
         // hack: injecting the AAM running port
-        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
         ISecurityHandler securityHandler = new SecurityHandler(KEY_STORE_PATH,
                 KEY_STORE_PASSWORD,
                 serverAddress,

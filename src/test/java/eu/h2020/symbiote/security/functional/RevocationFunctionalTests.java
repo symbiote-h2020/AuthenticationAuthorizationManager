@@ -48,7 +48,7 @@ public class RevocationFunctionalTests extends
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
-    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
+    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     String coreInterfaceAddress;
     @Autowired
     DummyPlatformAAM dummyPlatformAAM;
@@ -89,7 +89,8 @@ public class RevocationFunctionalTests extends
             InvalidArgumentsException,
             WrongCredentialsException,
             NotExistingUserException,
-            ValidationException {
+            ValidationException,
+            AAMException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
@@ -125,11 +126,17 @@ public class RevocationFunctionalTests extends
             InvalidArgumentsException,
             WrongCredentialsException,
             NotExistingUserException,
-            ValidationException {
+            ValidationException,
+            AAMException {
 
         User user = createUser(username, password, recoveryMail, UserRole.PLATFORM_OWNER);
         userRepository.save(user);
-        Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
+        Platform platform = new Platform(platformId,
+                null,
+                null,
+                user,
+                new Certificate(),
+                new HashMap<>());
         platformRepository.save(platform);
         user.getOwnedPlatforms().add(platformId);
         userRepository.save(user);
@@ -155,7 +162,18 @@ public class RevocationFunctionalTests extends
 
 
     @Test
-    public void revokeUserCertificateUsingCertificateOverAMQPSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException, TimeoutException {
+    public void revokeUserCertificateUsingCertificateOverAMQPSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            TimeoutException,
+            AAMException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
@@ -190,7 +208,17 @@ public class RevocationFunctionalTests extends
     }
 
     @Test
-    public void revokeUserCertificateUsingCommonNameOverRESTSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException {
+    public void revokeUserCertificateUsingCommonNameOverRESTSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            AAMException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
@@ -218,11 +246,27 @@ public class RevocationFunctionalTests extends
     }
 
     @Test
-    public void revokePlatformCertificateUsingCommonNameOverRESTSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException {
+    public void revokePlatformCertificateUsingCommonNameOverRESTSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            AAMException {
 
         User user = createUser(username, password, recoveryMail, UserRole.PLATFORM_OWNER);
         userRepository.save(user);
-        Platform platform = new Platform(platformId, null, null, user, new Certificate(), new HashMap<>());
+        Platform platform = new Platform(
+                platformId,
+                null,
+                null,
+                user,
+                new Certificate(),
+                new HashMap<>());
         platformRepository.save(platform);
         user.getOwnedPlatforms().add(platformId);
         userRepository.save(user);
@@ -247,7 +291,23 @@ public class RevocationFunctionalTests extends
     }
 
     @Test
-    public void revokeHomeTokenOverRESTSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException, OperatorCreationException, InvalidKeyException, KeyStoreException, UnrecoverableKeyException, JWTCreationException, MalformedJWTException {
+    public void revokeHomeTokenOverRESTSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            OperatorCreationException,
+            InvalidKeyException,
+            KeyStoreException,
+            UnrecoverableKeyException,
+            JWTCreationException,
+            MalformedJWTException,
+            AAMException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -267,7 +327,24 @@ public class RevocationFunctionalTests extends
     }
 
     @Test
-    public void revokeForeignTokenOverRESTSuccess() throws CertificateException, UnrecoverableKeyException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, InvalidKeyException, IOException, TimeoutException, JWTCreationException, ValidationException, NotExistingUserException, InvalidArgumentsException, WrongCredentialsException, MalformedJWTException, ClassNotFoundException {
+    public void revokeForeignTokenOverRESTSuccess() throws
+            CertificateException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            OperatorCreationException,
+            NoSuchProviderException,
+            InvalidKeyException,
+            IOException,
+            TimeoutException,
+            JWTCreationException,
+            ValidationException,
+            NotExistingUserException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            MalformedJWTException,
+            ClassNotFoundException,
+            AAMException {
         addTestUserWithClientCertificateToRepository();
         assertNotNull(userRepository.findOne(username));
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -277,7 +354,13 @@ public class RevocationFunctionalTests extends
         User platformOwner = savePlatformOwner();
 
         String platformId = "platform-1";
-        Platform platform = new Platform(platformId, serverAddress + "/test", null, platformOwner, new Certificate(), new HashMap<>());
+        Platform platform = new Platform(
+                platformId,
+                serverAddress + "/test",
+                null,
+                platformOwner,
+                new Certificate(),
+                new HashMap<>());
         platformRepository.save(platform);
         platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);
@@ -308,13 +391,26 @@ public class RevocationFunctionalTests extends
     }
 
     @Test(expected = InvalidArgumentsException.class)
-    public void revokeForeignTokenOverRESTFailNoTokens() throws WrongCredentialsException, InvalidArgumentsException {
+    public void revokeForeignTokenOverRESTFailNoTokens() throws
+            WrongCredentialsException,
+            InvalidArgumentsException,
+            AAMException {
         RevocationRequest revocationRequest = new RevocationRequest();
         aamClient.revokeCredentials(revocationRequest);
     }
 
     @Test
-    public void revokeUserCertificateUsingCertificateOverAMQPByAdminSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException, TimeoutException {
+    public void revokeUserCertificateUsingCertificateOverAMQPByAdminSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            TimeoutException, AAMException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
@@ -348,7 +444,24 @@ public class RevocationFunctionalTests extends
     }
 
     @Test
-    public void revokeHomeTokenOverAMQPByAdminSuccess() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException, TimeoutException, OperatorCreationException, InvalidKeyException, KeyStoreException, UnrecoverableKeyException, JWTCreationException, MalformedJWTException {
+    public void revokeHomeTokenOverAMQPByAdminSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            TimeoutException,
+            OperatorCreationException,
+            InvalidKeyException,
+            KeyStoreException,
+            UnrecoverableKeyException,
+            JWTCreationException,
+            MalformedJWTException,
+            AAMException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -375,7 +488,23 @@ public class RevocationFunctionalTests extends
     }
 
     @Test
-    public void revokeOverAMQPByAdminFailEmptyRequestOrBadAdminCredentials() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, CertificateException, IOException, InvalidArgumentsException, WrongCredentialsException, NotExistingUserException, ValidationException, TimeoutException, OperatorCreationException, InvalidKeyException, KeyStoreException, UnrecoverableKeyException, JWTCreationException, MalformedJWTException {
+    public void revokeOverAMQPByAdminFailEmptyRequestOrBadAdminCredentials() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            TimeoutException,
+            OperatorCreationException,
+            InvalidKeyException,
+            KeyStoreException,
+            UnrecoverableKeyException,
+            JWTCreationException,
+            MalformedJWTException {
 
 
         RevocationRequest revocationRequest = new RevocationRequest();

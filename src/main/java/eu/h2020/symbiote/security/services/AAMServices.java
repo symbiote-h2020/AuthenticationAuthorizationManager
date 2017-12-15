@@ -15,6 +15,7 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -33,25 +34,30 @@ public class AAMServices {
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PlatformRepository platformRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
-
-    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
-    private String coreInterfaceAddress;
-    @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}")
-    private String platformAAMSuffixAtInterWorkingInterface = "/paam";
-    @Value("${aam.environment.interworkingInterfacePort::8101}")
-    private String interworkingInterfacePort = ":8101";
-    @Value("${symbiote.coreaam.url:localhost}")
-    private String coreAAMAddress = "";
+    private final String coreInterfaceAddress;
+    private final String platformAAMSuffixAtInterWorkingInterface;
 
     @Autowired
-    public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper, PlatformRepository platformRepository, ComponentCertificatesRepository componentCertificatesRepository) {
+    public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper,
+                       PlatformRepository platformRepository,
+                       ComponentCertificatesRepository componentCertificatesRepository,
+                       @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
+                       @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}") String platformAAMSuffixAtInterWorkingInterface) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.platformRepository = platformRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
+        this.coreInterfaceAddress = coreInterfaceAddress;
+        this.platformAAMSuffixAtInterWorkingInterface = platformAAMSuffixAtInterWorkingInterface;
     }
 
-
-    public Map<String, AAM> getAvailableAAMs() throws NoSuchProviderException, KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
+    @Cacheable(cacheNames = "getAvailableAAMs", key = "#root.method")
+    public Map<String, AAM> getAvailableAAMs() throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            AAMException {
         Map<String, AAM> availableAAMs = new TreeMap<>();
         if (certificationAuthorityHelper.getDeploymentType() == IssuingAuthorityType.CORE) {
             // if Core AAM then we know the available AAMs
@@ -72,13 +78,11 @@ public class AAMServices {
             }
         } else {
             // a PAAM needs to fetch them from core
-            IAAMClient aamClient = new AAMClient(coreAAMAddress);
+            IAAMClient aamClient = new AAMClient(coreInterfaceAddress);
             availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
 
             String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
-            AAM aam = availableAAMs.get(deploymentId);
-
-            aam.setComponentCertificates(fillComponentCertificatesMap());
+            availableAAMs.get(deploymentId).getComponentCertificates().putAll(fillComponentCertificatesMap());
         }
         return availableAAMs;
     }
@@ -92,6 +96,7 @@ public class AAMServices {
         return componentsCertificatesMap;
     }
 
+    @Cacheable(cacheNames = "getComponentCertificate", key = "#componentIdentifier + '@' +#platformIdentifier")
     public String getComponentCertificate(String componentIdentifier, String platformIdentifier) throws
             NoSuchAlgorithmException,
             CertificateException,
@@ -103,7 +108,7 @@ public class AAMServices {
 
         String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         // our platform case
-         if (platformIdentifier.equals(deploymentId)) {
+        if (platformIdentifier.equals(deploymentId)) {
             if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME))
                 return certificationAuthorityHelper.getAAMCert();
 
@@ -112,11 +117,27 @@ public class AAMServices {
             return componentCertificatesRepository.findOne(componentIdentifier).getCertificate().getCertificateString();
         }
         // not our platform
-        Map<String, AAM> availableAAMs = getAvailableAAMs();
+        Map<String, AAM> availableAAMs;
+        try {
+            availableAAMs = getAvailableAAMs();
+        } catch (AAMException e) {
+            //if platform can't communicate with coreAAM
+            if (platformIdentifier.equals(SecurityConstants.CORE_AAM_INSTANCE_ID)
+                    && componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME)) {
+                // Core cert can be fetched from keystore
+                return certificationAuthorityHelper.getRootCACert();
+            }
+            throw e;
+        }
         if (availableAAMs.containsKey(platformIdentifier)) {
             AAM aam = availableAAMs.get(platformIdentifier);
-            IAAMClient aamClient = new AAMClient(aam.getAamAddress());
-            return aamClient.getComponentCertificate(componentIdentifier, platformIdentifier);
+            if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME)) {
+                // AAM cert can be fetched without contacting the platform AAM itself
+                return aam.getAamCACertificate().getCertificateString();
+            } else {
+                IAAMClient aamClient = new AAMClient(aam.getAamAddress());
+                return aamClient.getComponentCertificate(componentIdentifier, platformIdentifier);
+            }
         }
         throw new AAMException("Selected certificate could not be found/retrieved");
     }

@@ -3,10 +3,7 @@ package eu.h2020.symbiote.security.functional;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
@@ -41,7 +38,8 @@ public class CertificatesIssuingFunctionalTests extends
             InvalidArgumentsException,
             WrongCredentialsException,
             NotExistingUserException,
-            ValidationException {
+            ValidationException,
+            AAMException {
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), usernameWithAt, clientId, pair);
         assertNotNull(csrString);
@@ -59,7 +57,8 @@ public class CertificatesIssuingFunctionalTests extends
             KeyStoreException,
             IOException,
             OperatorCreationException,
-            InvalidArgumentsException {
+            InvalidArgumentsException,
+            AAMException {
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -78,7 +77,8 @@ public class CertificatesIssuingFunctionalTests extends
             InvalidArgumentsException,
             WrongCredentialsException,
             NotExistingUserException,
-            ValidationException {
+            ValidationException,
+            AAMException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
@@ -105,7 +105,8 @@ public class CertificatesIssuingFunctionalTests extends
             InvalidArgumentsException,
             WrongCredentialsException,
             NotExistingUserException,
-            ValidationException {
+            ValidationException,
+            AAMException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
@@ -135,7 +136,7 @@ public class CertificatesIssuingFunctionalTests extends
             throws InvalidArgumentsException, NoSuchAlgorithmException,
             NoSuchProviderException, InvalidAlgorithmParameterException,
             WrongCredentialsException, NotExistingUserException,
-            CertificateException, IOException, ValidationException {
+            CertificateException, IOException, ValidationException, AAMException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
@@ -160,11 +161,17 @@ public class CertificatesIssuingFunctionalTests extends
             InvalidArgumentsException,
             WrongCredentialsException,
             NotExistingUserException,
-            ValidationException {
+            ValidationException,
+            AAMException {
 
         User platformOwner = savePlatformOwner();
 
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
+        Platform platform = new Platform(platformId,
+                null,
+                null,
+                platformOwner,
+                new Certificate(),
+                new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -188,11 +195,17 @@ public class CertificatesIssuingFunctionalTests extends
             InvalidArgumentsException,
             WrongCredentialsException,
             NotExistingUserException,
-            ValidationException {
+            ValidationException,
+            AAMException {
 
         User platformOwner = savePlatformOwner();
 
-        Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
+        Platform platform = new Platform(platformId,
+                null,
+                null,
+                platformOwner,
+                new Certificate(),
+                new HashMap<>());
         platformRepository.save(platform);
         platformOwner.getOwnedPlatforms().add(platformId);
         userRepository.save(platformOwner);

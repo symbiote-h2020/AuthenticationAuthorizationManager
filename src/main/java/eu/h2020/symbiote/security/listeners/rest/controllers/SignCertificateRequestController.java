@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.cert.CertificateException;
+
 /**
  * Spring controller to handle HTTPS requests related to the RESTful web services associated to certificates signing.
  *
@@ -41,6 +43,8 @@ public class SignCertificateRequestController implements ISignCertificateRequest
         } catch (WrongCredentialsException | NotExistingUserException | InvalidArgumentsException
                 | UserManagementException | PlatformManagementException | ValidationException e) {
             return new ResponseEntity<>(e.getErrorMessage(), e.getStatusCode());
+        } catch (CertificateException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

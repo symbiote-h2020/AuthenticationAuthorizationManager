@@ -9,7 +9,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
-import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -32,12 +31,6 @@ public class CredentialsValidationInPlatformAAMWithExpiredCertificateUnitTests e
 
     @Autowired
     private ValidationHelper validationHelper;
-
-    @Override
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-    }
 
     @Test
     public void validateIssuerCertificateExpired() throws IOException, ValidationException, JWTCreationException {

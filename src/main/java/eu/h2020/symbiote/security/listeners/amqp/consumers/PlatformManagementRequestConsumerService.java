@@ -14,6 +14,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.IOException;
+import java.security.cert.CertificateException;
 
 /**
  * RabbitMQ Consumer implementation used for Platforms' Registration actions
@@ -69,13 +70,16 @@ public class PlatformManagementRequestConsumerService extends DefaultConsumer {
             try {
                 request = om.readValue(message, PlatformManagementRequest.class);
                 log.debug("[x] Received Platform Management Request for: " + request.getPlatformOwnerCredentials().getUsername());
-                PlatformManagementResponse registrationResponse = platformsManagementService.authManage
-                        (request);
+                PlatformManagementResponse registrationResponse = platformsManagementService.authManage(request);
                 response = om.writeValueAsString(registrationResponse);
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
             } catch (SecurityException e) {
                 log.error(e);
                 response = (new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal())).toJson();
+                this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
+            } catch (CertificateException e) {
+                log.error(e);
+                response = (new ErrorResponseContainer(e.getMessage(), 500).toJson());
                 this.getChannel().basicPublish("", properties.getReplyTo(), replyProps, response.getBytes());
             }
             log.debug("Platform Management Response: sent back");

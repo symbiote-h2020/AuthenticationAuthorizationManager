@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.*;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
@@ -19,12 +20,10 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Test;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
-import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -72,7 +71,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test
     public void userInternalForceUpdateSuccess() throws SecurityException {
         // save user in db
-        User user = saveUser();
+        saveUser();
         // verify that app is in the repository
         User registeredUser = userRepository.findOne(appUsername);
         assertNotNull(registeredUser);
@@ -393,15 +392,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         usersManagementService.authManage(userManagementRequest);
     }
 
-    private X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException, CertificateException, NoSuchAlgorithmException {
-        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
-    }
-
     @Test(expected = InvalidArgumentsException.class)
     public void userCreateFailInvalidArguments() throws SecurityException {
 
@@ -427,7 +417,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getExistingUserOverRestSuccess() throws UserManagementException {
+    public void getExistingUserOverRestSuccess() throws UserManagementException, AAMException {
         //  Register user in database
         User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
         userRepository.save(platformOwner);
@@ -437,19 +427,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = UserManagementException.class)
-    public void getBlockedUserOverRestFailure() throws UserManagementException {
-        //  Register user in database
-        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
-        userRepository.save(platformOwner);
-        //  Request user with matching credentials
-        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(username, clientId, "", EventType.LOGIN_FAILED, System.currentTimeMillis(), 100000));
-        assertTrue(inserted);
-
-        aamClient.getUserDetails(new Credentials(username, password));
-    }
-
-    @Test(expected = UserManagementException.class)
-    public void getNotExistingUserOverRestFailure() throws UserManagementException {
+    public void getNotExistingUserOverRestFailure() throws UserManagementException, AAMException {
         //  Register user in database
         User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
         userRepository.save(platformOwner);
@@ -458,7 +436,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = UserManagementException.class)
-    public void getUserOverRestFailsForwrongPassword() throws UserManagementException {
+    public void getUserOverRestFailsForWrongPassword() throws UserManagementException, AAMException {
         //  Register user in database
         User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
         userRepository.save(platformOwner);

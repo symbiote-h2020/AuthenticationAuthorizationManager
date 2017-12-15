@@ -8,10 +8,7 @@ import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.*;
@@ -73,7 +70,8 @@ public class CredentialsValidationFunctionalTests extends
             InvalidKeyException,
             JWTCreationException,
             MalformedJWTException,
-            WrongCredentialsException {
+            WrongCredentialsException,
+            AAMException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -112,7 +110,8 @@ public class CredentialsValidationFunctionalTests extends
             InvalidKeyException,
             JWTCreationException,
             MalformedJWTException,
-            WrongCredentialsException {
+            WrongCredentialsException,
+            AAMException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -148,7 +147,8 @@ public class CredentialsValidationFunctionalTests extends
             InvalidKeyException,
             JWTCreationException,
             MalformedJWTException,
-            WrongCredentialsException {
+            WrongCredentialsException,
+            AAMException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -180,7 +180,8 @@ public class CredentialsValidationFunctionalTests extends
             InvalidKeyException,
             JWTCreationException,
             MalformedJWTException,
-            WrongCredentialsException {
+            WrongCredentialsException,
+            AAMException {
         addTestUserWithClientCertificateToRepository();
         String homeToken = "WrongTokenString";
         ValidationStatus status = aamClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
@@ -206,7 +207,9 @@ public class CredentialsValidationFunctionalTests extends
             InvalidKeyException,
             JWTCreationException,
             MalformedJWTException,
-            WrongCredentialsException, ValidationException {
+            WrongCredentialsException,
+            ValidationException,
+            AAMException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -242,7 +245,9 @@ public class CredentialsValidationFunctionalTests extends
             InvalidKeyException,
             JWTCreationException,
             MalformedJWTException,
-            WrongCredentialsException, ValidationException {
+            WrongCredentialsException,
+            ValidationException,
+            AAMException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -284,7 +289,8 @@ public class CredentialsValidationFunctionalTests extends
             CertificateException,
             NoSuchAlgorithmException,
             MalformedJWTException,
-            JWTCreationException {
+            JWTCreationException,
+            AAMException {
         // issuing dummy platform token
         String username = "userId";
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -310,14 +316,12 @@ public class CredentialsValidationFunctionalTests extends
                 platformManagementRequestQueue, 5000);
         Credentials platformOwnerUserCredentials = new Credentials(platformOwner.getUsername(), platformOwner.getPasswordEncrypted());
         PlatformManagementRequest platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserCredentials, "irrelevant",
+                AAMOwnerPassword), platformOwnerUserCredentials, serverAddress + "/test",
                 "irrelevant",
-                "irrelevant", OperationType.CREATE);
+                platformId, OperationType.CREATE);
 
 
         // registering the platform to the Core AAM so it will be available for token revocation
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 

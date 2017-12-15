@@ -20,19 +20,15 @@ import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.codehaus.jettison.json.JSONException;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -57,7 +53,7 @@ public class OtherListenersFunctionalTests extends
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
-    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
+    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     String coreInterfaceAddress;
     @Value("${rabbit.queue.get.platform.owners.names}")
     private String getPlatformOwnersNamesQueue;
@@ -98,7 +94,7 @@ public class OtherListenersFunctionalTests extends
 
     @Test
     public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
-            CertificateException, NoSuchProviderException, KeyStoreException, IOException {
+            CertificateException, NoSuchProviderException, KeyStoreException, IOException, AAMException {
 
         // injecting core component certificate
         String componentId = "registry";
@@ -252,8 +248,13 @@ public class OtherListenersFunctionalTests extends
 
 
         // issue second platform registration over AMQP
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId + "2");
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(platformInterworkingInterfaceAddress + "/second");
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress + "/second",
+                platformInstanceFriendlyName,
+                platformId + "2",
+                OperationType.CREATE);
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -272,8 +273,13 @@ public class OtherListenersFunctionalTests extends
 
 
         // issue second platform registration over AMQP
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId("");
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(platformInterworkingInterfaceAddress + "/third");
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress + "/third",
+                platformInstanceFriendlyName,
+                "",
+                OperationType.CREATE);
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -343,17 +349,8 @@ public class OtherListenersFunctionalTests extends
         }
     }
 
-    private X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException, CertificateException, NoSuchAlgorithmException {
-        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
-    }
-
     @Test
-    public void getPlatformOwnersNamesSuccess() throws IOException, TimeoutException {
+    public void getPlatformOwnersNamesSuccess() throws IOException, TimeoutException, CertificateException {
         saveTwoDifferentUsers();
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");
@@ -370,8 +367,10 @@ public class OtherListenersFunctionalTests extends
     }
 
     @Test
-    public void getPlatformOwnersNamesFailsForIncorrectAdminCredentials() throws IOException, TimeoutException {
-
+    public void getPlatformOwnersNamesFailsForIncorrectAdminCredentials() throws
+            IOException,
+            TimeoutException,
+            CertificateException {
         saveTwoDifferentUsers();
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");
@@ -385,8 +384,10 @@ public class OtherListenersFunctionalTests extends
     }
 
     @Test
-    public void getPlatformOwnersNamesFailsWithoutAdminCredentials() throws IOException, TimeoutException {
-
+    public void getPlatformOwnersNamesFailsWithoutAdminCredentials() throws
+            IOException,
+            TimeoutException,
+            CertificateException {
         saveTwoDifferentUsers();
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");

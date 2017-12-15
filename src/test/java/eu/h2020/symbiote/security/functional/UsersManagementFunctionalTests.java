@@ -39,7 +39,7 @@ public class UsersManagementFunctionalTests extends
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     protected String platformAAMSuffixAtInterWorkingInterface;
-    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
+    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     protected String coreInterfaceAddress;
     @Value("${rabbit.queue.get.user.details}")
     private String getUserDetailsQueue;
@@ -322,7 +322,7 @@ public class UsersManagementFunctionalTests extends
     }
 
     @Test
-    public void UsersManagementCreationSuccess() throws AAMException {
+    public void userRegistrationOverRESTSuccess() throws AAMException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), "federatedId",
@@ -332,7 +332,7 @@ public class UsersManagementFunctionalTests extends
     }
 
     @Test(expected = AAMException.class)
-    public void UsersManagementCreationFailureWithIncorrectRequest() throws AAMException {
+    public void userRegistrationOverRESTFailureWithIncorrectRequest() throws AAMException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, wrongPassword), new Credentials(username, wrongPassword),
                 new UserDetails(new Credentials(username, wrongPassword), "federatedId",

@@ -24,7 +24,6 @@ import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.GetTokenService;
-import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
@@ -35,7 +34,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
@@ -57,7 +55,6 @@ import static org.junit.Assert.*;
 public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     private static Log log = LogFactory.getLog(CertificatesIssuingUnitTests.class);
 
-    private final String federatedOAuthId = "federatedOAuthId";
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
@@ -67,7 +64,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
-    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
+    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     String coreInterfaceAddress;
     @Autowired
     ComponentCertificatesRepository componentCertificatesRepository;
@@ -80,8 +77,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     private RpcClient platformRegistrationOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
-    @Autowired
-    private SignCertificateRequestService signCertificateRequestService;
 
     @Override
     @Before
@@ -219,7 +214,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
                                 "registry-core-1"))));
         componentCertificatesRepository.save(
                 componentCertificate);
-        HomeCredentials homeCredentials = new HomeCredentials(null, SecurityConstants.CORE_AAM_INSTANCE_ID, componentId, null, (PrivateKey) getPrivateKeyFromTestKeystore(
+        HomeCredentials homeCredentials = new HomeCredentials(null, SecurityConstants.CORE_AAM_INSTANCE_ID, componentId, null, getPrivateKeyFromKeystore(
                 "core.p12",
                 "registry-core-1"));
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -351,9 +346,14 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
         savePlatformOwner();
 
-        // registering the platform to the Core AAM so it will be available for token revocation
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+        // registering the platform to the Core AAM so it will be available for token
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                serverAddress + "/test",
+                platformInstanceFriendlyName,
+                platformId,
+                OperationType.CREATE);
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -500,30 +500,17 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         savePlatformOwner();
 
         // registering the platform to the Core AAM so it will be available for token revocation
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(platformId);
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(serverAddress + "/test");
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                serverAddress + "/test",
+                platformInstanceFriendlyName,
+                platformId,
+                OperationType.CREATE);
         platformRegistrationOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
         getTokenService.getForeignToken(token, "", "");
-    }
-
-    private X509Certificate getCertificateFromTestKeystore(String keyStoreName, String certificateAlias) throws
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException, CertificateException, NoSuchAlgorithmException {
-        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        return (X509Certificate) pkcs12Store.getCertificate(certificateAlias);
-    }
-
-    private Key getPrivateKeyFromTestKeystore(String keyStoreName, String certificateAlias) throws
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
-        KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
-        return pkcs12Store.getKey(certificateAlias, KEY_STORE_PASSWORD.toCharArray());
     }
 
 }

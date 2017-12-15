@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.services.helpers;
 
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,20 +40,48 @@ import java.util.Date;
 public class CertificationAuthorityHelper {
     private static final Long certificateValidityPeriod = 1L * 365L * 24L * 60L * 60L * 1000L;
     private static Log log = LogFactory.getLog(CertificationAuthorityHelper.class);
-    @Value("${aam.security.KEY_STORE_FILE_NAME}")
-    private String KEY_STORE_FILE_NAME;
-    @Value("${aam.security.ROOT_CA_CERTIFICATE_ALIAS}")
-    private String ROOT_CA_CERTIFICATE_ALIAS;
-    @Value("${aam.security.CERTIFICATE_ALIAS}")
-    private String CERTIFICATE_ALIAS;
 
-    @Value("${aam.security.KEY_STORE_PASSWORD}")
-    private String KEY_STORE_PASSWORD;
-    @Value("${aam.security.PV_KEY_PASSWORD}")
-    private String PV_KEY_PASSWORD;
+    private final String KEY_STORE_FILE_NAME;
+    private final String ROOT_CA_CERTIFICATE_ALIAS;
+    private final String CERTIFICATE_ALIAS;
+    private final String KEY_STORE_PASSWORD;
+    private final String PV_KEY_PASSWORD;
 
-    public CertificationAuthorityHelper() throws CertificateException, NoSuchProviderException {
+    public CertificationAuthorityHelper(@Value("${aam.security.KEY_STORE_FILE_NAME}") String key_store_file_name,
+                                        @Value("${aam.security.ROOT_CA_CERTIFICATE_ALIAS}") String root_ca_certificate_alias,
+                                        @Value("${aam.security.CERTIFICATE_ALIAS}") String certificate_alias,
+                                        @Value("${aam.security.KEY_STORE_PASSWORD}") String key_store_password,
+                                        @Value("${aam.security.PV_KEY_PASSWORD}") String pv_key_password) throws
+            CertificateException,
+            NoSuchProviderException,
+            SecurityMisconfigurationException,
+            UnrecoverableKeyException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            IOException {
+        KEY_STORE_FILE_NAME = key_store_file_name;
+        ROOT_CA_CERTIFICATE_ALIAS = root_ca_certificate_alias;
+        CERTIFICATE_ALIAS = certificate_alias;
+        KEY_STORE_PASSWORD = key_store_password;
+        PV_KEY_PASSWORD = pv_key_password;
         Security.addProvider(new BouncyCastleProvider());
+        switch (getDeploymentType()) {
+            case CORE:
+                break;
+            case PLATFORM:
+                if (certificate_alias.equals(root_ca_certificate_alias))
+                    throw new SecurityMisconfigurationException("Platform AAM certificate must be different from Core AAM - root certificate");
+                break;
+            case NULL:
+                throw new CertificateException("Failed to initialize AAM using given symbiote keystore");
+        }
+        PrivateKey aamPrivateKey = getAAMPrivateKey();
+        if (aamPrivateKey == null
+                || aamPrivateKey.getAlgorithm() == null)
+            throw new SecurityMisconfigurationException("Can't find AAM private key using the given configuration. Please check SymbioteCloud readme on PAAM certificate.");
+        if (!aamPrivateKey.getAlgorithm().equals("EC"))
+            throw new SecurityMisconfigurationException("Configuration points to a certificate that doesn't match the symbiote requirements. Please check SymbioteCloud readme on PAAM certificate.");
+
     }
 
     /**

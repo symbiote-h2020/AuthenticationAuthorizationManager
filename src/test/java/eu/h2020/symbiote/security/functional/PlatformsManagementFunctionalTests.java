@@ -37,7 +37,7 @@ public class PlatformsManagementFunctionalTests extends
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
-    @Value("${aam.environment.coreInterfaceAddress:https://localhost:8443}")
+    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     String coreInterfaceAddress;
     private RpcClient platformManagementOverAMQPClient;
     private Credentials platformOwnerUserCredentials;
@@ -65,18 +65,27 @@ public class PlatformsManagementFunctionalTests extends
         platformManagementOverAMQPClient = new RpcClient(rabbitManager.getConnection().createChannel(), "",
                 platformManagementRequestQueue, 5000);
         platformOwnerUserCredentials = new Credentials(platformOwnerUsername, platformOwnerPassword);
-        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
-                preferredPlatformId, OperationType.CREATE);
-        platformUpdateOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
+                preferredPlatformId,
+                OperationType.CREATE);
+        platformUpdateOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
-                preferredPlatformId, OperationType.UPDATE);
-        platformDeleteOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
+                preferredPlatformId,
+                OperationType.UPDATE);
+        platformDeleteOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
-                preferredPlatformId, OperationType.DELETE);
+                preferredPlatformId,
+                OperationType.DELETE);
 
     }
 
@@ -88,8 +97,6 @@ public class PlatformsManagementFunctionalTests extends
      */
     @Test
     public void platformRegistrationOverAMQPWithPreferredPlatformIdSuccess() throws IOException, TimeoutException {
-
-
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -141,7 +148,13 @@ public class PlatformsManagementFunctionalTests extends
         assertTrue(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without preferred platform identifier
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId("");
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
+                "",
+                OperationType.CREATE);
         byte[] response = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
         PlatformManagementResponse platformRegistrationOverAMQPResponse = mapper.readValue(response,
@@ -173,7 +186,13 @@ public class PlatformsManagementFunctionalTests extends
         assertTrue(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without preferred platform identifier
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId("Wrong_platform#id");
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
+                "Wrong_platform#id",
+                OperationType.CREATE);
         byte[] response = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
         ErrorResponseContainer errorResponse = mapper.readValue(response,
@@ -270,7 +289,14 @@ public class PlatformsManagementFunctionalTests extends
         assertTrue(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without required Platform's AAM URL
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress("");
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                "",
+                platformInstanceFriendlyName,
+                preferredPlatformId,
+                OperationType.CREATE);
+
         byte[] response = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -290,7 +316,13 @@ public class PlatformsManagementFunctionalTests extends
         assertTrue(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP without required Platform's instance friendly name
-        platformRegistrationOverAMQPRequest.setPlatformInstanceFriendlyName("");
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress,
+                "",
+                preferredPlatformId,
+                OperationType.CREATE);
         byte[] response = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -360,11 +392,16 @@ public class PlatformsManagementFunctionalTests extends
         User user = createUser(platformOwnerUsername + "differentOne", platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
         userRepository.save(user);
         // issue registration request with the same preferred platform identifier but different PO
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
+                "differentId",
+                OperationType.CREATE);
         platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setUsername
                 (platformOwnerUsername + "differentOne");
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId("differentId");
         // we try to use the same Interworking Interface!
-
         response = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
 
@@ -384,8 +421,13 @@ public class PlatformsManagementFunctionalTests extends
         //ensure platform is registered
         assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse.getRegistrationStatus());
 
-        platformUpdateOverAMQPRequest.setPlatformInstanceFriendlyName(platformInstanceFriendlyName + "differentOne");
-        platformUpdateOverAMQPRequest.setPlatformInterworkingInterfaceAddress(platformInterworkingInterfaceAddress + "differentOne");
+        platformUpdateOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress + "differentOne",
+                platformInstanceFriendlyName + "differentOne",
+                preferredPlatformId,
+                OperationType.UPDATE);
         byte[] response2 = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformUpdateOverAMQPRequest).getBytes());
         PlatformManagementResponse platformRegistrationOverAMQPResponse2 = mapper.readValue(response2,
@@ -405,7 +447,13 @@ public class PlatformsManagementFunctionalTests extends
         //ensure platform is registered
         assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse.getRegistrationStatus());
 
-        platformUpdateOverAMQPRequest.setPlatformInstanceId(platformId + "differentOne");
+        platformUpdateOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
+                platformId + "differentOne",
+                OperationType.UPDATE);
         byte[] response2 = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformUpdateOverAMQPRequest).getBytes());
         ErrorResponseContainer errorResponse = mapper.readValue(response2, ErrorResponseContainer.class);
@@ -425,8 +473,13 @@ public class PlatformsManagementFunctionalTests extends
         assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse.getRegistrationStatus());
 
         //register second platform
-        platformRegistrationOverAMQPRequest.setPlatformInstanceId(preferredPlatformId + "2");
-        platformRegistrationOverAMQPRequest.setPlatformInterworkingInterfaceAddress(platformInterworkingInterfaceAddress + "/second");
+        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress + "/second",
+                platformInstanceFriendlyName,
+                preferredPlatformId + "2",
+                OperationType.CREATE);
         platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformRegistrationOverAMQPRequest).getBytes());
         platformRegistrationOverAMQPResponse = mapper.readValue(response,
@@ -442,7 +495,13 @@ public class PlatformsManagementFunctionalTests extends
         assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse2.getRegistrationStatus());
 
         // delete platform 2
-        platformDeleteOverAMQPRequest.setPlatformInstanceId(preferredPlatformId + "2");
+        platformDeleteOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
+                preferredPlatformId + "2",
+                OperationType.DELETE);
         response2 = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformDeleteOverAMQPRequest).getBytes());
         platformRegistrationOverAMQPResponse2 = mapper.readValue(response2,
@@ -464,7 +523,13 @@ public class PlatformsManagementFunctionalTests extends
         //ensure platform is registered
         assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse.getRegistrationStatus());
 
-        platformDeleteOverAMQPRequest.setPlatformInstanceId(platformId + "different");
+        platformDeleteOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                platformOwnerUserCredentials,
+                platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
+                platformId + "different",
+                OperationType.DELETE);
         byte[] response2 = platformManagementOverAMQPClient.primitiveCall(mapper.writeValueAsString
                 (platformDeleteOverAMQPRequest).getBytes());
         ErrorResponseContainer errorResponse = mapper.readValue(response2, ErrorResponseContainer.class);
