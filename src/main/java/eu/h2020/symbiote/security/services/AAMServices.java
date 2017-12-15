@@ -13,6 +13,8 @@ import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -36,18 +38,25 @@ public class AAMServices {
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final String coreInterfaceAddress;
     private final String platformAAMSuffixAtInterWorkingInterface;
+    private static Log log = LogFactory.getLog(AAMServices.class);
+    private final String platformId;
+    private final String platformInterworkingInterfaceUrl;
 
     @Autowired
     public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper,
                        PlatformRepository platformRepository,
                        ComponentCertificatesRepository componentCertificatesRepository,
                        @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
-                       @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}") String platformAAMSuffixAtInterWorkingInterface) {
+                       @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}") String platformAAMSuffixAtInterWorkingInterface,
+                       @Value("${platform.id: }") String platformId,
+                       @Value("${symbIoTe.interworking.interface.url: }") String platformInterworkingInterfaceUrl) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.platformRepository = platformRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.coreInterfaceAddress = coreInterfaceAddress;
         this.platformAAMSuffixAtInterWorkingInterface = platformAAMSuffixAtInterWorkingInterface;
+        this.platformId = platformId;
+        this.platformInterworkingInterfaceUrl = platformInterworkingInterfaceUrl;
     }
 
     @Cacheable(cacheNames = "getAvailableAAMs", key = "#root.method")
@@ -85,6 +94,31 @@ public class AAMServices {
             availableAAMs.get(deploymentId).getComponentCertificates().putAll(fillComponentCertificatesMap());
         }
         return availableAAMs;
+    }
+
+    public Map<String, AAM> getInternalAAMs() throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException {
+        Map<String, AAM> availableAAMs = new TreeMap<>();
+        try {
+            return getAvailableAAMs();
+        } catch (AAMException e) {
+            log.error("Couldn't establish connection with CoreAAM");
+            // adding core aam info to the response
+            availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM(coreInterfaceAddress,
+                    SecurityConstants.CORE_AAM_FRIENDLY_NAME,
+                    SecurityConstants.CORE_AAM_INSTANCE_ID,
+                    new Certificate(certificationAuthorityHelper.getRootCACert()), new HashMap<>()));
+            // adding this aam info to the response
+            availableAAMs.put(this.platformId, new AAM(platformInterworkingInterfaceUrl,
+                    this.platformId,
+                    this.platformId,
+                    new Certificate(certificationAuthorityHelper.getAAMCert()), fillComponentCertificatesMap()));
+            return availableAAMs;
+        }
     }
 
     private Map<String, Certificate> fillComponentCertificatesMap() {

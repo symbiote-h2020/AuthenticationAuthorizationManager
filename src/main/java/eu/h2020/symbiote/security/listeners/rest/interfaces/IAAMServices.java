@@ -19,4 +19,11 @@ public interface IAAMServices {
     @GetMapping(value = SecurityConstants.AAM_GET_AVAILABLE_AAMS, produces =
             "application/json")
     ResponseEntity<AvailableAAMsCollection> getAvailableAAMs();
+
+    /**
+     * @return collection of AAMs in the SymbIoTe ecosystem
+     */
+    @GetMapping(value = SecurityConstants.AAM_GET_INTERNAL_AAMS, produces =
+            "application/json")
+    ResponseEntity<AvailableAAMsCollection> getInternalAAMs();
 }

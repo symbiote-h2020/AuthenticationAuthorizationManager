@@ -5,23 +5,23 @@ import eu.h2020.symbiote.security.ComponentSecurityHandlerFactory;
 import eu.h2020.symbiote.security.accesspolicies.IAccessPolicy;
 import eu.h2020.symbiote.security.accesspolicies.common.SingleTokenAccessPolicyFactory;
 import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenAccessPolicySpecifier;
-import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.communication.payloads.AAM;
+import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
-import eu.h2020.symbiote.security.handler.ISecurityHandler;
 import eu.h2020.symbiote.security.handler.SecurityHandler;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.services.AAMServices;
-import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.aop.framework.Advised;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.boot.context.embedded.LocalServerPort;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -36,28 +36,53 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static junit.framework.TestCase.assertTrue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.doThrow;
 
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
-@TestPropertySource("/platform.properties")
-public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTestSuite {
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@TestPropertySource("/platform_no_ssl.properties")
+public class ComponentSecurityHandlerWithPlatformAAMAndNotAvailableCoreTests extends AbstractAAMTestSuite {
     private final String KEY_STORE_PATH = "./src/test/resources/new.p12";
     private final String KEY_STORE_PASSWORD = "1234567";
-    private String oldCoreAAMAddress;
-    @Autowired
-    private AAMServices aamServices;
+
     @LocalServerPort
     private int port;
-    @Autowired
-    private DummyCoreAAM dummyCoreAAM;
+    @SpyBean
+    private AAMServices spied;
+
+    public static Object unwrapProxy(Object bean) throws Exception {
+        /*
+         * If the given object is a proxy, set the return value as the object
+         * being proxied, otherwise return the given object.
+         */
+        if (AopUtils.isAopProxy(bean) && bean instanceof Advised) {
+            Advised advised = (Advised) bean;
+            bean = advised.getTargetSource().getTarget();
+        }
+        return bean;
+    }
 
     @Before
     @Override
     public void setUp() throws
             Exception {
         super.setUp();
-        dummyCoreAAM.port = port;
-        oldCoreAAMAddress = (String) ReflectionTestUtils.getField(aamServices, "coreInterfaceAddress");
+        serverAddress = "http://localhost:" + port;
+        aamClient = new AAMClient(serverAddress);
+        userKeyPair = CryptoHelper.createKeyPair();
+
+        // cleanup db
+        userRepository.deleteAll();
+        revokedKeysRepository.deleteAll();
+        revokedTokensRepository.deleteAll();
+        platformRepository.deleteAll();
+        componentCertificatesRepository.deleteAll();
+        localUsersAttributesRepository.deleteAll();
+
+        // mock initialization
+        AAMServices validationService = (AAMServices) unwrapProxy(spied);
+        doThrow(new AAMException("Not working - Core is not available")).when(validationService).getAvailableAAMs();
+        ReflectionTestUtils.setField(spied, "platformInterworkingInterfaceUrl", serverAddress);
     }
 
     @After
@@ -65,21 +90,14 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
         //cleanup
         File file = new File(KEY_STORE_PATH);
         assertTrue(file.delete());
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", oldCoreAAMAddress);
     }
 
     @Test
     public void RegistrationHandlerIntegrationTest() throws
             SecurityHandlerException,
-            InvalidArgumentsException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException {
+            InvalidArgumentsException {
+
         // registration handler use case
-        // hack: injecting the AAM running port
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
         String rhKey = "rh";
         String regHandlerComponentId = rhKey + "@" + "platform-1";
         // generating the CSH
@@ -88,7 +106,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
                 KEY_STORE_PASSWORD,
                 regHandlerComponentId,
                 serverAddress,
-                false,
+                true,
                 AAMOwnerUsername,
                 AAMOwnerPassword
         );
@@ -111,7 +129,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
                 KEY_STORE_PASSWORD,
                 regHandlerComponentId,
                 serverAddress,
-                false,
+                true,
                 AAMOwnerUsername,
                 AAMOwnerPassword
         );
@@ -134,15 +152,11 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
         testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier));
         // the policy should be there!
         assertTrue(rhCSH.getSatisfiedPoliciesIdentifiers(testAP, rhSecurityRequest).contains(testPolicyId));
-        //change of the platform certificate in CoreAAM
-        dummyCoreAAM.changePlatformCertificate();
-        assertFalse(rhCSH.getSatisfiedPoliciesIdentifiers(testAP, rhSecurityRequest).contains(testPolicyId));
     }
 
-    @Test
+    @Test(expected = SecurityHandlerException.class)
     public void loginBySecurityHandlerIntegrationTest() throws
             SecurityHandlerException,
-            ValidationException,
             CertificateException,
             NoSuchAlgorithmException,
             KeyStoreException,
@@ -151,18 +165,10 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
             IOException {
 
         addTestUserWithClientCertificateToRepository();
-        // hack: injecting the AAM running port
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
-        ISecurityHandler securityHandler = new SecurityHandler(KEY_STORE_PATH,
+        new SecurityHandler(KEY_STORE_PATH,
                 KEY_STORE_PASSWORD,
                 serverAddress,
                 username);
-        AAM localAAM = securityHandler.getAvailableAAMs().get("platform-1");
-        assertNotNull(localAAM);
-        securityHandler.getCertificate(localAAM, username, password, clientId);
-        Token token = securityHandler.login(localAAM);
-        assertNotNull(token);
-        assertEquals("platform-1", token.getClaims().getIssuer());
     }
 
 

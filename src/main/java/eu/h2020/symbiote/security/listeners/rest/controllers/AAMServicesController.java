@@ -80,4 +80,18 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
         }
         return new ResponseEntity<>(new AvailableAAMsCollection(result), HttpStatus.OK);
     }
+
+    @ApiOperation(value = "Returns collection of platforms (their AAMs and components). In case of no connection to Core, certificates are taken from keyStore.", response = AvailableAAMsCollection.class)
+    @ApiResponses({
+            @ApiResponse(code = 500, message = "Internal AAM Error")})
+    public ResponseEntity<AvailableAAMsCollection> getInternalAAMs() {
+        Map<String, AAM> result;
+        try {
+            result = aamServices.getInternalAAMs();
+        } catch (Exception e) {
+            log.error(e);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return new ResponseEntity<>(new AvailableAAMsCollection(result), HttpStatus.OK);
+    }
 }
