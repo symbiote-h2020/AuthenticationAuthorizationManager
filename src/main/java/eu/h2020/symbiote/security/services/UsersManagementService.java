@@ -101,7 +101,7 @@ public class UsersManagementService {
         return this.manage(request);
     }
 
-    public UserDetails getUserDetails(Credentials credentials) throws UserManagementException, IOException, BlockedUserException {
+    public UserDetails getUserDetails(Credentials credentials) throws UserManagementException, IOException, BlockedUserException, WrongCredentialsException {
         //  If requested user is not in database
         if (!userRepository.exists(credentials.getUsername()))
             throw new UserManagementException("User not in database", HttpStatus.BAD_REQUEST);

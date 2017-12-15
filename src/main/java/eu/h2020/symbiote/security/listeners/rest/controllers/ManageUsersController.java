@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.BlockedUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
@@ -72,7 +73,7 @@ public class ManageUsersController implements IManageUsers {
                 return new ResponseEntity<>(new UserDetails(), e.getStatusCode());
             else
                 return new ResponseEntity<>(new UserDetails(), e.getStatusCode());
-        } catch (IOException e) {
+        } catch (IOException | WrongCredentialsException e) {
             return null;
         }
     }
