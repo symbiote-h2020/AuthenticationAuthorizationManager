@@ -10,9 +10,9 @@ jdk:
 before_install:
 - gradle -b wrapper.gradle wrapper
 - gradle assemble --refresh-dependencies
+sudo: false
 services:
 - rabbitmq
-sudo: true
 branches:
   only:
   - staging

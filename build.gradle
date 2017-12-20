@@ -22,11 +22,11 @@ plugins {
     // code
     id "java"
     // spring
-    id "io.spring.dependency-management" version "1.0.3.RELEASE"
-    id 'org.springframework.boot' version '1.5.8.RELEASE'
+    id "io.spring.dependency-management" version "1.0.4.RELEASE"
+    id 'org.springframework.boot' version '1.5.9.RELEASE'
     // code quality
     id "jacoco"
-    id "org.owasp.dependencycheck" version "3.0.1"
+    id "org.owasp.dependencycheck" version "3.0.2"
     // IDEs
     id "eclipse"
     id "idea"
@@ -137,6 +137,10 @@ check.dependsOn(jacocoTestReport)//,'dependencyCheckAnalyze')
 test {
     // we don't need that for testing,
     exclude '**/Swagger*'
+
+    testLogging {
+        exceptionFormat = 'full'
+    }
 }
 
 // documentation below
