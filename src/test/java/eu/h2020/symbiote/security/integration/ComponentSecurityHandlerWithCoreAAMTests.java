@@ -53,6 +53,7 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         String crmComponentId = crmKey + "@" + SecurityConstants.CORE_AAM_INSTANCE_ID;
         // generating the CSH
         IComponentSecurityHandler crmCSH = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
+                serverAddress,
                 KEY_STORE_PATH,
                 KEY_STORE_PASSWORD,
                 crmComponentId,

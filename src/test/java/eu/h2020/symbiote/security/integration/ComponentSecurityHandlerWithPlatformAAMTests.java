@@ -84,6 +84,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
         String regHandlerComponentId = rhKey + "@" + "platform-1";
         // generating the CSH
         IComponentSecurityHandler rhCSH = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
+                serverAddress,
                 KEY_STORE_PATH,
                 KEY_STORE_PASSWORD,
                 regHandlerComponentId,
@@ -107,6 +108,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
         assertTrue(file.delete());
 
         rhCSH = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
+                serverAddress,
                 KEY_STORE_PATH,
                 KEY_STORE_PASSWORD,
                 regHandlerComponentId,

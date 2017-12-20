@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
+
 @Service
 public class AAMServices {
 
@@ -39,7 +41,6 @@ public class AAMServices {
     private final String coreInterfaceAddress;
     private final String platformAAMSuffixAtInterWorkingInterface;
     private static Log log = LogFactory.getLog(AAMServices.class);
-    private final String platformId;
     private final String platformInterworkingInterfaceUrl;
 
     @Autowired
@@ -48,15 +49,13 @@ public class AAMServices {
                        ComponentCertificatesRepository componentCertificatesRepository,
                        @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
                        @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}") String platformAAMSuffixAtInterWorkingInterface,
-                       @Value("${platform.id: }") String platformId,
-                       @Value("${symbIoTe.interworking.interface.url: }") String platformInterworkingInterfaceUrl) {
+                       @Value("${symbIoTe.localaam.url: }") String localAAMUrl) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.platformRepository = platformRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.coreInterfaceAddress = coreInterfaceAddress;
         this.platformAAMSuffixAtInterWorkingInterface = platformAAMSuffixAtInterWorkingInterface;
-        this.platformId = platformId;
-        this.platformInterworkingInterfaceUrl = platformInterworkingInterfaceUrl;
+        this.platformInterworkingInterfaceUrl = localAAMUrl;
     }
 
     @Cacheable(cacheNames = "getAvailableAAMs", key = "#root.method")
@@ -96,7 +95,7 @@ public class AAMServices {
         return availableAAMs;
     }
 
-    public Map<String, AAM> getInternalAAMs() throws
+    public Map<String, AAM> getAAMsInternally() throws
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
@@ -113,9 +112,9 @@ public class AAMServices {
                     SecurityConstants.CORE_AAM_INSTANCE_ID,
                     new Certificate(certificationAuthorityHelper.getRootCACert()), new HashMap<>()));
             // adding this aam info to the response
-            availableAAMs.put(this.platformId, new AAM(platformInterworkingInterfaceUrl,
-                    this.platformId,
-                    this.platformId,
+            availableAAMs.put(certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1], new AAM(platformInterworkingInterfaceUrl,
+                    " ",
+                    certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split(illegalSign)[1],
                     new Certificate(certificationAuthorityHelper.getAAMCert()), fillComponentCertificatesMap()));
             return availableAAMs;
         }

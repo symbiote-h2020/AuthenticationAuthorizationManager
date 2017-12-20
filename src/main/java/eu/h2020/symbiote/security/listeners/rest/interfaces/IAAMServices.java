@@ -23,7 +23,7 @@ public interface IAAMServices {
     /**
      * @return collection of AAMs in the SymbIoTe ecosystem
      */
-    @GetMapping(value = SecurityConstants.AAM_GET_INTERNAL_AAMS, produces =
+    @GetMapping(value = SecurityConstants.AAM_GET_AAMS_INTERNALLY, produces =
             "application/json")
-    ResponseEntity<AvailableAAMsCollection> getInternalAAMs();
+    ResponseEntity<AvailableAAMsCollection> getAAMsInternally();
 }
