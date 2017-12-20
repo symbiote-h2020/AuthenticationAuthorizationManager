@@ -23,10 +23,13 @@ class AppConfig extends AbstractMongoConfiguration {
 
     private final Object syncObject = new Object();
     private String databaseName;
+    private String databaseHost;
     private MongoClient mongoClient = null;
 
-    AppConfig(@Value("${aam.database.name}") String databaseName) {
+    AppConfig(@Value("${aam.database.name}") String databaseName,
+    		@Value("${aam.database.host:localhost}") String databaseHost) {
         this.databaseName = databaseName;
+		this.databaseHost = databaseHost;
     }
 
     @Override
@@ -38,7 +41,7 @@ class AppConfig extends AbstractMongoConfiguration {
     public Mongo mongo() throws Exception {
         synchronized (syncObject) {
             if (mongoClient == null) {
-                mongoClient = new MongoClient();
+                mongoClient = new MongoClient(databaseHost);
             }
         }
         return mongoClient;
