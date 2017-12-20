@@ -24,6 +24,7 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
@@ -144,12 +145,8 @@ public abstract class AbstractAAMTestSuite {
     @LocalServerPort
     private int port;
 
-    @Before
-    public void setUp() throws Exception {
-        // Catch the random port
-        serverAddress = "https://localhost:" + port;
-        aamClient = new AAMClient(serverAddress);
-
+    @BeforeClass
+    public static void setupSuite() throws Exception {
         // Create a trust manager that does not validate certificate chains
         TrustManager[] trustAllCerts = new TrustManager[]{
                 new X509TrustManager() {
@@ -171,6 +168,14 @@ public abstract class AbstractAAMTestSuite {
         SSLContext sc = SSLContext.getInstance("SSL");
         sc.init(null, trustAllCerts, new java.security.SecureRandom());
         HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        // Catch the random port
+        serverAddress = "https://localhost:" + port;
+        aamClient = new AAMClient(serverAddress);
+
         userKeyPair = CryptoHelper.createKeyPair();
 
         // cleanup db

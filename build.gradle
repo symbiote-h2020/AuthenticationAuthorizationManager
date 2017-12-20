@@ -137,6 +137,10 @@ check.dependsOn(jacocoTestReport)//,'dependencyCheckAnalyze')
 test {
     // we don't need that for testing,
     exclude '**/Swagger*'
+
+    testLogging {
+        exceptionFormat = 'full'
+    }
 }
 
 // documentation below
