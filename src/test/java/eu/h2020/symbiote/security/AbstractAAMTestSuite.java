@@ -15,6 +15,7 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.*;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.bouncycastle.operator.ContentSigner;
@@ -39,6 +40,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -141,6 +143,9 @@ public abstract class AbstractAAMTestSuite {
     @Value("${rabbit.password}")
     private String rabbitPassword;
 
+    @Autowired
+    private AAMServices aamServices;
+
     protected IAAMClient aamClient;
     @LocalServerPort
     private int port;
@@ -174,6 +179,8 @@ public abstract class AbstractAAMTestSuite {
     public void setUp() throws Exception {
         // Catch the random port
         serverAddress = "https://localhost:" + port;
+        ReflectionTestUtils.setField(aamServices, "localAAMUrl", serverAddress);
+
         aamClient = new AAMClient(serverAddress);
 
         userKeyPair = CryptoHelper.createKeyPair();

@@ -96,7 +96,7 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getCoreCertificateFromKeystore() throws
+    public void getCoreCertificateFromKeystoreForImitatedPAAM() throws
             CertificateException,
             AAMException,
             NoSuchAlgorithmException,
@@ -107,6 +107,7 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
         //setting AAM instance Identifier different than Core AAM and recognizable RootCaCert
         when(certificationAuthorityHelper.getAAMInstanceIdentifier()).thenReturn("newTestPlatform");
         when(certificationAuthorityHelper.getRootCACert()).thenReturn("Keystore Root Cert");
+        when(certificationAuthorityHelper.getAAMCert()).thenReturn("Just some dummy");
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", "wrong adress");
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", certificationAuthorityHelper);
 

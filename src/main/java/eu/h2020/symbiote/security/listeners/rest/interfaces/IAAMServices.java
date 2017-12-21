@@ -16,14 +16,14 @@ public interface IAAMServices {
     /**
      * @return collection of AAMs available in the SymbIoTe ecosystem
      */
-    @GetMapping(value = SecurityConstants.AAM_GET_AVAILABLE_AAMS, produces =
-            "application/json")
+    @GetMapping(value = SecurityConstants.AAM_GET_AVAILABLE_AAMS,
+            produces = "application/json")
     ResponseEntity<AvailableAAMsCollection> getAvailableAAMs();
 
     /**
      * @return collection of AAMs in the SymbIoTe ecosystem
      */
-    @GetMapping(value = SecurityConstants.AAM_GET_AAMS_INTERNALLY, produces =
-            "application/json")
+    @GetMapping(value = SecurityConstants.AAM_GET_AAMS_INTERNALLY,
+            produces = "application/json")
     ResponseEntity<AvailableAAMsCollection> getAAMsInternally();
 }

@@ -5,7 +5,6 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
@@ -222,7 +221,7 @@ public class ValidationHelper {
                     break;
             }
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
-                KeyStoreException | NoSuchProviderException | AAMException e) {
+                KeyStoreException | NoSuchProviderException e) {
             log.error(e);
             return ValidationStatus.UNKNOWN;
         }
@@ -238,8 +237,7 @@ public class ValidationHelper {
             NoSuchAlgorithmException,
             NoSuchProviderException,
             KeyStoreException,
-            IOException,
-            AAMException {
+            IOException {
 
         // check if already cached
         if (cacheService.isValidTokenCached(new Token(tokenString))) {
@@ -277,17 +275,14 @@ public class ValidationHelper {
                 return ValidationStatus.INVALID_TRUST_CHAIN;
             }
         }
+        // TODO attempt connection and fallback to offline if enough
+
+        // end procedure if offline validation is enough, certificates are ok
+        if (isOfflineEnough)
+            return ValidationStatus.VALID;
+
         // resolving available AAMs in search of the token issuer
-        Map<String, AAM> availableAAMs = null;
-        try {
-            availableAAMs = aamServices.getAvailableAAMs();
-        } catch (AAMException e) {
-            // end procedure if offline validation is enough, certificates are ok, no connection with CoreAAM
-            if (isOfflineEnough
-                    && !clientCertificate.isEmpty()
-                    && !clientCertificateSigningAAMCertificate.isEmpty())
-                return ValidationStatus.VALID;
-        }
+        Map<String, AAM> availableAAMs = aamServices.getAvailableAAMs();
         String issuer = claims.getIssuer();
         // Core does not know such an issuer and therefore this might be a forfeit
         if (!availableAAMs.containsKey(issuer))
@@ -328,9 +323,7 @@ public class ValidationHelper {
             log.error(e);
             // when there is problem with request
             // end procedure if offline validation is enough, certificates are ok, no connection with certificate Issuers
-            if (isOfflineEnough
-                    && !clientCertificate.isEmpty()
-                    && !clientCertificateSigningAAMCertificate.isEmpty())
+            if (isOfflineEnough)
                 return ValidationStatus.VALID;
             return ValidationStatus.WRONG_AAM;
         }
@@ -595,8 +588,7 @@ public class ValidationHelper {
             NoSuchProviderException,
             KeyStoreException,
             IOException,
-            ValidationException,
-            AAMException {
+            ValidationException {
         Token token = new Token(stringToken);
         String platformId = token.getClaims().getSubject().split(illegalSign)[2];
         // fetching origin token AAM

@@ -53,6 +53,9 @@ public class CacheConfiguration extends CachingConfigurerSupport {
                     case "getAvailableAAMs":
                         return new ConcurrentMapCache(name,
                                 CacheBuilder.newBuilder().expireAfterWrite(availableAAMsTimeToExpire, TimeUnit.SECONDS).build().asMap(), false);
+                    case "getAAMsInternally":
+                        return new ConcurrentMapCache(name,
+                                CacheBuilder.newBuilder().expireAfterWrite(availableAAMsTimeToExpire, TimeUnit.SECONDS).build().asMap(), false);
                     case "validTokens":
                         if (validTokenCacheSize == -1) {
                             return new ConcurrentMapCache(name,
