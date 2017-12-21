@@ -32,15 +32,6 @@ public class SwaggerConfig {
         return new Docket(DocumentationType.SWAGGER_2)
                 .apiInfo(apiInfo())
                 .useDefaultResponseMessages(false)
-//                .securitySchemes(asList(
-//                        new OAuth(
-//                                "petstore_auth",
-//                                asList(new AuthorizationScope("write_pets", "modify pets in your account"),
-//                                        new AuthorizationScope("read_pets", "read your pets")),
-//                                Arrays.<GrantType>asList(new ImplicitGrant(new LoginEndpoint("http://petstore.swagger.io/api/oauth/dialog"), "tokenName"))
-//                        ),
-//                        new ApiKey("api_key", "api_key", "header")
-//                ))
                 .produces(producesSet())
                 .select()
                 .paths(Predicates.and(ant("/**"), Predicates.not(ant("/error")), Predicates.not(ant("/test/**"))))

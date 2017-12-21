@@ -80,9 +80,9 @@ dependencies {
             3) project dependency requires changes in settings.gradle file in this project
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:23.+'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:23.1+'){ changing = true }
     // allows to select the downloaded matching sources in IntelliJ Idea as it fails to do so automatically from jitpack repo
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:23.+:sources'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:23.1+:sources'){ changing = true }
     //compile project(':SymbIoTeSecurity')
 
     // Spring
@@ -90,10 +90,13 @@ dependencies {
     compile('org.springframework.cloud:spring-cloud-starter-config')
     compile('org.springframework.cloud:spring-cloud-starter-eureka')
     compile('org.springframework.cloud:spring-cloud-starter-zipkin')
+    compile('org.springframework.retry:spring-retry')
     compile('org.springframework.boot:spring-boot-starter-amqp')
-    compile('org.springframework.boot:spring-boot-starter-web')
-    compile('org.springframework.boot:spring-boot-starter-data-mongodb')
+    compile('org.springframework.boot:spring-boot-starter-aop')
     compile('org.springframework.boot:spring-boot-starter-cache')
+    compile('org.springframework.boot:spring-boot-starter-data-mongodb')
+    compile('org.springframework.boot:spring-boot-starter-web')
+
 
     // Swagger annotations for documentation
     compile("io.swagger:swagger-annotations:${swaggerAnnotationsVersion}")

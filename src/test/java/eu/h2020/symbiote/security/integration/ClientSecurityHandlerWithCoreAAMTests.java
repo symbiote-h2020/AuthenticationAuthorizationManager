@@ -43,8 +43,7 @@ public class ClientSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSuite 
 
         ISecurityHandler securityHandler = ClientSecurityHandlerFactory.getSecurityHandler(serverAddress,
                 KEY_STORE_PATH,
-                KEY_STORE_PASSWORD,
-                "testClient");
+                KEY_STORE_PASSWORD);
 
         // trying to get a certificate while passing bad certificate
         try {
