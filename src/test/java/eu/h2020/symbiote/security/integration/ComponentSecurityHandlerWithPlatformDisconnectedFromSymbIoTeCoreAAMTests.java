@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.accesspolicies.common.singletoken.SingleTokenA
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.communication.AAMClient;
+import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.security.handler.SecurityHandler;
@@ -126,7 +127,8 @@ public class ComponentSecurityHandlerWithPlatformDisconnectedFromSymbIoTeCoreAAM
 
         // testing old API fallback
         doReturn(new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR)).when(spiedController).getAAMsInternally();
-        assertFalse(rhCSH.getSecurityHandler().getAvailableAAMs(serverAddress).isEmpty());
+        Map<String, AAM> availableAAMs = rhCSH.getSecurityHandler().getAvailableAAMs(serverAddress);
+        assertFalse(availableAAMs.isEmpty());
     }
 
     @Test
@@ -137,6 +139,7 @@ public class ComponentSecurityHandlerWithPlatformDisconnectedFromSymbIoTeCoreAAM
                 KEY_STORE_PASSWORD,
                 serverAddress,
                 username);
-        assertFalse(securityHandler.getAvailableAAMs(serverAddress).isEmpty());
+        Map<String, AAM> availableAAMs = securityHandler.getAvailableAAMs(serverAddress);
+        assertFalse(availableAAMs.isEmpty());
     }
 }
