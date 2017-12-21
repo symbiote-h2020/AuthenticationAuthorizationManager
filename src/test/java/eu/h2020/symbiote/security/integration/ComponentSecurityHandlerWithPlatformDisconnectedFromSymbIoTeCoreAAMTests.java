@@ -11,12 +11,16 @@ import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.security.handler.SecurityHandler;
+import eu.h2020.symbiote.security.listeners.rest.controllers.AAMServicesController;
 import eu.h2020.symbiote.security.services.AAMServices;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.embedded.LocalServerPort;
+import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -27,6 +31,7 @@ import java.util.Map;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.mockito.Mockito.doReturn;
 
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 @TestPropertySource("/platform_no_ssl.properties")
@@ -39,6 +44,9 @@ public class ComponentSecurityHandlerWithPlatformDisconnectedFromSymbIoTeCoreAAM
 
     @Autowired
     private AAMServices aamServices;
+
+    @SpyBean
+    private AAMServicesController spiedController;
 
     @Before
     @Override
@@ -115,8 +123,13 @@ public class ComponentSecurityHandlerWithPlatformDisconnectedFromSymbIoTeCoreAAM
         testAP.put(testPolicyId, SingleTokenAccessPolicyFactory.getSingleTokenAccessPolicy(testPolicySpecifier));
         // the policy should be there!
         assertTrue(rhCSH.getSatisfiedPoliciesIdentifiers(testAP, rhSecurityRequest).contains(testPolicyId));
+
+        // testing old API fallback
+        doReturn(new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR)).when(spiedController).getAAMsInternally();
+        assertFalse(rhCSH.getSecurityHandler().getAvailableAAMs(serverAddress).isEmpty());
     }
 
+    @Test
     public void securityHandlerBuildsProperlyInIntranetPlatformIntegrationTest() throws
             SecurityHandlerException {
 
@@ -126,6 +139,4 @@ public class ComponentSecurityHandlerWithPlatformDisconnectedFromSymbIoTeCoreAAM
                 username);
         assertFalse(securityHandler.getAvailableAAMs(serverAddress).isEmpty());
     }
-
-
 }
