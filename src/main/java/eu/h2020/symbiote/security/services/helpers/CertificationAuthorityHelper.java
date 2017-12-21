@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -19,6 +20,7 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequest;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
@@ -41,17 +43,20 @@ public class CertificationAuthorityHelper {
     private static final Long certificateValidityPeriod = 1L * 365L * 24L * 60L * 60L * 1000L;
     private static Log log = LogFactory.getLog(CertificationAuthorityHelper.class);
 
+    
     private final String KEY_STORE_FILE_NAME;
     private final String ROOT_CA_CERTIFICATE_ALIAS;
     private final String CERTIFICATE_ALIAS;
     private final String KEY_STORE_PASSWORD;
     private final String PV_KEY_PASSWORD;
+	private ApplicationContext ctx;
 
     public CertificationAuthorityHelper(@Value("${aam.security.KEY_STORE_FILE_NAME}") String key_store_file_name,
                                         @Value("${aam.security.ROOT_CA_CERTIFICATE_ALIAS}") String root_ca_certificate_alias,
                                         @Value("${aam.security.CERTIFICATE_ALIAS}") String certificate_alias,
                                         @Value("${aam.security.KEY_STORE_PASSWORD}") String key_store_password,
-                                        @Value("${aam.security.PV_KEY_PASSWORD}") String pv_key_password) throws
+                                        @Value("${aam.security.PV_KEY_PASSWORD}") String pv_key_password,
+                                        ApplicationContext ctx) throws
             CertificateException,
             NoSuchProviderException,
             SecurityMisconfigurationException,
@@ -64,6 +69,7 @@ public class CertificationAuthorityHelper {
         CERTIFICATE_ALIAS = certificate_alias;
         KEY_STORE_PASSWORD = key_store_password;
         PV_KEY_PASSWORD = pv_key_password;
+		this.ctx = ctx;
         Security.addProvider(new BouncyCastleProvider());
         switch (getDeploymentType()) {
             case CORE:
@@ -147,7 +153,11 @@ public class CertificationAuthorityHelper {
     public X509Certificate getRootCACertificate() throws KeyStoreException, NoSuchProviderException, IOException,
             NoSuchAlgorithmException, CertificateException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        if(ctx.getResource(KEY_STORE_FILE_NAME).exists()) {
+	        	pkcs12Store.load(ctx.getResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        } else {
+        		pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        }
         return (X509Certificate) pkcs12Store.getCertificate(ROOT_CA_CERTIFICATE_ALIAS);
     }
 
@@ -162,7 +172,11 @@ public class CertificationAuthorityHelper {
     public X509Certificate getAAMCertificate() throws KeyStoreException, NoSuchProviderException, IOException,
             NoSuchAlgorithmException, CertificateException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        if(ctx.getResource(KEY_STORE_FILE_NAME).exists()) {
+	        	pkcs12Store.load(ctx.getResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        } else {
+        		pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        }
         return (X509Certificate) pkcs12Store.getCertificate(CERTIFICATE_ALIAS);
     }
 
@@ -177,7 +191,11 @@ public class CertificationAuthorityHelper {
     public PublicKey getAAMPublicKey() throws NoSuchProviderException, KeyStoreException, IOException,
             CertificateException, NoSuchAlgorithmException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        if(ctx.getResource(KEY_STORE_FILE_NAME).exists()) {
+        		pkcs12Store.load(ctx.getResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        } else {
+        		pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        }
         return pkcs12Store.getCertificate(CERTIFICATE_ALIAS).getPublicKey();
     }
 
@@ -193,7 +211,11 @@ public class CertificationAuthorityHelper {
     public PrivateKey getAAMPrivateKey() throws NoSuchProviderException, KeyStoreException, IOException,
             CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        if(ctx.getResource(KEY_STORE_FILE_NAME).exists()) {
+        		pkcs12Store.load(ctx.getResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        } else {
+        		pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
+        }
         return (PrivateKey) pkcs12Store.getKey(CERTIFICATE_ALIAS, PV_KEY_PASSWORD.toCharArray());
     }
 
