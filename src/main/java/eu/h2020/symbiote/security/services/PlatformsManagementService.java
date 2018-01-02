@@ -188,8 +188,7 @@ public class PlatformsManagementService {
 
 
     public PlatformManagementResponse authManage(PlatformManagementRequest request) throws
-            SecurityException,
-            CertificateException {
+            SecurityException {
         // check if we received required credentials
         if (request.getAamOwnerCredentials() == null || request.getPlatformOwnerCredentials() == null)
             throw new InvalidArgumentsException("Missing credentials");

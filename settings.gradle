@@ -6,3 +6,6 @@ rootProject.name = 'AuthenticationAuthorizationManager'
 */
 //include 'SymbIoTeSecurity'
 //project(':SymbIoTeSecurity').projectDir = new File(settingsDir, "../SymbIoTeSecurity")
+
+//include 'AnomaliesListenerExtension'
+//project(':AnomaliesListenerExtension').projectDir = new File(settingsDir, "../AnomaliesListenerExtension")

@@ -3,12 +3,14 @@ package eu.h2020.symbiote.security.services.helpers;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.*;
@@ -21,9 +23,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -63,6 +62,7 @@ public class ValidationHelper {
     private final UserRepository userRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final AAMServices aamServices;
+    private final IAnomaliesHelper anomaliesHelper;
     private final CacheService cacheService;
 
     // usable
@@ -82,6 +82,7 @@ public class ValidationHelper {
                             UserRepository userRepository,
                             ComponentCertificatesRepository componentCertificatesRepository,
                             AAMServices aamServices,
+                            IAnomaliesHelper anomaliesHelper,
                             CacheService cacheService) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
@@ -93,6 +94,7 @@ public class ValidationHelper {
         this.userRepository = userRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.aamServices = aamServices;
+        this.anomaliesHelper = anomaliesHelper;
         this.cacheService = cacheService;
     }
 
@@ -112,6 +114,10 @@ public class ValidationHelper {
             Claims claims = tokenForValidation.getClaims();
             String spk = claims.get("spk").toString();
             String ipk = claims.get("ipk").toString();
+            String userFromToken = claims.getSubject().split(illegalSign)[0];
+
+            if (anomaliesHelper.isBlocked(userFromToken, EventType.VALIDATION_FAILED))
+                return ValidationStatus.BLOCKED;
 
             // check if token issued by us
             if (!deploymentId.equals(claims.getIssuer())) {
@@ -142,7 +148,6 @@ public class ValidationHelper {
                 return ValidationStatus.REVOKED_TOKEN;
             }
 
-            String userFromToken = claims.getSubject().split(illegalSign)[0];
 
             // check if SPK is is in the revoked repository
             if (revokedKeysRepository.exists(userFromToken) && revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
@@ -222,11 +227,11 @@ public class ValidationHelper {
             }
         } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
                 KeyStoreException | NoSuchProviderException e) {
-            log.error(e);
-            return ValidationStatus.UNKNOWN;
+                log.error(e);
+                return ValidationStatus.UNKNOWN;
+            }
+            return ValidationStatus.VALID;
         }
-        return ValidationStatus.VALID;
-    }
 
     public ValidationStatus validateRemotelyIssuedToken(String tokenString,
                                                         String clientCertificate,
@@ -295,29 +300,22 @@ public class ValidationHelper {
         if (!Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(claims.get("ipk"))) {
             return ValidationStatus.REVOKED_IPK;
         }
-        // TODO use the AAMClient
-        // rest check revocation
-        // preparing request
-        HttpHeaders httpHeaders = new HttpHeaders();
-        httpHeaders.add(SecurityConstants.TOKEN_HEADER_NAME, tokenString);
-        HttpEntity<String> entity = new HttpEntity<>(null, httpHeaders);
         // checking token revocation with proper AAM
         try {
-            ResponseEntity<ValidationStatus> status = restTemplate.postForEntity(
-                    aamAddress + SecurityConstants.AAM_VALIDATE_CREDENTIALS,
-                    entity, ValidationStatus.class);
-            switch (status.getBody()) {
+            AAMClient aamClient = new AAMClient(aamAddress);
+            ValidationStatus status = aamClient.validateCredentials(tokenString, Optional.empty(), Optional.empty(), Optional.empty());
+            switch (status) {
                 case VALID:
                     cacheService.cacheValidToken(new Token(tokenString));
-                    return status.getBody();
+                    return status;
                 case UNKNOWN:
                 case WRONG_AAM:
                     // there was some issue with validating the origin credentials
-                    return status.getBody();
+                    return status;
                 default:
                     // we need to invalidate our token
                     revokedRemoteTokensRepository.save(new RevokedRemoteToken(claims.getIssuer() + illegalSign + claims.getId()));
-                    return status.getBody();
+                    return status;
             }
         } catch (Exception e) {
             log.error(e);

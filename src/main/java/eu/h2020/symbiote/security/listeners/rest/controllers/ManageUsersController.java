@@ -2,7 +2,9 @@ package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.BlockedUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
@@ -17,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.io.IOException;
 
 /**
  * Spring controller to handle HTTPS requests related to the RESTful web services associated to users' management.
@@ -63,12 +67,14 @@ public class ManageUsersController implements IManageUsers {
                     Credentials credentials) {
         try {
             return new ResponseEntity<>(usersManagementService.getUserDetails(credentials), HttpStatus.OK);
-        } catch (UserManagementException e) {
+        } catch (UserManagementException | BlockedUserException e) {
             log.error(e);
             if (e.getStatusCode() == HttpStatus.BAD_REQUEST)
                 return new ResponseEntity<>(new UserDetails(), e.getStatusCode());
             else
                 return new ResponseEntity<>(new UserDetails(), e.getStatusCode());
+        } catch (IOException | WrongCredentialsException e) {
+            return null;
         }
     }
 

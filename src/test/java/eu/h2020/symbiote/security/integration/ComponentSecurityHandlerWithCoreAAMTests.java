@@ -22,6 +22,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
@@ -58,7 +59,8 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
                 crmComponentId,
                 serverAddress,
                 AAMOwnerUsername,
-                AAMOwnerPassword
+                AAMOwnerPassword,
+                Optional.empty()
         );
 
         // getting a CRM service response

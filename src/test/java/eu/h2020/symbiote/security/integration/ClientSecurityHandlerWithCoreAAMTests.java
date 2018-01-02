@@ -64,7 +64,7 @@ public class ClientSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSuite 
                     password,
                     "testClient");
         } catch (SecurityHandlerException e) {
-            assertEquals(NotExistingUserException.errorMessage, e.getMessage());
+            assertEquals(new NotExistingUserException().getErrorMessage(), e.getMessage());
         }
 
         // TODO add more tests!

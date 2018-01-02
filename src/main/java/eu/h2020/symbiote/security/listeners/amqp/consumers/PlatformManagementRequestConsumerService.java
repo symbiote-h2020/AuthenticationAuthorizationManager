@@ -18,7 +18,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.security.cert.CertificateException;
 
 /**
  * RabbitMQ Consumer implementation used for Platforms' Registration actions
@@ -67,9 +66,6 @@ public class PlatformManagementRequestConsumerService {
         } catch (SecurityException e) {
             log.error(e);
             return new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal());
-        } catch (CertificateException e) {
-            log.error(e);
-            return new ErrorResponseContainer(e.getMessage(), 500);
         } catch (IOException e) {
             log.error(e);
             return new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());

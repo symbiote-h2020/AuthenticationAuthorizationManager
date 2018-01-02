@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.netflix.discovery.converters.Auto;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
@@ -18,6 +19,7 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import eu.h2020.symbiote.security.services.helpers.IAnomaliesHelper;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
@@ -95,7 +97,11 @@ public abstract class AbstractAAMTestSuite {
     @Autowired
     protected ComponentCertificatesRepository componentCertificatesRepository;
     @Autowired
+    protected BlockedActionsRepository blockedActionsRepository;
+    @Autowired
     protected CertificationAuthorityHelper certificationAuthorityHelper;
+    @Autowired
+    protected IAnomaliesHelper anomaliesHelper;
     @Autowired
     protected UsersManagementService usersManagementService;
     protected ObjectMapper mapper = new ObjectMapper();
@@ -192,6 +198,7 @@ public abstract class AbstractAAMTestSuite {
         platformRepository.deleteAll();
         componentCertificatesRepository.deleteAll();
         localUsersAttributesRepository.deleteAll();
+        blockedActionsRepository.deleteAll();
     }
 
     protected User createUser(String username, String password, String recoveryMail,

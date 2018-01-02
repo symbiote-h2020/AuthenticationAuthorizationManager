@@ -6,11 +6,13 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
+import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.FederationRule;
+import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.entities.Attribute;
@@ -107,7 +109,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             MalformedJWTException,
             ValidationException,
             OperatorCreationException,
-            KeyStoreException {
+            KeyStoreException,
+            BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
@@ -122,7 +125,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             WrongCredentialsException,
             JWTCreationException,
             MalformedJWTException,
-            ValidationException {
+            ValidationException, BlockedUserException, IOException {
         //user is not in DB
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -136,7 +139,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             WrongCredentialsException,
             JWTCreationException,
             MalformedJWTException,
-            ValidationException {
+            ValidationException, BlockedUserException, IOException {
         HomeCredentials homeCredentials = new HomeCredentials(null, null, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         getTokenService.getHomeToken(loginRequest);
@@ -151,7 +154,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             KeyStoreException,
             NoSuchProviderException,
             UnrecoverableKeyException,
-            JWTCreationException, WrongCredentialsException, InvalidArgumentsException, ValidationException {
+            JWTCreationException, WrongCredentialsException, InvalidArgumentsException, ValidationException, BlockedUserException {
 
         //component adding
         ComponentCertificate componentCertificate = new ComponentCertificate(
@@ -182,7 +185,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             NoSuchAlgorithmException,
             KeyStoreException,
             NoSuchProviderException,
-            JWTCreationException, WrongCredentialsException, InvalidArgumentsException, ValidationException {
+            JWTCreationException, WrongCredentialsException, InvalidArgumentsException, ValidationException, BlockedUserException {
 
         //platform owner adding
         ComponentCertificate componentCertificate = new ComponentCertificate(
@@ -216,6 +219,24 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         assertEquals(UserRole.USER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
         assertNotNull(attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
         assertEquals("attribute", attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
+    }
+
+    @Test(expected = BlockedUserException.class)
+    public void getHomeTokenForBlockedUser() throws
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            OperatorCreationException,
+            NoSuchProviderException,
+            JWTCreationException, MalformedJWTException, InvalidArgumentsException, WrongCredentialsException, BlockedUserException, ValidationException {
+        addTestUserWithClientCertificateToRepository();
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(username, clientId, "", EventType.ACQUISITION_FAILED, System.currentTimeMillis(), 100000));
+        assertTrue(inserted);
+        getTokenService.getHomeToken(loginRequest);
+
     }
 
     @Test
