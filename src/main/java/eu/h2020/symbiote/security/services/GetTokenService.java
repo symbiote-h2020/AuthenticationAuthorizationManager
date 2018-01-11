@@ -113,7 +113,7 @@ public class GetTokenService {
             if (!componentCertificateRepository.exists(sub) //SUB is a componentId
                     || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey())) {
                 rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(
-                        new EventLogRequest("", "", claims.getJti(), claims.getSub(), claims.getIss(), EventType.ACQUISITION_FAILED, deploymentId, System.currentTimeMillis(), null, null)).getBytes());
+                        new EventLogRequest("", "", "", claims.getSub(), claims.getIss(), EventType.ACQUISITION_FAILED, System.currentTimeMillis(), null, null)).getBytes());
                 log.info("New event sent to ADM: " + claims.getIss() + " " + claims.getSub() + " " + claims.getJti());
                 throw new WrongCredentialsException();
             }
@@ -122,8 +122,8 @@ public class GetTokenService {
                     || !userInDB.getClientCertificates().containsKey(sub)
                     || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, userInDB.getClientCertificates().get(sub).getX509().getPublicKey())) {
                 rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(
-                        new EventLogRequest(claims.getIss(), claims.getSub(), claims.getJti(), "", "", EventType.ACQUISITION_FAILED, deploymentId, System.currentTimeMillis(), null, null)).getBytes());
-                log.info("New event sent to ADM: " + claims.getIss() + " " + claims.getSub() + " " + claims.getJti());
+                        new EventLogRequest(claims.getIss(), claims.getSub(), "", "", deploymentId, EventType.ACQUISITION_FAILED, System.currentTimeMillis(), null, null)).getBytes());
+                log.info("New event sent to ADM: " + claims.getIss() + " " + claims.getSub());
                 throw new WrongCredentialsException();
             }
         }

@@ -111,7 +111,7 @@ public class UsersManagementService {
         // If requested user IS in database but wrong password was provided
         if (!credentials.getPassword().equals(foundUser.getPasswordEncrypted()) &&
                 !passwordEncoder.matches(credentials.getPassword(), foundUser.getPasswordEncrypted())) {
-            rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(new EventLogRequest(credentials.getUsername(), "", "", "", "", EventType.LOGIN_FAILED, aamIdentifier, System.currentTimeMillis(), null, null)).getBytes());
+            rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(new EventLogRequest(credentials.getUsername(), "", "", "", aamIdentifier, EventType.LOGIN_FAILED, System.currentTimeMillis(), null, null)).getBytes());
 
             throw new UserManagementException("Incorrect login / password", HttpStatus.UNAUTHORIZED);
         }
