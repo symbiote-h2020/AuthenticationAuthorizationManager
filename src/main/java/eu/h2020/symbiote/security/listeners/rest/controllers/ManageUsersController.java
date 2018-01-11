@@ -4,7 +4,6 @@ import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.BlockedUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
@@ -60,7 +59,8 @@ public class ManageUsersController implements IManageUsers {
     @ApiOperation(value = "Returns details of requested user", response = User.class)
     @ApiResponses({
             @ApiResponse(code = 400, message = "Requested User does not exist"),
-            @ApiResponse(code = 401, message = "Incorrect Credentials were provided")})
+            @ApiResponse(code = 401, message = "Incorrect Credentials were provided"),
+            @ApiResponse(code = 403, message = "User was blocked and can't access this information")})
     public ResponseEntity<UserDetails> getUserDetails(
             @RequestBody
             @ApiParam(name = "Credentials", value = "Credentials of a user whose details are requested", required = true)
@@ -69,11 +69,8 @@ public class ManageUsersController implements IManageUsers {
             return new ResponseEntity<>(usersManagementService.getUserDetails(credentials), HttpStatus.OK);
         } catch (UserManagementException | BlockedUserException e) {
             log.error(e);
-            if (e.getStatusCode() == HttpStatus.BAD_REQUEST)
-                return new ResponseEntity<>(new UserDetails(), e.getStatusCode());
-            else
-                return new ResponseEntity<>(new UserDetails(), e.getStatusCode());
-        } catch (IOException | WrongCredentialsException e) {
+            return new ResponseEntity<>(new UserDetails(), e.getStatusCode());
+        } catch (IOException e) {
             return null;
         }
     }

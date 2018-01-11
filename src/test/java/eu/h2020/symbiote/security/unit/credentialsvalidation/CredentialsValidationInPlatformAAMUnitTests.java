@@ -129,7 +129,14 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     }
 
     @Test
-    public void validateBlockedUserPlatform() throws SecurityException, CertificateException, NoSuchAlgorithmException, NoSuchProviderException, KeyStoreException, IOException, OperatorCreationException {
+    public void validateBlockedTokenPlatform() throws
+            SecurityException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            OperatorCreationException {
 
         // prepare the user in db
         addTestUserWithClientCertificateToRepository();
@@ -140,7 +147,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         // acquiring valid token
         Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
 
-        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(username, clientId, "", EventType.VALIDATION_FAILED, System.currentTimeMillis(), 100000));
+        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(homeToken.getId(), EventType.VALIDATION_FAILED, System.currentTimeMillis(), 100000));
         assertTrue(inserted);
 
         // check if home token is valid

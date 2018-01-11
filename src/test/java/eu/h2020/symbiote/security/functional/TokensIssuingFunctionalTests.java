@@ -91,7 +91,8 @@ public class TokensIssuingFunctionalTests extends
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -104,7 +105,8 @@ public class TokensIssuingFunctionalTests extends
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         String homeToken = aamClient.getHomeToken("IncorrectlyFormattedToken");
         assertNotNull(homeToken);
     }
@@ -114,7 +116,8 @@ public class TokensIssuingFunctionalTests extends
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         aamClient.getHomeToken(loginRequest);
@@ -130,7 +133,8 @@ public class TokensIssuingFunctionalTests extends
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         HomeCredentials homeCredentials = new HomeCredentials(null, username, wrongClientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         aamClient.getHomeToken(loginRequest);
@@ -152,7 +156,8 @@ public class TokensIssuingFunctionalTests extends
             NoSuchProviderException,
             JWTCreationException,
             WrongCredentialsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -191,7 +196,8 @@ public class TokensIssuingFunctionalTests extends
             JWTCreationException,
             WrongCredentialsException,
             AAMException,
-            UnrecoverableKeyException {
+            UnrecoverableKeyException,
+            BlockedUserException {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -244,7 +250,8 @@ public class TokensIssuingFunctionalTests extends
             ValidationException,
             MalformedJWTException,
             WrongCredentialsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);

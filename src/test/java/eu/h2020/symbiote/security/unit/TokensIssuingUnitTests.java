@@ -39,6 +39,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
@@ -233,7 +234,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(username, clientId, "", EventType.ACQUISITION_FAILED, System.currentTimeMillis(), 100000));
+        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(username + illegalSign + clientId, EventType.ACQUISITION_FAILED, System.currentTimeMillis(), 100000));
         assertTrue(inserted);
         getTokenService.getHomeToken(loginRequest);
 

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
@@ -47,7 +46,7 @@ public class CredentialsValidationService {
         if(responseStatus != ValidationStatus.VALID){
             try {
                 rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(new EventLogRequest(tokenString, this.certificationAuthorityHelper.getAAMInstanceIdentifier(), EventType.VALIDATION_FAILED, System.currentTimeMillis(), null)).getBytes());
-            } catch (JsonProcessingException | WrongCredentialsException e) {
+            } catch (JsonProcessingException e) {
                 log.error("Couldn't send information about security issue to ADM.");
                 return responseStatus;
             }

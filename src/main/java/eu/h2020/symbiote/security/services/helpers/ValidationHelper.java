@@ -12,6 +12,7 @@ import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
+import eu.h2020.symbiote.security.handler.IAnomalyListenerSecurity;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.*;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
@@ -62,7 +63,7 @@ public class ValidationHelper {
     private final UserRepository userRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final AAMServices aamServices;
-    private final IAnomaliesHelper anomaliesHelper;
+    private final IAnomalyListenerSecurity anomaliesHelper;
     private final CacheService cacheService;
 
     // usable
@@ -82,7 +83,7 @@ public class ValidationHelper {
                             UserRepository userRepository,
                             ComponentCertificatesRepository componentCertificatesRepository,
                             AAMServices aamServices,
-                            IAnomaliesHelper anomaliesHelper,
+                            IAnomalyListenerSecurity anomaliesHelper,
                             CacheService cacheService) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
@@ -114,9 +115,10 @@ public class ValidationHelper {
             Claims claims = tokenForValidation.getClaims();
             String spk = claims.get("spk").toString();
             String ipk = claims.get("ipk").toString();
+            String jti = claims.getId();
             String userFromToken = claims.getSubject().split(illegalSign)[0];
 
-            if (anomaliesHelper.isBlocked(userFromToken, EventType.VALIDATION_FAILED))
+            if (anomaliesHelper.isBlocked(Optional.empty(), Optional.empty(), Optional.ofNullable(jti), Optional.empty(), Optional.empty(), EventType.VALIDATION_FAILED))
                 return ValidationStatus.BLOCKED;
 
             // check if token issued by us

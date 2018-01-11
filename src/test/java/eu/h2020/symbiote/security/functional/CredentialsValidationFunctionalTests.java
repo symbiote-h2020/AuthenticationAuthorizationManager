@@ -72,7 +72,8 @@ public class CredentialsValidationFunctionalTests extends
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -104,7 +105,8 @@ public class CredentialsValidationFunctionalTests extends
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -139,7 +141,8 @@ public class CredentialsValidationFunctionalTests extends
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -192,7 +195,8 @@ public class CredentialsValidationFunctionalTests extends
             MalformedJWTException,
             WrongCredentialsException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -227,7 +231,8 @@ public class CredentialsValidationFunctionalTests extends
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());

@@ -287,7 +287,8 @@ public class RevocationFunctionalTests extends
             KeyStoreException,
             JWTCreationException,
             MalformedJWTException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -432,7 +433,8 @@ public class RevocationFunctionalTests extends
             KeyStoreException,
             JWTCreationException,
             MalformedJWTException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());

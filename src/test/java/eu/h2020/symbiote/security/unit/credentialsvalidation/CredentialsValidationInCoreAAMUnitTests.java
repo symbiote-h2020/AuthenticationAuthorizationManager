@@ -9,7 +9,6 @@ import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
@@ -365,7 +364,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             NoSuchAlgorithmException,
             KeyStoreException,
             NoSuchProviderException,
-            AAMException,
             MalformedJWTException,
             ClassNotFoundException {
         // issuing dummy platform token
@@ -689,7 +687,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             KeyStoreException,
-            AAMException,
             MalformedJWTException,
             ClassNotFoundException {
         // issuing dummy platform token

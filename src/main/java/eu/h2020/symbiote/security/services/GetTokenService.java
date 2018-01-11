@@ -9,12 +9,11 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
+import eu.h2020.symbiote.security.handler.IAnomalyListenerSecurity;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
-import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import eu.h2020.symbiote.security.services.helpers.IAnomaliesHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.logging.Log;
@@ -29,6 +28,7 @@ import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Optional;
 
 /**
  * Spring service used to provide token related functionality of the AAM.
@@ -48,7 +48,7 @@ public class GetTokenService {
     private final ValidationHelper validationHelper;
     private final String deploymentId;
     private final RabbitTemplate rabbitTemplate;
-    private final IAnomaliesHelper anomaliesHelper;
+    private final IAnomalyListenerSecurity anomaliesHelper;
     protected ObjectMapper mapper = new ObjectMapper();
 
     @Value("${rabbit.queue.event}")
@@ -57,7 +57,7 @@ public class GetTokenService {
     private String anomalyDetectionRoutingKey;
 
     @Autowired
-    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository, ValidationHelper validationHelper, ComponentCertificatesRepository componentCertificateRepository, PlatformRepository platformRepository, CertificationAuthorityHelper certificationAuthorityHelper, RabbitTemplate rabbitTemplate, IAnomaliesHelper anomaliesHelper) {
+    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository, ValidationHelper validationHelper, ComponentCertificatesRepository componentCertificateRepository, CertificationAuthorityHelper certificationAuthorityHelper, RabbitTemplate rabbitTemplate, IAnomalyListenerSecurity anomaliesHelper) {
         this.tokenIssuer = tokenIssuer;
         this.userRepository = userRepository;
         this.validationHelper = validationHelper;
@@ -88,15 +88,17 @@ public class GetTokenService {
             JWTCreationException,
             WrongCredentialsException,
             CertificateException,
-            ValidationException, IOException, BlockedUserException {
+            ValidationException,
+            IOException,
+            BlockedUserException {
         // validate request
         JWTClaims claims = JWTEngine.getClaimsFromToken(loginRequest);
 
         if (claims.getIss() == null || claims.getSub() == null || claims.getIss().isEmpty() || claims.getSub().isEmpty()) {
             throw new InvalidArgumentsException();
         }
-
-        if (anomaliesHelper.isBlocked(claims.getIss(), EventType.ACQUISITION_FAILED))
+        if (anomaliesHelper.isBlocked(Optional.of(claims.getIss()), Optional.of(claims.getSub()), Optional.empty(), Optional.empty(), Optional.empty(), EventType.ACQUISITION_FAILED) ||
+                anomaliesHelper.isBlocked(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(claims.getSub()), Optional.of(claims.getIss()), EventType.ACQUISITION_FAILED))
             throw new BlockedUserException();
 
         // try to find user
@@ -111,7 +113,8 @@ public class GetTokenService {
             if (!componentCertificateRepository.exists(sub) //SUB is a componentId
                     || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey())) {
                 rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(
-                        new EventLogRequest(claims.getIss(), claims.getSub(), claims.getJti(), deploymentId, EventType.ACQUISITION_FAILED, System.currentTimeMillis(), null, null)).getBytes());
+                        new EventLogRequest("", "", claims.getJti(), claims.getSub(), claims.getIss(), EventType.ACQUISITION_FAILED, deploymentId, System.currentTimeMillis(), null, null)).getBytes());
+                log.info("New event sent to ADM: " + claims.getIss() + " " + claims.getSub() + " " + claims.getJti());
                 throw new WrongCredentialsException();
             }
         } else { // ordinary user/po client
@@ -119,7 +122,8 @@ public class GetTokenService {
                     || !userInDB.getClientCertificates().containsKey(sub)
                     || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, userInDB.getClientCertificates().get(sub).getX509().getPublicKey())) {
                 rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(
-                        new EventLogRequest(claims.getIss(), claims.getSub(), claims.getJti(), deploymentId, EventType.ACQUISITION_FAILED, System.currentTimeMillis(), null, null)).getBytes());
+                        new EventLogRequest(claims.getIss(), claims.getSub(), claims.getJti(), "", "", EventType.ACQUISITION_FAILED, deploymentId, System.currentTimeMillis(), null, null)).getBytes());
+                log.info("New event sent to ADM: " + claims.getIss() + " " + claims.getSub() + " " + claims.getJti());
                 throw new WrongCredentialsException();
             }
         }
@@ -133,9 +137,6 @@ public class GetTokenService {
             // ordinary user/po client
             userForToken = userInDB;
             keyForToken = userInDB.getClientCertificates().get(sub).getX509().getPublicKey();
-        }
-        if (anomaliesHelper.isBlocked(userForToken.getUsername(), EventType.ACQUISITION_FAILED)) {
-            throw new BlockedUserException();
         }
         return tokenIssuer.getHomeToken(userForToken, sub, keyForToken);
     }

@@ -13,12 +13,12 @@ import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.handler.IAnomalyListenerSecurity;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import eu.h2020.symbiote.security.services.helpers.IAnomaliesHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -30,10 +30,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.security.cert.CertificateException;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Spring service used to manage users in the AAM repository.
@@ -60,7 +57,7 @@ public class UsersManagementService {
     private final String adminPassword;
     private final IssuingAuthorityType deploymentType;
     private final String aamIdentifier;
-    private final IAnomaliesHelper anomaliesHelper;
+    private final IAnomalyListenerSecurity anomaliesHelper;
 
     private final RabbitTemplate rabbitTemplate;
     protected ObjectMapper mapper = new ObjectMapper();
@@ -68,8 +65,9 @@ public class UsersManagementService {
     @Autowired
     public UsersManagementService(UserRepository userRepository, RevokedKeysRepository revokedKeysRepository,
                                   CertificationAuthorityHelper certificationAuthorityHelper,
-                                  PasswordEncoder passwordEncoder, RabbitTemplate rabbitTemplate,
-                                  IAnomaliesHelper anomaliesHelper,
+                                  PasswordEncoder passwordEncoder,
+                                  RabbitTemplate rabbitTemplate,
+                                  IAnomalyListenerSecurity anomaliesHelper,
                                   @Value("${aam.deployment.owner.username}") String adminUsername,
                                   @Value("${aam.deployment.owner.password}") String adminPassword) throws
             SecurityMisconfigurationException {
@@ -101,19 +99,19 @@ public class UsersManagementService {
         return this.manage(request);
     }
 
-    public UserDetails getUserDetails(Credentials credentials) throws UserManagementException, IOException, BlockedUserException, WrongCredentialsException {
+    public UserDetails getUserDetails(Credentials credentials) throws UserManagementException, IOException, BlockedUserException {
         //  If requested user is not in database
         if (!userRepository.exists(credentials.getUsername()))
             throw new UserManagementException("User not in database", HttpStatus.BAD_REQUEST);
 
         User foundUser = userRepository.findOne(credentials.getUsername());
-        if (anomaliesHelper.isBlocked(foundUser.getUsername(), EventType.LOGIN_FAILED))
+        if (anomaliesHelper.isBlocked(Optional.ofNullable(foundUser.getUsername()), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), EventType.LOGIN_FAILED))
             throw new BlockedUserException();
 
         // If requested user IS in database but wrong password was provided
         if (!credentials.getPassword().equals(foundUser.getPasswordEncrypted()) &&
                 !passwordEncoder.matches(credentials.getPassword(), foundUser.getPasswordEncrypted())) {
-            rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(new EventLogRequest(credentials.getUsername(), null, null, aamIdentifier, EventType.LOGIN_FAILED, System.currentTimeMillis(), null, null)).getBytes());
+            rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(new EventLogRequest(credentials.getUsername(), "", "", "", "", EventType.LOGIN_FAILED, aamIdentifier, System.currentTimeMillis(), null, null)).getBytes());
 
             throw new UserManagementException("Incorrect login / password", HttpStatus.UNAUTHORIZED);
         }
