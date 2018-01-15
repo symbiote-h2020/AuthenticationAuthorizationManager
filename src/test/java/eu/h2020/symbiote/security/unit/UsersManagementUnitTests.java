@@ -1,15 +1,19 @@
 package eu.h2020.symbiote.security.unit;
 
+import com.icegreen.greenmail.util.GreenMail;
+import com.icegreen.greenmail.util.GreenMailUtil;
+import com.icegreen.greenmail.util.ServerSetupTest;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
-import eu.h2020.symbiote.security.commons.enums.OperationType;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.enums.*;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.BlockedUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -18,10 +22,14 @@ import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
 import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -40,6 +48,20 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(UsersManagementUnitTests.class);
     private final String recoveryMail = "null@dev.null";
+    private GreenMail testSmtp;
+
+    @Before
+    @Override
+    public void setUp() throws Exception {
+        super.setUp();
+        testSmtp = new GreenMail(ServerSetupTest.SMTP);
+        testSmtp.start();
+    }
+
+    @After
+    public void tearDown() {
+        testSmtp.stop();
+    }
 
     @Test
     public void userInternalCreateSuccess() throws
@@ -521,42 +543,33 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 OperationType.CREATE);
         usersManagementService.authManage(userManagementRequest);
     }
-
     @Test
-    public void getExistingUserOverRestSuccess() throws
+    public void getExistingUserFailBlockedUser() throws
             UserManagementException,
-            AAMException,
-            BlockedUserException {
+            IOException,
+            MessagingException {
         //  Register user in database
         User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
         userRepository.save(platformOwner);
         //  Request user with matching credentials
-        UserDetails userDetails = aamClient.getUserDetails(new Credentials(username, password));
-        assertNotNull(userDetails);
-    }
+        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(username, EventType.LOGIN_FAILED, System.currentTimeMillis(), 100000));
+        assertTrue(inserted);
+        try {
+            usersManagementService.getUserDetails(new Credentials(username, password));
+            fail();
+        } catch (BlockedUserException e) {
+            log.info("Proper error caught");
+        }
 
-    @Test(expected = UserManagementException.class)
-    public void getNotExistingUserOverRestFailure() throws
-            UserManagementException,
-            AAMException,
-            BlockedUserException {
-        //  Register user in database
-        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
-        userRepository.save(platformOwner);
-        //  Request different user that is NOT in database
-        aamClient.getUserDetails(new Credentials("NotExisting", "somePassword"));
-    }
+        Message[] messages = testSmtp.getReceivedMessages();
+        assertEquals(1, messages.length);
+        assertEquals("Your action was blocked", messages[0].getSubject());
+        String body = GreenMailUtil.getBody(messages[0]).replaceAll("=\r?\n", "");
+        assertTrue(body.contains("Number of wrong authorization attempts was detected, user was blocked for 60s"));
 
-    @Test(expected = UserManagementException.class)
-    public void getUserOverRestFailsForWrongPassword() throws
-            UserManagementException,
-            AAMException,
-            BlockedUserException {
-        //  Register user in database
-        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
-        userRepository.save(platformOwner);
-        //  Request existing user with incorrect password
-        aamClient.getUserDetails(new Credentials(username, "WrongPassword"));
+        assertEquals(SecurityConstants.CORE_AAM_INSTANCE_ID, messages[0].getHeader("From")[0]);
+        assertTrue(messages[0].getHeader("To")[0].contains(recoveryMail));
+
     }
 
 

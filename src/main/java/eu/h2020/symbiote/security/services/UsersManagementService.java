@@ -23,8 +23,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -44,10 +47,13 @@ import java.util.*;
 @Service
 public class UsersManagementService {
 
+    private final String deploymentId;
     @Value("${rabbit.queue.event}")
     private String anomalyDetectionQueue;
     @Value("${rabbit.routingKey.event}")
     private String anomalyDetectionRoutingKey;
+
+    private JavaMailSenderImpl emailSender;
 
     private static Log log = LogFactory.getLog(UsersManagementService.class);
     private final UserRepository userRepository;
@@ -59,6 +65,7 @@ public class UsersManagementService {
     private final String aamIdentifier;
     private final IAnomalyListenerSecurity anomaliesHelper;
 
+
     private final RabbitTemplate rabbitTemplate;
     protected ObjectMapper mapper = new ObjectMapper();
 
@@ -68,18 +75,21 @@ public class UsersManagementService {
                                   PasswordEncoder passwordEncoder,
                                   RabbitTemplate rabbitTemplate,
                                   IAnomalyListenerSecurity anomaliesHelper,
+                                  @Qualifier("getJavaMailSender") JavaMailSenderImpl emailSender,
                                   @Value("${aam.deployment.owner.username}") String adminUsername,
                                   @Value("${aam.deployment.owner.password}") String adminPassword) throws
             SecurityMisconfigurationException {
         this.userRepository = userRepository;
         this.revokedKeysRepository = revokedKeysRepository;
         this.passwordEncoder = passwordEncoder;
+        this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
         this.aamIdentifier = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.rabbitTemplate = rabbitTemplate;
         this.anomaliesHelper = anomaliesHelper;
         this.adminUsername = adminUsername;
         this.adminPassword = adminPassword;
+        this.emailSender = emailSender;
 
         if (userRepository.exists(adminUsername) || SecurityConstants.GUEST_NAME.equals(adminUsername))
             throw new SecurityMisconfigurationException("AAM owner user already registered in database... Either delete that user or choose a different administrator username");
@@ -105,9 +115,17 @@ public class UsersManagementService {
             throw new UserManagementException("User not in database", HttpStatus.BAD_REQUEST);
 
         User foundUser = userRepository.findOne(credentials.getUsername());
-        if (anomaliesHelper.isBlocked(Optional.ofNullable(foundUser.getUsername()), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), EventType.LOGIN_FAILED))
-            throw new BlockedUserException();
 
+        //check if user was blocked
+        if (anomaliesHelper.isBlocked(Optional.ofNullable(foundUser.getUsername()), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), EventType.LOGIN_FAILED)) {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(deploymentId);
+            message.setTo(foundUser.getRecoveryMail());
+            message.setSubject("Your action was blocked");
+            message.setText("Number of wrong authorization attempts was detected, user was blocked for 60s");
+            emailSender.send(message);
+            throw new BlockedUserException();
+        }
         // If requested user IS in database but wrong password was provided
         if (!credentials.getPassword().equals(foundUser.getPasswordEncrypted()) &&
                 !passwordEncoder.matches(credentials.getPassword(), foundUser.getPasswordEncrypted())) {

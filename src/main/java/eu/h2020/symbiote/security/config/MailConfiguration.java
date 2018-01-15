@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 import java.util.Properties;
@@ -31,7 +30,7 @@ public class MailConfiguration {
     private String password;
 
     @Bean
-    public JavaMailSender getJavaMailSender() {
+    public JavaMailSenderImpl getJavaMailSender() {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         Properties mailProperties = new Properties();
         mailProperties.put("mail.smtp.auth", auth);

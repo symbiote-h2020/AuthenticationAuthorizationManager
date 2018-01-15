@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.BlockedUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.communication.payloads.*;
@@ -21,6 +22,7 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 import static org.junit.Assert.*;
@@ -433,5 +435,42 @@ public class UsersManagementFunctionalTests extends
         UserDetailsResponse userDetails = mapper.convertValue(response,
                 UserDetailsResponse.class);
         assertEquals(HttpStatus.FORBIDDEN, userDetails.getHttpStatus());
+    }
+
+    @Test
+    public void getExistingUserOverRestSuccess() throws
+            UserManagementException,
+            AAMException,
+            BlockedUserException {
+        //  Register user in database
+        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
+        userRepository.save(platformOwner);
+        //  Request user with matching credentials
+        UserDetails userDetails = aamClient.getUserDetails(new Credentials(username, password));
+        assertNotNull(userDetails);
+    }
+
+    @Test(expected = UserManagementException.class)
+    public void getNotExistingUserOverRestFailure() throws
+            UserManagementException,
+            AAMException,
+            BlockedUserException {
+        //  Register user in database
+        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
+        userRepository.save(platformOwner);
+        //  Request different user that is NOT in database
+        aamClient.getUserDetails(new Credentials("NotExisting", "somePassword"));
+    }
+
+    @Test(expected = UserManagementException.class)
+    public void getUserOverRestFailsForWrongPassword() throws
+            UserManagementException,
+            AAMException,
+            BlockedUserException {
+        //  Register user in database
+        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.PLATFORM_OWNER, new HashMap<>(), new HashSet<>());
+        userRepository.save(platformOwner);
+        //  Request existing user with incorrect password
+        aamClient.getUserDetails(new Credentials(username, "WrongPassword"));
     }
 }

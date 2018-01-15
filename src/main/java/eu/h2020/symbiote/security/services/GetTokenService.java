@@ -20,7 +20,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -49,6 +52,7 @@ public class GetTokenService {
     private final String deploymentId;
     private final RabbitTemplate rabbitTemplate;
     private final IAnomalyListenerSecurity anomaliesHelper;
+    private final JavaMailSenderImpl emailSender;
     protected ObjectMapper mapper = new ObjectMapper();
 
     @Value("${rabbit.queue.event}")
@@ -57,7 +61,14 @@ public class GetTokenService {
     private String anomalyDetectionRoutingKey;
 
     @Autowired
-    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository, ValidationHelper validationHelper, ComponentCertificatesRepository componentCertificateRepository, CertificationAuthorityHelper certificationAuthorityHelper, RabbitTemplate rabbitTemplate, IAnomalyListenerSecurity anomaliesHelper) {
+    public GetTokenService(TokenIssuer tokenIssuer,
+                           UserRepository userRepository,
+                           ValidationHelper validationHelper,
+                           ComponentCertificatesRepository componentCertificateRepository,
+                           CertificationAuthorityHelper certificationAuthorityHelper,
+                           RabbitTemplate rabbitTemplate,
+                           IAnomalyListenerSecurity anomaliesHelper,
+                           @Qualifier("getJavaMailSender") JavaMailSenderImpl emailSender) {
         this.tokenIssuer = tokenIssuer;
         this.userRepository = userRepository;
         this.validationHelper = validationHelper;
@@ -65,6 +76,7 @@ public class GetTokenService {
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.rabbitTemplate = rabbitTemplate;
         this.anomaliesHelper = anomaliesHelper;
+        this.emailSender = emailSender;
     }
 
     public Token getForeignToken(Token receivedRemoteHomeToken, String clientCertificate, String aamCertificate) throws
@@ -97,19 +109,32 @@ public class GetTokenService {
         if (claims.getIss() == null || claims.getSub() == null || claims.getIss().isEmpty() || claims.getSub().isEmpty()) {
             throw new InvalidArgumentsException();
         }
-        if (anomaliesHelper.isBlocked(Optional.of(claims.getIss()), Optional.of(claims.getSub()), Optional.empty(), Optional.empty(), Optional.empty(), EventType.ACQUISITION_FAILED) ||
-                anomaliesHelper.isBlocked(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(claims.getSub()), Optional.of(claims.getIss()), EventType.ACQUISITION_FAILED))
-            throw new BlockedUserException();
 
         // try to find user
         String sub = claims.getSub();
         User userInDB = userRepository.findOne(claims.getIss());
+
+        //check if action was blocked
+        if (anomaliesHelper.isBlocked(Optional.of(claims.getIss()), Optional.of(claims.getSub()), Optional.empty(), Optional.empty(), Optional.empty(), EventType.ACQUISITION_FAILED) ||
+                anomaliesHelper.isBlocked(Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(claims.getSub()), Optional.of(claims.getIss()), EventType.ACQUISITION_FAILED)) {
+            //check if user was blocked
+            if (userInDB != null && !userInDB.getRecoveryMail().isEmpty()) {
+                SimpleMailMessage message = new SimpleMailMessage();
+                message.setFrom(deploymentId);
+                message.setTo(userInDB.getRecoveryMail());
+                message.setSubject("Your action was blocked");
+                message.setText("Number of wrong authorization attempts was detected, client " + claims.getSub() + " was blocked for 60s");
+                emailSender.send(message);
+            }
+            throw new BlockedUserException();
+        }
 
         User userForToken;
         PublicKey keyForToken;
 
         // authenticating
         if (claims.getIss().equals(deploymentId)) { // in component use case ISS is platform id
+
             if (!componentCertificateRepository.exists(sub) //SUB is a componentId
                     || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey())) {
                 rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(
