@@ -49,7 +49,7 @@ repositories {
 }
 // Spring related configs
 ext {
-    springCloudVersion = 'Dalston.SR4'
+    springCloudVersion = 'Dalston.SR5'
 }
 dependencyManagement {
     imports {
