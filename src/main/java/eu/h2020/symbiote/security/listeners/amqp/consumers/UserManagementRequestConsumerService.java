@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
@@ -45,35 +46,43 @@ public class UserManagementRequestConsumerService {
                     internal = "${rabbit.exchange.aam.internal}",
                     type = "${rabbit.exchange.aam.type}"),
             key = "${rabbit.routingKey.manage.user.request}"))
-    public Object userManagement(byte[] body) {
 
-        String message;
-        Object response;
+    public byte[] userManagement(byte[] body) {
         try {
-            message = new String(body, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            log.error(e);
-            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value());
-            return response;
-        }
-        ObjectMapper om = new ObjectMapper();
-        UserManagementRequest request;
+            log.info("HELLO!");
+            String message;
+            byte[] response;
+            ObjectMapper om = new ObjectMapper();
+            try {
+                message = new String(body, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                log.error(e);
+                response = om.writeValueAsString(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value())).getBytes();
+                return response;
+            }
 
-        try {
-            request = om.readValue(message, UserManagementRequest.class);
-            log.debug("[x] Received User Management Request for: " + request.getUserDetails()
-                    .getCredentials().getUsername() + " on behalf of " + request.getAdministratorCredentials()
-                    .getUsername());
-            response = usersManagementService.authManage(request);
-        } catch (SecurityException e) {
-            log.error(e);
-            response = new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal());
+            UserManagementRequest request;
+
+            try {
+                request = om.readValue(message, UserManagementRequest.class);
+                log.debug("[x] Received User Management Request for: " + request.getUserDetails()
+                        .getCredentials().getUsername() + " on behalf of " + request.getAdministratorCredentials()
+                        .getUsername());
+                response = om.writeValueAsString(usersManagementService.authManage(request)).getBytes();
+            } catch (SecurityException e) {
+                log.error(e);
+                response = om.writeValueAsString(new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().value())).getBytes();
+                return response;
+            } catch (IOException e) {
+                log.error(e);
+                response = om.writeValueAsString(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value())).getBytes();
+                return response;
+            }
             return response;
-        } catch (IOException e) {
-            log.error(e);
-            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value());
-            return response;
+        } catch (JsonProcessingException e) {
+            log.error("Couldn't convert response to byte[]");
+            return new ErrorResponseContainer(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()).toJson().getBytes();
         }
-        return response;
+
     }
 }

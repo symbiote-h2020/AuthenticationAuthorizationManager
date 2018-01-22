@@ -46,8 +46,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
 
-    @Value("${rabbit.queue.ownedplatformdetails.request}")
-    protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")

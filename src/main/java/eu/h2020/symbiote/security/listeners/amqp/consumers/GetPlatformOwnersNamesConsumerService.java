@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
@@ -56,50 +57,56 @@ public class GetPlatformOwnersNamesConsumerService {
                     internal = "${rabbit.exchange.aam.internal}",
                     type = "${rabbit.exchange.aam.type}"),
             key = "${rabbit.routingKey.get.platform.owners.names:defaultOverridenBySpringConfigInCoreEnvironment}"))
-    public Object getPlatformOwnersNames(byte[] body) {
-
-        Object response;
-        String message;
-        try {
-            message = new String(body, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            log.error(e);
-            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());
-            return response;
-        }
-        ObjectMapper om = new ObjectMapper();
+    public byte[] getPlatformOwnersNames(byte[] body) {
 
         try {
-            GetPlatformOwnersRequest platformOwnersRequest = om.readValue(message, GetPlatformOwnersRequest.class);
-            Credentials administratorCredentials = platformOwnersRequest.getAdministratorCredentials();
-
-            // Request should contain Administrator credentials as well as at least a set of identifiers to look for
-            if (administratorCredentials == null || platformOwnersRequest.getPlatformsIdentifiers() == null)
-                throw new InvalidArgumentsException();
-
-            if (!administratorCredentials.getUsername().equals(adminUsername)
-                    || !administratorCredentials.getPassword().equals(adminPassword))
-                throw new UserManagementException(HttpStatus.UNAUTHORIZED);
-
-            GetPlatformOwnersResponse foundPlatformOwners = new GetPlatformOwnersResponse(new HashMap<>(), HttpStatus.OK);
-
-            for (String platformID : platformOwnersRequest.getPlatformsIdentifiers()) {
-                Platform foundPlatform = platformRepository.findOne(platformID);
-                if (foundPlatform != null)
-                    foundPlatformOwners.getplatformsOwners().put(platformID, foundPlatform.getPlatformOwner().getUsername());
+            byte[] response;
+            String message;
+            ObjectMapper om = new ObjectMapper();
+            try {
+                message = new String(body, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                log.error(e);
+                response = om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
+                return response;
             }
-            response = foundPlatformOwners;
 
-        } catch (UserManagementException | InvalidArgumentsException e) {
-            log.error(e);
-            response = new GetPlatformOwnersResponse(new HashMap<>(), HttpStatus.UNAUTHORIZED);
+            try {
+                GetPlatformOwnersRequest platformOwnersRequest = om.readValue(message, GetPlatformOwnersRequest.class);
+                Credentials administratorCredentials = platformOwnersRequest.getAdministratorCredentials();
+
+                // Request should contain Administrator credentials as well as at least a set of identifiers to look for
+                if (administratorCredentials == null || platformOwnersRequest.getPlatformsIdentifiers() == null)
+                    throw new InvalidArgumentsException();
+
+                if (!administratorCredentials.getUsername().equals(adminUsername)
+                        || !administratorCredentials.getPassword().equals(adminPassword))
+                    throw new UserManagementException(HttpStatus.UNAUTHORIZED);
+
+                GetPlatformOwnersResponse foundPlatformOwners = new GetPlatformOwnersResponse(new HashMap<>(), HttpStatus.OK);
+
+                for (String platformID : platformOwnersRequest.getPlatformsIdentifiers()) {
+                    Platform foundPlatform = platformRepository.findOne(platformID);
+                    if (foundPlatform != null)
+                        foundPlatformOwners.getplatformsOwners().put(platformID, foundPlatform.getPlatformOwner().getUsername());
+                }
+                response = om.writeValueAsBytes(foundPlatformOwners);
+
+            } catch (UserManagementException | InvalidArgumentsException e) {
+                log.error(e);
+                response = om.writeValueAsBytes(new GetPlatformOwnersResponse(new HashMap<>(), HttpStatus.UNAUTHORIZED));
+                return response;
+            } catch (IOException e) {
+                log.error(e);
+                response = om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
+                return response;
+            }
+
             return response;
-        } catch (IOException e) {
-            log.error(e);
-            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());
-            return response;
+
+        } catch (JsonProcessingException e) {
+            log.error("Couldn't convert response to byte[]");
+            return new ErrorResponseContainer(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()).toJson().getBytes();
         }
-
-        return response;
     }
 }

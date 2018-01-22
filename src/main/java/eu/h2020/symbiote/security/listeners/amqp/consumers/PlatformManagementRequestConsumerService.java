@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
@@ -49,32 +50,36 @@ public class PlatformManagementRequestConsumerService {
                     type = "${rabbit.exchange.aam.type}"),
             key = "${rabbit.routingKey.manage.platform.request}"))
 
-    public Object platformManagement(byte[] body) {
-
-        String message;
+    public byte[] platformManagement(byte[] body) {
         try {
-            message = new String(body, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            log.error(e);
-            return new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value());
+            String message;
+            ObjectMapper om = new ObjectMapper();
+            try {
+                message = new String(body, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                log.error(e);
+                return om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
+            }
+
+            try {
+                PlatformManagementRequest request = om.readValue(message, PlatformManagementRequest.class);
+                log.debug("[x] Received Platform Management Request for: " + request.getPlatformOwnerCredentials().getUsername());
+                return om.writeValueAsBytes(platformsManagementService.authManage(request));
+            } catch (SecurityException e) {
+                log.error(e);
+                return om.writeValueAsBytes(new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().value()));
+            } catch (CertificateException e) {
+                log.error(e);
+                return om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), 500));
+            } catch (IOException e) {
+                log.error(e);
+                return om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
+            }
+
+
+        } catch (JsonProcessingException e) {
+            log.error("Couldn't convert response to byte[]");
+            return new ErrorResponseContainer(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()).toJson().getBytes();
         }
-        ObjectMapper om = new ObjectMapper();
-
-        try {
-            PlatformManagementRequest request = om.readValue(message, PlatformManagementRequest.class);
-            log.debug("[x] Received Platform Management Request for: " + request.getPlatformOwnerCredentials().getUsername());
-            return platformsManagementService.authManage(request);
-        } catch (SecurityException e) {
-            log.error(e);
-            return new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal());
-        } catch (CertificateException e) {
-            log.error(e);
-            return new ErrorResponseContainer(e.getMessage(), 500);
-        } catch (IOException e) {
-            log.error(e);
-            return new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());
-        }
-
-
     }
 }

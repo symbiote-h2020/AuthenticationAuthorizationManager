@@ -9,6 +9,8 @@ import eu.h2020.symbiote.security.communication.payloads.FederationRuleManagemen
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Test;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,9 +48,9 @@ public class FederatedRulesManagementFunctionalTests extends
                 federationRuleId,
                 new HashSet<>(),
                 FederationRuleManagementRequest.OperationType.CREATE);
-        Object response = rabbitTemplate.convertSendAndReceive(federationRuleManagementRequestQueue, mapper.writeValueAsString(federationRuleManagementRequest).getBytes());
+        byte[] response = rabbitTemplate.sendAndReceive(federationRuleManagementRequestQueue, new Message(mapper.writeValueAsBytes(federationRuleManagementRequest), new MessageProperties())).getBody();
         // verify response
-        HashMap<String, FederationRule> responseMap = mapper.convertValue(response, new TypeReference<HashMap<String, FederationRule>>() {
+        HashMap<String, FederationRule> responseMap = mapper.readValue(response, new TypeReference<HashMap<String, FederationRule>>() {
         });
         assertNotNull(responseMap.get(federationRuleId));
         assertNotNull(federationRulesRepository.findOne(federationRuleId));
@@ -67,9 +69,9 @@ public class FederatedRulesManagementFunctionalTests extends
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 federationRuleId,
                 FederationRuleManagementRequest.OperationType.READ);
-        Object response = rabbitTemplate.convertSendAndReceive(federationRuleManagementRequestQueue, mapper.writeValueAsString(federationRuleManagementRequest).getBytes());
+        byte[] response = rabbitTemplate.sendAndReceive(federationRuleManagementRequestQueue, new Message(mapper.writeValueAsBytes(federationRuleManagementRequest), new MessageProperties())).getBody();
         // verify response
-        HashMap<String, FederationRule> responseMap = mapper.convertValue(response, new TypeReference<HashMap<String, FederationRule>>() {
+        HashMap<String, FederationRule> responseMap = mapper.readValue(response, new TypeReference<HashMap<String, FederationRule>>() {
         });
         assertEquals(1, responseMap.size());
         assertNotNull(responseMap.get(federationRuleId));
@@ -93,9 +95,9 @@ public class FederatedRulesManagementFunctionalTests extends
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 "",
                 FederationRuleManagementRequest.OperationType.READ);
-        Object response = rabbitTemplate.convertSendAndReceive(federationRuleManagementRequestQueue, mapper.writeValueAsString(federationRuleManagementRequest).getBytes());
+        byte[] response = rabbitTemplate.sendAndReceive(federationRuleManagementRequestQueue, new Message(mapper.writeValueAsBytes(federationRuleManagementRequest), new MessageProperties())).getBody();
         // verify response
-        HashMap<String, FederationRule> responseMap = mapper.convertValue(response, new TypeReference<HashMap<String, FederationRule>>() {
+        HashMap<String, FederationRule> responseMap = mapper.readValue(response, new TypeReference<HashMap<String, FederationRule>>() {
         });
         assertEquals(2, responseMap.size());
     }
@@ -117,9 +119,9 @@ public class FederatedRulesManagementFunctionalTests extends
                 newPlatformsId,
                 FederationRuleManagementRequest.OperationType.UPDATE);
 
-        Object response = rabbitTemplate.convertSendAndReceive(federationRuleManagementRequestQueue, mapper.writeValueAsString(federationRuleManagementRequest).getBytes());
+        byte[] response = rabbitTemplate.sendAndReceive(federationRuleManagementRequestQueue, new Message(mapper.writeValueAsBytes(federationRuleManagementRequest), new MessageProperties())).getBody();
         // verify response
-        HashMap<String, FederationRule> responseMap = mapper.convertValue(response, new TypeReference<HashMap<String, FederationRule>>() {
+        HashMap<String, FederationRule> responseMap = mapper.readValue(response, new TypeReference<HashMap<String, FederationRule>>() {
         });
         FederationRule receivedRule = responseMap.get(federationRuleId);
         assertTrue(receivedRule.getFederationId().contains(federationRuleId));
@@ -139,9 +141,9 @@ public class FederatedRulesManagementFunctionalTests extends
                 federationRuleId,
                 FederationRuleManagementRequest.OperationType.DELETE);
 
-        Object response = rabbitTemplate.convertSendAndReceive(federationRuleManagementRequestQueue, mapper.writeValueAsString(federationRuleManagementRequest).getBytes());
+        byte[] response = rabbitTemplate.sendAndReceive(federationRuleManagementRequestQueue, new Message(mapper.writeValueAsBytes(federationRuleManagementRequest), new MessageProperties())).getBody();
         // verify response
-        HashMap<String, FederationRule> responseMap = mapper.convertValue(response, new TypeReference<HashMap<String, FederationRule>>() {
+        HashMap<String, FederationRule> responseMap = mapper.readValue(response, new TypeReference<HashMap<String, FederationRule>>() {
         });
         FederationRule receivedRule = responseMap.get(federationRuleId);
         assertTrue(receivedRule.getFederationId().contains(federationRuleId));
@@ -168,9 +170,9 @@ public class FederatedRulesManagementFunctionalTests extends
                 membersToRemove,
                 FederationRuleManagementRequest.OperationType.DELETE);
 
-        Object response = rabbitTemplate.convertSendAndReceive(federationRuleManagementRequestQueue, mapper.writeValueAsString(federationRuleManagementRequest).getBytes());
+        byte[] response = rabbitTemplate.sendAndReceive(federationRuleManagementRequestQueue, new Message(mapper.writeValueAsBytes(federationRuleManagementRequest), new MessageProperties())).getBody();
         // verify response
-        HashMap<String, FederationRule> responseMap = mapper.convertValue(response, new TypeReference<HashMap<String, FederationRule>>() {
+        HashMap<String, FederationRule> responseMap = mapper.readValue(response, new TypeReference<HashMap<String, FederationRule>>() {
         });
         FederationRule receivedRule = responseMap.get(federationRuleId);
         assertTrue(receivedRule.getFederationId().contains(federationRuleId));
@@ -186,10 +188,10 @@ public class FederatedRulesManagementFunctionalTests extends
                 federationRuleId,
                 FederationRuleManagementRequest.OperationType.READ);
 
-        Object response = rabbitTemplate.convertSendAndReceive(federationRuleManagementRequestQueue, mapper.writeValueAsString(federationRuleManagementRequest).getBytes());
+        byte[] response = rabbitTemplate.sendAndReceive(federationRuleManagementRequestQueue, new Message(mapper.writeValueAsBytes(federationRuleManagementRequest), new MessageProperties())).getBody();
         assertNotNull(response);
-        ErrorResponseContainer errorResponseContainer = mapper.convertValue(response, ErrorResponseContainer.class);
-        assertEquals(HttpStatus.UNAUTHORIZED.ordinal(), errorResponseContainer.getErrorCode());
+        ErrorResponseContainer errorResponseContainer = mapper.readValue(response, ErrorResponseContainer.class);
+        assertEquals(HttpStatus.UNAUTHORIZED.value(), errorResponseContainer.getErrorCode());
         log.info("Test Client received this error message instead of token: " + errorResponseContainer.getErrorMessage());
     }
 
@@ -201,10 +203,10 @@ public class FederatedRulesManagementFunctionalTests extends
                 federationRuleId,
                 FederationRuleManagementRequest.OperationType.READ);
 
-        Object response = rabbitTemplate.convertSendAndReceive(federationRuleManagementRequestQueue, mapper.writeValueAsString(federationRuleManagementRequest).getBytes());
+        byte[] response = rabbitTemplate.sendAndReceive(federationRuleManagementRequestQueue, new Message(mapper.writeValueAsBytes(federationRuleManagementRequest), new MessageProperties())).getBody();
         assertNotNull(response);
-        ErrorResponseContainer errorResponseContainer = mapper.convertValue(response, ErrorResponseContainer.class);
-        assertEquals(HttpStatus.BAD_REQUEST.ordinal(), errorResponseContainer.getErrorCode());
+        ErrorResponseContainer errorResponseContainer = mapper.readValue(response, ErrorResponseContainer.class);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), errorResponseContainer.getErrorCode());
         log.info("Test Client received this error message instead of token: " + errorResponseContainer.getErrorMessage());
 
     }
@@ -218,10 +220,10 @@ public class FederatedRulesManagementFunctionalTests extends
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 federationRuleId,
                 FederationRuleManagementRequest.OperationType.CREATE);
-        Object response = rabbitTemplate.convertSendAndReceive(federationRuleManagementRequestQueue, mapper.writeValueAsString(federationRuleManagementRequest).getBytes());
+        byte[] response = rabbitTemplate.sendAndReceive(federationRuleManagementRequestQueue, new Message(mapper.writeValueAsBytes(federationRuleManagementRequest), new MessageProperties())).getBody();
         assertNotNull(response);
-        ErrorResponseContainer errorResponseContainer = mapper.convertValue(response, ErrorResponseContainer.class);
-        assertEquals(HttpStatus.BAD_REQUEST.ordinal(), errorResponseContainer.getErrorCode());
+        ErrorResponseContainer errorResponseContainer = mapper.readValue(response, ErrorResponseContainer.class);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), errorResponseContainer.getErrorCode());
         log.info("Test Client received this error message instead of token: " + errorResponseContainer.getErrorMessage());
     }
 
@@ -232,10 +234,10 @@ public class FederatedRulesManagementFunctionalTests extends
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 "",
                 FederationRuleManagementRequest.OperationType.CREATE);
-        Object response = rabbitTemplate.convertSendAndReceive(federationRuleManagementRequestQueue, mapper.writeValueAsString(federationRuleManagementRequest).getBytes());
+        byte[] response = rabbitTemplate.sendAndReceive(federationRuleManagementRequestQueue, new Message(mapper.writeValueAsBytes(federationRuleManagementRequest), new MessageProperties())).getBody();
         assertNotNull(response);
-        ErrorResponseContainer errorResponseContainer = mapper.convertValue(response, ErrorResponseContainer.class);
-        assertEquals(HttpStatus.BAD_REQUEST.ordinal(), errorResponseContainer.getErrorCode());
+        ErrorResponseContainer errorResponseContainer = mapper.readValue(response, ErrorResponseContainer.class);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), errorResponseContainer.getErrorCode());
         log.info("Test Client received this error message instead of token: " + errorResponseContainer.getErrorMessage());
     }
 
@@ -246,10 +248,10 @@ public class FederatedRulesManagementFunctionalTests extends
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 "",
                 FederationRuleManagementRequest.OperationType.DELETE);
-        Object response = rabbitTemplate.convertSendAndReceive(federationRuleManagementRequestQueue, mapper.writeValueAsString(federationRuleManagementRequest).getBytes());
+        byte[] response = rabbitTemplate.sendAndReceive(federationRuleManagementRequestQueue, new Message(mapper.writeValueAsBytes(federationRuleManagementRequest), new MessageProperties())).getBody();
         assertNotNull(response);
-        ErrorResponseContainer errorResponseContainer = mapper.convertValue(response, ErrorResponseContainer.class);
-        assertEquals(HttpStatus.BAD_REQUEST.ordinal(), errorResponseContainer.getErrorCode());
+        ErrorResponseContainer errorResponseContainer = mapper.readValue(response, ErrorResponseContainer.class);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), errorResponseContainer.getErrorCode());
         log.info("Test Client received this error message instead of token: " + errorResponseContainer.getErrorMessage());
     }
 
@@ -260,10 +262,10 @@ public class FederatedRulesManagementFunctionalTests extends
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 federationRuleId,
                 FederationRuleManagementRequest.OperationType.UPDATE);
-        Object response = rabbitTemplate.convertSendAndReceive(federationRuleManagementRequestQueue, mapper.writeValueAsString(federationRuleManagementRequest).getBytes());
+        byte[] response = rabbitTemplate.sendAndReceive(federationRuleManagementRequestQueue, new Message(mapper.writeValueAsBytes(federationRuleManagementRequest), new MessageProperties())).getBody();
         assertNotNull(response);
-        ErrorResponseContainer errorResponseContainer = mapper.convertValue(response, ErrorResponseContainer.class);
-        assertEquals(HttpStatus.BAD_REQUEST.ordinal(), errorResponseContainer.getErrorCode());
+        ErrorResponseContainer errorResponseContainer = mapper.readValue(response, ErrorResponseContainer.class);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), errorResponseContainer.getErrorCode());
         log.info("Test Client received this error message instead of token: " + errorResponseContainer.getErrorMessage());
 
     }

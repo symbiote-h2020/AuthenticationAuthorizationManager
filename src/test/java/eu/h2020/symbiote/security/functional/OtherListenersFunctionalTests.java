@@ -17,6 +17,8 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -198,26 +200,26 @@ public class OtherListenersFunctionalTests extends
 
         // issue owned platform details request
 
-        Object response = rabbitTemplate.convertSendAndReceive(ownedPlatformDetailsRequestQueue, mapper.writeValueAsString(userManagementRequest).getBytes());
-        Set<OwnedPlatformDetails> responseSet = mapper.convertValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
+        byte[] response = rabbitTemplate.sendAndReceive(ownedPlatformDetailsRequestQueue, new Message(mapper.writeValueAsBytes(userManagementRequest), new MessageProperties())).getBody();
+        Set<OwnedPlatformDetails> responseSet = mapper.readValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
         });
         // no platforms there yet
         assertTrue(responseSet.isEmpty());
 
         // issue platform registration over AMQP
-        response = rabbitTemplate.convertSendAndReceive(platformManagementRequestQueue, mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-        PlatformManagementResponse platformManagementResponse = mapper.convertValue(response, PlatformManagementResponse.class);
+        response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
+        PlatformManagementResponse platformManagementResponse = mapper.readValue(response, PlatformManagementResponse.class);
         assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
         platformOwner = userRepository.findOne(platformOwnerUsername);
         // platform owner should have a platform bound to him by now
         assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
 
         // issue owned platform details request
-        response = rabbitTemplate.convertSendAndReceive(ownedPlatformDetailsRequestQueue, mapper.writeValueAsString
-                (userManagementRequest).getBytes());
+        response = rabbitTemplate.sendAndReceive(ownedPlatformDetailsRequestQueue, new Message(mapper.writeValueAsBytes
+                (userManagementRequest), new MessageProperties())).getBody();
 
-        responseSet = mapper.convertValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
+        responseSet = mapper.readValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
         });
 
         // there should be a platform
@@ -243,9 +245,9 @@ public class OtherListenersFunctionalTests extends
                 platformId + "2",
                 OperationType.CREATE);
         // issue platform registration over AMQP
-        response = rabbitTemplate.convertSendAndReceive(platformManagementRequestQueue, mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-        platformManagementResponse = mapper.convertValue(response, PlatformManagementResponse.class);
+        response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
+        platformManagementResponse = mapper.readValue(response, PlatformManagementResponse.class);
         assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
 
         platformOwner = userRepository.findOne(platformOwnerUsername);
@@ -253,10 +255,10 @@ public class OtherListenersFunctionalTests extends
         assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
 
         // issue owned platform details request
-        response = rabbitTemplate.convertSendAndReceive(ownedPlatformDetailsRequestQueue, mapper.writeValueAsString
-                (userManagementRequest).getBytes());
+        response = rabbitTemplate.sendAndReceive(ownedPlatformDetailsRequestQueue, new Message(mapper.writeValueAsBytes
+                (userManagementRequest), new MessageProperties())).getBody();
 
-        responseSet = mapper.convertValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
+        responseSet = mapper.readValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
         });
         assertEquals(2, responseSet.size());
     }
@@ -272,9 +274,9 @@ public class OtherListenersFunctionalTests extends
         assertTrue(userRepository.exists(platformOwnerUsername));
 
         // issue platform registration over AMQP
-        Object response = rabbitTemplate.convertSendAndReceive(platformManagementRequestQueue, mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-        PlatformManagementResponse platformManagementResponse = mapper.convertValue(response, PlatformManagementResponse.class);
+        byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
+        PlatformManagementResponse platformManagementResponse = mapper.readValue(response, PlatformManagementResponse.class);
         assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
 
         User platformOwner = userRepository.findOne(platformOwnerUsername);
@@ -286,16 +288,16 @@ public class OtherListenersFunctionalTests extends
         userManagementRequest.setUserCredentials(new Credentials(platformOwnerUsername, ""));
 
         // issue owned platform details request with the given token
-        response = rabbitTemplate.convertSendAndReceive(ownedPlatformDetailsRequestQueue, mapper.writeValueAsString
-                (userManagementRequest).getBytes());
+        response = rabbitTemplate.sendAndReceive(ownedPlatformDetailsRequestQueue, new Message(mapper.writeValueAsBytes
+                (userManagementRequest), new MessageProperties())).getBody();
 
         try {
-            mapper.convertValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
+            mapper.readValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
             });
             assert false;
         } catch (Exception e) {
-            ErrorResponseContainer error = mapper.convertValue(response, ErrorResponseContainer.class);
-            assertEquals(HttpStatus.UNAUTHORIZED.ordinal(), error.getErrorCode());
+            ErrorResponseContainer error = mapper.readValue(response, ErrorResponseContainer.class);
+            assertEquals(HttpStatus.UNAUTHORIZED.value(), error.getErrorCode());
         }
     }
 
@@ -305,10 +307,10 @@ public class OtherListenersFunctionalTests extends
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");
         requested.add(platformId + "Two");
-        Object response = rabbitTemplate.convertSendAndReceive(getPlatformOwnersNamesQueue, mapper.writeValueAsString(new
-                GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), requested)).getBytes());
+        byte[] response = rabbitTemplate.sendAndReceive(getPlatformOwnersNamesQueue, new Message(mapper.writeValueAsBytes(new
+                GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), requested)), new MessageProperties())).getBody();
 
-        GetPlatformOwnersResponse platformOwners = mapper.convertValue(response,
+        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
                 GetPlatformOwnersResponse.class);
         assertEquals(200, platformOwners.getHttpStatus().value());
         assertNotNull(platformOwners.getplatformsOwners());
@@ -323,9 +325,9 @@ public class OtherListenersFunctionalTests extends
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");
         requested.add(platformId + "Two");
-        Object response = rabbitTemplate.convertSendAndReceive(getPlatformOwnersNamesQueue, mapper.writeValueAsString(new
-                GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, wrongPassword), requested)).getBytes());
-        GetPlatformOwnersResponse platformOwners = mapper.convertValue(response,
+        byte[] response = rabbitTemplate.sendAndReceive(getPlatformOwnersNamesQueue, new Message(mapper.writeValueAsBytes(new
+                GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, wrongPassword), requested)), new MessageProperties())).getBody();
+        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
                 GetPlatformOwnersResponse.class);
         assertEquals(401, platformOwners.getHttpStatus().value());
     }
@@ -337,9 +339,9 @@ public class OtherListenersFunctionalTests extends
         Set<String> requested = new HashSet<>();
         requested.add(platformId + "One");
         requested.add(platformId + "Two");
-        Object response = rabbitTemplate.convertSendAndReceive(getPlatformOwnersNamesQueue, mapper.writeValueAsString(new
-                GetPlatformOwnersRequest(null, requested)).getBytes());
-        GetPlatformOwnersResponse platformOwners = mapper.convertValue(response,
+        byte[] response = rabbitTemplate.sendAndReceive(getPlatformOwnersNamesQueue, new Message(mapper.writeValueAsBytes(new
+                GetPlatformOwnersRequest(null, requested)), new MessageProperties())).getBody();
+        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
                 GetPlatformOwnersResponse.class);
         assertEquals(401, platformOwners.getHttpStatus().value());
     }

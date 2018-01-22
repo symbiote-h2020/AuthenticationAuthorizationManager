@@ -20,6 +20,8 @@ import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -180,9 +182,9 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCertificatePEMString(clientCertificate);
 
         assertFalse(revokedKeysRepository.exists(username));
-        Object response = rabbitTemplate.convertSendAndReceive(revocationRequestQueue, mapper.writeValueAsString
-                (revocationRequest).getBytes());
-        RevocationResponse revocationResponse = mapper.convertValue(response,
+        byte[] response = rabbitTemplate.sendAndReceive(revocationRequestQueue, new Message(mapper.writeValueAsBytes
+                (revocationRequest), new MessageProperties())).getBody();
+        RevocationResponse revocationResponse = mapper.readValue(response,
                 RevocationResponse.class);
 
         assertTrue(revocationResponse.isRevoked());
@@ -410,9 +412,9 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCertificatePEMString(clientCertificate);
 
         assertFalse(revokedKeysRepository.exists(username));
-        Object response = rabbitTemplate.convertSendAndReceive(revocationRequestQueue, mapper.writeValueAsString
-                (revocationRequest).getBytes());
-        RevocationResponse revocationResponse = mapper.convertValue(response,
+        byte[] response = rabbitTemplate.sendAndReceive(revocationRequestQueue, new Message(mapper.writeValueAsBytes
+                (revocationRequest), new MessageProperties())).getBody();
+        RevocationResponse revocationResponse = mapper.readValue(response,
                 RevocationResponse.class);
 
         assertTrue(revocationResponse.isRevoked());
@@ -448,9 +450,9 @@ public class RevocationFunctionalTests extends
         revocationRequest.setHomeTokenString(homeToken);
 
         assertFalse(revokedTokensRepository.exists(new Token(homeToken).getId()));
-        Object response = rabbitTemplate.convertSendAndReceive(revocationRequestQueue, mapper.writeValueAsString
-                (revocationRequest).getBytes());
-        RevocationResponse revocationResponse = mapper.convertValue(response,
+        byte[] response = rabbitTemplate.sendAndReceive(revocationRequestQueue, new Message(mapper.writeValueAsBytes
+                (revocationRequest), new MessageProperties())).getBody();
+        RevocationResponse revocationResponse = mapper.readValue(response,
                 RevocationResponse.class);
 
         assertTrue(revocationResponse.isRevoked());
@@ -466,18 +468,18 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
 
-        Object response = rabbitTemplate.convertSendAndReceive(revocationRequestQueue, mapper.writeValueAsString
-                (revocationRequest).getBytes());
-        RevocationResponse revocationResponse = mapper.convertValue(response,
+        byte[] response = rabbitTemplate.sendAndReceive(revocationRequestQueue, new Message(mapper.writeValueAsBytes
+                (revocationRequest), new MessageProperties())).getBody();
+        RevocationResponse revocationResponse = mapper.readValue(response,
                 RevocationResponse.class);
 
         assertFalse(revocationResponse.isRevoked());
         assertEquals(HttpStatus.BAD_REQUEST, revocationResponse.getStatus());
 
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, password));
-        response = rabbitTemplate.convertSendAndReceive(revocationRequestQueue, mapper.writeValueAsString
-                (revocationRequest).getBytes());
-        revocationResponse = mapper.convertValue(response,
+        response = rabbitTemplate.sendAndReceive(revocationRequestQueue, new Message(mapper.writeValueAsBytes
+                (revocationRequest), new MessageProperties())).getBody();
+        revocationResponse = mapper.readValue(response,
                 RevocationResponse.class);
 
         assertFalse(revocationResponse.isRevoked());

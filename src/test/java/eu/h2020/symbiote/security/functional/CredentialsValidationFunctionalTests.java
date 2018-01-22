@@ -21,6 +21,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -79,8 +81,8 @@ public class CredentialsValidationFunctionalTests extends
 
         String token = aamClient.getHomeToken(loginRequest);
         assertNotNull(token);
-        Object response = rabbitTemplate.convertSendAndReceive(validateRequestQueue, mapper.writeValueAsString(new ValidationRequest(token, "", "", "")).getBytes());
-        ValidationStatus validationStatus = mapper.convertValue(response, ValidationStatus.class);
+        byte[] response = rabbitTemplate.sendAndReceive(validateRequestQueue, new Message(mapper.writeValueAsBytes(new ValidationRequest(token, "", "", "")), new MessageProperties())).getBody();
+        ValidationStatus validationStatus = mapper.readValue(response, ValidationStatus.class);
         log.info("Test Client received this ValidationStatus: " + validationStatus);
 
         assertEquals(ValidationStatus.VALID, validationStatus);
@@ -294,9 +296,9 @@ public class CredentialsValidationFunctionalTests extends
                 platformId, OperationType.CREATE);
 
         // registering the platform to the Core AAM so it will be available for token revocation
-        Object response = rabbitTemplate.convertSendAndReceive(platformManagementRequestQueue, mapper.writeValueAsString
-                (platformRegistrationOverAMQPRequest).getBytes());
-        PlatformManagementResponse platformManagementResponse = mapper.convertValue(response, PlatformManagementResponse.class);
+        byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
+        PlatformManagementResponse platformManagementResponse = mapper.readValue(response, PlatformManagementResponse.class);
         assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
         //inject platform PEM Certificate to the database
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");

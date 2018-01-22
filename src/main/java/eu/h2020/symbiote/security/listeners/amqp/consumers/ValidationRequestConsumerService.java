@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
@@ -41,32 +42,38 @@ public class ValidationRequestConsumerService {
                     internal = "${rabbit.exchange.aam.internal}",
                     type = "${rabbit.exchange.aam.type}"),
             key = "${rabbit.routingKey.validate.request}"))
-    public Object validation(byte[] body) {
-
-        String message;
+    public byte[] validation(byte[] body) {
         try {
-            message = new String(body, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            log.error(e);
-            return new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value());
+            String message;
+            ObjectMapper om = new ObjectMapper();
+            try {
+                message = new String(body, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                log.error(e);
+                return om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
+            }
+
+            ValidationRequest validationRequest;
+            log.debug("[x] Received Validation Request");
+
+            try {
+                validationRequest = om.readValue(message, ValidationRequest.class);
+            } catch (IOException e) {
+                log.error(e);
+                return om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
+            }
+
+            return om.writeValueAsBytes(credentialsValidationService.validate(
+                    validationRequest.getToken(),
+                    validationRequest.getClientCertificate(),
+                    validationRequest.getClientCertificateSigningAAMCertificate(),
+                    validationRequest.getForeignTokenIssuingAAMCertificate()
+            ));
+
+
+        } catch (JsonProcessingException e) {
+            log.error("Couldn't convert response to byte[]");
+            return new ErrorResponseContainer(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()).toJson().getBytes();
         }
-        ObjectMapper om = new ObjectMapper();
-        ValidationRequest validationRequest;
-        log.debug("[x] Received Validation Request");
-
-        try {
-            validationRequest = om.readValue(message, ValidationRequest.class);
-        } catch (IOException e) {
-            log.error(e);
-            return new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value());
-        }
-
-        return credentialsValidationService.validate(
-                validationRequest.getToken(),
-                validationRequest.getClientCertificate(),
-                validationRequest.getClientCertificateSigningAAMCertificate(),
-                validationRequest.getForeignTokenIssuingAAMCertificate()
-        );
-
     }
 }

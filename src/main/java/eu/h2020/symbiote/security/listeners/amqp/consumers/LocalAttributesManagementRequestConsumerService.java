@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
@@ -56,19 +57,20 @@ public class LocalAttributesManagementRequestConsumerService {
                     internal = "${rabbit.exchange.aam.internal}",
                     type = "${rabbit.exchange.aam.type}"),
             key = "${rabbit.routingKey.manage.attributes}"))
-    public Object localAttributesManagementRequest(byte[] body) {
-
-        String message;
-        Object response;
+    public byte[] localAttributesManagementRequest(byte[] body) {
         try {
-            message = new String(body, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            log.error(e);
-            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());
-            return response;
-        }
-        ObjectMapper om = new ObjectMapper();
-        LocalAttributesManagementRequest request;
+            String message;
+            byte[] response;
+            ObjectMapper om = new ObjectMapper();
+            try {
+                message = new String(body, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                log.error(e);
+                response = om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
+                return response;
+            }
+
+            LocalAttributesManagementRequest request;
 
             try {
                 request = om.readValue(message, LocalAttributesManagementRequest.class);
@@ -87,28 +89,33 @@ public class LocalAttributesManagementRequestConsumerService {
                         for (Attribute attr : localUsersAttributesRepository.findAll()) {
                             localAttributes.put(attr.getKey(), attr.getValue());
                         }
-                        response = localAttributes;
+                        response = om.writeValueAsBytes(localAttributes);
                         break;
                     case WRITE:
                         localUsersAttributesRepository.deleteAll();
                         for (Map.Entry<String, String> entry : request.getAttributes().entrySet()) {
                             localUsersAttributesRepository.save(new Attribute(entry.getKey(), entry.getValue()));
                         }
-                        response = request.getAttributes();
+                        response = om.writeValueAsBytes(request.getAttributes());
                         break;
                     default:
                         throw new InvalidArgumentsException();
                 }
             } catch (InvalidArgumentsException | UserManagementException e) {
                 log.error(e);
-                response = new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().ordinal());
+                response = om.writeValueAsBytes(new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().value()));
                 return response;
             } catch (IOException e) {
                 log.error(e);
-                response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());
+                response = om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
                 return response;
             }
-        return response;
+            return response;
 
+
+        } catch (JsonProcessingException e) {
+            log.error("Couldn't convert response to byte[]");
+            return new ErrorResponseContainer(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()).toJson().getBytes();
+        }
     }
 }

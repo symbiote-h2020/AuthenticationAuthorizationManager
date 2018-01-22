@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
@@ -28,12 +29,11 @@ import java.io.UnsupportedEncodingException;
 @Component
 public class GetUserDetailsConsumerService {
 
-    private static Log log = LogFactory.getLog(OwnedPlatformDetailsRequestConsumerService.class);
+    private static Log log = LogFactory.getLog(GetUserDetailsConsumerService.class);
     @Autowired
     private UserRepository userRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
-
     @Value("${aam.deployment.owner.username}")
     private String adminUsername;
     @Value("${aam.deployment.owner.password}")
@@ -53,66 +53,71 @@ public class GetUserDetailsConsumerService {
                     internal = "${rabbit.exchange.aam.internal}",
                     type = "${rabbit.exchange.aam.type}"),
             key = "${rabbit.routingKey.get.user.details}"))
-    public Object getUserDetails(byte[] body) {
-
-        Object response;
-        String message;
+    public byte[] getUserDetails(byte[] body) {
         try {
-            message = new String(body, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            log.error(e);
-            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());
-            return response;
-        }
-        ObjectMapper om = new ObjectMapper();
-
-
-        try {
-            UserManagementRequest userManagementRequest = om.readValue(message, UserManagementRequest.class);
-            Credentials administratorCredentials = userManagementRequest.getAdministratorCredentials();
-
-            // check if we received required administrator credentials and user credentials for API auth
-            if (administratorCredentials == null || userManagementRequest.getUserCredentials() == null)
-                throw new InvalidArgumentsException();
-            // and if the admin credentials match those from properties
-            if (!administratorCredentials.getUsername().equals(adminUsername)
-                    || !administratorCredentials.getPassword().equals(adminPassword))
-                throw new UserManagementException(HttpStatus.FORBIDDEN);
-            //  begin checking requested user's credentials
-            UserDetailsResponse userDetails;
-            String username = userManagementRequest.getUserCredentials().getUsername();
-            //  Check if user exists in database
-            if (!userRepository.exists(username)) {
-                //  If not then return appropriate message
-                userDetails = new UserDetailsResponse(HttpStatus.BAD_REQUEST, new UserDetails());
-            } else {   //  User IS in database
-                User foundUser = userRepository.findOne(username);
-                //  Checking User's credentials
-                if (passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), foundUser.getPasswordEncrypted())) {
-                    userDetails = new UserDetailsResponse(
-                            HttpStatus.OK, new UserDetails(new Credentials(foundUser.getUsername(), ""), "", foundUser.getRecoveryMail(),
-                            foundUser.getRole(), foundUser.getAttributes(), foundUser.getClientCertificates())
-                    );
-                } else
-                    //  If wrong password was provided return message with UNAUTHORIZED status
-                    userDetails = new UserDetailsResponse(HttpStatus.UNAUTHORIZED, new UserDetails());
+            byte[] response;
+            String message;
+            ObjectMapper om = new ObjectMapper();
+            try {
+                message = new String(body, "UTF-8");
+                log.info(message);
+            } catch (UnsupportedEncodingException e) {
+                log.error(e);
+                response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()).toJson().getBytes();
+                return response;
             }
-            response = userDetails;
-        } catch (InvalidArgumentsException e) {
-            log.error(e);
-            // Missing Admin or User credentials
-            response = new UserDetailsResponse(HttpStatus.UNAUTHORIZED, new UserDetails());
+
+
+            try {
+                UserManagementRequest userManagementRequest = om.readValue(message, UserManagementRequest.class);
+                Credentials administratorCredentials = userManagementRequest.getAdministratorCredentials();
+
+                // check if we received required administrator credentials and user credentials for API auth
+                if (administratorCredentials == null || userManagementRequest.getUserCredentials() == null)
+                    throw new InvalidArgumentsException();
+                // and if the admin credentials match those from properties
+                if (!administratorCredentials.getUsername().equals(adminUsername)
+                        || !administratorCredentials.getPassword().equals(adminPassword))
+                    throw new UserManagementException(HttpStatus.FORBIDDEN);
+                //  begin checking requested user's credentials
+                UserDetailsResponse userDetails;
+                String username = userManagementRequest.getUserCredentials().getUsername();
+                //  Check if user exists in database
+                if (!userRepository.exists(username)) {
+                    //  If not then return appropriate message
+                    userDetails = new UserDetailsResponse(HttpStatus.BAD_REQUEST, new UserDetails());
+                } else {   //  User IS in database
+                    User foundUser = userRepository.findOne(username);
+                    //  Checking User's credentials
+                    if (passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), foundUser.getPasswordEncrypted())) {
+                        userDetails = new UserDetailsResponse(
+                                HttpStatus.OK, new UserDetails(new Credentials(foundUser.getUsername(), ""), "", foundUser.getRecoveryMail(),
+                                foundUser.getRole(), foundUser.getAttributes(), foundUser.getClientCertificates())
+                        );
+                    } else
+                        //  If wrong password was provided return message with UNAUTHORIZED status
+                        userDetails = new UserDetailsResponse(HttpStatus.UNAUTHORIZED, new UserDetails());
+                }
+                response = om.writeValueAsString(userDetails).getBytes();
+            } catch (InvalidArgumentsException e) {
+                log.error(e);
+                // Missing Admin or User credentials
+                response = om.writeValueAsString(new UserDetailsResponse(HttpStatus.UNAUTHORIZED, new UserDetails())).getBytes();
+                return response;
+            } catch (UserManagementException e) {
+                log.error(e);
+                // Incorrect Admin login / password
+                response = om.writeValueAsString(new UserDetailsResponse(HttpStatus.FORBIDDEN, new UserDetails())).getBytes();
+                return response;
+            } catch (IOException e) {
+                log.error(e);
+                response = om.writeValueAsString(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value())).getBytes();
+                return response;
+            }
             return response;
-        } catch (UserManagementException e) {
-            log.error(e);
-            // Incorrect Admin login / password
-            response = new UserDetailsResponse(HttpStatus.FORBIDDEN, new UserDetails());
-            return response;
-        } catch (IOException e) {
-            log.error(e);
-            response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.ordinal());
-            return response;
+        } catch (JsonProcessingException e) {
+            log.error("Couldn't convert response to byte[]");
+            return new ErrorResponseContainer(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()).toJson().getBytes();
         }
-        return response;
     }
 }

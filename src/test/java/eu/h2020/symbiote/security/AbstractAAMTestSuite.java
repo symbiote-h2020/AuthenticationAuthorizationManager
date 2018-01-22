@@ -29,10 +29,14 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.SimpleMessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.embedded.LocalServerPort;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
@@ -106,6 +110,8 @@ public abstract class AbstractAAMTestSuite {
     protected String loginRequestQueue;
     @Value("${rabbit.queue.manage.user.request}")
     protected String userManagementRequestQueue;
+    @Value("${rabbit.routingKey.manage.user.request}")
+    protected String userManagementRequestRoutingKey;
 
     @Value("${rabbit.queue.manage.platform.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String platformManagementRequestQueue;
@@ -149,6 +155,18 @@ public abstract class AbstractAAMTestSuite {
     protected IAAMClient aamClient;
     @LocalServerPort
     private int port;
+
+    @Bean
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+        rabbitTemplate.setMessageConverter(simpleMessageConverter());
+        return rabbitTemplate;
+    }
+
+    @Bean
+    SimpleMessageConverter simpleMessageConverter() {
+        return new SimpleMessageConverter();
+    }
 
     @BeforeClass
     public static void setupSuite() throws Exception {
