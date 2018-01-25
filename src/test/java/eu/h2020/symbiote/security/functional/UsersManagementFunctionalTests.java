@@ -37,8 +37,6 @@ public class UsersManagementFunctionalTests extends
 
     private static Log log = LogFactory.getLog(OtherListenersFunctionalTests.class);
     private final String federatedOAuthId = "federatedOAuthId";
-    @Value("${rabbit.queue.ownedplatformdetails.request}")
-    protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     protected String platformAAMSuffixAtInterWorkingInterface;
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
@@ -297,7 +295,7 @@ public class UsersManagementFunctionalTests extends
 
 
     @Test
-    public void userUpdateOverAMQFailurewrongPassword() throws
+    public void userUpdateOverAMQFailureWrongPassword() throws
             IOException {
 
         // issue app registration over AMQP
@@ -352,7 +350,8 @@ public class UsersManagementFunctionalTests extends
                 new UserDetails(new Credentials(username, password), "federatedId",
                         "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
         ManagementStatus managementStatus = aamClient.manageUser(userManagementRequest);
-        assertNotNull(managementStatus);
+        assertTrue(ManagementStatus.OK.equals(managementStatus));
+        assertTrue(userRepository.exists(username));
     }
 
     @Test(expected = AAMException.class)
@@ -431,7 +430,7 @@ public class UsersManagementFunctionalTests extends
     }
 
     @Test
-    public void requestUserDetailsOverAMQPFailsForwrongPassword() throws
+    public void requestUserDetailsOverAMQPFailsForWrongPassword() throws
             IOException {
         //  Registering user in database
         User User = createUser(username, password, recoveryMail, UserRole.USER);
