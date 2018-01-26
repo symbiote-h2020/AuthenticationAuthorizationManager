@@ -59,6 +59,7 @@ public class LocalAttributesManagementRequestConsumerService {
             key = "${rabbit.routingKey.manage.attributes}"))
     public byte[] localAttributesManagementRequest(byte[] body) {
         try {
+            log.debug("[x] Received Local Attributes Management Request");
             String message;
             byte[] response;
             ObjectMapper om = new ObjectMapper();

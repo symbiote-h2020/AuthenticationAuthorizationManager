@@ -44,6 +44,7 @@ public class ValidationRequestConsumerService {
             key = "${rabbit.routingKey.validate.request}"))
     public byte[] validation(byte[] body) {
         try {
+            log.debug("[x] Received Validation Request");
             String message;
             ObjectMapper om = new ObjectMapper();
             try {
@@ -54,7 +55,6 @@ public class ValidationRequestConsumerService {
             }
 
             ValidationRequest validationRequest;
-            log.debug("[x] Received Validation Request");
 
             try {
                 validationRequest = om.readValue(message, ValidationRequest.class);

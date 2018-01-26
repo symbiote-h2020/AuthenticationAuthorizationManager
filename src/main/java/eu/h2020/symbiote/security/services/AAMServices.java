@@ -49,7 +49,7 @@ public class AAMServices {
                        @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
                        @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}") String platformAAMSuffixAtInterWorkingInterface,
                        @Value("${symbIoTe.localaam.url}") String localAAMUrl,
-                       @Value("${symbIoTe.interworking.interface.url:MUST_BE_SET_FOR_PAAM") String interworkingInterface
+                       @Value("${symbIoTe.interworking.interface.url:MUST_BE_SET_FOR_PAAM}") String interworkingInterface
     ) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.platformRepository = platformRepository;

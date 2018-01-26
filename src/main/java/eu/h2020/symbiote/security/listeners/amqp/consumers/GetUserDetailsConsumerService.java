@@ -55,6 +55,7 @@ public class GetUserDetailsConsumerService {
             key = "${rabbit.routingKey.get.user.details}"))
     public byte[] getUserDetails(byte[] body) {
         try {
+            log.debug("[x] Received User Details Request");
             byte[] response;
             String message;
             ObjectMapper om = new ObjectMapper();

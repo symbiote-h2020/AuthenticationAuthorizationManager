@@ -64,6 +64,7 @@ public class OwnedPlatformDetailsRequestConsumerService {
             key = "${rabbit.routingKey.ownedplatformdetails.request}"))
     public byte[] ownedPlatformDetailsRequest(byte[] body) {
         try {
+            log.debug("[x] Received Owned Platform Details Request");
             byte[] response;
             String message;
             ObjectMapper om = new ObjectMapper();

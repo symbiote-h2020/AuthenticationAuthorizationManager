@@ -49,7 +49,6 @@ public class UserManagementRequestConsumerService {
 
     public byte[] userManagement(byte[] body) {
         try {
-            log.info("HELLO!");
             String message;
             byte[] response;
             ObjectMapper om = new ObjectMapper();

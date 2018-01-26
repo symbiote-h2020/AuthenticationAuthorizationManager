@@ -60,6 +60,7 @@ public class GetPlatformOwnersNamesConsumerService {
     public byte[] getPlatformOwnersNames(byte[] body) {
 
         try {
+            log.debug("[x] Received Platform Owners Names Request");
             byte[] response;
             String message;
             ObjectMapper om = new ObjectMapper();

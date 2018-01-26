@@ -51,6 +51,7 @@ public class FederationRuleManagementRequestConsumerService {
             key = "${rabbit.routingKey.manage.federation.rule}"))
     public byte[] federationRuleManagement(byte[] body) {
         try {
+            log.debug("[x] Received Federation Rule Management Request");
             String message;
             byte[] response;
             ObjectMapper om = new ObjectMapper();

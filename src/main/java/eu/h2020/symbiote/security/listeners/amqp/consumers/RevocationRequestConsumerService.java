@@ -48,6 +48,7 @@ public class RevocationRequestConsumerService {
             key = "${rabbit.routingKey.manage.revocation.request}"))
     public byte[] revocation(byte[] body) {
         try {
+            log.debug("[x] Received Revocation Request");
             byte[] response;
             String message;
             ObjectMapper om = new ObjectMapper();
@@ -66,8 +67,6 @@ public class RevocationRequestConsumerService {
                 response = om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
                 return response;
             }
-            log.debug("[x] Received RevocationRequest for: " + request.getCredentials()
-                    .getUsername());
             response = om.writeValueAsBytes(revocationService.revoke(request));
             return response;
         } catch (JsonProcessingException e) {
