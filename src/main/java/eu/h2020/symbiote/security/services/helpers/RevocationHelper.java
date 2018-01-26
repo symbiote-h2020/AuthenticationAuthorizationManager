@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.services.helpers;
 
 import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
@@ -16,6 +17,7 @@ import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.AAMServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -51,20 +53,26 @@ public class RevocationHelper {
     private final RevokedTokensRepository revokedTokensRepository;
     private final UserRepository userRepository;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
+    private final AAMServices aamServices;
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
 
 
     @Autowired
-    public RevocationHelper(ComponentCertificatesRepository componentCertificatesRepository, PlatformRepository platformRepository, RevokedKeysRepository revokedKeysRepository,
-                            RevokedTokensRepository revokedTokensRepository, UserRepository userRepository,
-                            CertificationAuthorityHelper certificationAuthorityHelper) {
+    public RevocationHelper(ComponentCertificatesRepository componentCertificatesRepository,
+                            PlatformRepository platformRepository,
+                            RevokedKeysRepository revokedKeysRepository,
+                            RevokedTokensRepository revokedTokensRepository,
+                            UserRepository userRepository,
+                            CertificationAuthorityHelper certificationAuthorityHelper,
+                            AAMServices aamServices) {
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.platformRepository = platformRepository;
         this.revokedKeysRepository = revokedKeysRepository;
         this.revokedTokensRepository = revokedTokensRepository;
         this.userRepository = userRepository;
         this.certificationAuthorityHelper = certificationAuthorityHelper;
+        this.aamServices = aamServices;
     }
 
     private boolean revokeCertificateUsingCommonName(User user, String commonName) throws
@@ -118,6 +126,9 @@ public class RevocationHelper {
         revokeKey(commonName, platform.getPlatformAAMCertificate());
         platform.setPlatformAAMCertificate(new Certificate());
         platformRepository.save(platform);
+        aamServices.deleteFromCacheInternalAAMs();
+        aamServices.deleteFromCacheAvailableAAMs();
+        aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, platform.getPlatformInstanceId());
         return true;
     }
 
@@ -203,6 +214,9 @@ public class RevocationHelper {
             revokeKey(platformId, platform.getPlatformAAMCertificate());
             platform.setPlatformAAMCertificate(new Certificate());
             platformRepository.save(platform);
+            aamServices.deleteFromCacheInternalAAMs();
+            aamServices.deleteFromCacheAvailableAAMs();
+            aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, platform.getPlatformInstanceId());
             return true;
         }
         if (isRevoked(platformId, certificate.getPublicKey())) {
@@ -356,6 +370,9 @@ public class RevocationHelper {
         }
         revokeKey(componentId, componentCertificate.getCertificate());
         componentCertificatesRepository.delete(componentId);
+        aamServices.deleteFromCacheInternalAAMs();
+        aamServices.deleteFromCacheAvailableAAMs();
+        aamServices.deleteFromCacheComponentCertificate(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier());
         return true;
     }
 
@@ -407,6 +424,9 @@ public class RevocationHelper {
         if (componentCertificate.getCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
             revokeKey(componentId, componentCertificate.getCertificate());
             componentCertificatesRepository.delete(componentId);
+            aamServices.deleteFromCacheInternalAAMs();
+            aamServices.deleteFromCacheAvailableAAMs();
+            aamServices.deleteFromCacheComponentCertificate(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier());
             return true;
         }
         if (isRevoked(componentId, certificate.getPublicKey())) {

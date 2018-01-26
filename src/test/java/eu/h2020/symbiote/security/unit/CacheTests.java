@@ -144,12 +144,14 @@ public class CacheTests extends AbstractAAMTestSuite {
         aamServices.getComponentCertificate(componentId, "platform-1");
         aamServices.getComponentCertificate(componentId, "platform-1");
         Mockito.verify(dummyPlatformAAM, times(1)).getComponentCertificate(Mockito.anyString(), Mockito.anyString());
+        aamServices.deleteFromCacheComponentCertificate(componentId, "platform-1");
+        aamServices.getComponentCertificate(componentId, "platform-1");
+        Mockito.verify(dummyPlatformAAM, times(2)).getComponentCertificate(Mockito.anyString(), Mockito.anyString());
     }
 
     @Test
     public void getAvailableAAMsCached() throws
             CertificateException,
-            AAMException,
             NoSuchAlgorithmException,
             KeyStoreException,
             NoSuchProviderException,
@@ -158,5 +160,24 @@ public class CacheTests extends AbstractAAMTestSuite {
         aamServices.getAvailableAAMs();
         aamServices.getAvailableAAMs();
         Mockito.verify(aamServices, times(1)).getAvailableAAMs();
+        aamServices.deleteFromCacheAvailableAAMs();
+        aamServices.getAvailableAAMs();
+        Mockito.verify(aamServices, times(2)).getAvailableAAMs();
+    }
+
+    @Test
+    public void getAAMsInternallyCached() throws
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            IOException {
+
+        aamServices.getAAMsInternally();
+        aamServices.getAAMsInternally();
+        Mockito.verify(aamServices, times(1)).getAAMsInternally();
+        aamServices.deleteFromCacheInternalAAMs();
+        aamServices.getAAMsInternally();
+        Mockito.verify(aamServices, times(2)).getAAMsInternally();
     }
 }

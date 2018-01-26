@@ -17,6 +17,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -68,6 +69,10 @@ public class AAMServices {
             CertificateException,
             NoSuchAlgorithmException {
         return getAvailableAAMs(false);
+    }
+
+    @CacheEvict(cacheNames = "getAvailableAAMs", allEntries = true)
+    public void deleteFromCacheAvailableAAMs() {
     }
 
     private Map<String, AAM> getAvailableAAMs(boolean provideInternalURL) throws
@@ -155,6 +160,10 @@ public class AAMServices {
         return getAvailableAAMs(true);
     }
 
+    @CacheEvict(cacheNames = "getAAMsInternally", allEntries = true)
+    public void deleteFromCacheInternalAAMs() {
+    }
+
     private Map<String, Certificate> fillComponentCertificatesMap() {
         Map<String, Certificate> componentsCertificatesMap = new HashMap<>();
         List<ComponentCertificate> componentCertificatesFromRepository = componentCertificatesRepository.findAll();
@@ -197,5 +206,10 @@ public class AAMServices {
             }
         }
         throw new AAMException("Selected certificate could not be found/retrieved");
+    }
+
+    @CacheEvict(cacheNames = "getComponentCertificate", key = "#componentIdentifier + '@' +#platformIdentifier")
+    public void deleteFromCacheComponentCertificate(String componentIdentifier, String platformIdentifier) {
+
     }
 }

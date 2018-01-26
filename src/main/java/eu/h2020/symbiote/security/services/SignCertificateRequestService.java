@@ -52,6 +52,7 @@ public class SignCertificateRequestService {
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PasswordEncoder passwordEncoder;
     private final RevocationService revocationService;
+    private final AAMServices aamServices;
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
@@ -60,9 +61,11 @@ public class SignCertificateRequestService {
     @Autowired
     public SignCertificateRequestService(UserRepository userRepository, PlatformRepository platformRepository,
                                          RevokedKeysRepository revokedKeysRepository,
-                                         ComponentCertificatesRepository componentCertificatesRepository, CertificationAuthorityHelper certificationAuthorityHelper,
+                                         ComponentCertificatesRepository componentCertificatesRepository,
+                                         CertificationAuthorityHelper certificationAuthorityHelper,
                                          PasswordEncoder passwordEncoder,
-                                         RevocationService revocationService) {
+                                         RevocationService revocationService,
+                                         AAMServices aamServices) {
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
         this.revokedKeysRepository = revokedKeysRepository;
@@ -70,6 +73,7 @@ public class SignCertificateRequestService {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.passwordEncoder = passwordEncoder;
         this.revocationService = revocationService;
+        this.aamServices = aamServices;
     }
 
     public String signCertificate(CertificateRequest certificateRequest) throws
@@ -204,6 +208,9 @@ public class SignCertificateRequestService {
         } else {
             componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
         }
+        aamServices.deleteFromCacheComponentCertificate(componentId, platformId);
+        aamServices.deleteFromCacheAvailableAAMs();
+        aamServices.deleteFromCacheInternalAAMs();
     }
 
     private void putPlatformCertificateToRepository(PKCS10CertificationRequest req,
@@ -239,6 +246,9 @@ public class SignCertificateRequestService {
             platform.setPlatformAAMCertificate(new Certificate(pem));
         }
         platformRepository.save(platform);
+        aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, platformId);
+        aamServices.deleteFromCacheAvailableAAMs();
+        aamServices.deleteFromCacheInternalAAMs();
     }
 
     private void putUserCertificateToRepository(User user,
