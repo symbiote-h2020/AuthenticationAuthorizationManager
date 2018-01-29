@@ -153,6 +153,10 @@ public class SignCertificateRequestService {
             }
             componentRequestCheck(certificateRequest);
         } else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)$")) {
+            if (revokedKeysRepository.exists(request.getSubject().toString().split("CN=")[1])
+                    && revokedKeysRepository.findOne(request.getSubject().toString().split("CN=")[1]).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                throw new ValidationException("Using revoked key");
+            }
             platformRequestCheck(certificateRequest);
         } else {
             user = userRepository.findOne(certificateRequest.getUsername());

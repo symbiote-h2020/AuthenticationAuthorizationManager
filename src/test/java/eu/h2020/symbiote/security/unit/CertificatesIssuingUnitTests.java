@@ -472,6 +472,33 @@ public class CertificatesIssuingUnitTests extends
         }
     }
 
+    @Test(expected = ValidationException.class)
+    public void getPlatformCertificateRevokedKeyFailure() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            InvalidArgumentsException,
+            CertificateException,
+            WrongCredentialsException,
+            UserManagementException,
+            ValidationException,
+            PlatformManagementException,
+            NotExistingUserException {
+        //ensure that platform repo is empty
+        platformRepository.deleteAll();
+        savePlatformOwner();
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        assertNotNull(csrString);
+
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        Set<String> keySet = new HashSet<>();
+        keySet.add(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded()));
+        revokedKeysRepository.save(new SubjectsRevokedKeys(platformId, keySet));
+        signCertificateRequestService.signCertificate(certRequest);
+    }
+
     @Test
     public void replaceClientCertificateUsingNewKeysSuccess() throws
             IOException,
