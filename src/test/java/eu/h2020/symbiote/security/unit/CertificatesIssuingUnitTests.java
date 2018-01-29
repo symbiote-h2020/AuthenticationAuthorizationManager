@@ -313,7 +313,7 @@ public class CertificatesIssuingUnitTests extends
         certificate = signCertificateRequestService.signCertificate(certRequest);
         assertTrue(componentCertificatesRepository.exists(componentId));
         assertEquals(componentCertificatesRepository.findOne(componentId).getCertificate().getCertificateString(), certificate);
-        assertTrue(revokedKeysRepository.exists(componentId));
+
     }
 
     @Test(expected = WrongCredentialsException.class)
@@ -504,7 +504,6 @@ public class CertificatesIssuingUnitTests extends
         assertEquals(-1, x509Certificate.getBasicConstraints());
 
         //adding next certificate with different public key
-        KeyPair oldPair = pair;
         pair = CryptoHelper.createKeyPair();
         String csrString2 = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
@@ -518,9 +517,6 @@ public class CertificatesIssuingUnitTests extends
 
         X509Certificate x509Certificate2 = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate2);
-        assertTrue(revokedKeysRepository.exists(appUsername));
-        assertEquals(Base64.getEncoder().encodeToString(oldPair.getPublic().getEncoded()), revokedKeysRepository.findOne(appUsername).getRevokedKeysSet().iterator().next());
-
     }
 
     //replacing previous certificate with new one
@@ -597,7 +593,6 @@ public class CertificatesIssuingUnitTests extends
         assertEquals(0, x509Certificate.getBasicConstraints());
         assertTrue(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().equals(certificate));
 
-        KeyPair oldPair = pair;
         pair = CryptoHelper.createKeyPair();
         csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
@@ -610,9 +605,6 @@ public class CertificatesIssuingUnitTests extends
         assertEquals("CN=" + platformId, x509Certificate.getSubjectDN().getName());
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
-        assertTrue(revokedKeysRepository.exists(platformId));
-        assertEquals(Base64.getEncoder().encodeToString(oldPair.getPublic().getEncoded()), revokedKeysRepository.findOne(platformId).getRevokedKeysSet().iterator().next());
-
     }
 
     @Test
@@ -701,10 +693,6 @@ public class CertificatesIssuingUnitTests extends
         assertEquals("CN=" + componentId + illegalSign + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
-
-        // old pair should be revoked
-        assertTrue(revokedKeysRepository.exists(componentId));
-        assertEquals(Base64.getEncoder().encodeToString(oldPair.getPublic().getEncoded()), revokedKeysRepository.findOne(componentId).getRevokedKeysSet().iterator().next());
     }
 
     @Test

@@ -5,8 +5,6 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
-import eu.h2020.symbiote.security.communication.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
@@ -40,6 +38,7 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
  *
  * @author Maksymilian Marcinowski (PSNC)
  * @author Jakub Toczek (PSNC)
+ * @author Mikołaj Dobski (PSNC)
  */
 
 @Service
@@ -51,7 +50,6 @@ public class SignCertificateRequestService {
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PasswordEncoder passwordEncoder;
-    private final RevocationService revocationService;
     private final AAMServices aamServices;
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
@@ -64,7 +62,6 @@ public class SignCertificateRequestService {
                                          ComponentCertificatesRepository componentCertificatesRepository,
                                          CertificationAuthorityHelper certificationAuthorityHelper,
                                          PasswordEncoder passwordEncoder,
-                                         RevocationService revocationService,
                                          AAMServices aamServices) {
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
@@ -72,7 +69,6 @@ public class SignCertificateRequestService {
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.passwordEncoder = passwordEncoder;
-        this.revocationService = revocationService;
         this.aamServices = aamServices;
     }
 
@@ -93,13 +89,13 @@ public class SignCertificateRequestService {
         if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)(@)(([\\w-])+)$")) {
             X509Certificate certFromCSR = createComponentCertFromCSR(request);
             pem = createPem(certFromCSR);
-            putComponentCertificateToRepository(request, certificateRequest, pem, certFromCSR);
+            putComponentCertificateToRepository(request, pem);
         }
         //platform
         else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)$")) {
             X509Certificate certFromCSR = createPlatformCertFromCSR(request);
             pem = createPem(certFromCSR);
-            putPlatformCertificateToRepository(request, certificateRequest, pem, certFromCSR);
+            putPlatformCertificateToRepository(request, pem);
         }
         // user / platform owner
         else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)(@)(([\\w-])+)(@)(([\\w-])+)$")) {
@@ -108,7 +104,7 @@ public class SignCertificateRequestService {
             }
             X509Certificate certFromCSR = createUserCertFromCSR(request);
             pem = createPem(certFromCSR);
-            putUserCertificateToRepository(user, certificateRequest, certFromCSR, pem);
+            putUserCertificateToRepository(user, certificateRequest, pem);
         } else {
             throw new InvalidArgumentsException();
         }
@@ -132,7 +128,7 @@ public class SignCertificateRequestService {
             ValidationException, PlatformManagementException {
 
         User user = null;
-        PublicKey pubKey = null;
+        PublicKey pubKey;
         PKCS10CertificationRequest request;
         try {
             request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
@@ -177,74 +173,24 @@ public class SignCertificateRequestService {
     }
 
     private void putComponentCertificateToRepository(PKCS10CertificationRequest req,
-                                                     CertificateRequest certificateRequest,
-                                                     String pem,
-                                                     X509Certificate certFromCSR) throws CertificateException {
+                                                     String pem) throws CertificateException {
 
         String componentId = req.getSubject().toString().split("CN=")[1].split("@")[0];
         String platformId = req.getSubject().toString().split("CN=")[1].split("@")[1];
 
-        ComponentCertificate componentCert = componentCertificatesRepository.findOne(componentId);
-        if (componentCert != null) {
-            X509Certificate x509ComponentCert;
-            try {
-                x509ComponentCert = componentCert.getCertificate().getX509();
-            } catch (CertificateException e) {
-                log.error(e);
-                throw new SecurityException(e.getMessage(), e.getCause());
-            }
-            if (x509ComponentCert.getPublicKey().equals(certFromCSR.getPublicKey())) {
-                componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
-            } else {
-                RevocationRequest revocationRequest = new RevocationRequest();
-                revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
-                revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
-                revocationRequest.setCertificateCommonName(componentId + illegalSign + platformId);
-                if (!revocationService.revoke(revocationRequest).isRevoked()) {
-                    throw new SecurityException("Revocation of component's: " + componentId + illegalSign + platformId + " old certificate is not possible.");
-                }
-                componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
-            }
-        } else {
-            componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
-        }
+        componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
         aamServices.deleteFromCacheComponentCertificate(componentId, platformId);
         aamServices.deleteFromCacheAvailableAAMs();
         aamServices.deleteFromCacheInternalAAMs();
     }
 
     private void putPlatformCertificateToRepository(PKCS10CertificationRequest req,
-                                                    CertificateRequest certificateRequest,
-                                                    String pem,
-                                                    X509Certificate certFromCSR) throws CertificateException {
+                                                    String pem) throws CertificateException {
 
         String platformId = req.getSubject().toString().split("CN=")[1];
         Platform platform = platformRepository.findOne(platformId);
 
-        Certificate platformCert = platform.getPlatformAAMCertificate();
-        if (!platformCert.getCertificateString().isEmpty()) {
-            X509Certificate x509PlatformCert;
-            try {
-                x509PlatformCert = platformCert.getX509();
-            } catch (CertificateException e) {
-                log.error(e);
-                throw new SecurityException(e.getMessage(), e.getCause());
-            }
-            if (x509PlatformCert.getPublicKey().equals(certFromCSR.getPublicKey())) {
-                platform.setPlatformAAMCertificate(new Certificate(pem));
-            } else {
-                RevocationRequest revocationRequest = new RevocationRequest();
-                revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
-                revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
-                revocationRequest.setCertificateCommonName(platformId);
-                if (!revocationService.revoke(revocationRequest).isRevoked()) {
-                    throw new SecurityException("Failed to revoke existing platform certificate");
-                }
-                platform.setPlatformAAMCertificate(new Certificate(pem));
-            }
-        } else {
-            platform.setPlatformAAMCertificate(new Certificate(pem));
-        }
+        platform.setPlatformAAMCertificate(new Certificate(pem));
         platformRepository.save(platform);
         aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, platformId);
         aamServices.deleteFromCacheAvailableAAMs();
@@ -253,33 +199,9 @@ public class SignCertificateRequestService {
 
     private void putUserCertificateToRepository(User user,
                                                 CertificateRequest certificateRequest,
-                                                X509Certificate certFromCSR,
                                                 String pem) throws CertificateException {
 
-        Certificate userCert = user.getClientCertificates().get(certificateRequest.getClientId());
-        if (userCert != null) {
-            X509Certificate x509UserCert;
-            try {
-                x509UserCert = userCert.getX509();
-            } catch (CertificateException e) {
-                log.error(e);
-                throw new SecurityException(e.getMessage(), e.getCause());
-            }
-            if (x509UserCert.getPublicKey().equals(certFromCSR.getPublicKey())) {
-                user.getClientCertificates().replace(certificateRequest.getClientId(), new Certificate(pem));
-            } else {
-                RevocationRequest revocationRequest = new RevocationRequest();
-                revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
-                revocationRequest.setCredentials(new Credentials(certificateRequest.getUsername(), certificateRequest.getPassword()));
-                revocationRequest.setCertificateCommonName(user.getUsername() + illegalSign + certificateRequest.getClientId());
-                if (!revocationService.revoke(revocationRequest).isRevoked()) {
-                    throw new SecurityException();
-                }
-                user.getClientCertificates().put(certificateRequest.getClientId(), new Certificate(pem));
-            }
-        } else {
-            user.getClientCertificates().put(certificateRequest.getClientId(), new Certificate(pem));
-        }
+        user.getClientCertificates().put(certificateRequest.getClientId(), new Certificate(pem));
         userRepository.save(user);
     }
 
