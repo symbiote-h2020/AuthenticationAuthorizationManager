@@ -98,6 +98,11 @@ dependencies {
     compile('org.springframework.boot:spring-boot-starter-web')
 
 
+    // JDK 9 runtime fixes
+    if(JavaVersion.current() == JavaVersion.VERSION_1_9){
+        runtime('javax.xml.bind:jaxb-api:+')
+    }
+
     // Swagger annotations for documentation
     compile("io.swagger:swagger-annotations:${swaggerAnnotationsVersion}")
 
