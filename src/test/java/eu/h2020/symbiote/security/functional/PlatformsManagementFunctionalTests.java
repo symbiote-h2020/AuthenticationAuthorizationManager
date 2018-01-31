@@ -422,7 +422,7 @@ public class PlatformsManagementFunctionalTests extends
         platformUpdateOverAMQPRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 platformOwnerUserCredentials,
-                platformInterworkingInterfaceAddress + "differentOne",
+                platformInterworkingInterfaceAddress,// + "differentOne",
                 platformInstanceFriendlyName + "differentOne",
                 preferredPlatformId,
                 OperationType.UPDATE);

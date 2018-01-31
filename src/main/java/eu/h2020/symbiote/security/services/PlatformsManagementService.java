@@ -140,9 +140,11 @@ public class PlatformsManagementService {
                     // TODO try to improve it in R4 somehow
                     // checking if Interworking interface isn't already used
                     List<Platform> platformsInRepo = platformRepository.findAll();
-                    platformsInRepo.remove(platform);
-                    for (Platform otherPlatform : platformsInRepo) {
-                        if (otherPlatform.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress()))
+                    for (Platform platformInRepo : platformsInRepo) {
+                        // we check if some has the same II as the one passed
+                        if (platformInRepo.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())
+                                // and that is not us!
+                                && !platformInRepo.getPlatformInstanceId().equals(platform.getPlatformInstanceId()))
                             throw new PlatformManagementException("Platform interworking interface already in use", HttpStatus.BAD_REQUEST);
                     }
                     platform.setPlatformInterworkingInterfaceAddress(platformManagementRequest.getPlatformInterworkingInterfaceAddress());
@@ -188,8 +190,7 @@ public class PlatformsManagementService {
 
 
     public PlatformManagementResponse authManage(PlatformManagementRequest request) throws
-            SecurityException,
-            CertificateException {
+            SecurityException {
         // check if we received required credentials
         if (request.getAamOwnerCredentials() == null || request.getPlatformOwnerCredentials() == null)
             throw new InvalidArgumentsException("Missing credentials");
