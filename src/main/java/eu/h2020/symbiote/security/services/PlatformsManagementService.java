@@ -43,6 +43,7 @@ public class PlatformsManagementService {
     private final PlatformRepository platformRepository;
     private final PasswordEncoder passwordEncoder;
     private final RevokedKeysRepository revokedKeysRepository;
+    private final AAMServices aamServices;
 
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
@@ -53,12 +54,16 @@ public class PlatformsManagementService {
     private String coreInterfaceAddress;
 
     @Autowired
-    public PlatformsManagementService(UserRepository userRepository, PlatformRepository platformRepository,
-                                      PasswordEncoder passwordEncoder, RevokedKeysRepository revokedKeysRepository) {
+    public PlatformsManagementService(UserRepository userRepository,
+                                      PlatformRepository platformRepository,
+                                      PasswordEncoder passwordEncoder,
+                                      RevokedKeysRepository revokedKeysRepository,
+                                      AAMServices aamServices) {
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
         this.passwordEncoder = passwordEncoder;
         this.revokedKeysRepository = revokedKeysRepository;
+        this.aamServices = aamServices;
     }
 
     public PlatformManagementResponse manage(PlatformManagementRequest platformManagementRequest) throws
@@ -185,6 +190,9 @@ public class PlatformsManagementService {
                 throw new PlatformManagementException("Invalid operation", HttpStatus.BAD_REQUEST);
         }
 
+        aamServices.deleteFromCacheAvailableAAMs();
+        aamServices.deleteFromCacheInternalAAMs();
+        aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, platformManagementRequest.getPlatformInstanceId());
         return new PlatformManagementResponse(platformManagementRequest.getPlatformInstanceId(), ManagementStatus.OK);
     }
 
