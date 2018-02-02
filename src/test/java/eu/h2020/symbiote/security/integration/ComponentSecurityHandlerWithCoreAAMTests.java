@@ -86,7 +86,7 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         crmCSH.getSecurityHandler().getAcquiredCredentials().remove(SecurityConstants.CORE_AAM_INSTANCE_ID);
         crmCSH.generateServiceResponse();
         // attempting authenticate using invalid token
-        assertFalse(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
+        assertFalse(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest, new HashMap<>()).contains(testPolicyId));
         //putting back old credentials
         crmCSH.getSecurityHandler().getAcquiredCredentials().put(SecurityConstants.CORE_AAM_INSTANCE_ID, temp);
 
