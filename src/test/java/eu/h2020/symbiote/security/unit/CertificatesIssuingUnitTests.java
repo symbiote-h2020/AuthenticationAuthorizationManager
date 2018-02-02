@@ -468,7 +468,7 @@ public class CertificatesIssuingUnitTests extends
             signCertificateRequestService.signCertificate(certRequest);
         } catch (Exception e) {
             assertEquals(PlatformManagementException.class, e.getClass());
-            assertEquals("Platform doesn't exist", e.getMessage());
+            assertEquals(PlatformManagementException.PLATFORM_NOT_EXIST, e.getMessage());
         }
     }
 

@@ -100,7 +100,7 @@ public class SignCertificateRequestService {
         // user / platform owner
         else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)(@)(([\\w-])+)(@)(([\\w-])+)$")) {
             if (user == null) {
-                throw new ValidationException("User not found in db");
+                throw new ValidationException(ValidationException.USER_NOT_FOUND_IN_DB);
             }
             X509Certificate certFromCSR = createUserCertFromCSR(request);
             pem = createPem(certFromCSR);
@@ -146,16 +146,16 @@ public class SignCertificateRequestService {
                 throw new WrongCredentialsException();
             //deployment id check
             if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(illegalSign)[1]))
-                throw new ValidationException("Deployment id's mismatch");
+                throw new ValidationException(ValidationException.WRONG_DEPLOYMENT_ID);
             if (revokedKeysRepository.exists(certificationAuthorityHelper.getAAMInstanceIdentifier())
                     && revokedKeysRepository.findOne(certificationAuthorityHelper.getAAMInstanceIdentifier()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
-                throw new ValidationException("Using revoked key");
+                throw new ValidationException(ValidationException.USING_REVOKED_KEY);
             }
             componentRequestCheck(certificateRequest);
         } else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)$")) {
             if (revokedKeysRepository.exists(request.getSubject().toString().split("CN=")[1])
                     && revokedKeysRepository.findOne(request.getSubject().toString().split("CN=")[1]).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
-                throw new ValidationException("Using revoked key");
+                throw new ValidationException(ValidationException.USING_REVOKED_KEY);
             }
             platformRequestCheck(certificateRequest);
         } else {
@@ -166,10 +166,10 @@ public class SignCertificateRequestService {
                     !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
                 throw new WrongCredentialsException();
             if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(illegalSign)[2]))
-                throw new ValidationException("Deployment id's mismatch");
+                throw new ValidationException(ValidationException.WRONG_DEPLOYMENT_ID);
             if (revokedKeysRepository.exists(user.getUsername())
                     && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
-                throw new ValidationException("Using revoked key");
+                throw new ValidationException(ValidationException.USING_REVOKED_KEY);
             }
         }
 
@@ -252,10 +252,10 @@ public class SignCertificateRequestService {
             PlatformManagementException {
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
         if (userRepository.findOne(certificateRequest.getUsername()).getRole() != UserRole.PLATFORM_OWNER) {
-            throw new PlatformManagementException("User is not a Platform Owner", HttpStatus.UNAUTHORIZED);
+            throw new PlatformManagementException(PlatformManagementException.USER_IS_NOT_A_PLATFORM_OWNER, HttpStatus.UNAUTHORIZED);
         }
         if (!platformRepository.exists(request.getSubject().toString().split("CN=")[1])) {
-            throw new PlatformManagementException("Platform doesn't exist", HttpStatus.UNAUTHORIZED);
+            throw new PlatformManagementException(PlatformManagementException.PLATFORM_NOT_EXIST, HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -264,6 +264,6 @@ public class SignCertificateRequestService {
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
         // component id must not be AAM
         if (request.getSubject().toString().split("CN=")[1].split(illegalSign)[0].equals(SecurityConstants.AAM_COMPONENT_NAME))
-            throw new PlatformManagementException("this is not the way to issue AAM certificate", HttpStatus.BAD_REQUEST);
+            throw new PlatformManagementException(PlatformManagementException.WRONG_WAY_TO_ISSUE_AAM_CERTIFICATE, HttpStatus.BAD_REQUEST);
     }
 }

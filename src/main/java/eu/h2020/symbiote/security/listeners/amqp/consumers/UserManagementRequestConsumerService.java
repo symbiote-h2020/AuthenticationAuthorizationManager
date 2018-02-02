@@ -70,7 +70,7 @@ public class UserManagementRequestConsumerService {
                 response = om.writeValueAsString(usersManagementService.authManage(request)).getBytes();
             } catch (SecurityException e) {
                 log.error(e);
-                response = om.writeValueAsString(new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().value())).getBytes();
+                response = om.writeValueAsString(new ErrorResponseContainer(e.getMessage(), e.getStatusCode().value())).getBytes();
                 return response;
             } catch (IOException e) {
                 log.error(e);

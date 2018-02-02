@@ -56,7 +56,7 @@ public class GetTokenService {
         ValidationStatus validationStatus = validationHelper.validate(receivedRemoteHomeToken.toString(), clientCertificate, aamCertificate, "");
         if (validationStatus != ValidationStatus.VALID) {
             log.error("Validation error occurred: " + validationStatus.name());
-            throw new ValidationException("Validation error occurred");
+            throw new ValidationException(ValidationException.VALIDATION_ERROR_OCCURRED);
         }
         return tokenIssuer.getForeignToken(receivedRemoteHomeToken);
     }

@@ -52,7 +52,8 @@ public class UsersManagementService {
     private final IssuingAuthorityType deploymentType;
 
     @Autowired
-    public UsersManagementService(UserRepository userRepository, RevokedKeysRepository revokedKeysRepository,
+    public UsersManagementService(UserRepository userRepository,
+                                  RevokedKeysRepository revokedKeysRepository,
                                   CertificationAuthorityHelper certificationAuthorityHelper,
                                   PasswordEncoder passwordEncoder,
                                   @Value("${aam.deployment.owner.username}") String adminUsername,
@@ -66,7 +67,7 @@ public class UsersManagementService {
         this.adminPassword = adminPassword;
 
         if (userRepository.exists(adminUsername) || SecurityConstants.GUEST_NAME.equals(adminUsername))
-            throw new SecurityMisconfigurationException("AAM owner user already registered in database... Either delete that user or choose a different administrator username");
+            throw new SecurityMisconfigurationException(SecurityMisconfigurationException.AAM_OWNER_USER_ALREADY_REGISTERED);
     }
 
     public ManagementStatus authManage(UserManagementRequest request) throws
@@ -86,13 +87,13 @@ public class UsersManagementService {
     public UserDetails getUserDetails(Credentials credentials) throws UserManagementException {
         //  If requested user is not in database
         if (!userRepository.exists(credentials.getUsername()))
-            throw new UserManagementException("User not in database", HttpStatus.BAD_REQUEST);
+            throw new UserManagementException(UserManagementException.USER_NOT_IN_DATABASE, HttpStatus.BAD_REQUEST);
 
         User foundUser = userRepository.findOne(credentials.getUsername());
         // If requested user IS in database but wrong password was provided
         if (!credentials.getPassword().equals(foundUser.getPasswordEncrypted()) &&
                 !passwordEncoder.matches(credentials.getPassword(), foundUser.getPasswordEncrypted()))
-            throw new UserManagementException("Incorrect login / password", HttpStatus.UNAUTHORIZED);
+            throw new UserManagementException(UserManagementException.INCORRECT_LOGIN_PASSWORD, HttpStatus.UNAUTHORIZED);
         //  Everything is fine, returning requested user's details
         return new UserDetails(new Credentials(
                 foundUser.getUsername(), ""),
@@ -125,12 +126,12 @@ public class UsersManagementService {
                 String newUserUsername = userDetails.getCredentials().getUsername();
                 if (!newUserUsername.matches("^(([\\w-])+)$")) {
                 	log.error("Username "+newUserUsername+" contains invalid characters");
-                    throw new InvalidArgumentsException("Could not create user with given Username");
+                    throw new InvalidArgumentsException(InvalidArgumentsException.COULD_NOT_CREATE_USER_WITH_GIVEN_USERNAME);
                 }
                 if (newUserUsername.isEmpty()
                         || userDetails.getCredentials().getPassword().isEmpty()) {
                 	log.error("Username or password is empty");
-                    throw new InvalidArgumentsException("Missing username or password");
+                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_USERNAME_OR_PASSWORD);
                 }
                 if (deploymentType == IssuingAuthorityType.CORE
                         && (userDetails.getRecoveryMail().isEmpty()))
@@ -138,7 +139,7 @@ public class UsersManagementService {
                     // || userDetails.getFederatedId().isEmpty()))
                 {
                 	log.error("Recovery information (email and OAuth) are both empty");
-                    throw new InvalidArgumentsException("Missing recovery e-mail or OAuth identity");
+                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_RECOVERY_E_MAIL_OR_OAUTH_IDENTITY);
                 }
 
                 // verify proper user role 
@@ -195,7 +196,8 @@ public class UsersManagementService {
         return ManagementStatus.OK;
     }
 
-    private void update(UserManagementRequest userManagementRequest, User user) {
+    private void update(UserManagementRequest userManagementRequest,
+                        User user) {
         // update if not empty
         if (!userManagementRequest.getUserDetails().getCredentials().getPassword().isEmpty())
             user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
@@ -205,7 +207,8 @@ public class UsersManagementService {
     }
 
 
-    private void delete(String username) throws SecurityException {
+    private void delete(String username) throws
+            SecurityException {
         // validate request
         if (username.isEmpty())
             throw new InvalidArgumentsException();
@@ -215,7 +218,7 @@ public class UsersManagementService {
 
         User user = userRepository.findOne(username);
         if (user.getOwnedPlatforms() != null && !user.getOwnedPlatforms().isEmpty())
-            throw new UserManagementException("Cannot remove platform owner with platforms", HttpStatus.BAD_REQUEST);
+            throw new UserManagementException(UserManagementException.CANNOT_REMOVE_PLATFORM_OWNER_WITH_PLATFORMS, HttpStatus.BAD_REQUEST);
 
         // add user certificated to revoked repository
         Set<String> keys = new HashSet<>();

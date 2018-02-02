@@ -4,7 +4,6 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
@@ -37,6 +36,7 @@ import java.util.Date;
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
  * @author Mikołaj Dobski (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 @Component
 public class CertificationAuthorityHelper {
@@ -84,9 +84,9 @@ public class CertificationAuthorityHelper {
         PrivateKey aamPrivateKey = getAAMPrivateKey();
         if (aamPrivateKey == null
                 || aamPrivateKey.getAlgorithm() == null)
-            throw new SecurityMisconfigurationException("Can't find AAM private key using the given configuration. Please check SymbioteCloud readme on PAAM certificate.");
+            throw new SecurityMisconfigurationException(SecurityMisconfigurationException.AAM_PRIVATE_KEY_NOT_FOUND_IN_GIVEN_CONFIGURATION);
         if (!aamPrivateKey.getAlgorithm().equals("EC"))
-            throw new SecurityMisconfigurationException("Configuration points to a certificate that doesn't match the symbiote requirements. Please check SymbioteCloud readme on PAAM certificate.");
+            throw new SecurityMisconfigurationException(SecurityMisconfigurationException.CONFIGURATION_POINTS_TO_WRONG_CERTIFICATE);
 
     }
 
@@ -124,8 +124,12 @@ public class CertificationAuthorityHelper {
      * @throws CertificateException
      * @throws NoSuchAlgorithmException
      */
-    public String getAAMCert() throws NoSuchProviderException, KeyStoreException, IOException,
-            CertificateException, NoSuchAlgorithmException {
+    public String getAAMCert() throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException {
         return CryptoHelper.convertX509ToPEM(getAAMCertificate());
     }
 
@@ -137,8 +141,12 @@ public class CertificationAuthorityHelper {
      * @throws CertificateException
      * @throws NoSuchAlgorithmException
      */
-    public String getRootCACert() throws NoSuchProviderException, KeyStoreException, IOException,
-            CertificateException, NoSuchAlgorithmException {
+    public String getRootCACert() throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException {
         return CryptoHelper.convertX509ToPEM(getRootCACertificate());
     }
 
@@ -150,8 +158,12 @@ public class CertificationAuthorityHelper {
      * @throws NoSuchAlgorithmException
      * @throws CertificateException
      */
-    public X509Certificate getRootCACertificate() throws KeyStoreException, NoSuchProviderException, IOException,
-            NoSuchAlgorithmException, CertificateException {
+    public X509Certificate getRootCACertificate() throws
+            KeyStoreException,
+            NoSuchProviderException,
+            IOException,
+            NoSuchAlgorithmException,
+            CertificateException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         if(ctx.getResource(KEY_STORE_FILE_NAME).exists()) {
 	        	pkcs12Store.load(ctx.getResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
@@ -169,8 +181,12 @@ public class CertificationAuthorityHelper {
      * @throws NoSuchAlgorithmException
      * @throws CertificateException
      */
-    public X509Certificate getAAMCertificate() throws KeyStoreException, NoSuchProviderException, IOException,
-            NoSuchAlgorithmException, CertificateException {
+    public X509Certificate getAAMCertificate() throws
+            KeyStoreException,
+            NoSuchProviderException,
+            IOException,
+            NoSuchAlgorithmException,
+            CertificateException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         if(ctx.getResource(KEY_STORE_FILE_NAME).exists()) {
 	        	pkcs12Store.load(ctx.getResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
@@ -188,8 +204,12 @@ public class CertificationAuthorityHelper {
      * @throws CertificateException
      * @throws NoSuchAlgorithmException
      */
-    public PublicKey getAAMPublicKey() throws NoSuchProviderException, KeyStoreException, IOException,
-            CertificateException, NoSuchAlgorithmException {
+    public PublicKey getAAMPublicKey() throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         if(ctx.getResource(KEY_STORE_FILE_NAME).exists()) {
         		pkcs12Store.load(ctx.getResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
@@ -208,8 +228,13 @@ public class CertificationAuthorityHelper {
      * @throws NoSuchAlgorithmException
      * @throws UnrecoverableKeyException
      */
-    public PrivateKey getAAMPrivateKey() throws NoSuchProviderException, KeyStoreException, IOException,
-            CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
+    public PrivateKey getAAMPrivateKey() throws
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            UnrecoverableKeyException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         if(ctx.getResource(KEY_STORE_FILE_NAME).exists()) {
         		pkcs12Store.load(ctx.getResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
@@ -224,8 +249,12 @@ public class CertificationAuthorityHelper {
         PrivateKey privKey;
         try {
             privKey = this.getAAMPrivateKey();
-        } catch (NoSuchAlgorithmException | CertificateException | NoSuchProviderException
-                | KeyStoreException | UnrecoverableKeyException | IOException e) {
+        } catch (NoSuchAlgorithmException |
+                CertificateException |
+                NoSuchProviderException |
+                KeyStoreException |
+                UnrecoverableKeyException |
+                IOException e) {
             log.error(e);
             throw new SecurityException(e.getMessage(), e.getCause());
         }

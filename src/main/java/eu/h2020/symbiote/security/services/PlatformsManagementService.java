@@ -72,7 +72,7 @@ public class PlatformsManagementService {
         Credentials platformOwnerCredentials = platformManagementRequest.getPlatformOwnerCredentials();
 
         if (platformOwnerCredentials.getUsername().isEmpty() || platformOwnerCredentials.getPassword().isEmpty())
-            throw new InvalidArgumentsException("Missing username or password");
+            throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_USERNAME_OR_PASSWORD);
 
         if (!userRepository.exists(platformOwnerCredentials.getUsername()))
             throw new NotExistingUserException();
@@ -86,9 +86,9 @@ public class PlatformsManagementService {
         switch (platformManagementRequest.getOperationType()) {
             case CREATE:
                 if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
-                    throw new InvalidArgumentsException("Missing Platform AAM URL");
+                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_PLATFORM_AAM_URL);
                 if (platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
-                    throw new InvalidArgumentsException("Missing Platform Instance Friendly Name");
+                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_PLATFORM_INSTANCE_FRIENDLY_NAME);
 
                 String platformId;
                 // verify if platform owner provided a preferred platform identifier
@@ -100,20 +100,20 @@ public class PlatformsManagementService {
 
                 // check if platform already in repository
                 if (platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
-                    throw new PlatformManagementException("Platform already exists", HttpStatus.BAD_REQUEST);
+                    throw new PlatformManagementException(PlatformManagementException.PLATFORM_EXISTS, HttpStatus.BAD_REQUEST);
 
                 // TODO try to improve it in R4 somehow
                 // checking if Interworking interface isn't already used
                 for (Platform platform : platformRepository.findAll()) {
                     if (platform.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress()))
-                        throw new PlatformManagementException("Platform interworking interface already in use", HttpStatus.BAD_REQUEST);
+                        throw new PlatformManagementException(PlatformManagementException.PLATFORM_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
                 }
 
                 if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME)
                         || platformManagementRequest.getPlatformInterworkingInterfaceAddress().equals(coreInterfaceAddress)
                         || !platformManagementRequest.getPlatformInstanceId().matches("^(([\\w-])+)$"))
                     // such a name would pose awkward questions
-                    throw new PlatformManagementException("That is an awkward platform, we won't register it", HttpStatus.BAD_REQUEST);
+                    throw new PlatformManagementException(PlatformManagementException.AWKWARD_PLATFORM, HttpStatus.BAD_REQUEST);
 
                 // use PO preferred platform identifier
                 platformId = platformManagementRequest.getPlatformInstanceId();
@@ -131,7 +131,7 @@ public class PlatformsManagementService {
             case UPDATE:
                 platform = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
                 if (platform == null)
-                    throw new PlatformManagementException("Platform doesn't exist", HttpStatus.BAD_REQUEST);
+                    throw new PlatformManagementException(PlatformManagementException.PLATFORM_NOT_EXIST, HttpStatus.BAD_REQUEST);
 
                 if (!platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
                     platform.setPlatformInstanceFriendlyName(platformManagementRequest.getPlatformInstanceFriendlyName());
@@ -140,7 +140,7 @@ public class PlatformsManagementService {
                 if (!platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty()) {
                     // check if other platforms don't use that Interworking interface already
                     if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().equals(coreInterfaceAddress))
-                        throw new PlatformManagementException("That is an awkward platform interface, we won't update it", HttpStatus.BAD_REQUEST);
+                        throw new PlatformManagementException(PlatformManagementException.AWKWARD_PLATFORM, HttpStatus.BAD_REQUEST);
 
                     // TODO try to improve it in R4 somehow
                     // checking if Interworking interface isn't already used
@@ -150,7 +150,7 @@ public class PlatformsManagementService {
                         if (platformInRepo.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())
                                 // and that is not us!
                                 && !platformInRepo.getPlatformInstanceId().equals(platform.getPlatformInstanceId()))
-                            throw new PlatformManagementException("Platform interworking interface already in use", HttpStatus.BAD_REQUEST);
+                            throw new PlatformManagementException(PlatformManagementException.PLATFORM_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
                     }
                     platform.setPlatformInterworkingInterfaceAddress(platformManagementRequest.getPlatformInterworkingInterfaceAddress());
                 }
@@ -158,7 +158,7 @@ public class PlatformsManagementService {
                 break;
             case DELETE:
                 if (!platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
-                    throw new PlatformManagementException("Platform doesn't exist", HttpStatus.BAD_REQUEST);
+                    throw new PlatformManagementException(PlatformManagementException.PLATFORM_NOT_EXIST, HttpStatus.BAD_REQUEST);
                 Set<String> keys = new HashSet<>();
                 try {
                     Platform platformForRemoval = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
@@ -187,7 +187,7 @@ public class PlatformsManagementService {
                 userRepository.save(platformOwner);
                 break;
             default:
-                throw new PlatformManagementException("Invalid operation", HttpStatus.BAD_REQUEST);
+                throw new PlatformManagementException(PlatformManagementException.INVALID_OPERATION, HttpStatus.BAD_REQUEST);
         }
 
         aamServices.deleteFromCacheAvailableAAMs();
@@ -201,7 +201,7 @@ public class PlatformsManagementService {
             SecurityException {
         // check if we received required credentials
         if (request.getAamOwnerCredentials() == null || request.getPlatformOwnerCredentials() == null)
-            throw new InvalidArgumentsException("Missing credentials");
+            throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_CREDENTIALS);
         // check if this operation is authorized
         if (!request.getAamOwnerCredentials().getUsername().equals(AAMOwnerUsername)
                 || !request.getAamOwnerCredentials().getPassword().equals(AAMOwnerPassword))

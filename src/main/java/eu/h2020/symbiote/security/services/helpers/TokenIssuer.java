@@ -44,7 +44,6 @@ import java.util.Map;
 @Component
 public class TokenIssuer {
 
-    private static final String ISSUING_FOREIGN_TOKEN_ERROR = "Someone tried issuing a foreign token using a home token";
     private static Log log = LogFactory.getLog(TokenIssuer.class);
     private static SecureRandom random = new SecureRandom();
     // AAM configuration
@@ -130,7 +129,7 @@ public class TokenIssuer {
                     // TODO R3 federation
                     break;
                 case NULL:
-                    throw new JWTCreationException("Misconfigured AAM deployment type");
+                    throw new JWTCreationException(JWTCreationException.MISCONFIGURED_AAM_DEPLOYMENT_TYPE);
             }
             //adding local user's attributes
             for (Attribute entry : localUsersAttributesRepository.findAll()) {
@@ -175,8 +174,8 @@ public class TokenIssuer {
 
         // if one has account in the AAM then should not request a foreign token
         if (remoteHomeToken.getClaims().getIssuer().equals(deploymentId)) {
-            log.info(ISSUING_FOREIGN_TOKEN_ERROR);
-            throw new ValidationException(ISSUING_FOREIGN_TOKEN_ERROR);
+            log.info(ValidationException.ISSUING_FOREIGN_TOKEN_ERROR);
+            throw new ValidationException(ValidationException.ISSUING_FOREIGN_TOKEN_ERROR);
         }
 
         try {
@@ -184,7 +183,7 @@ public class TokenIssuer {
             HashMap<String, String> foreignAttributes = new HashMap<>();
             // disabling foreign token issuing when the mapping rule is empty
             if (federationRulesRepository.findAll().isEmpty())
-                throw new SecurityMisconfigurationException("AAM has no foreign rules defined");
+                throw new SecurityMisconfigurationException(SecurityMisconfigurationException.AAM_HAS_NO_FOREIGN_RULES_DEFINED);
             int i = 1;
             for (FederationRule federationRule : federationRulesRepository.findAll()) {
                 if (federationRule.getPlatformIds().contains(claims.getIss())) {

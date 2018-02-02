@@ -191,7 +191,7 @@ public class UsersManagementFunctionalTests extends
                 .getBytes(), new MessageProperties())).getBody();
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.COULD_NOT_CREATE_USER_WITH_GIVEN_USERNAME, errorResponse.getErrorMessage());
     }
 
 
@@ -210,7 +210,7 @@ public class UsersManagementFunctionalTests extends
                 .getBytes(), new MessageProperties())).getBody();
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.MISSING_USERNAME_OR_PASSWORD, errorResponse.getErrorMessage());
     }
 
     /**
@@ -228,7 +228,7 @@ public class UsersManagementFunctionalTests extends
                 .getBytes(), new MessageProperties())).getBody();
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.MISSING_RECOVERY_E_MAIL_OR_OAUTH_IDENTITY, errorResponse.getErrorMessage());
     }
 
 

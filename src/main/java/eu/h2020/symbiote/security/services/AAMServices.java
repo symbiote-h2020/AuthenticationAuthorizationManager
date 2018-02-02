@@ -73,6 +73,7 @@ public class AAMServices {
 
     @CacheEvict(cacheNames = "getAvailableAAMs", allEntries = true)
     public void deleteFromCacheAvailableAAMs() {
+        //function deleting cache thanks to proper annotation
     }
 
     private Map<String, AAM> getAvailableAAMs(boolean provideInternalURL) throws
@@ -162,6 +163,7 @@ public class AAMServices {
 
     @CacheEvict(cacheNames = "getAAMsInternally", allEntries = true)
     public void deleteFromCacheInternalAAMs() {
+        //function deleting cache thanks to proper annotation
     }
 
     private Map<String, Certificate> fillComponentCertificatesMap() {
@@ -174,7 +176,8 @@ public class AAMServices {
     }
 
     @Cacheable(cacheNames = "getComponentCertificate", key = "#componentIdentifier + '@' +#platformIdentifier")
-    public String getComponentCertificate(String componentIdentifier, String platformIdentifier) throws
+    public String getComponentCertificate(String componentIdentifier,
+                                          String platformIdentifier) throws
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
@@ -190,7 +193,7 @@ public class AAMServices {
                 return certificationAuthorityHelper.getAAMCert();
 
             if (!componentCertificatesRepository.exists(componentIdentifier))
-                throw new InvalidArgumentsException("Component doesn't exist in this platform");
+                throw new InvalidArgumentsException(InvalidArgumentsException.COMPONENT_NOT_EXIST);
             return componentCertificatesRepository.findOne(componentIdentifier).getCertificate().getCertificateString();
         }
         // not our platform
@@ -205,11 +208,12 @@ public class AAMServices {
                 return aamClient.getComponentCertificate(componentIdentifier, platformIdentifier);
             }
         }
-        throw new AAMException("Selected certificate could not be found/retrieved");
+        throw new AAMException(AAMException.SELECTED_CERTIFICATE_NOT_FOUND);
     }
 
     @CacheEvict(cacheNames = "getComponentCertificate", key = "#componentIdentifier + '@' +#platformIdentifier")
-    public void deleteFromCacheComponentCertificate(String componentIdentifier, String platformIdentifier) {
-
+    public void deleteFromCacheComponentCertificate(String componentIdentifier,
+                                                    String platformIdentifier) {
+        //function deleting cache thanks to proper annotation
     }
 }

@@ -66,7 +66,7 @@ public class PlatformManagementRequestConsumerService {
                 return om.writeValueAsBytes(platformsManagementService.authManage(request));
             } catch (SecurityException e) {
                 log.error(e);
-                return om.writeValueAsBytes(new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().value()));
+                return om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), e.getStatusCode().value()));
             } catch (IOException e) {
                 log.error(e);
                 return om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));

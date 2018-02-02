@@ -96,7 +96,10 @@ public class ValidationHelper {
         this.cacheService = cacheService;
     }
 
-    public ValidationStatus validate(String token, String clientCertificate, String clientCertificateSigningAAMCertificate, String foreignTokenIssuingAAMCertificate) {
+    public ValidationStatus validate(String token,
+                                     String clientCertificate,
+                                     String clientCertificateSigningAAMCertificate,
+                                     String foreignTokenIssuingAAMCertificate) {
         try {
             // basic validation (signature and exp)
             ValidationStatus validationStatus = JWTEngine.validateTokenString(token);
@@ -333,7 +336,9 @@ public class ValidationHelper {
                                                    String clientCertificateString,
                                                    String clientCertificateSigningAAMCertificate,
                                                    String foreignTokenIssuingAAMCertificate) throws
-            IOException, ValidationException, CertificateException {
+            IOException,
+            ValidationException,
+            CertificateException {
         Token token = new Token(tokenString);
 
         X509Certificate clientCertificate = CryptoHelper.convertPEMToX509(clientCertificateString);
@@ -413,7 +418,8 @@ public class ValidationHelper {
         return false;
     }
 
-    public boolean isClientCertificateChainTrusted(String signingAAMCertificateString, String clientCertificateString) throws
+    public boolean isClientCertificateChainTrusted(String signingAAMCertificateString,
+                                                   String clientCertificateString) throws
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
@@ -550,7 +556,7 @@ public class ValidationHelper {
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(foreignToken);
         // TODO R4 consider component tokens in P2P L2 communication!
         if (claimsFromToken.getSub().split("@").length != 4) {
-            throw new MalformedJWTException("Token subject has wrong structure");
+            throw new MalformedJWTException(MalformedJWTException.TOKEN_SUBJECT_HAS_WRONG_STRUCTURE);
         }
 
         String userFromToken = claimsFromToken.getSub().split("@")[0];

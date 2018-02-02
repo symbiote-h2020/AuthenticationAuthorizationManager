@@ -98,7 +98,7 @@ public class FederationRuleManagementRequestConsumerService {
                             throw new InvalidArgumentsException();
                         }
                         if (federationRulesRepository.exists(request.getFederationRuleId())) {
-                            throw new InvalidArgumentsException("Rule with this id already exists");
+                            throw new InvalidArgumentsException(InvalidArgumentsException.RULE_ID_ALREADY_EXISTS);
                         }
                         FederationRule federationRule = new FederationRule(request.getFederationRuleId(), request.getPlatformIds());
                         federationRulesList.put(request.getFederationRuleId(), federationRule);
@@ -141,7 +141,7 @@ public class FederationRuleManagementRequestConsumerService {
                 }
             } catch (InvalidArgumentsException | UserManagementException e) {
                 log.error(e);
-                response = om.writeValueAsBytes(new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().value()));
+                response = om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), e.getStatusCode().value()));
                 return response;
             } catch (IOException e) {
                 log.error(e);

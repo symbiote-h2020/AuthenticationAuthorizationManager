@@ -104,7 +104,7 @@ public class LocalAttributesManagementRequestConsumerService {
                 }
             } catch (InvalidArgumentsException | UserManagementException e) {
                 log.error(e);
-                response = om.writeValueAsBytes(new ErrorResponseContainer(e.getErrorMessage(), e.getStatusCode().value()));
+                response = om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), e.getStatusCode().value()));
                 return response;
             } catch (IOException e) {
                 log.error(e);

@@ -197,7 +197,7 @@ public class PlatformsManagementFunctionalTests extends
         ErrorResponseContainer errorResponse = mapper.readValue(response,
                 ErrorResponseContainer.class);
 
-        assertEquals(new PlatformManagementException().getErrorMessage(), errorResponse.getErrorMessage());
+        assertEquals(PlatformManagementException.AWKWARD_PLATFORM, errorResponse.getErrorMessage());
     }
 
     @Test
@@ -211,7 +211,7 @@ public class PlatformsManagementFunctionalTests extends
         ErrorResponseContainer errorResponse = mapper.readValue(response,
                 ErrorResponseContainer.class);
 
-        assertEquals(new InvalidArgumentsException().getErrorMessage(), errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.MISSING_USERNAME_OR_PASSWORD, errorResponse.getErrorMessage());
     }
 
     @Test
@@ -300,7 +300,7 @@ public class PlatformsManagementFunctionalTests extends
                 (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.MISSING_PLATFORM_AAM_URL, errorResponse.getErrorMessage());
     }
 
     /**
@@ -326,7 +326,7 @@ public class PlatformsManagementFunctionalTests extends
                 (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.MISSING_PLATFORM_INSTANCE_FRIENDLY_NAME, errorResponse.getErrorMessage());
     }
 
     /**
@@ -361,7 +361,7 @@ public class PlatformsManagementFunctionalTests extends
                 (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(new PlatformManagementException().getErrorMessage(), errorResponse.getErrorMessage());
+        assertEquals(PlatformManagementException.PLATFORM_EXISTS, errorResponse.getErrorMessage());
     }
 
     /**
@@ -402,9 +402,8 @@ public class PlatformsManagementFunctionalTests extends
         // we try to use the same Interworking Interface!
         response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
                 (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
-
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(new PlatformManagementException().getErrorMessage(), errorResponse.getErrorMessage());
+        assertEquals(PlatformManagementException.PLATFORM_INTERWARKING_INTERFACE_IN_USE, errorResponse.getErrorMessage());
     }
 
     @Test
@@ -455,7 +454,7 @@ public class PlatformsManagementFunctionalTests extends
         byte[] response2 = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
                 (platformUpdateOverAMQPRequest), new MessageProperties())).getBody();
         ErrorResponseContainer errorResponse = mapper.readValue(response2, ErrorResponseContainer.class);
-        assertEquals(new PlatformManagementException().getErrorMessage(), errorResponse.getErrorMessage());
+        assertEquals(PlatformManagementException.PLATFORM_NOT_EXIST, errorResponse.getErrorMessage());
     }
 
     @Test
@@ -531,7 +530,7 @@ public class PlatformsManagementFunctionalTests extends
         byte[] response2 = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
                 (platformDeleteOverAMQPRequest), new MessageProperties())).getBody();
         ErrorResponseContainer errorResponse = mapper.readValue(response2, ErrorResponseContainer.class);
-        assertEquals(new PlatformManagementException().getErrorMessage(), errorResponse.getErrorMessage());
+        assertEquals(PlatformManagementException.PLATFORM_NOT_EXIST, errorResponse.getErrorMessage());
     }
 
     @Test
