@@ -389,12 +389,16 @@ public class TokensIssuingFunctionalTests extends
     }
 
     @Test
-    public void getGuestTokenOverRESTSuccess() throws MalformedJWTException, JWTCreationException, AAMException {
+    public void getGuestTokenOverRESTSuccess() throws
+            JWTCreationException,
+            AAMException,
+            ValidationException {
         String acquired_token = aamClient.getGuestToken();
         assertNotNull(acquired_token);
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(acquired_token);
-        assertEquals(Token.Type.GUEST, Token.Type.valueOf(claimsFromToken.getTtyp()));
-        assertTrue(claimsFromToken.getAtt().isEmpty());
+        Token guestToken = new Token(acquired_token);
+        String tokenTypeValue = guestToken.getClaims().get(SecurityConstants.CLAIM_NAME_TOKEN_TYPE, String.class);
+        assertNotNull(tokenTypeValue);
+        assertEquals(Token.Type.GUEST.toString(), tokenTypeValue);
     }
 
     @Test
