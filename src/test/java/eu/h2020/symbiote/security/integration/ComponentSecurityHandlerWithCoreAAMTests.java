@@ -25,6 +25,7 @@ import java.util.Map;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 
 @TestPropertySource("/long_validity_core.properties")
 public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSuite {
@@ -91,9 +92,66 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         crmCSH.getSecurityHandler().getAcquiredCredentials().put(SecurityConstants.CORE_AAM_INSTANCE_ID, temp);
 
         //changing platform IPK by changing platform certificate
-        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-2");
         crmCSH.generateServiceResponse();
+        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-2");
         // attempting authenticate using invalid token
         assertFalse(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
+    }
+
+    @Test(expected = SecurityHandlerException.class)
+    public void aamCertNotMatchWithKeystoreServiceResponseGenerationIntegrationTest() throws
+            SecurityHandlerException {
+        // hack: injecting the AAM running port
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
+        String crmKey = "crm";
+        String crmComponentId = crmKey + "@" + SecurityConstants.CORE_AAM_INSTANCE_ID;
+        // generating the CSH
+        IComponentSecurityHandler crmCSH = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
+                KEY_STORE_PATH,
+                KEY_STORE_PASSWORD,
+                crmComponentId,
+                serverAddress,
+                AAMOwnerUsername,
+                AAMOwnerPassword
+        );
+        assertNotNull(crmCSH);
+        // getting a CRM service response
+        assertNotNull(crmCSH.generateServiceResponse());
+
+        //changing platform IPK by changing platform certificate
+        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-2");
+        crmCSH.generateServiceResponse();
+    }
+
+    @Test(expected = SecurityHandlerException.class)
+    public void aamCertNotMatchWithKeystoreCSHCreationIntegrationTest() throws
+            SecurityHandlerException {
+        // hack: injecting the AAM running port
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
+        String crmKey = "crm";
+        String crmComponentId = crmKey + "@" + SecurityConstants.CORE_AAM_INSTANCE_ID;
+        // generating the CSH
+        IComponentSecurityHandler crmCSH = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
+                KEY_STORE_PATH,
+                KEY_STORE_PASSWORD,
+                crmComponentId,
+                serverAddress,
+                AAMOwnerUsername,
+                AAMOwnerPassword
+        );
+        assertNotNull(crmCSH);
+        // getting a CRM service response
+        assertNotNull(crmCSH.generateServiceResponse());
+
+        //changing platform IPK by changing platform certificate
+        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-2");
+        ComponentSecurityHandlerFactory.getComponentSecurityHandler(
+                KEY_STORE_PATH,
+                KEY_STORE_PASSWORD,
+                crmComponentId,
+                serverAddress,
+                AAMOwnerUsername,
+                AAMOwnerPassword
+        );
     }
 }
