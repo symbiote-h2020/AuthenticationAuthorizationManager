@@ -123,8 +123,8 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         crmCSH.generateServiceResponse();
     }
 
-    @Test(expected = SecurityHandlerException.class)
-    public void aamCertNotMatchWithKeystoreCSHCreationIntegrationTest() throws
+    @Test
+    public void checkAAMCertWithKeystoreOnCSHCreationIntegrationTestSuccess() throws
             SecurityHandlerException {
         // hack: injecting the AAM running port
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
@@ -140,11 +140,43 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
                 AAMOwnerPassword
         );
         assertNotNull(crmCSH);
-        // getting a CRM service response
         assertNotNull(crmCSH.generateServiceResponse());
+        // checking if no error if no changes in certificate
+        crmCSH = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
+                KEY_STORE_PATH,
+                KEY_STORE_PASSWORD,
+                crmComponentId,
+                serverAddress,
+                AAMOwnerUsername,
+                AAMOwnerPassword
+        );
+        // getting a CRM service response
+        assertNotNull(crmCSH);
+        assertNotNull(crmCSH.generateServiceResponse());
+    }
 
+    @Test(expected = SecurityHandlerException.class)
+    public void checkAAMCertWithKeystoreOnCSHCreationIntegrationTestFail() throws
+            SecurityHandlerException {
+        // hack: injecting the AAM running port
+        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
+        String crmKey = "crm";
+        String crmComponentId = crmKey + "@" + SecurityConstants.CORE_AAM_INSTANCE_ID;
+        // generating the CSH
+        IComponentSecurityHandler crmCSH = ComponentSecurityHandlerFactory.getComponentSecurityHandler(
+                KEY_STORE_PATH,
+                KEY_STORE_PASSWORD,
+                crmComponentId,
+                serverAddress,
+                AAMOwnerUsername,
+                AAMOwnerPassword
+        );
+
+        assertNotNull(crmCSH);
+        assertNotNull(crmCSH.generateServiceResponse());
         //changing platform IPK by changing platform certificate
         ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-2");
+
         ComponentSecurityHandlerFactory.getComponentSecurityHandler(
                 KEY_STORE_PATH,
                 KEY_STORE_PASSWORD,
