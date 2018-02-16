@@ -224,7 +224,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertNotNull(newUser);
         //check if nothing change except attributes
         assertEquals(user.getRecoveryMail(), newUser.getRecoveryMail());
-        assertEquals(user.getOwnedPlatforms().size(), newUser.getOwnedPlatforms().size());
+        assertEquals(user.getOwnedServices().size(), newUser.getOwnedServices().size());
         assertEquals(user.getPasswordEncrypted(), newUser.getPasswordEncrypted());
         assertEquals(user.getClientCertificates().size(), newUser.getClientCertificates().size());
         assertNotEquals(user.getAttributes().size(), newUser.getAttributes().size());
@@ -468,7 +468,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         platformRepository.save(platform);
 
         // update platform owner
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         // verify that app really is in repository

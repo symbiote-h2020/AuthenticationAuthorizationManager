@@ -204,7 +204,7 @@ public class CertificatesIssuingFunctionalTests extends
                 new Certificate(),
                 new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();

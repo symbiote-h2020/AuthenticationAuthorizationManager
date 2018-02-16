@@ -100,7 +100,7 @@ public class PlatformsManagementFunctionalTests extends
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
         User platformOwner = userRepository.findOne(platformOwnerUsername);
-        assertTrue(platformOwner.getOwnedPlatforms().isEmpty());
+        assertTrue(platformOwner.getOwnedServices().isEmpty());
 
         // issue platform registration over AMQP
         byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
@@ -125,13 +125,13 @@ public class PlatformsManagementFunctionalTests extends
         // verify that PO has this platform in his collection
         User platformOwnerFromPlatformEntity = registeredPlatform.getPlatformOwner();
         assertEquals(platformOwnerUsername, platformOwnerFromPlatformEntity.getUsername());
-        assertTrue(platformOwnerFromPlatformEntity.getOwnedPlatforms().contains(preferredPlatformId));
+        assertTrue(platformOwnerFromPlatformEntity.getOwnedServices().contains(preferredPlatformId));
 
         // verify that PO was properly updated in repository with new platform ownership
         platformOwnerFromRepository = userRepository.findOne(platformOwnerUsername);
         assertEquals(platformOwnerUsername, platformOwnerFromRepository.getUsername());
-        assertFalse(platformOwnerFromRepository.getOwnedPlatforms().isEmpty());
-        assertTrue(platformOwnerFromRepository.getOwnedPlatforms().contains(preferredPlatformId));
+        assertFalse(platformOwnerFromRepository.getOwnedServices().isEmpty());
+        assertTrue(platformOwnerFromRepository.getOwnedServices().contains(preferredPlatformId));
 
         assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse.getRegistrationStatus());
     }
@@ -167,7 +167,7 @@ public class PlatformsManagementFunctionalTests extends
         User registeredPlatformOwner = userRepository.findOne(platformOwnerUsername);
         assertNotNull(registeredPlatformOwner);
         assertEquals(UserRole.PLATFORM_OWNER, registeredPlatformOwner.getRole());
-        assertTrue(registeredPlatformOwner.getOwnedPlatforms().contains(generatedPlatformId));
+        assertTrue(registeredPlatformOwner.getOwnedServices().contains(generatedPlatformId));
 
         // verify that platform with the generated id is in repository and is tied with the given PO
         Platform registeredPlatform = platformRepository.findOne(generatedPlatformId);
@@ -505,7 +505,7 @@ public class PlatformsManagementFunctionalTests extends
                 PlatformManagementResponse.class);
         assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse2.getRegistrationStatus());
 
-        assertTrue(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().isEmpty());
+        assertTrue(userRepository.findOne(platformOwnerUsername).getOwnedServices().isEmpty());
     }
 
     @Test

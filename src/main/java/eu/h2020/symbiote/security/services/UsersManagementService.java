@@ -217,7 +217,7 @@ public class UsersManagementService {
             throw new NotExistingUserException();
 
         User user = userRepository.findOne(username);
-        if (user.getOwnedPlatforms() != null && !user.getOwnedPlatforms().isEmpty())
+        if (user.getOwnedServices() != null && !user.getOwnedServices().isEmpty())
             throw new UserManagementException(UserManagementException.CANNOT_REMOVE_PLATFORM_OWNER_WITH_PLATFORMS, HttpStatus.BAD_REQUEST);
 
         // add user certificated to revoked repository

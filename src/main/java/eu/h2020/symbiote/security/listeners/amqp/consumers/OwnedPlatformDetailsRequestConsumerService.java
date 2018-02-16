@@ -95,7 +95,7 @@ public class OwnedPlatformDetailsRequestConsumerService {
                 // do it
                 User platformOwner = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
                 if (platformOwner != null)
-                    ownedPlatformsIdentifiers = platformOwner.getOwnedPlatforms();
+                    ownedPlatformsIdentifiers = platformOwner.getOwnedServices();
 
                 if (!ownedPlatformsIdentifiers.isEmpty()) {
                     Set<Platform> ownedPlatforms = new HashSet<>();

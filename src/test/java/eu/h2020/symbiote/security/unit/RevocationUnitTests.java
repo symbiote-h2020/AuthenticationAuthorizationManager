@@ -129,11 +129,11 @@ public class RevocationUnitTests extends
         platform.setPlatformAAMCertificate(new Certificate(certificateString));
         platformRepository.save(platform);
 
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         platformOwner = userRepository.findOne(platformOwnerUsername);
-        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+        assertFalse(platformOwner.getOwnedServices().isEmpty());
         assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
 
         assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
@@ -330,7 +330,7 @@ public class RevocationUnitTests extends
         String certificate = signCertificateRequestService.signCertificate(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(certificate));
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
         //revoke platform certificate
         //check if there is platform certificate in database
@@ -386,7 +386,7 @@ public class RevocationUnitTests extends
         String certificate = signCertificateRequestService.signCertificate(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(certificate));
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         //create new certificate for platform
@@ -619,7 +619,7 @@ public class RevocationUnitTests extends
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         KeyPair pair2 = CryptoHelper.createKeyPair();
@@ -661,7 +661,7 @@ public class RevocationUnitTests extends
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -778,7 +778,7 @@ public class RevocationUnitTests extends
                 new HashMap<>());
         platformRepository.save(platform);
 
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         Platform dummyPlatform = platformRepository.findOne(platformId);
@@ -827,7 +827,7 @@ public class RevocationUnitTests extends
         String platformId = "platform-1";
         Platform platform = new Platform(platformId, serverAddress + "/test", null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         Platform dummyPlatform = platformRepository.findOne(platformId);
@@ -919,7 +919,7 @@ public class RevocationUnitTests extends
         platform.setPlatformAAMCertificate(new Certificate(certificateString));
         platformRepository.save(platform);
 
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         platformOwner = userRepository.findOne(platformOwnerUsername);
@@ -928,7 +928,7 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCertificateCommonName(platformId);
 
-        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+        assertFalse(platformOwner.getOwnedServices().isEmpty());
         assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
 
         assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());

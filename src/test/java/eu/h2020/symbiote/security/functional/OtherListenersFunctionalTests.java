@@ -191,7 +191,7 @@ public class OtherListenersFunctionalTests extends
 
         User platformOwner = userRepository.findOne(platformOwnerUsername);
         // platform owner should have no platform bound to him by now
-        assertTrue(platformOwner.getOwnedPlatforms().isEmpty());
+        assertTrue(platformOwner.getOwnedServices().isEmpty());
 
         // creating request
         UserManagementRequest userManagementRequest = new UserManagementRequest();
@@ -213,7 +213,7 @@ public class OtherListenersFunctionalTests extends
         assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
         platformOwner = userRepository.findOne(platformOwnerUsername);
         // platform owner should have a platform bound to him by now
-        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+        assertFalse(platformOwner.getOwnedServices().isEmpty());
 
         // issue owned platform details request
         response = rabbitTemplate.sendAndReceive(ownedPlatformDetailsRequestQueue, new Message(mapper.writeValueAsBytes
@@ -252,7 +252,7 @@ public class OtherListenersFunctionalTests extends
 
         platformOwner = userRepository.findOne(platformOwnerUsername);
         // platform owner should have a platform bound to him by now
-        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+        assertFalse(platformOwner.getOwnedServices().isEmpty());
 
         // issue owned platform details request
         response = rabbitTemplate.sendAndReceive(ownedPlatformDetailsRequestQueue, new Message(mapper.writeValueAsBytes
@@ -281,7 +281,7 @@ public class OtherListenersFunctionalTests extends
 
         User platformOwner = userRepository.findOne(platformOwnerUsername);
         // platform owner should have a platform bound to him by now
-        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+        assertFalse(platformOwner.getOwnedServices().isEmpty());
         // creating request
         UserManagementRequest userManagementRequest = new UserManagementRequest();
         userManagementRequest.setAdministratorCredentials(new Credentials(AAMOwnerUsername, "bad_password"));

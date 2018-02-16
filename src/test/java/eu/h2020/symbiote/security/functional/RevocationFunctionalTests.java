@@ -125,7 +125,7 @@ public class RevocationFunctionalTests extends
                 new Certificate(),
                 new HashMap<>());
         platformRepository.save(platform);
-        user.getOwnedPlatforms().add(platformId);
+        user.getOwnedServices().add(platformId);
         userRepository.save(user);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -254,7 +254,7 @@ public class RevocationFunctionalTests extends
                 new Certificate(),
                 new HashMap<>());
         platformRepository.save(platform);
-        user.getOwnedPlatforms().add(platformId);
+        user.getOwnedServices().add(platformId);
         userRepository.save(user);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -341,7 +341,7 @@ public class RevocationFunctionalTests extends
                 new Certificate(),
                 new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         //inject platform PEM Certificate to the database

@@ -125,7 +125,7 @@ public class PlatformsManagementService {
                         new Certificate(),
                         new HashMap<>());
                 platformRepository.save(platform);
-                platformOwner.getOwnedPlatforms().add(platformId);
+                platformOwner.getOwnedServices().add(platformId);
                 userRepository.save(platformOwner);
                 break;
             case UPDATE:
@@ -183,7 +183,7 @@ public class PlatformsManagementService {
 
                 platformRepository.delete(platformManagementRequest.getPlatformInstanceId());
                 // unbinding the platform from the platform owner
-                platformOwner.getOwnedPlatforms().remove(platformManagementRequest.getPlatformInstanceId());
+                platformOwner.getOwnedServices().remove(platformManagementRequest.getPlatformInstanceId());
                 userRepository.save(platformOwner);
                 break;
             default:

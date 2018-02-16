@@ -78,7 +78,7 @@ public class RevocationHelper {
             InvalidArgumentsException {
         switch (commonName.split(illegalSign).length) {
             case 1:
-                if (user.getRole() != UserRole.PLATFORM_OWNER || !user.getOwnedPlatforms().contains(commonName)) {
+                if (user.getRole() != UserRole.PLATFORM_OWNER || !user.getOwnedServices().contains(commonName)) {
                     throw new SecurityException("User has no rights to this platform");
                 }
                 Platform platform = platformRepository.findOne(commonName);
@@ -143,7 +143,7 @@ public class RevocationHelper {
             throw new CertificateException("Wrong structure of Subject item");
         }
 
-        Set<String> ownedPlatforms = user.getOwnedPlatforms();
+        Set<String> ownedPlatforms = user.getOwnedServices();
         switch (certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign).length) {
             //revoking platform certificate
             case 1:

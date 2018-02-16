@@ -769,7 +769,7 @@ public class CertificatesIssuingUnitTests extends
     private void savePlatform(User platformOwner) {
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
     }
 
