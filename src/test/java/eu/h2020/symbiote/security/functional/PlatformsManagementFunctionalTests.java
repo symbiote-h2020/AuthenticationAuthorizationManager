@@ -229,10 +229,73 @@ public class PlatformsManagementFunctionalTests extends
     }
 
     @Test
+    public void platformManageOverAMQPFailWrongPO() throws IOException {
+        // verify that  platformOwner is in repository
+        assertTrue(userRepository.exists(platformOwnerUsername));
+        //create the platform by platformOwner
+        byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
+        PlatformManagementResponse platformManagementResponse = mapper.readValue(response,
+                PlatformManagementResponse.class);
+        assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
+
+        // create other platformOwner
+        String otherPlatformOwnerUsername = "otherPlatformOwner";
+        User otherPlatformOwner = createUser(otherPlatformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
+        userRepository.save(otherPlatformOwner);
+        Credentials otherPlatformOwnerCredentials = new Credentials(otherPlatformOwnerUsername, platformOwnerPassword);
+        // verify that other platformOwner is in repository
+        assertTrue(userRepository.exists(otherPlatformOwnerUsername));
+
+        //try to update platform by other platformOwner (without rights to this platform)
+        PlatformManagementRequest platformUpdateOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                otherPlatformOwnerCredentials,
+                platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
+                preferredPlatformId,
+                OperationType.UPDATE);
+        response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (platformUpdateOverAMQPRequest), new MessageProperties())).getBody();
+        ErrorResponseContainer errorResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+        assertEquals(PlatformManagementException.NOT_OWNED_PLATFORM, errorResponse.getErrorMessage());
+
+        //try to delete platform by other platformOwner (without rights to this platform)
+        PlatformManagementRequest platformDeleteOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                otherPlatformOwnerCredentials,
+                platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
+                preferredPlatformId,
+                OperationType.DELETE);
+        response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (platformDeleteOverAMQPRequest), new MessageProperties())).getBody();
+        errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
+        assertEquals(PlatformManagementException.NOT_OWNED_PLATFORM, errorResponse.getErrorMessage());
+    }
+
+    @Test
     public void platformManageOverAMQPFailwrongPassword() throws IOException {
         // verify that our platformOwner is in repository
         assertTrue(userRepository.exists(platformOwnerUsername));
         platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setPassword(wrongPassword);
+
+        byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
+        ErrorResponseContainer errorResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+
+        assertEquals(new WrongCredentialsException().getErrorMessage(), errorResponse.getErrorMessage());
+    }
+
+    @Test
+    public void platformManageOverAMQPFailUserNotPlatformOwner() throws IOException {
+        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        userRepository.save(user);
+        assertTrue(userRepository.exists(username));
+        platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setUsername(username);
+        platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setPassword(password);
 
         byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
                 (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
@@ -375,7 +438,6 @@ public class PlatformsManagementFunctionalTests extends
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
-
         // issue platform registration over AMQP
         byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
                 (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();

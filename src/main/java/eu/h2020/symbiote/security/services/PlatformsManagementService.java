@@ -3,6 +3,7 @@ package eu.h2020.symbiote.security.services;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
@@ -79,7 +80,8 @@ public class PlatformsManagementService {
 
         User platformOwner = userRepository.findOne(platformOwnerCredentials.getUsername());
         if (!platformOwnerCredentials.getPassword().equals(platformOwner.getPasswordEncrypted())
-                && !passwordEncoder.matches(platformOwnerCredentials.getPassword(), platformOwner.getPasswordEncrypted())) {
+                && !passwordEncoder.matches(platformOwnerCredentials.getPassword(), platformOwner.getPasswordEncrypted())
+                || !platformOwner.getRole().equals(UserRole.PLATFORM_OWNER)) {
             throw new WrongCredentialsException();
         }
 
@@ -132,7 +134,9 @@ public class PlatformsManagementService {
                 platform = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
                 if (platform == null)
                     throw new PlatformManagementException(PlatformManagementException.PLATFORM_NOT_EXIST, HttpStatus.BAD_REQUEST);
-
+                if (!platformOwner.getOwnedServices().contains(platformManagementRequest.getPlatformInstanceId())) {
+                    throw new PlatformManagementException(PlatformManagementException.NOT_OWNED_PLATFORM, HttpStatus.BAD_REQUEST);
+                }
                 if (!platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
                     platform.setPlatformInstanceFriendlyName(platformManagementRequest.getPlatformInstanceFriendlyName());
 
@@ -159,6 +163,9 @@ public class PlatformsManagementService {
             case DELETE:
                 if (!platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
                     throw new PlatformManagementException(PlatformManagementException.PLATFORM_NOT_EXIST, HttpStatus.BAD_REQUEST);
+                if (!platformOwner.getOwnedServices().contains(platformManagementRequest.getPlatformInstanceId())) {
+                    throw new PlatformManagementException(PlatformManagementException.NOT_OWNED_PLATFORM, HttpStatus.BAD_REQUEST);
+                }
                 Set<String> keys = new HashSet<>();
                 try {
                     Platform platformForRemoval = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
