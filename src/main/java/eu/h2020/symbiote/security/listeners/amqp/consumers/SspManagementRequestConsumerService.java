@@ -49,7 +49,7 @@ public class SspManagementRequestConsumerService {
                     type = "${rabbit.exchange.aam.type}"),
             key = "${rabbit.routingKey.manage.ssp.request}"))
 
-    public byte[] platformManagement(byte[] body) {
+    public byte[] sspManagement(byte[] body) {
         try {
             String message;
             ObjectMapper om = new ObjectMapper();

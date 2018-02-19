@@ -78,6 +78,8 @@ public abstract class AbstractAAMTestSuite {
     protected final String platformId = "test-PlatformId";
     protected final String componentId = "componentId";
     protected final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    protected final String sspOwnerUsername = "testSspOwnerUsername";
+    protected final String sspOwnerPassword = "testSspOwnerPassword";
     protected final String platformOwnerUsername = "testPlatformOwnerUsername";
     protected final String platformOwnerPassword = "testPlatformOwnerPassword";
     protected final String recoveryMail = "null@dev.null";
@@ -117,6 +119,11 @@ public abstract class AbstractAAMTestSuite {
     protected String platformManagementRequestQueue;
     @Value("${rabbit.routingKey.manage.platform.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String platformManagementRoutingKey;
+
+    @Value("${rabbit.queue.manage.ssp.request:defaultOverridenBySpringConfigInCoreEnvironment}")
+    protected String sspManagementRequestQueue;
+    @Value("${rabbit.routingKey.manage.ssp.request:defaultOverridenBySpringConfigInCoreEnvironment}")
+    protected String sspManagementRoutingKey;
 
     @Value("${rabbit.queue.manage.revocation.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String revocationRequestQueue;

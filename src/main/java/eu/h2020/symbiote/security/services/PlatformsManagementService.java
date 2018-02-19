@@ -90,7 +90,7 @@ public class PlatformsManagementService {
                 if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
                     throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_PLATFORM_AAM_URL);
                 if (platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
-                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_PLATFORM_INSTANCE_FRIENDLY_NAME);
+                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_INSTANCE_FRIENDLY_NAME);
 
                 String platformId;
                 // verify if platform owner provided a preferred platform identifier
@@ -113,7 +113,8 @@ public class PlatformsManagementService {
 
                 if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME)
                         || platformManagementRequest.getPlatformInterworkingInterfaceAddress().equals(coreInterfaceAddress)
-                        || !platformManagementRequest.getPlatformInstanceId().matches("^(([\\w-])+)$"))
+                        || !platformManagementRequest.getPlatformInstanceId().matches("^(([\\w-])+)$")
+                        || platformManagementRequest.getPlatformInstanceId().startsWith(SecurityConstants.SSP_IDENTIFIER_PREFIX))
                     // such a name would pose awkward questions
                     throw new PlatformManagementException(PlatformManagementException.AWKWARD_PLATFORM, HttpStatus.BAD_REQUEST);
 

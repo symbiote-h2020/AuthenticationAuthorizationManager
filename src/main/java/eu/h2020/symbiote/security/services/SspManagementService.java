@@ -39,7 +39,6 @@ import java.util.*;
 @Service
 public class SspManagementService {
 
-    private static final String GENERATED_SSP_IDENTIFIER_PREFIX = "SSP_";
     private final UserRepository userRepository;
     private final SspRepository sspRepository;
     private final PasswordEncoder passwordEncoder;
@@ -81,7 +80,7 @@ public class SspManagementService {
         User sspOwner = userRepository.findOne(sspOwnerCredentials.getUsername());
         if (!sspOwnerCredentials.getPassword().equals(sspOwner.getPasswordEncrypted())
                 && !passwordEncoder.matches(sspOwnerCredentials.getPassword(), sspOwner.getPasswordEncrypted())
-                && !sspOwner.getRole().equals(UserRole.SSP_OWNER)) {
+                || !sspOwner.getRole().equals(UserRole.SSP_OWNER)) {
             throw new WrongCredentialsException();
         }
         if (sspManagementRequest.getSspExternalInterworkingInterfaceAddress() == null) {
@@ -95,21 +94,21 @@ public class SspManagementService {
             case CREATE:
                 if (sspManagementRequest.getSspExternalInterworkingInterfaceAddress().isEmpty()
                         && sspManagementRequest.getSspInternalInterworkingInterfaceAddress().isEmpty())
-                    throw new InvalidArgumentsException("Missing external and internal interworking interfaces");
+                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_INTERWORKING_INTERFACES);
 
                 if (sspManagementRequest.getSspInstanceFriendlyName().isEmpty())
-                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_PLATFORM_INSTANCE_FRIENDLY_NAME);
+                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_INSTANCE_FRIENDLY_NAME);
 
                 String sspId;
                 // verify if ssp owner provided a preferred ssp identifier
                 if (sspManagementRequest.getSspInstanceId() == null
                         || sspManagementRequest.getSspInstanceId().isEmpty()) {
                     // generate a new 'random' ssp identifier
-                    sspId = GENERATED_SSP_IDENTIFIER_PREFIX + new Date().getTime();
+                    sspId = SecurityConstants.SSP_IDENTIFIER_PREFIX + new Date().getTime();
                     sspManagementRequest.setSspInstanceId(sspId);
                 }
-                if (!sspManagementRequest.getSspInstanceId().startsWith(GENERATED_SSP_IDENTIFIER_PREFIX)) {
-                    throw new InvalidArgumentsException("Ssp identifier should start with 'SSP_' constant.");
+                if (!sspManagementRequest.getSspInstanceId().startsWith(SecurityConstants.SSP_IDENTIFIER_PREFIX)) {
+                    throw new InvalidArgumentsException(InvalidArgumentsException.NO_SSP_PREFIX);
                 }
 
                 // check if ssp already in repository
@@ -121,7 +120,7 @@ public class SspManagementService {
                 String usedInterworkingAddress = sspManagementRequest.isExposedInternalInterworkingInterfaceAddress() ?
                         sspManagementRequest.getSspInternalInterworkingInterfaceAddress() : sspManagementRequest.getSspExternalInterworkingInterfaceAddress();
                 if (usedInterworkingAddress.isEmpty()) {
-                    throw new InvalidArgumentsException("Exposed interworking interface should be provided");
+                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_EXPOSED_INTERWORKING_INTERFACE);
                 }
                 for (Ssp ssp : sspRepository.findAll()) {
                     String usedInterworkingAddressRepo = ssp.isExposedInternalInterworkingInterfaceAddress() ?
@@ -155,7 +154,7 @@ public class SspManagementService {
                 ssp = sspRepository.findOne(sspManagementRequest.getSspInstanceId());
                 if (ssp == null)
                     throw new SspManagementException(SspManagementException.SSP_NOT_EXIST, HttpStatus.BAD_REQUEST);
-                if (ssp.getSspOwner().getUsername().equals(sspManagementRequest.getSspOwnerCredentials().getUsername()))
+                if (!ssp.getSspOwner().getUsername().equals(sspManagementRequest.getSspOwnerCredentials().getUsername()))
                     throw new SspManagementException(SspManagementException.USER_IS_NOT_A_SSP_OWNER, HttpStatus.BAD_REQUEST);
 
                 if (!sspManagementRequest.getSspInstanceFriendlyName().isEmpty())
@@ -170,7 +169,7 @@ public class SspManagementService {
                             sspManagementRequest.getSspInternalInterworkingInterfaceAddress() : sspManagementRequest.getSspExternalInterworkingInterfaceAddress();
 
                     if (usedInterworkingAddress.isEmpty()) {
-                        throw new InvalidArgumentsException("Exposed interworking interface should be provided");
+                        throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_EXPOSED_INTERWORKING_INTERFACE);
                     }
 
                     if (sspManagementRequest.isExposedInternalInterworkingInterfaceAddress()
@@ -201,7 +200,7 @@ public class SspManagementService {
                 Set<String> keys = new HashSet<>();
                 try {
                     Ssp sspForRemoval = sspRepository.findOne(sspManagementRequest.getSspInstanceId());
-                    if (sspForRemoval.getSspOwner().getUsername().equals(sspManagementRequest.getSspOwnerCredentials().getUsername()))
+                    if (!sspForRemoval.getSspOwner().getUsername().equals(sspManagementRequest.getSspOwnerCredentials().getUsername()))
                         throw new SspManagementException(SspManagementException.USER_IS_NOT_A_SSP_OWNER, HttpStatus.BAD_REQUEST);
                     // adding ssp AAM certificate for revocation
                     if (!sspForRemoval.getSspAAMCertificate().getCertificateString().isEmpty())

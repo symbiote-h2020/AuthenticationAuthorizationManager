@@ -389,7 +389,7 @@ public class PlatformsManagementFunctionalTests extends
                 (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.MISSING_PLATFORM_INSTANCE_FRIENDLY_NAME, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.MISSING_INSTANCE_FRIENDLY_NAME, errorResponse.getErrorMessage());
     }
 
     /**
