@@ -13,9 +13,9 @@ import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.SspManagementRequest;
 import eu.h2020.symbiote.security.communication.payloads.SspManagementResponse;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
-import eu.h2020.symbiote.security.repositories.SspRepository;
+import eu.h2020.symbiote.security.repositories.SmartSpaceRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
-import eu.h2020.symbiote.security.repositories.entities.Ssp;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +40,7 @@ import java.util.*;
 public class SspManagementService {
 
     private final UserRepository userRepository;
-    private final SspRepository sspRepository;
+    private final SmartSpaceRepository smartSpaceRepository;
     private final PasswordEncoder passwordEncoder;
     private final RevokedKeysRepository revokedKeysRepository;
     private final AAMServices aamServices;
@@ -55,12 +55,12 @@ public class SspManagementService {
 
     @Autowired
     public SspManagementService(UserRepository userRepository,
-                                SspRepository sspRepository,
+                                SmartSpaceRepository smartSpaceRepository,
                                 PasswordEncoder passwordEncoder,
                                 RevokedKeysRepository revokedKeysRepository,
                                 AAMServices aamServices) {
         this.userRepository = userRepository;
-        this.sspRepository = sspRepository;
+        this.smartSpaceRepository = smartSpaceRepository;
         this.passwordEncoder = passwordEncoder;
         this.revokedKeysRepository = revokedKeysRepository;
         this.aamServices = aamServices;
@@ -112,7 +112,7 @@ public class SspManagementService {
                 }
 
                 // check if ssp already in repository
-                if (sspRepository.exists(sspManagementRequest.getSspInstanceId()))
+                if (smartSpaceRepository.exists(sspManagementRequest.getSspInstanceId()))
                     throw new SspManagementException(SspManagementException.SSP_EXISTS, HttpStatus.BAD_REQUEST);
 
                 // TODO try to improve it in R4 somehow
@@ -122,7 +122,7 @@ public class SspManagementService {
                 if (usedInterworkingAddress.isEmpty()) {
                     throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_EXPOSED_INTERWORKING_INTERFACE);
                 }
-                for (Ssp ssp : sspRepository.findAll()) {
+                for (SmartSpace ssp : smartSpaceRepository.findAll()) {
                     String usedInterworkingAddressRepo = ssp.isExposedInternalInterworkingInterfaceAddress() ?
                             ssp.getSspInternalInterworkingInterfaceAddress() : ssp.getSspExternalInterworkingInterfaceAddress();
                     if (usedInterworkingAddressRepo.equals(usedInterworkingAddress))
@@ -138,7 +138,7 @@ public class SspManagementService {
                 // use SO preferred ssp identifier
                 sspId = sspManagementRequest.getSspInstanceId();
 
-                Ssp ssp = new Ssp(sspId,
+                SmartSpace ssp = new SmartSpace(sspId,
                         sspManagementRequest.getSspExternalInterworkingInterfaceAddress(),
                         sspManagementRequest.getSspInternalInterworkingInterfaceAddress(),
                         sspManagementRequest.isExposedInternalInterworkingInterfaceAddress(),
@@ -146,12 +146,12 @@ public class SspManagementService {
                         new Certificate(),
                         new HashMap<>(),
                         sspOwner);
-                sspRepository.save(ssp);
+                smartSpaceRepository.save(ssp);
                 sspOwner.getOwnedServices().add(sspId);
                 userRepository.save(sspOwner);
                 break;
             case UPDATE:
-                ssp = sspRepository.findOne(sspManagementRequest.getSspInstanceId());
+                ssp = smartSpaceRepository.findOne(sspManagementRequest.getSspInstanceId());
                 if (ssp == null)
                     throw new SspManagementException(SspManagementException.SSP_NOT_EXIST, HttpStatus.BAD_REQUEST);
                 if (!ssp.getSspOwner().getUsername().equals(sspManagementRequest.getSspOwnerCredentials().getUsername()))
@@ -178,7 +178,7 @@ public class SspManagementService {
 
 
                     // check if other ssp don't use that Interworking interface already
-                    for (Ssp sspRepo : sspRepository.findAll()) {
+                    for (SmartSpace sspRepo : smartSpaceRepository.findAll()) {
                         String usedInterworkingAddressRepo = sspRepo.isExposedInternalInterworkingInterfaceAddress() ?
                                 sspRepo.getSspInternalInterworkingInterfaceAddress() : sspRepo.getSspExternalInterworkingInterfaceAddress();
                         if (usedInterworkingAddressRepo.equals(usedInterworkingAddress) &&
@@ -190,16 +190,16 @@ public class SspManagementService {
                     ssp.setSspExternalInterworkingInterfaceAddress(sspManagementRequest.getSspExternalInterworkingInterfaceAddress());
                     ssp.setSspInternalInterworkingInterfaceAddress(sspManagementRequest.getSspInternalInterworkingInterfaceAddress());
                 }
-                sspRepository.save(ssp);
+                smartSpaceRepository.save(ssp);
                 break;
             case DELETE:
-                if (!sspRepository.exists(sspManagementRequest.getSspInstanceId()))
+                if (!smartSpaceRepository.exists(sspManagementRequest.getSspInstanceId()))
                     throw new SspManagementException(SspManagementException.SSP_NOT_EXIST, HttpStatus.BAD_REQUEST);
 
 
                 Set<String> keys = new HashSet<>();
                 try {
-                    Ssp sspForRemoval = sspRepository.findOne(sspManagementRequest.getSspInstanceId());
+                    SmartSpace sspForRemoval = smartSpaceRepository.findOne(sspManagementRequest.getSspInstanceId());
                     if (!sspForRemoval.getSspOwner().getUsername().equals(sspManagementRequest.getSspOwnerCredentials().getUsername()))
                         throw new SspManagementException(SspManagementException.USER_IS_NOT_A_SSP_OWNER, HttpStatus.BAD_REQUEST);
                     // adding ssp AAM certificate for revocation
@@ -221,7 +221,7 @@ public class SspManagementService {
                     throw new SspManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
                 }
 
-                sspRepository.delete(sspManagementRequest.getSspInstanceId());
+                smartSpaceRepository.delete(sspManagementRequest.getSspInstanceId());
                 // unbinding the ssp from the platform owner
                 sspOwner.getOwnedServices().remove(sspManagementRequest.getSspInstanceId());
                 userRepository.save(sspOwner);

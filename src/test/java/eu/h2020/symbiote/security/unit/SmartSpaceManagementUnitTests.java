@@ -13,7 +13,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsExce
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.SspManagementRequest;
 import eu.h2020.symbiote.security.communication.payloads.SspManagementResponse;
-import eu.h2020.symbiote.security.repositories.entities.Ssp;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.SspManagementService;
 import org.junit.Before;
@@ -25,7 +25,7 @@ import org.springframework.test.context.TestPropertySource;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
-public class SspManagementUnitTests extends
+public class SmartSpaceManagementUnitTests extends
         AbstractAAMTestSuite {
 
     private final String preferredSspId = SecurityConstants.SSP_IDENTIFIER_PREFIX + "preferredSspId";
@@ -48,7 +48,7 @@ public class SspManagementUnitTests extends
         super.setUp();
 
         // db cleanup
-        sspRepository.deleteAll();
+        smartSpaceRepository.deleteAll();
         userRepository.deleteAll();
 
         //user registration useful
@@ -73,7 +73,7 @@ public class SspManagementUnitTests extends
     public void sspRegistrationWithPreferredSspIdSuccess() throws
             SecurityException {
         // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(sspRepository.exists(preferredSspId));
+        assertFalse(smartSpaceRepository.exists(preferredSspId));
         assertTrue(userRepository.exists(sspOwnerUsername));
         User sspOwner = userRepository.findOne(sspOwnerUsername);
         assertTrue(sspOwner.getOwnedServices().isEmpty());
@@ -90,7 +90,7 @@ public class SspManagementUnitTests extends
         assertEquals(UserRole.SSP_OWNER, sspOwnerFromRepository.getRole());
 
         // verify that ssp with preferred id is in repository and is tied with the given SO
-        Ssp registeredSsp = sspRepository.findOne(preferredSspId);
+        SmartSpace registeredSsp = smartSpaceRepository.findOne(preferredSspId);
         assertNotNull(registeredSsp);
         // verify that ssp oriented fields are properly stored
         assertEquals(sspExternalInterworkingInterfaceAddress, registeredSsp.getSspExternalInterworkingInterfaceAddress());
@@ -140,7 +140,7 @@ public class SspManagementUnitTests extends
         assertTrue(registeredSspOwner.getOwnedServices().contains(generatedSspId));
 
         // verify that ssp with the generated id is in repository and is tied with the given SO
-        Ssp registeredSsp = sspRepository.findOne(generatedSspId);
+        SmartSpace registeredSsp = smartSpaceRepository.findOne(generatedSspId);
         assertNotNull(registeredSsp);
         assertEquals(sspOwnerUsername, registeredSsp.getSspOwner().getUsername());
 
@@ -303,7 +303,7 @@ public class SspManagementUnitTests extends
     @Test
     public void sspRegistrationFailUnauthorized() {
         // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(sspRepository.exists(preferredSspId));
+        assertFalse(smartSpaceRepository.exists(preferredSspId));
         assertTrue(userRepository.exists(sspOwnerUsername));
 
         // issue ssp registration with wrong AAMOwnerUsername
@@ -315,7 +315,7 @@ public class SspManagementUnitTests extends
             assertEquals(new WrongCredentialsException().getErrorMessage(), s.getErrorMessage());
         }
         // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(sspRepository.exists(preferredSspId));
+        assertFalse(smartSpaceRepository.exists(preferredSspId));
         assertTrue(userRepository.exists(sspOwnerUsername));
 
         // issue ssp registration with wrong AAMOwnerPassword
@@ -329,14 +329,14 @@ public class SspManagementUnitTests extends
         }
 
         // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(sspRepository.exists(preferredSspId));
+        assertFalse(smartSpaceRepository.exists(preferredSspId));
         assertTrue(userRepository.exists(sspOwnerUsername));
     }
 
     @Test
     public void sspRegistrationFailMissingExposedURL() {
         // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(sspRepository.exists(preferredSspId));
+        assertFalse(smartSpaceRepository.exists(preferredSspId));
         assertTrue(userRepository.exists(sspOwnerUsername));
 
         // issue ssp registration without exposed II
@@ -379,7 +379,7 @@ public class SspManagementUnitTests extends
     @Test
     public void sspUpdateFailMissingExposedURL() throws SecurityException {
         // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(sspRepository.exists(preferredSspId));
+        assertFalse(smartSpaceRepository.exists(preferredSspId));
         assertTrue(userRepository.exists(sspOwnerUsername));
 
         //register SSP with exposed internal II - external is empty
@@ -409,10 +409,10 @@ public class SspManagementUnitTests extends
     @Test
     public void sspRegistrationFailMissingFriendlyName() {
         // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(sspRepository.exists(preferredSspId));
+        assertFalse(smartSpaceRepository.exists(preferredSspId));
         assertTrue(userRepository.exists(sspOwnerUsername));
 
-        // issue ssp registration without required Ssp's instance friendly name
+        // issue ssp registration without required SmartSpace's instance friendly name
         sspManagementRequest = new SspManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 sspOwnerUserCredentials,
@@ -433,14 +433,14 @@ public class SspManagementUnitTests extends
     @Test
     public void sspRegistrationFailExistingPreferredSspId() throws SecurityException {
         // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(sspRepository.exists(preferredSspId));
+        assertFalse(smartSpaceRepository.exists(preferredSspId));
         assertTrue(userRepository.exists(sspOwnerUsername));
 
         // issue ssp registration
         SspManagementResponse sspManagementResponse = sspManagementService.authManage(sspManagementRequest);
         assertEquals(ManagementStatus.OK, sspManagementResponse.getManagementStatus());
 
-        assertNotNull(sspRepository.findOne(preferredSspId));
+        assertNotNull(smartSpaceRepository.findOne(preferredSspId));
 
         User user = createUser(sspOwnerUsername + "differentOne", sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
         userRepository.save(user);
@@ -476,7 +476,7 @@ public class SspManagementUnitTests extends
         //ensure ssp is registered
         assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
         // verify that SO was properly updated in repository with new ssp ownership
-        Ssp registeredSsp = sspRepository.findOne(preferredSspId);
+        SmartSpace registeredSsp = smartSpaceRepository.findOne(preferredSspId);
         assertNotNull(registeredSsp);
         // verify that ssp oriented fields are properly stored
         assertEquals(sspExternalInterworkingInterfaceAddress + "dif", registeredSsp.getSspExternalInterworkingInterfaceAddress());
@@ -489,7 +489,7 @@ public class SspManagementUnitTests extends
         // verify that our sspOwner is in repository
         assertTrue(userRepository.exists(sspOwnerUsername));
         // verify that our ssp is not in repository
-        assertFalse(sspRepository.exists(preferredSspId));
+        assertFalse(smartSpaceRepository.exists(preferredSspId));
 
         sspManagementRequest = new SspManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -545,8 +545,8 @@ public class SspManagementUnitTests extends
                 exposedInternalII);
         sspRegistrationResponse = sspManagementService.authManage(sspManagementRequest);
         assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
-        assertFalse(sspRepository.exists(preferredSspId));
-        assertTrue(sspRepository.exists(preferredSspId + "2"));
+        assertFalse(smartSpaceRepository.exists(preferredSspId));
+        assertTrue(smartSpaceRepository.exists(preferredSspId + "2"));
 
         // delete ssp 2
         sspManagementRequest = new SspManagementRequest(
@@ -560,7 +560,7 @@ public class SspManagementUnitTests extends
                 exposedInternalII);
         sspRegistrationResponse = sspManagementService.authManage(sspManagementRequest);
         assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
-        assertFalse(sspRepository.exists(preferredSspId + "2"));
+        assertFalse(smartSpaceRepository.exists(preferredSspId + "2"));
 
         assertTrue(userRepository.findOne(sspOwnerUsername).getOwnedServices().isEmpty());
     }
@@ -569,7 +569,7 @@ public class SspManagementUnitTests extends
     public void sspDeleteFailNotExistingSsp() {
         // verify that our sspOwner is in repository
         assertTrue(userRepository.exists(sspOwnerUsername));
-        assertFalse(sspRepository.exists(preferredSspId));
+        assertFalse(smartSpaceRepository.exists(preferredSspId));
         // delete not existing platform
         sspManagementRequest = new SspManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),

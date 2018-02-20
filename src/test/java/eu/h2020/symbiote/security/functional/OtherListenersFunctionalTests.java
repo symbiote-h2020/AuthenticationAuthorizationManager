@@ -14,7 +14,7 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
-import eu.h2020.symbiote.security.repositories.entities.Ssp;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.junit.Before;
 import org.junit.Test;
@@ -50,13 +50,6 @@ public class OtherListenersFunctionalTests extends
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
-    private final String preferredSspId = "preferredSspId";
-    private final String sspInstanceFriendlyName = "friendlySspName";
-    private final String sspExternalInterworkingInterfaceAddress =
-            "https://ssp.external:8101/someFancyHiddenPath/andHiddenAgain";
-    private final String sspInternalInterworkingInterfaceAddress =
-            "https://ssp.internal:8101/someFancyHiddenPath";
-    private final boolean exposedIIAddress = true;
 
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
@@ -153,12 +146,12 @@ public class OtherListenersFunctionalTests extends
         platformRepository.save(platform);
 
         // issue ssp registration
-        Ssp ssp = new Ssp(preferredSspId, sspExternalInterworkingInterfaceAddress, sspInternalInterworkingInterfaceAddress, exposedIIAddress, sspInstanceFriendlyName, new Certificate(), new HashMap<>(), sspOwner);
+        SmartSpace ssp = new SmartSpace(preferredSspId, sspExternalInterworkingInterfaceAddress, sspInternalInterworkingInterfaceAddress, exposedIIAddress, sspInstanceFriendlyName, new Certificate(), new HashMap<>(), sspOwner);
         // inject platform AAM Cert
         Certificate sspAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1")));
         ssp.setSspAAMCertificate(sspAAMCertificate);
         // save the certs into the repo
-        sspRepository.save(ssp);
+        smartSpaceRepository.save(ssp);
 
 
         AvailableAAMsCollection response = aamClient.getAvailableAAMs();
@@ -167,14 +160,14 @@ public class OtherListenersFunctionalTests extends
         // there should be only core AAM in the list
         assertEquals(3, aams.size());
         // verifying the contents
-        // first should be served the core AAM
-        AAM coreAAM = (AAM) aams.values().toArray()[0];
+        AAM coreAAM = aams.get(SecurityConstants.CORE_AAM_INSTANCE_ID);
         // this expected PlatformAAM is due to the value stored in the issued certificate in the test keystore
         assertEquals(SecurityConstants.CORE_AAM_INSTANCE_ID, coreAAM.getAamInstanceId());
         assertEquals(coreInterfaceAddress, coreAAM.getAamAddress());
         assertEquals(SecurityConstants.CORE_AAM_FRIENDLY_NAME, coreAAM.getAamInstanceFriendlyName());
         // then comes the registered platform
-        AAM platformAAM = (AAM) aams.values().toArray()[1];
+        assertTrue(aams.containsKey(preferredPlatformId));
+        AAM platformAAM = aams.get(preferredPlatformId);
         assertEquals(preferredPlatformId, platformAAM.getAamInstanceId());
         assertEquals(platformInterworkingInterfaceAddress + platformAAMSuffixAtInterWorkingInterface, platformAAM
                 .getAamAddress());
@@ -182,7 +175,8 @@ public class OtherListenersFunctionalTests extends
         assertEquals(platformAAMCertificate.getCertificateString(), platformAAM.getAamCACertificate().getCertificateString());
         assertEquals(0, platformAAM.getComponentCertificates().size());
         // and then comes the registered ssp
-        AAM sspAAM = (AAM) aams.values().toArray()[2];
+        assertTrue(aams.containsKey(preferredSspId));
+        AAM sspAAM = aams.get(preferredSspId);
         assertEquals(preferredSspId, sspAAM.getAamInstanceId());
         if (exposedIIAddress) {
             assertEquals(sspInternalInterworkingInterfaceAddress, sspAAM.getAamAddress());

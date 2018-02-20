@@ -28,9 +28,9 @@ import java.io.UnsupportedEncodingException;
  */
 @Profile("core")
 @Component
-public class SspManagementRequestConsumerService {
+public class SmartSpacesManagementRequestConsumerService {
 
-    private static Log log = LogFactory.getLog(SspManagementRequestConsumerService.class);
+    private static Log log = LogFactory.getLog(SmartSpacesManagementRequestConsumerService.class);
     @Autowired
     private SspManagementService sspManagementService;
 
@@ -62,7 +62,7 @@ public class SspManagementRequestConsumerService {
 
             try {
                 SspManagementRequest request = om.readValue(message, SspManagementRequest.class);
-                log.debug("[x] Received Ssp Management Request for: " + request.getSspOwnerCredentials().getUsername());
+                log.debug("[x] Received SmartSpace Management Request for: " + request.getSspOwnerCredentials().getUsername());
                 return om.writeValueAsBytes(sspManagementService.authManage(request));
             } catch (SecurityException e) {
                 log.error(e);

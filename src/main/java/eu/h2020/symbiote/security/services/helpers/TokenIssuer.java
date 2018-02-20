@@ -128,6 +128,10 @@ public class TokenIssuer {
                 case PLATFORM:
                     // TODO R3 federation
                     break;
+                case SSP:
+                    // TODO
+                    break;
+
                 case NULL:
                     throw new JWTCreationException(JWTCreationException.MISCONFIGURED_AAM_DEPLOYMENT_TYPE);
             }

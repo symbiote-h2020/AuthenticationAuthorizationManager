@@ -111,10 +111,10 @@ public class UsersManagementService {
     	log.debug("Received a request for user management");
         UserDetails userDetails = userManagementRequest.getUserDetails();
 
-        // Platform AAM does not support registering platform owners
-        if (deploymentType == IssuingAuthorityType.PLATFORM
+        // Only CORE AAM supports registering platform and smart spaces owners
+        if (deploymentType != IssuingAuthorityType.CORE
                 && userDetails.getRole() != UserRole.USER) {
-        	log.error("Platform AAM does not support registering platform owners");
+            log.error("Only Core AAM support registration of platform and SSP owners");
             throw new InvalidArgumentsException();
         }
 

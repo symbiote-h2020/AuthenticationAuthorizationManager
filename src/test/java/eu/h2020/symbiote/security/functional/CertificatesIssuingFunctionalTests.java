@@ -9,6 +9,7 @@ import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.junit.Test;
 import org.springframework.test.context.TestPropertySource;
@@ -172,7 +173,7 @@ public class CertificatesIssuingFunctionalTests extends
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
 
@@ -180,6 +181,37 @@ public class CertificatesIssuingFunctionalTests extends
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
         assertNotNull(x509Certificate);
         assertEquals("CN=" + platform.getPlatformInstanceId(), x509Certificate.getSubjectDN().getName());
+    }
+
+    @Test
+    public void getSspAAMCertificateOverRESTSuccess() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            CertificateException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            AAMException {
+
+        User sspOwner = createUser(sspOwnerUsername, sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
+        // issue ssp registration
+        SmartSpace ssp = new SmartSpace(preferredSspId, sspExternalInterworkingInterfaceAddress, sspInternalInterworkingInterfaceAddress, exposedIIAddress, sspInstanceFriendlyName, new Certificate(), new HashMap<>(), sspOwner);
+        smartSpaceRepository.save(ssp);
+        sspOwner.getOwnedServices().add(preferredSspId);
+        userRepository.save(sspOwner);
+
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(ssp.getSspInstanceId(), pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(sspOwnerUsername, sspOwnerPassword, clientId, csrString);
+
+        String clientCertificate = aamClient.signCertificateRequest(certRequest);
+        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + ssp.getSspInstanceId(), x509Certificate.getSubjectDN().getName());
     }
 
     @Test
@@ -208,7 +240,7 @@ public class CertificatesIssuingFunctionalTests extends
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
 
@@ -218,7 +250,7 @@ public class CertificatesIssuingFunctionalTests extends
         assertEquals("CN=" + platform.getPlatformInstanceId(), x509Certificate.getSubjectDN().getName());
 
         pair = CryptoHelper.createKeyPair();
-        csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
+        csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
         assertNotNull(csrString);
         certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
         clientCertificate = aamClient.signCertificateRequest(certRequest);

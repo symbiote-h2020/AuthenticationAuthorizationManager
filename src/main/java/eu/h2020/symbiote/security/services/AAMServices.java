@@ -10,10 +10,10 @@ import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
-import eu.h2020.symbiote.security.repositories.SspRepository;
+import eu.h2020.symbiote.security.repositories.SmartSpaceRepository;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
-import eu.h2020.symbiote.security.repositories.entities.Ssp;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,7 +39,7 @@ public class AAMServices {
     private static Log log = LogFactory.getLog(AAMServices.class);
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PlatformRepository platformRepository;
-    private final SspRepository sspRepository;
+    private final SmartSpaceRepository smartSpaceRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final String coreInterfaceAddress;
     private final String platformAAMSuffixAtInterWorkingInterface;
@@ -49,7 +49,7 @@ public class AAMServices {
     @Autowired
     public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper,
                        PlatformRepository platformRepository,
-                       SspRepository sspRepository,
+                       SmartSpaceRepository smartSpaceRepository,
                        ComponentCertificatesRepository componentCertificatesRepository,
                        @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
                        @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}") String platformAAMSuffixAtInterWorkingInterface,
@@ -58,7 +58,7 @@ public class AAMServices {
     ) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.platformRepository = platformRepository;
-        this.sspRepository = sspRepository;
+        this.smartSpaceRepository = smartSpaceRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.coreInterfaceAddress = coreInterfaceAddress;
         this.platformAAMSuffixAtInterWorkingInterface = platformAAMSuffixAtInterWorkingInterface;
@@ -109,7 +109,7 @@ public class AAMServices {
                 availableAAMs.put(platformAAM.getAamInstanceId(), platformAAM);
             }
             // registered ssps' AAMs
-            for (Ssp ssp : sspRepository.findAll()) {
+            for (SmartSpace ssp : smartSpaceRepository.findAll()) {
                 String usedII = ssp.isExposedInternalInterworkingInterfaceAddress() ?
                         ssp.getSspInternalInterworkingInterfaceAddress() : ssp.getSspExternalInterworkingInterfaceAddress();
                 AAM sspAAM = new AAM(usedII, ssp.getSspInstanceFriendlyName(), ssp.getSspInstanceId(),

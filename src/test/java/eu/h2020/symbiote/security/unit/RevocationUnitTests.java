@@ -79,7 +79,8 @@ public class RevocationUnitTests extends
             ValidationException,
             PlatformManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            SspManagementException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -115,13 +116,14 @@ public class RevocationUnitTests extends
             ValidationException,
             PlatformManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            SspManagementException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
         String certificateString = signCertificateRequestService.signCertificate(certRequest);
@@ -163,7 +165,8 @@ public class RevocationUnitTests extends
             ValidationException,
             PlatformManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            SspManagementException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -197,7 +200,8 @@ public class RevocationUnitTests extends
             ValidationException,
             PlatformManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            SspManagementException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -270,7 +274,8 @@ public class RevocationUnitTests extends
             ValidationException,
             PlatformManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            SspManagementException {
 
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -319,13 +324,14 @@ public class RevocationUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             IOException,
-            CertificateException {
+            CertificateException,
+            SspManagementException {
         User platformOwner = savePlatformOwner();
         KeyPair pair = CryptoHelper.createKeyPair();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
         //create platform certificate
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
         String certificate = signCertificateRequestService.signCertificate(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(certificate));
@@ -350,7 +356,7 @@ public class RevocationUnitTests extends
 
         //create new certificate for platform
         pair = CryptoHelper.createKeyPair();
-        csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
         String certificateNew = signCertificateRequestService.signCertificate(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(certificateNew));
@@ -375,13 +381,14 @@ public class RevocationUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             IOException,
-            CertificateException {
+            CertificateException,
+            SspManagementException {
         User platformOwner = savePlatformOwner();
         KeyPair pair = CryptoHelper.createKeyPair();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
         //create platform certificate
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
         String certificate = signCertificateRequestService.signCertificate(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(certificate));
@@ -391,7 +398,7 @@ public class RevocationUnitTests extends
 
         //create new certificate for platform
         pair = CryptoHelper.createKeyPair();
-        csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
 
         String certFromCSR = signCertificateRequestService.signCertificate(certRequest);
@@ -420,7 +427,8 @@ public class RevocationUnitTests extends
             ValidationException,
             PlatformManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            SspManagementException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -460,12 +468,13 @@ public class RevocationUnitTests extends
             ValidationException,
             PlatformManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            SspManagementException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
         String certificateString = signCertificateRequestService.signCertificate(certRequest);
@@ -538,7 +547,8 @@ public class RevocationUnitTests extends
             InvalidAlgorithmParameterException,
             InvalidArgumentsException,
             PlatformManagementException,
-            UserManagementException {
+            UserManagementException,
+            SspManagementException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -576,12 +586,13 @@ public class RevocationUnitTests extends
             InvalidAlgorithmParameterException,
             InvalidArgumentsException,
             PlatformManagementException,
-            UserManagementException {
+            UserManagementException,
+            SspManagementException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
         String platformCertificate = signCertificateRequestService.signCertificate(certRequest);
@@ -657,7 +668,8 @@ public class RevocationUnitTests extends
             PlatformManagementException,
             UserManagementException,
             MalformedJWTException,
-            ClassNotFoundException {
+            ClassNotFoundException,
+            SspManagementException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -665,7 +677,7 @@ public class RevocationUnitTests extends
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
         String certificateString = signCertificateRequestService.signCertificate(certRequest);
@@ -867,7 +879,8 @@ public class RevocationUnitTests extends
             ValidationException,
             PlatformManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            SspManagementException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -904,14 +917,15 @@ public class RevocationUnitTests extends
             ValidationException,
             PlatformManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            SspManagementException {
         //platform certificate revoking
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
         String certificateString = signCertificateRequestService.signCertificate(certRequest);
@@ -1025,7 +1039,8 @@ public class RevocationUnitTests extends
             CertificateException,
             KeyStoreException,
             UnrecoverableKeyException,
-            ValidationException {
+            ValidationException,
+            SspManagementException {
         String cert = CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
                 "core.p12",
                 "registry-core-1"));

@@ -78,6 +78,10 @@ public class CertificationAuthorityHelper {
                 if (certificate_alias.equals(root_ca_certificate_alias))
                     throw new SecurityMisconfigurationException("Platform AAM certificate must be different from Core AAM - root certificate");
                 break;
+            case SSP:
+                if (certificate_alias.equals(root_ca_certificate_alias))
+                    throw new SecurityMisconfigurationException("Smart Space AAM certificate must be different from Core AAM - root certificate");
+                break;
             case NULL:
                 throw new CertificateException("Failed to initialize AAM using given symbiote keystore");
         }
@@ -99,6 +103,8 @@ public class CertificationAuthorityHelper {
             return IssuingAuthorityType.NULL;
         if (aamInstanceIdentifier.equals(SecurityConstants.CORE_AAM_INSTANCE_ID))
             return IssuingAuthorityType.CORE;
+        if (aamInstanceIdentifier.startsWith(SecurityConstants.SSP_IDENTIFIER_PREFIX))
+            return IssuingAuthorityType.SSP;
         return IssuingAuthorityType.PLATFORM;
     }
 

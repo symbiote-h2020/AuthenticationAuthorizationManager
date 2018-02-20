@@ -83,6 +83,14 @@ public abstract class AbstractAAMTestSuite {
     protected final String platformOwnerUsername = "testPlatformOwnerUsername";
     protected final String platformOwnerPassword = "testPlatformOwnerPassword";
     protected final String recoveryMail = "null@dev.null";
+    protected final String preferredSspId = SecurityConstants.SSP_IDENTIFIER_PREFIX + "preferredSspId";
+    protected final String sspInstanceFriendlyName = "friendlySspName";
+    protected final String sspExternalInterworkingInterfaceAddress =
+            "https://ssp.external:8101/someFancyHiddenPath/andHiddenAgain";
+    protected final String sspInternalInterworkingInterfaceAddress =
+            "https://ssp.internal:8101/someFancyHiddenPath";
+    protected final boolean exposedIIAddress = true;
+
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
     protected KeyPair userKeyPair;
@@ -105,7 +113,7 @@ public abstract class AbstractAAMTestSuite {
     @Autowired
     protected UsersManagementService usersManagementService;
     @Autowired
-    protected SspRepository sspRepository;
+    protected SmartSpaceRepository smartSpaceRepository;
     protected ObjectMapper mapper = new ObjectMapper();
     protected String serverAddress;
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
@@ -217,6 +225,7 @@ public abstract class AbstractAAMTestSuite {
         revokedKeysRepository.deleteAll();
         revokedTokensRepository.deleteAll();
         platformRepository.deleteAll();
+        smartSpaceRepository.deleteAll();
         componentCertificatesRepository.deleteAll();
         localUsersAttributesRepository.deleteAll();
     }

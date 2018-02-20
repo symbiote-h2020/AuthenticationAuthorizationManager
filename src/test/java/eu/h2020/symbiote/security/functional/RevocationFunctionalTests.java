@@ -14,6 +14,7 @@ import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.CredentialsValidationService;
 import eu.h2020.symbiote.security.services.GetTokenService;
@@ -48,6 +49,7 @@ public class RevocationFunctionalTests extends
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
+
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     String coreInterfaceAddress;
     @Autowired
@@ -129,7 +131,7 @@ public class RevocationFunctionalTests extends
         userRepository.save(user);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
 
         assertNotNull(csrString);
 
@@ -143,6 +145,44 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentials(new Credentials(username, password));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificatePEMString(platformCertificate);
+
+        assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
+    }
+
+    @Test
+    public void revokeSspCertificateUsingCertificateOverRESTSuccess() throws
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            AAMException,
+            KeyStoreException, InvalidAlgorithmParameterException, NotExistingUserException, ValidationException {
+
+        User user = createUser(username, password, recoveryMail, UserRole.SSP_OWNER);
+        userRepository.save(user);
+        // issue ssp registration
+        SmartSpace ssp = new SmartSpace(preferredSspId, sspExternalInterworkingInterfaceAddress, sspInternalInterworkingInterfaceAddress, exposedIIAddress, sspInstanceFriendlyName, new Certificate(), new HashMap<>(), user);
+        smartSpaceRepository.save(ssp);
+        // inject service AAM Cert
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSspId, pair);
+
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        String sspCertificate = aamClient.signCertificateRequest(certRequest);
+        ssp.setSspAAMCertificate(new Certificate(sspCertificate));
+        // save the certs into the repo
+        smartSpaceRepository.save(ssp);
+
+        user.getOwnedServices().add(preferredSspId);
+        userRepository.save(user);
+
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentials(new Credentials(username, password));
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificatePEMString(sspCertificate);
 
         assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
     }
@@ -258,7 +298,7 @@ public class RevocationFunctionalTests extends
         userRepository.save(user);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
 
         assertNotNull(csrString);
 
@@ -272,6 +312,44 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentials(new Credentials(username, password));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificateCommonName(platformId);
+
+        assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
+    }
+
+    @Test
+    public void revokeSspCertificateUsingCommonNameOverRESTSuccess() throws
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            AAMException,
+            KeyStoreException, InvalidAlgorithmParameterException, NotExistingUserException, ValidationException {
+
+        User user = createUser(username, password, recoveryMail, UserRole.SSP_OWNER);
+        userRepository.save(user);
+        // issue ssp registration
+        SmartSpace ssp = new SmartSpace(preferredSspId, sspExternalInterworkingInterfaceAddress, sspInternalInterworkingInterfaceAddress, exposedIIAddress, sspInstanceFriendlyName, new Certificate(), new HashMap<>(), user);
+        smartSpaceRepository.save(ssp);
+        // inject ssp AAM Cert
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSspId, pair);
+
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        String sspCertificate = aamClient.signCertificateRequest(certRequest);
+        ssp.setSspAAMCertificate(new Certificate(sspCertificate));
+        // save the certs into the repo
+        smartSpaceRepository.save(ssp);
+
+        user.getOwnedServices().add(preferredSspId);
+        userRepository.save(user);
+
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentials(new Credentials(username, password));
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        revocationRequest.setCertificateCommonName(preferredSspId);
 
         assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
     }

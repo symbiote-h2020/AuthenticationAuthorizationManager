@@ -13,7 +13,7 @@ import java.util.Map;
  * @author Jakub Toczek (PSNC)
  * @author Mikołaj Dobski (PSNC)
  */
-public class Ssp {
+public class SmartSpace {
 
     @Id
     private final String sspInstanceId;
@@ -28,21 +28,21 @@ public class Ssp {
 
     /**
      * @param sspInstanceId                               SymbIoTe-unique ssp identifier
-     * @param sspExternalInterworkingInterfaceAddress     Address where the Ssp exposes its Interworking Interface
-     * @param sspInternalInterworkingInterfaceAddress     Address where the Ssp exposes its Interworking Interface inside it's internal network
+     * @param sspExternalInterworkingInterfaceAddress     Address where the SmartSpace exposes its Interworking Interface
+     * @param sspInternalInterworkingInterfaceAddress     Address where the SmartSpace exposes its Interworking Interface inside it's internal network
      * @param exposedInternalInterworkingInterfaceAddress should sspInternalInterworkingInterfaceAddress be exposed
      * @param sspInstanceFriendlyName                     a label for the end user to be able to identify the getHomeToken
      *                                                    endrypoint
-     * @param sspOwner                                    details of the Ssp Owner
+     * @param sspOwner                                    details of the SmartSpace Owner
      */
-    public Ssp(String sspInstanceId,
-               String sspExternalInterworkingInterfaceAddress,
-               String sspInternalInterworkingInterfaceAddress,
-               boolean exposedInternalInterworkingInterfaceAddress,
-               String sspInstanceFriendlyName,
-               Certificate sspAAMCertificate,
-               Map<String, Certificate> componentCertificates,
-               User sspOwner) {
+    public SmartSpace(String sspInstanceId,
+                      String sspExternalInterworkingInterfaceAddress,
+                      String sspInternalInterworkingInterfaceAddress,
+                      boolean exposedInternalInterworkingInterfaceAddress,
+                      String sspInstanceFriendlyName,
+                      Certificate sspAAMCertificate,
+                      Map<String, Certificate> componentCertificates,
+                      User sspOwner) {
         this.sspInstanceId = sspInstanceId;
         this.sspExternalInterworkingInterfaceAddress = sspExternalInterworkingInterfaceAddress;
         this.sspInternalInterworkingInterfaceAddress = sspInternalInterworkingInterfaceAddress;
