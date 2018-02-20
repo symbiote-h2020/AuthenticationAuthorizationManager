@@ -13,7 +13,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsExce
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.SspManagementRequest;
 import eu.h2020.symbiote.security.communication.payloads.SspManagementResponse;
-import eu.h2020.symbiote.security.repositories.SspRepository;
 import eu.h2020.symbiote.security.repositories.entities.Ssp;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.SspManagementService;
@@ -40,8 +39,6 @@ public class SspManagementUnitTests extends
     String coreInterfaceAddress;
     private Credentials sspOwnerUserCredentials;
     private SspManagementRequest sspManagementRequest;
-    @Autowired
-    private SspRepository sspRepository;
     @Autowired
     private SspManagementService sspManagementService;
 

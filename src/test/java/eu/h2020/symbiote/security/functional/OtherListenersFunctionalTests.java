@@ -14,6 +14,7 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.Ssp;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,6 +50,14 @@ public class OtherListenersFunctionalTests extends
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
+    private final String preferredSspId = "preferredSspId";
+    private final String sspInstanceFriendlyName = "friendlySspName";
+    private final String sspExternalInterworkingInterfaceAddress =
+            "https://ssp.external:8101/someFancyHiddenPath/andHiddenAgain";
+    private final String sspInternalInterworkingInterfaceAddress =
+            "https://ssp.internal:8101/someFancyHiddenPath";
+    private final boolean exposedIIAddress = true;
+
     @Value("${rabbit.queue.ownedplatformdetails.request}")
     protected String ownedPlatformDetailsRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
@@ -62,6 +71,7 @@ public class OtherListenersFunctionalTests extends
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
     private User platformOwner;
+    private User sspOwner;
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -75,6 +85,7 @@ public class OtherListenersFunctionalTests extends
 
         //user registration useful
         platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
+        sspOwner = createUser(sspOwnerUsername, sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
         userRepository.save(platformOwner);
         // platform registration useful
         platformOwnerUserCredentials = new Credentials(platformOwner.getUsername(), platformOwner.getPasswordEncrypted());
@@ -127,7 +138,7 @@ public class OtherListenersFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getAvailableAAMsOverRESTWithRegisteredPlatform() throws SecurityException, IOException,
+    public void getAvailableAAMsOverRESTWithRegisteredServices() throws SecurityException, IOException,
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
@@ -141,11 +152,20 @@ public class OtherListenersFunctionalTests extends
         // save the certs into the repo
         platformRepository.save(platform);
 
+        // issue ssp registration
+        Ssp ssp = new Ssp(preferredSspId, sspExternalInterworkingInterfaceAddress, sspInternalInterworkingInterfaceAddress, exposedIIAddress, sspInstanceFriendlyName, new Certificate(), new HashMap<>(), sspOwner);
+        // inject platform AAM Cert
+        Certificate sspAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1")));
+        ssp.setSspAAMCertificate(sspAAMCertificate);
+        // save the certs into the repo
+        sspRepository.save(ssp);
+
+
         AvailableAAMsCollection response = aamClient.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
         // there should be only core AAM in the list
-        assertEquals(2, aams.size());
+        assertEquals(3, aams.size());
         // verifying the contents
         // first should be served the core AAM
         AAM coreAAM = (AAM) aams.values().toArray()[0];
@@ -161,6 +181,20 @@ public class OtherListenersFunctionalTests extends
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
         assertEquals(platformAAMCertificate.getCertificateString(), platformAAM.getAamCACertificate().getCertificateString());
         assertEquals(0, platformAAM.getComponentCertificates().size());
+        // and then comes the registered ssp
+        AAM sspAAM = (AAM) aams.values().toArray()[2];
+        assertEquals(preferredSspId, sspAAM.getAamInstanceId());
+        if (exposedIIAddress) {
+            assertEquals(sspInternalInterworkingInterfaceAddress, sspAAM.getAamAddress());
+        } else {
+            assertEquals(sspExternalInterworkingInterfaceAddress, sspAAM
+                    .getAamAddress());
+        }
+
+        assertEquals(sspInstanceFriendlyName, sspAAM.getAamInstanceFriendlyName());
+        assertEquals(sspAAMCertificate.getCertificateString(), sspAAM.getAamCACertificate().getCertificateString());
+        assertEquals(0, sspAAM.getComponentCertificates().size());
+
     }
 
     /**

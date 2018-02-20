@@ -104,6 +104,8 @@ public abstract class AbstractAAMTestSuite {
     protected CertificationAuthorityHelper certificationAuthorityHelper;
     @Autowired
     protected UsersManagementService usersManagementService;
+    @Autowired
+    protected SspRepository sspRepository;
     protected ObjectMapper mapper = new ObjectMapper();
     protected String serverAddress;
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
