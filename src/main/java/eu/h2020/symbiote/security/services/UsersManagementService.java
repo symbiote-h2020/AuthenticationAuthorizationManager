@@ -40,6 +40,7 @@ import java.util.Set;
  * @author Nemanja Ignjatov (UNIVIE)
  * @author Maksymilian Marcinowski (PSNC)
  * @author Mikołaj Dobski (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 @Service
 public class UsersManagementService {
@@ -111,11 +112,25 @@ public class UsersManagementService {
     	log.debug("Received a request for user management");
         UserDetails userDetails = userManagementRequest.getUserDetails();
 
-        // Only CORE AAM supports registering platform and smart spaces owners
-        if (deploymentType != IssuingAuthorityType.CORE
-                && userDetails.getRole() != UserRole.USER) {
-            log.error("Only Core AAM support registration of platform and SSP owners");
-            throw new InvalidArgumentsException();
+        // CORE AAM supports registering platform and smart spaces owners
+        // SSP AAM can supports registering platform owners
+        switch (deploymentType) {
+            case CORE:
+                break;
+            case SSP:
+                if (userDetails.getRole() != UserRole.USER &&
+                        userDetails.getRole() != UserRole.PLATFORM_OWNER) {
+                    log.error("SSP AAM supports registration of users and platform owners");
+                    throw new InvalidArgumentsException();
+                }
+                break;
+            case NULL:
+            case PLATFORM:
+                if (userDetails.getRole() != UserRole.USER) {
+                    log.error("This AAM does not support registration of users with this ");
+                    throw new InvalidArgumentsException();
+                }
+                break;
         }
 
         User userToManage = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
@@ -218,7 +233,7 @@ public class UsersManagementService {
 
         User user = userRepository.findOne(username);
         if (user.getOwnedServices() != null && !user.getOwnedServices().isEmpty())
-            throw new UserManagementException(UserManagementException.CANNOT_REMOVE_PLATFORM_OWNER_WITH_PLATFORMS, HttpStatus.BAD_REQUEST);
+            throw new UserManagementException(UserManagementException.CANNOT_REMOVE_SERVICE_OWNER_WITH_SERVICES, HttpStatus.BAD_REQUEST);
 
         // add user certificated to revoked repository
         Set<String> keys = new HashSet<>();
