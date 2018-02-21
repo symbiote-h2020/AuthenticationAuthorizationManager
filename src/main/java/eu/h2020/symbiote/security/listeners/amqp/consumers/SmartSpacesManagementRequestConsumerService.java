@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.communication.payloads.SspManagementRequest;
-import eu.h2020.symbiote.security.services.SspManagementService;
+import eu.h2020.symbiote.security.communication.payloads.SmartSpaceManagementRequest;
+import eu.h2020.symbiote.security.services.SmartSpacesManagementService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -32,11 +32,11 @@ public class SmartSpacesManagementRequestConsumerService {
 
     private static Log log = LogFactory.getLog(SmartSpacesManagementRequestConsumerService.class);
     @Autowired
-    private SspManagementService sspManagementService;
+    private SmartSpacesManagementService smartSpacesManagementService;
 
     @RabbitListener(bindings = @QueueBinding(
             value = @Queue(
-                    value = "${rabbit.queue.manage.ssp.request}",
+                    value = "${rabbit.queue.manage.smartspace.request}",
                     durable = "${rabbit.exchange.aam.durable}",
                     autoDelete = "${rabbit.exchange.aam.autodelete}",
                     exclusive = "false"),
@@ -47,9 +47,9 @@ public class SmartSpacesManagementRequestConsumerService {
                     autoDelete = "${rabbit.exchange.aam.autodelete}",
                     internal = "${rabbit.exchange.aam.internal}",
                     type = "${rabbit.exchange.aam.type}"),
-            key = "${rabbit.routingKey.manage.ssp.request}"))
+            key = "${rabbit.routingKey.manage.smartspace.request}"))
 
-    public byte[] sspManagement(byte[] body) {
+    public byte[] smartSpaceManagement(byte[] body) {
         try {
             String message;
             ObjectMapper om = new ObjectMapper();
@@ -61,9 +61,9 @@ public class SmartSpacesManagementRequestConsumerService {
             }
 
             try {
-                SspManagementRequest request = om.readValue(message, SspManagementRequest.class);
-                log.debug("[x] Received SmartSpace Management Request for: " + request.getSspOwnerCredentials().getUsername());
-                return om.writeValueAsBytes(sspManagementService.authManage(request));
+                SmartSpaceManagementRequest request = om.readValue(message, SmartSpaceManagementRequest.class);
+                log.debug("[x] Received SmartSpace Management Request for: " + request.getSmartSpaceOwnerCredentials().getUsername());
+                return om.writeValueAsBytes(smartSpacesManagementService.authManage(request));
             } catch (SecurityException e) {
                 log.error(e);
                 return om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), e.getStatusCode().value()));

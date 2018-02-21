@@ -7,8 +7,8 @@ import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.communication.payloads.SspManagementRequest;
-import eu.h2020.symbiote.security.communication.payloads.SspManagementResponse;
+import eu.h2020.symbiote.security.communication.payloads.SmartSpaceManagementRequest;
+import eu.h2020.symbiote.security.communication.payloads.SmartSpaceManagementResponse;
 import eu.h2020.symbiote.security.repositories.SmartSpaceRepository;
 import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -28,8 +28,8 @@ import static org.junit.Assert.*;
 public class SmartSpaceManagementFunctionalTests extends
         AbstractAAMTestSuite {
 
-    private Credentials sspOwnerUserCredentials;
-    private SspManagementRequest sspManagementRequest;
+    private Credentials smartSpaceOwnerUserCredentials;
+    private SmartSpaceManagementRequest smartSpaceManagementRequest;
     @Autowired
     private SmartSpaceRepository smartSpaceRepository;
     @Autowired
@@ -45,58 +45,58 @@ public class SmartSpaceManagementFunctionalTests extends
         userRepository.deleteAll();
 
         //user registration useful
-        User user = createUser(sspOwnerUsername, sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
+        User user = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
 
-        // ssp registration useful
-        sspOwnerUserCredentials = new Credentials(sspOwnerUsername, sspOwnerPassword);
-        sspManagementRequest = new SspManagementRequest(
+        // smartSpace registration useful
+        smartSpaceOwnerUserCredentials = new Credentials(smartSpaceOwnerUsername, smartSpaceOwnerPassword);
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
-                preferredSspId,
+                preferredSmartSpaceId,
                 true);
     }
 
     @Test
-    public void sspRegistrationOverAMQPSuccess() throws IOException {
+    public void smartSpaceRegistrationOverAMQPSuccess() throws IOException {
         // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSspId));
-        assertTrue(userRepository.exists(sspOwnerUsername));
-        User sspOwner = userRepository.findOne(sspOwnerUsername);
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        User sspOwner = userRepository.findOne(smartSpaceOwnerUsername);
         assertTrue(sspOwner.getOwnedServices().isEmpty());
 
         // issue ssp registration over AMQP
-        byte[] response = rabbitTemplate.sendAndReceive(sspManagementRequestQueue, new Message(mapper.writeValueAsBytes
-                (sspManagementRequest), new MessageProperties())).getBody();
-        SspManagementResponse sspRegistrationOverAMQPResponse = mapper.readValue(response,
-                SspManagementResponse.class);
+        byte[] response = rabbitTemplate.sendAndReceive(smartSpaceManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (smartSpaceManagementRequest), new MessageProperties())).getBody();
+        SmartSpaceManagementResponse sspRegistrationOverAMQPResponse = mapper.readValue(response,
+                SmartSpaceManagementResponse.class);
 
         // verify that we received the preferred sspId
-        assertEquals(preferredSspId, sspRegistrationOverAMQPResponse.getSspId());
+        assertEquals(preferredSmartSpaceId, sspRegistrationOverAMQPResponse.getSmartSpaceId());
         assertEquals(ManagementStatus.OK, sspRegistrationOverAMQPResponse.getManagementStatus());
         // verify that ssp is in repo with proper fields
-        SmartSpace registeredSsp = smartSpaceRepository.findOne(preferredSspId);
-        assertNotNull(registeredSsp);
-        assertEquals(sspOwnerUsername, registeredSsp.getSspOwner().getUsername());
-        assertEquals(sspInstanceFriendlyName, registeredSsp.getSspInstanceFriendlyName());
-        assertEquals(sspExternalInterworkingInterfaceAddress, registeredSsp.getSspExternalInterworkingInterfaceAddress());
-        assertEquals(sspInternalInterworkingInterfaceAddress, registeredSsp.getSspInternalInterworkingInterfaceAddress());
-        assertEquals(true, registeredSsp.isExposedInternalInterworkingInterfaceAddress());
+        SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
+        assertNotNull(registeredSmartSpace);
+        assertEquals(smartSpaceOwnerUsername, registeredSmartSpace.getSmartSpaceOwner().getUsername());
+        assertEquals(smartSpaceInstanceFriendlyName, registeredSmartSpace.getSmartSpaceInstanceFriendlyName());
+        assertEquals(smartSpaceExternalInterworkingInterfaceAddress, registeredSmartSpace.getSmartSpaceExternalInterworkingInterfaceAddress());
+        assertEquals(smartSpaceInternalInterworkingInterfaceAddress, registeredSmartSpace.getSmartSpaceInternalInterworkingInterfaceAddress());
+        assertEquals(true, registeredSmartSpace.isExposedInternalInterworkingInterfaceAddress());
     }
 
     @Test
     public void sspRegistrationOverAMQPFailErrorResponseContainerReceived() throws IOException {
         //set Interworking Interfaces to empty to cause error
-        sspManagementRequest.setSspExternalInterworkingInterfaceAddress("");
-        sspManagementRequest.setSspInternalInterworkingInterfaceAddress("");
+        smartSpaceManagementRequest.setSmartSpaceExternalInterworkingInterfaceAddress("");
+        smartSpaceManagementRequest.setSmartSpaceInternalInterworkingInterfaceAddress("");
 
         // issue ssp registration over AMQP
-        byte[] response = rabbitTemplate.sendAndReceive(sspManagementRequestQueue, new Message(mapper.writeValueAsBytes
-                (sspManagementRequest), new MessageProperties())).getBody();
+        byte[] response = rabbitTemplate.sendAndReceive(smartSpaceManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (smartSpaceManagementRequest), new MessageProperties())).getBody();
         ErrorResponseContainer sspRegistrationOverAMQPResponse = mapper.readValue(response,
                 ErrorResponseContainer.class);
 

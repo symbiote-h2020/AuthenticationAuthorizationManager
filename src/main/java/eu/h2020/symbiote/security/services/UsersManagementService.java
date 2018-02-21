@@ -113,16 +113,10 @@ public class UsersManagementService {
         UserDetails userDetails = userManagementRequest.getUserDetails();
 
         // CORE AAM supports registering platform and smart spaces owners
-        // SSP AAM can supports registering platform owners
+        // SMART_SPACE AAM can supports registering platform owners
         switch (deploymentType) {
             case CORE:
-                break;
-            case SSP:
-                if (userDetails.getRole() != UserRole.USER &&
-                        userDetails.getRole() != UserRole.PLATFORM_OWNER) {
-                    log.error("SSP AAM supports registration of users and platform owners");
-                    throw new InvalidArgumentsException();
-                }
+            case SMART_SPACE:
                 break;
             case NULL:
             case PLATFORM:

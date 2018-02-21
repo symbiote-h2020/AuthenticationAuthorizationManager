@@ -78,17 +78,17 @@ public abstract class AbstractAAMTestSuite {
     protected final String platformId = "test-PlatformId";
     protected final String componentId = "componentId";
     protected final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-    protected final String sspOwnerUsername = "testSspOwnerUsername";
-    protected final String sspOwnerPassword = "testSspOwnerPassword";
+    protected final String smartSpaceOwnerUsername = "testSmartSpaceOwnerUsername";
+    protected final String smartSpaceOwnerPassword = "testSmartSpaceOwnerPassword";
     protected final String platformOwnerUsername = "testPlatformOwnerUsername";
     protected final String platformOwnerPassword = "testPlatformOwnerPassword";
     protected final String recoveryMail = "null@dev.null";
-    protected final String preferredSspId = SecurityConstants.SSP_IDENTIFIER_PREFIX + "preferredSspId";
-    protected final String sspInstanceFriendlyName = "friendlySspName";
-    protected final String sspExternalInterworkingInterfaceAddress =
-            "https://ssp.external:8101/someFancyHiddenPath/andHiddenAgain";
-    protected final String sspInternalInterworkingInterfaceAddress =
-            "https://ssp.internal:8101/someFancyHiddenPath";
+    protected final String preferredSmartSpaceId = SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX + "preferredSmartSpaceId";
+    protected final String smartSpaceInstanceFriendlyName = "friendlySmartSpaceName";
+    protected final String smartSpaceExternalInterworkingInterfaceAddress =
+            "https://smartSpace.external:8101/someFancyHiddenPath/andHiddenAgain";
+    protected final String smartSpaceInternalInterworkingInterfaceAddress =
+            "https://smartSpace.internal:8101/someFancyHiddenPath";
     protected final boolean exposedIIAddress = true;
 
     @Rule
@@ -130,10 +130,10 @@ public abstract class AbstractAAMTestSuite {
     @Value("${rabbit.routingKey.manage.platform.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String platformManagementRoutingKey;
 
-    @Value("${rabbit.queue.manage.ssp.request:defaultOverridenBySpringConfigInCoreEnvironment}")
-    protected String sspManagementRequestQueue;
-    @Value("${rabbit.routingKey.manage.ssp.request:defaultOverridenBySpringConfigInCoreEnvironment}")
-    protected String sspManagementRoutingKey;
+    @Value("${rabbit.queue.manage.smartspace.request:defaultOverridenBySpringConfigInCoreEnvironment}")
+    protected String smartSpaceManagementRequestQueue;
+    @Value("${rabbit.routingKey.manage.smartspace.request:defaultOverridenBySpringConfigInCoreEnvironment}")
+    protected String smartSpaceManagementRoutingKey;
 
     @Value("${rabbit.queue.manage.revocation.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String revocationRequestQueue;
@@ -243,7 +243,7 @@ public abstract class AbstractAAMTestSuite {
 
     protected User savePlatformOwner() {
         User user = this.createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail,
-                UserRole.PLATFORM_OWNER);
+                UserRole.SERVICE_OWNER);
         userRepository.save(user);
 
         return user;

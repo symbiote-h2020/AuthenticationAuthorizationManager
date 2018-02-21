@@ -13,10 +13,10 @@ import org.springframework.data.mongodb.repository.MongoRepository;
 public interface SmartSpaceRepository extends MongoRepository<SmartSpace, String> {
 
     /**
-     * Used to retrieve ssp from repository knowing its SspOwner @{@link User}
+     * Used to retrieve smart spaces from repository knowing its Smart Space Owner @{@link User}
      *
-     * @param sspOwner user responsible for this ssp
+     * @param smartSpaceOwner user responsible for this smart space
      * @return @{@link SmartSpace} related with the given user
      */
-    SmartSpace findBySspOwner(User sspOwner);
+    SmartSpace findBySmartSpaceOwner(User smartSpaceOwner);
 }

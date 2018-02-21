@@ -79,10 +79,9 @@ public class SignCertificateRequestService {
             NotExistingUserException,
             InvalidArgumentsException,
             UserManagementException,
-            PlatformManagementException,
+            ServiceManagementException,
             ValidationException,
-            CertificateException,
-            SspManagementException {
+            CertificateException {
 
         String pem;
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
@@ -94,7 +93,7 @@ public class SignCertificateRequestService {
             pem = createPem(certFromCSR);
             putComponentCertificateToRepository(request, pem);
         }
-        //platform/ssp
+        //platform/smartSpace
         else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)$")) {
             X509Certificate certFromCSR = createServiceCertFromCSR(request);
             pem = createPem(certFromCSR);
@@ -129,8 +128,7 @@ public class SignCertificateRequestService {
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
         User user = null;
         PublicKey pubKey;
@@ -145,6 +143,7 @@ public class SignCertificateRequestService {
         }
 
         // component path
+        //TODO SAAM accepts serviceOwner accounts
         if (certificateRequest.getUsername().equals(AAMOwnerUsername)) {
             // password check
             if (!certificateRequest.getPassword().equals(AAMOwnerPassword))
@@ -158,7 +157,7 @@ public class SignCertificateRequestService {
             }
             componentRequestCheck(certificateRequest);
         }
-        // services path
+        // services path (platform, enabler, smartSpace)
         else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)$")) {
             if (revokedKeysRepository.exists(request.getSubject().toString().split("CN=")[1])
                     && revokedKeysRepository.findOne(request.getSubject().toString().split("CN=")[1]).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
@@ -199,10 +198,10 @@ public class SignCertificateRequestService {
                                                    String pem) throws CertificateException {
 
         String serviceId = req.getSubject().toString().split("CN=")[1];
-        if (serviceId.startsWith(SecurityConstants.SSP_IDENTIFIER_PREFIX)) {
-            SmartSpace ssp = smartSpaceRepository.findOne(serviceId);
-            ssp.setSspAAMCertificate(new Certificate(pem));
-            smartSpaceRepository.save(ssp);
+        if (serviceId.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
+            SmartSpace smartSpace = smartSpaceRepository.findOne(serviceId);
+            smartSpace.setSmartSpaceAAMCertificate(new Certificate(pem));
+            smartSpaceRepository.save(smartSpace);
         } else {
             Platform platform = platformRepository.findOne(serviceId);
             platform.setPlatformAAMCertificate(new Certificate(pem));
@@ -236,69 +235,67 @@ public class SignCertificateRequestService {
 
 
     private X509Certificate createServiceCertFromCSR(PKCS10CertificationRequest req)
-            throws PlatformManagementException {
+            throws ServiceManagementException {
         X509Certificate certFromCSR;
         try {
             certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, true);
         } catch (CertificateException e) {
             log.error(e);
-            //TODO do sth with the error (SSP)
-            throw new PlatformManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            //TODO do sth with the error (SMART_SPACE)
+            throw new ServiceManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return certFromCSR;
     }
 
     private X509Certificate createComponentCertFromCSR(PKCS10CertificationRequest req)
-            throws PlatformManagementException {
+            throws ServiceManagementException {
         X509Certificate certFromCSR;
         try {
             certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
         } catch (CertificateException e) {
             log.error(e);
-            throw new PlatformManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new ServiceManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         return certFromCSR;
     }
 
     private void serviceRequestCheck(CertificateRequest certificateRequest) throws
-            PlatformManagementException,
-            SspManagementException,
+            ServiceManagementException,
             NotExistingUserException {
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
-        if (request.getSubject().toString().split("CN=")[1].startsWith(SecurityConstants.SSP_IDENTIFIER_PREFIX)) {
-            sspRequestCheck(request, certificateRequest.getUsername());
-        } else {
-            platformRequestCheck(request, certificateRequest.getUsername());
-        }
-    }
-
-    private void platformRequestCheck(PKCS10CertificationRequest request, String username) throws
-            PlatformManagementException {
-        if (userRepository.findOne(username).getRole() != UserRole.PLATFORM_OWNER) {
-            throw new PlatformManagementException(PlatformManagementException.USER_IS_NOT_A_PLATFORM_OWNER, HttpStatus.UNAUTHORIZED);
-        }
-        if (!platformRepository.exists(request.getSubject().toString().split("CN=")[1])) {
-            throw new PlatformManagementException(PlatformManagementException.PLATFORM_NOT_EXIST, HttpStatus.UNAUTHORIZED);
-        }
-    }
-
-    private void sspRequestCheck(PKCS10CertificationRequest request, String username) throws SspManagementException, NotExistingUserException {
-        if (!userRepository.exists(username))
+        if (!userRepository.exists(certificateRequest.getUsername()))
             throw new NotExistingUserException();
-        if (userRepository.findOne(username).getRole() != UserRole.SSP_OWNER) {
-            throw new SspManagementException(SspManagementException.USER_IS_NOT_A_SSP_OWNER, HttpStatus.UNAUTHORIZED);
+        User user = userRepository.findOne(certificateRequest.getUsername());
+        if (user.getRole() != UserRole.SERVICE_OWNER
+                || !user.getOwnedServices().contains(request.getSubject().toString().split("CN=")[1])) {
+            throw new ServiceManagementException(ServiceManagementException.NO_RIGHTS, HttpStatus.UNAUTHORIZED);
         }
+        if (request.getSubject().toString().split("CN=")[1].startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
+            smartSpaceRequestCheck(request);
+        } else {
+            platformRequestCheck(request);
+        }
+    }
+
+    private void platformRequestCheck(PKCS10CertificationRequest request) throws
+            ServiceManagementException {
+        if (!platformRepository.exists(request.getSubject().toString().split("CN=")[1])) {
+            throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    private void smartSpaceRequestCheck(PKCS10CertificationRequest request) throws ServiceManagementException {
         if (!smartSpaceRepository.exists(request.getSubject().toString().split("CN=")[1])) {
-            throw new SspManagementException(SspManagementException.SSP_NOT_EXIST, HttpStatus.UNAUTHORIZED);
+            throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.UNAUTHORIZED);
         }
     }
 
     private void componentRequestCheck(CertificateRequest certificateRequest) throws
-            PlatformManagementException {
+            ServiceManagementException {
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
         // component id must not be AAM
         if (request.getSubject().toString().split("CN=")[1].split(illegalSign)[0].equals(SecurityConstants.AAM_COMPONENT_NAME))
-            throw new PlatformManagementException(PlatformManagementException.WRONG_WAY_TO_ISSUE_AAM_CERTIFICATE, HttpStatus.BAD_REQUEST);
+            throw new ServiceManagementException(ServiceManagementException.WRONG_WAY_TO_ISSUE_AAM_CERTIFICATE, HttpStatus.BAD_REQUEST);
     }
 }

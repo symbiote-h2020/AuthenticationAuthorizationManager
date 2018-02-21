@@ -78,7 +78,7 @@ public class CertificationAuthorityHelper {
                 if (certificate_alias.equals(root_ca_certificate_alias))
                     throw new SecurityMisconfigurationException("Platform AAM certificate must be different from Core AAM - root certificate");
                 break;
-            case SSP:
+            case SMART_SPACE:
                 if (certificate_alias.equals(root_ca_certificate_alias))
                     throw new SecurityMisconfigurationException("Smart Space AAM certificate must be different from Core AAM - root certificate");
                 break;
@@ -103,8 +103,8 @@ public class CertificationAuthorityHelper {
             return IssuingAuthorityType.NULL;
         if (aamInstanceIdentifier.equals(SecurityConstants.CORE_AAM_INSTANCE_ID))
             return IssuingAuthorityType.CORE;
-        if (aamInstanceIdentifier.startsWith(SecurityConstants.SSP_IDENTIFIER_PREFIX))
-            return IssuingAuthorityType.SSP;
+        if (aamInstanceIdentifier.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX))
+            return IssuingAuthorityType.SMART_SPACE;
         return IssuingAuthorityType.PLATFORM;
     }
 

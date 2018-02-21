@@ -7,7 +7,7 @@ import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.PlatformManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ServiceManagementException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
@@ -81,7 +81,7 @@ public class PlatformsManagementService {
         User platformOwner = userRepository.findOne(platformOwnerCredentials.getUsername());
         if (!platformOwnerCredentials.getPassword().equals(platformOwner.getPasswordEncrypted())
                 && !passwordEncoder.matches(platformOwnerCredentials.getPassword(), platformOwner.getPasswordEncrypted())
-                || !platformOwner.getRole().equals(UserRole.PLATFORM_OWNER)) {
+                || !platformOwner.getRole().equals(UserRole.SERVICE_OWNER)) {
             throw new WrongCredentialsException();
         }
 
@@ -102,21 +102,21 @@ public class PlatformsManagementService {
 
                 // check if platform already in repository
                 if (platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
-                    throw new PlatformManagementException(PlatformManagementException.PLATFORM_EXISTS, HttpStatus.BAD_REQUEST);
+                    throw new ServiceManagementException(ServiceManagementException.SERVICE_EXISTS, HttpStatus.BAD_REQUEST);
 
                 // TODO try to improve it in R4 somehow
                 // checking if Interworking interface isn't already used
                 for (Platform platform : platformRepository.findAll()) {
                     if (platform.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress()))
-                        throw new PlatformManagementException(PlatformManagementException.PLATFORM_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
+                        throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
                 }
 
                 if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME)
                         || platformManagementRequest.getPlatformInterworkingInterfaceAddress().equals(coreInterfaceAddress)
                         || !platformManagementRequest.getPlatformInstanceId().matches("^(([\\w-])+)$")
-                        || platformManagementRequest.getPlatformInstanceId().startsWith(SecurityConstants.SSP_IDENTIFIER_PREFIX))
+                        || platformManagementRequest.getPlatformInstanceId().startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX))
                     // such a name would pose awkward questions
-                    throw new PlatformManagementException(PlatformManagementException.AWKWARD_PLATFORM, HttpStatus.BAD_REQUEST);
+                    throw new ServiceManagementException(ServiceManagementException.AWKWARD_SERVICE, HttpStatus.BAD_REQUEST);
 
                 // use PO preferred platform identifier
                 platformId = platformManagementRequest.getPlatformInstanceId();
@@ -134,9 +134,9 @@ public class PlatformsManagementService {
             case UPDATE:
                 platform = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
                 if (platform == null)
-                    throw new PlatformManagementException(PlatformManagementException.PLATFORM_NOT_EXIST, HttpStatus.BAD_REQUEST);
+                    throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
                 if (!platformOwner.getOwnedServices().contains(platformManagementRequest.getPlatformInstanceId())) {
-                    throw new PlatformManagementException(PlatformManagementException.NOT_OWNED_PLATFORM, HttpStatus.BAD_REQUEST);
+                    throw new ServiceManagementException(ServiceManagementException.NOT_OWNED_SERVICE, HttpStatus.BAD_REQUEST);
                 }
                 if (!platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
                     platform.setPlatformInstanceFriendlyName(platformManagementRequest.getPlatformInstanceFriendlyName());
@@ -145,7 +145,7 @@ public class PlatformsManagementService {
                 if (!platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty()) {
                     // check if other platforms don't use that Interworking interface already
                     if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().equals(coreInterfaceAddress))
-                        throw new PlatformManagementException(PlatformManagementException.AWKWARD_PLATFORM, HttpStatus.BAD_REQUEST);
+                        throw new ServiceManagementException(ServiceManagementException.AWKWARD_SERVICE, HttpStatus.BAD_REQUEST);
 
                     // TODO try to improve it in R4 somehow
                     // checking if Interworking interface isn't already used
@@ -155,7 +155,7 @@ public class PlatformsManagementService {
                         if (platformInRepo.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())
                                 // and that is not us!
                                 && !platformInRepo.getPlatformInstanceId().equals(platform.getPlatformInstanceId()))
-                            throw new PlatformManagementException(PlatformManagementException.PLATFORM_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
+                            throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
                     }
                     platform.setPlatformInterworkingInterfaceAddress(platformManagementRequest.getPlatformInterworkingInterfaceAddress());
                 }
@@ -163,9 +163,9 @@ public class PlatformsManagementService {
                 break;
             case DELETE:
                 if (!platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
-                    throw new PlatformManagementException(PlatformManagementException.PLATFORM_NOT_EXIST, HttpStatus.BAD_REQUEST);
+                    throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
                 if (!platformOwner.getOwnedServices().contains(platformManagementRequest.getPlatformInstanceId())) {
-                    throw new PlatformManagementException(PlatformManagementException.NOT_OWNED_PLATFORM, HttpStatus.BAD_REQUEST);
+                    throw new ServiceManagementException(ServiceManagementException.NOT_OWNED_SERVICE, HttpStatus.BAD_REQUEST);
                 }
                 Set<String> keys = new HashSet<>();
                 try {
@@ -186,7 +186,7 @@ public class PlatformsManagementService {
                         revokedKeysRepository.save(subjectsRevokedKeys);
                     }
                 } catch (CertificateException e) {
-                    throw new PlatformManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+                    throw new ServiceManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
                 }
 
                 platformRepository.delete(platformManagementRequest.getPlatformInstanceId());
@@ -195,7 +195,7 @@ public class PlatformsManagementService {
                 userRepository.save(platformOwner);
                 break;
             default:
-                throw new PlatformManagementException(PlatformManagementException.INVALID_OPERATION, HttpStatus.BAD_REQUEST);
+                throw new ServiceManagementException(ServiceManagementException.INVALID_OPERATION, HttpStatus.BAD_REQUEST);
         }
 
         aamServices.deleteFromCacheAvailableAAMs();

@@ -330,7 +330,7 @@ public class UsersManagementFunctionalTests extends
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail,
-                        UserRole.PLATFORM_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
+                        UserRole.SERVICE_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
 
         ManagementStatus platformOwnerRegistrationResponse = mapper.readValue(response,
                 ManagementStatus.class);
@@ -339,23 +339,23 @@ public class UsersManagementFunctionalTests extends
         // verify that app really is in repository
         User registeredUser = userRepository.findOne(username);
         assertNotNull(registeredUser);
-        assertEquals(UserRole.PLATFORM_OWNER, registeredUser.getRole());
+        assertEquals(UserRole.SERVICE_OWNER, registeredUser.getRole());
         assertNull(platformRepository.findByPlatformOwner(registeredUser));
         // verify that the user has no certs
         assertTrue(registeredUser.getClientCertificates().isEmpty());
     }
 
     @Test
-    public void platformOwnerRegistrationOverAMQPSuccessBySsp() throws
+    public void platformOwnerRegistrationOverAMQPSuccessBySmartSpace() throws
             IOException {
 
-        ReflectionTestUtils.setField(usersManagementService, "deploymentType", IssuingAuthorityType.SSP);
+        ReflectionTestUtils.setField(usersManagementService, "deploymentType", IssuingAuthorityType.SMART_SPACE);
         // issue app registration over AMQP
         byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail,
-                        UserRole.PLATFORM_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
+                        UserRole.SERVICE_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
 
         ManagementStatus platformOwnerRegistrationResponse = mapper.readValue(response,
                 ManagementStatus.class);
@@ -364,43 +364,14 @@ public class UsersManagementFunctionalTests extends
         // verify that app really is in repository
         User registeredUser = userRepository.findOne(username);
         assertNotNull(registeredUser);
-        assertEquals(UserRole.PLATFORM_OWNER, registeredUser.getRole());
+        assertEquals(UserRole.SERVICE_OWNER, registeredUser.getRole());
         assertNull(platformRepository.findByPlatformOwner(registeredUser));
         // verify that the user has no certs
         assertTrue(registeredUser.getClientCertificates().isEmpty());
     }
 
     @Test
-    public void sspOwnerRegistrationOverAMQPFailWrongDeploymentType() throws
-            IOException {
-
-        ReflectionTestUtils.setField(usersManagementService, "deploymentType", IssuingAuthorityType.PLATFORM);
-        // issue app registration over AMQP
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail,
-                        UserRole.SSP_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
-
-        ErrorResponseContainer platformOwnerRegistrationResponse = mapper.readValue(response,
-                ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.errorMessage, platformOwnerRegistrationResponse.getErrorMessage());
-
-        ReflectionTestUtils.setField(usersManagementService, "deploymentType", IssuingAuthorityType.SSP);
-        // issue app registration over AMQP
-        response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail,
-                        UserRole.SSP_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
-
-        platformOwnerRegistrationResponse = mapper.readValue(response,
-                ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.errorMessage, platformOwnerRegistrationResponse.getErrorMessage());
-    }
-
-    @Test
-    public void sspOwnerRegistrationOverAMQPSuccess() throws
+    public void smartSpaceOwnerRegistrationOverAMQPSuccess() throws
             IOException {
 
         // issue app registration over AMQP
@@ -408,17 +379,17 @@ public class UsersManagementFunctionalTests extends
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
                 new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail,
-                        UserRole.SSP_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
+                        UserRole.SERVICE_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
 
-        ManagementStatus sspOwnerRegistrationResponse = mapper.readValue(response,
+        ManagementStatus smartSpaceOwnerRegistrationResponse = mapper.readValue(response,
                 ManagementStatus.class);
-        assertEquals(ManagementStatus.OK, sspOwnerRegistrationResponse);
+        assertEquals(ManagementStatus.OK, smartSpaceOwnerRegistrationResponse);
 
         // verify that app really is in repository
         User registeredUser = userRepository.findOne(username);
         assertNotNull(registeredUser);
-        assertEquals(UserRole.SSP_OWNER, registeredUser.getRole());
-        assertNull(smartSpaceRepository.findBySspOwner(registeredUser));
+        assertEquals(UserRole.SERVICE_OWNER, registeredUser.getRole());
+        assertNull(smartSpaceRepository.findBySmartSpaceOwner(registeredUser));
         // verify that the user has no certs
         assertTrue(registeredUser.getClientCertificates().isEmpty());
     }
@@ -441,7 +412,7 @@ public class UsersManagementFunctionalTests extends
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, wrongPassword), new Credentials(username, wrongPassword),
                 new UserDetails(new Credentials(username, wrongPassword), "federatedId",
-                        "", UserRole.PLATFORM_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
+                        "", UserRole.SERVICE_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
         aamClient.manageUser(userManagementRequest);
     }
 

@@ -45,7 +45,6 @@ import static org.junit.Assert.*;
  * @author Piotr Kicki (PSNC)
  * @author Jakub Toczek (PSNC)
  */
-//TODO add some tests with ssp
 @TestPropertySource("/core.properties")
 public class CertificatesIssuingUnitTests extends
         AbstractAAMTestSuite {
@@ -158,8 +157,7 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -189,8 +187,7 @@ public class CertificatesIssuingUnitTests extends
             ValidationException,
             CertificateException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -218,8 +215,7 @@ public class CertificatesIssuingUnitTests extends
             KeyStoreException,
             IOException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
         //ensure that there are no users in repo
         userRepository.deleteAll();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -242,8 +238,7 @@ public class CertificatesIssuingUnitTests extends
             KeyStoreException,
             IOException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -272,10 +267,8 @@ public class CertificatesIssuingUnitTests extends
             NotExistingUserException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
         User user = saveUser();
-
         KeyPair pair = CryptoHelper.createKeyPair();
 
         String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(),
@@ -296,8 +289,7 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
         // initial issue
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -337,8 +329,7 @@ public class CertificatesIssuingUnitTests extends
             NotExistingUserException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
         KeyPair pair = CryptoHelper.createKeyPair();
         String csr = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
         CertificateRequest certRequest = new CertificateRequest(AAMOwnerUsername, wrongPassword, clientId, csr);
@@ -357,8 +348,7 @@ public class CertificatesIssuingUnitTests extends
             ValidationException,
             CertificateException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
         KeyPair pair = CryptoHelper.createKeyPair();
         String csr = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
         CertificateRequest certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csr);
@@ -377,8 +367,7 @@ public class CertificatesIssuingUnitTests extends
             ValidationException,
             CertificateException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
         KeyPair pair = CryptoHelper.createKeyPair();
         Set<String> keySet = new HashSet<>();
         keySet.add(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded()));
@@ -388,7 +377,7 @@ public class CertificatesIssuingUnitTests extends
         signCertificateRequestService.signCertificate(certRequest);
     }
 
-    @Test(expected = PlatformManagementException.class)
+    @Test(expected = ServiceManagementException.class)
     public void getLocalComponentCertificateWrongComponentIdFailure() throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
@@ -400,8 +389,7 @@ public class CertificatesIssuingUnitTests extends
             ValidationException,
             CertificateException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
         KeyPair pair = CryptoHelper.createKeyPair();
         String csr = CryptoHelper.buildComponentCertificateSigningRequestPEM(SecurityConstants.AAM_COMPONENT_NAME, CORE_AAM_INSTANCE_ID, pair);
         CertificateRequest certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csr);
@@ -420,8 +408,7 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
         User platformOwner = savePlatformOwner();
         savePlatform(platformOwner);
@@ -458,8 +445,8 @@ public class CertificatesIssuingUnitTests extends
         try {
             signCertificateRequestService.signCertificate(certRequest);
         } catch (Exception e) {
-            assertEquals(PlatformManagementException.class, e.getClass());
-            assertEquals("User is not a Platform Owner", e.getMessage());
+            assertEquals(ServiceManagementException.class, e.getClass());
+            assertEquals(ServiceManagementException.NO_RIGHTS, e.getMessage());
         }
     }
 
@@ -473,7 +460,9 @@ public class CertificatesIssuingUnitTests extends
         //ensure that platform repo is empty
         platformRepository.deleteAll();
 
-        savePlatformOwner();
+        User user = savePlatformOwner();
+        user.getOwnedServices().add(platformId);
+        userRepository.save(user);
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
@@ -481,8 +470,8 @@ public class CertificatesIssuingUnitTests extends
         try {
             signCertificateRequestService.signCertificate(certRequest);
         } catch (Exception e) {
-            assertEquals(PlatformManagementException.class, e.getClass());
-            assertEquals(PlatformManagementException.PLATFORM_NOT_EXIST, e.getMessage());
+            assertEquals(ServiceManagementException.class, e.getClass());
+            assertEquals(ServiceManagementException.SERVICE_NOT_EXIST, e.getMessage());
         }
     }
 
@@ -497,9 +486,8 @@ public class CertificatesIssuingUnitTests extends
             WrongCredentialsException,
             UserManagementException,
             ValidationException,
-            PlatformManagementException,
-            NotExistingUserException,
-            SspManagementException {
+            ServiceManagementException,
+            NotExistingUserException {
         //ensure that platform repo is empty
         platformRepository.deleteAll();
         savePlatformOwner();
@@ -515,7 +503,7 @@ public class CertificatesIssuingUnitTests extends
     }
 
     @Test
-    public void getSspCertificateSuccess() throws
+    public void getSmartSpaceCertificateSuccess() throws
             IOException,
             NoSuchAlgorithmException,
             CertificateException,
@@ -526,75 +514,98 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
-        User sspOwner = createUser(sspOwnerUsername, sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
-        saveSsp(sspOwner);
+        User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        saveSmartSpace(smartSpaceOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSspId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(sspOwnerUsername, sspOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(smartSpaceOwnerUsername, smartSpaceOwnerPassword, clientId, csrString);
         String certificate = signCertificateRequestService.signCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + preferredSspId, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + preferredSmartSpaceId, x509Certificate.getSubjectDN().getName());
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
     }
 
     @Test
-    public void getSspCertificateWrongUserRoleFailure() throws
+    public void getSmartSpaceCertificateWrongUserRoleFailure() throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
             IOException,
             InvalidArgumentsException {
-        User sspOwner = createUser(sspOwnerUsername, sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
-        saveSsp(sspOwner);
+        User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.USER);
+        saveSmartSpace(smartSpaceOwner);
         User user = saveUser();
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSspId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(user.getUsername(), password, clientId, csrString);
         try {
             signCertificateRequestService.signCertificate(certRequest);
         } catch (Exception e) {
-            assertEquals(SspManagementException.class, e.getClass());
-            assertEquals(SspManagementException.USER_IS_NOT_A_SSP_OWNER, e.getMessage());
+            assertEquals(ServiceManagementException.class, e.getClass());
+            assertEquals(ServiceManagementException.NO_RIGHTS, e.getMessage());
         }
     }
 
     @Test
-    public void getSspCertificateNotExistingSspFailure() throws
+    public void getSmartSpaceCertificateUserNotOwnSmartSpaceFail() throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
             IOException,
             InvalidArgumentsException {
-        //ensure that ssp repo is empty
-        smartSpaceRepository.deleteAll();
+        User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        saveSmartSpace(smartSpaceOwner);
+        User user = saveUser();
 
-        User user = createUser(sspOwnerUsername, sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
-        userRepository.save(user);
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSspId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(sspOwnerUsername, sspOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(user.getUsername(), password, clientId, csrString);
         try {
             signCertificateRequestService.signCertificate(certRequest);
         } catch (Exception e) {
-            assertEquals(SspManagementException.class, e.getClass());
-            assertEquals(SspManagementException.SSP_NOT_EXIST, e.getMessage());
+            assertEquals(ServiceManagementException.class, e.getClass());
+            assertEquals(ServiceManagementException.NO_RIGHTS, e.getMessage());
+        }
+    }
+
+    @Test
+    public void getSmartSpaceCertificateNotExistingSmartSpaceFailure() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            InvalidArgumentsException {
+        //ensure that smartSpace repo is empty
+        smartSpaceRepository.deleteAll();
+
+        User user = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        user.getOwnedServices().add(preferredSmartSpaceId);
+        userRepository.save(user);
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(smartSpaceOwnerUsername, smartSpaceOwnerPassword, clientId, csrString);
+        try {
+            signCertificateRequestService.signCertificate(certRequest);
+        } catch (Exception e) {
+            assertEquals(ServiceManagementException.class, e.getClass());
+            assertEquals(ServiceManagementException.SERVICE_NOT_EXIST, e.getMessage());
         }
     }
 
     @Test(expected = ValidationException.class)
-    public void getSspCertificateRevokedKeyFailure() throws
+    public void getSmartSpaceCertificateRevokedKeyFailure() throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
@@ -604,21 +615,20 @@ public class CertificatesIssuingUnitTests extends
             WrongCredentialsException,
             UserManagementException,
             ValidationException,
-            PlatformManagementException,
-            NotExistingUserException,
-            SspManagementException {
-        //ensure that ssp repo is empty
+            ServiceManagementException,
+            NotExistingUserException {
+        //ensure that smartSpace repo is empty
         smartSpaceRepository.deleteAll();
-        User user = createUser(sspOwnerUsername, sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
+        User user = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSspId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
         assertNotNull(csrString);
 
-        CertificateRequest certRequest = new CertificateRequest(sspOwnerUsername, sspOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(smartSpaceOwnerUsername, smartSpaceOwnerPassword, clientId, csrString);
         Set<String> keySet = new HashSet<>();
         keySet.add(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded()));
-        revokedKeysRepository.save(new SubjectsRevokedKeys(preferredSspId, keySet));
+        revokedKeysRepository.save(new SubjectsRevokedKeys(preferredSmartSpaceId, keySet));
         signCertificateRequestService.signCertificate(certRequest);
     }
 
@@ -635,8 +645,7 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -684,8 +693,7 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -726,8 +734,7 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
         User platformOwner = savePlatformOwner();
         savePlatform(platformOwner);
@@ -772,8 +779,7 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
         User platformOwner = savePlatformOwner();
         savePlatform(platformOwner);
@@ -807,7 +813,7 @@ public class CertificatesIssuingUnitTests extends
     }
 
     @Test
-    public void replaceSspCertificateUsingNewKeysSuccess() throws
+    public void replaceSmartSpaceCertificateUsingNewKeysSuccess() throws
             IOException,
             NoSuchAlgorithmException,
             CertificateException,
@@ -818,42 +824,41 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
-        User sspOwner = createUser(sspOwnerUsername, sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
-        saveSsp(sspOwner);
+        User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        saveSmartSpace(smartSpaceOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSspId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(sspOwnerUsername, sspOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(smartSpaceOwnerUsername, smartSpaceOwnerPassword, clientId, csrString);
         String certificate = signCertificateRequestService.signCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + preferredSspId, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + preferredSmartSpaceId, x509Certificate.getSubjectDN().getName());
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
-        assertTrue(smartSpaceRepository.findOne(preferredSspId).getSspAAMCertificate().getCertificateString().equals(certificate));
+        assertTrue(smartSpaceRepository.findOne(preferredSmartSpaceId).getSmartSpaceAAMCertificate().getCertificateString().equals(certificate));
 
         pair = CryptoHelper.createKeyPair();
-        csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSspId, pair);
+        csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
         assertNotNull(csrString);
-        certRequest = new CertificateRequest(sspOwnerUsername, sspOwnerPassword, clientId, csrString);
+        certRequest = new CertificateRequest(smartSpaceOwnerUsername, smartSpaceOwnerPassword, clientId, csrString);
         certificate = signCertificateRequestService.signCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + preferredSspId, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + preferredSmartSpaceId, x509Certificate.getSubjectDN().getName());
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
     }
 
     @Test
-    public void replaceSspCertificateUsingExistingKeysSuccess() throws
+    public void replaceSmartSpaceCertificateUsingExistingKeysSuccess() throws
             IOException,
             NoSuchAlgorithmException,
             CertificateException,
@@ -864,38 +869,37 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
-        User sspOwner = createUser(sspOwnerUsername, sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
-        saveSsp(sspOwner);
+        User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        saveSmartSpace(smartSpaceOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSspId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(sspOwnerUsername, sspOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(smartSpaceOwnerUsername, smartSpaceOwnerPassword, clientId, csrString);
         String certificate = signCertificateRequestService.signCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + preferredSspId, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + preferredSmartSpaceId, x509Certificate.getSubjectDN().getName());
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
 
-        csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSspId, pair);
+        csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
         assertNotNull(csrString);
-        certRequest = new CertificateRequest(sspOwnerUsername, sspOwnerPassword, clientId, csrString);
+        certRequest = new CertificateRequest(smartSpaceOwnerUsername, smartSpaceOwnerPassword, clientId, csrString);
         certificate = signCertificateRequestService.signCertificate(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + preferredSspId, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + preferredSmartSpaceId, x509Certificate.getSubjectDN().getName());
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
         // pair should not be revoked
-        assertFalse(revokedKeysRepository.exists(preferredSspId));
+        assertFalse(revokedKeysRepository.exists(preferredSmartSpaceId));
     }
 
     @Test
@@ -910,8 +914,7 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
@@ -954,8 +957,7 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            PlatformManagementException,
-            SspManagementException {
+            ServiceManagementException {
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
@@ -994,11 +996,11 @@ public class CertificatesIssuingUnitTests extends
         userRepository.save(platformOwner);
     }
 
-    private void saveSsp(User sspOwner) {
-        SmartSpace ssp = new SmartSpace(preferredSspId, sspExternalInterworkingInterfaceAddress, sspInternalInterworkingInterfaceAddress, exposedIIAddress, sspInstanceFriendlyName, new Certificate(), new HashMap<>(), sspOwner);
-        smartSpaceRepository.save(ssp);
-        sspOwner.getOwnedServices().add(preferredSspId);
-        userRepository.save(sspOwner);
+    private void saveSmartSpace(User smartSpaceOwner) {
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceExternalInterworkingInterfaceAddress, smartSpaceInternalInterworkingInterfaceAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), smartSpaceOwner);
+        smartSpaceRepository.save(smartSpace);
+        smartSpaceOwner.getOwnedServices().add(preferredSmartSpaceId);
+        userRepository.save(smartSpaceOwner);
     }
 
 }

@@ -118,7 +118,7 @@ public class RevocationFunctionalTests extends
             ValidationException,
             AAMException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.PLATFORM_OWNER);
+        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
         Platform platform = new Platform(platformId,
                 null,
@@ -150,7 +150,7 @@ public class RevocationFunctionalTests extends
     }
 
     @Test
-    public void revokeSspCertificateUsingCertificateOverRESTSuccess() throws
+    public void revokeSmartSpaceCertificateUsingCertificateOverRESTSuccess() throws
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
@@ -158,31 +158,35 @@ public class RevocationFunctionalTests extends
             InvalidArgumentsException,
             WrongCredentialsException,
             AAMException,
-            KeyStoreException, InvalidAlgorithmParameterException, NotExistingUserException, ValidationException {
+            InvalidAlgorithmParameterException,
+            NotExistingUserException,
+            ValidationException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.SSP_OWNER);
+        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
-        // issue ssp registration
-        SmartSpace ssp = new SmartSpace(preferredSspId, sspExternalInterworkingInterfaceAddress, sspInternalInterworkingInterfaceAddress, exposedIIAddress, sspInstanceFriendlyName, new Certificate(), new HashMap<>(), user);
-        smartSpaceRepository.save(ssp);
+        // issue smartSpace registration
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceExternalInterworkingInterfaceAddress, smartSpaceInternalInterworkingInterfaceAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), user);
+        smartSpaceRepository.save(smartSpace);
+        user.getOwnedServices().add(preferredSmartSpaceId);
+        userRepository.save(user);
         // inject service AAM Cert
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSspId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
 
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String sspCertificate = aamClient.signCertificateRequest(certRequest);
-        ssp.setSspAAMCertificate(new Certificate(sspCertificate));
+        String smartSpaceCertificate = aamClient.signCertificateRequest(certRequest);
+        smartSpace.setSmartSpaceAAMCertificate(new Certificate(smartSpaceCertificate));
         // save the certs into the repo
-        smartSpaceRepository.save(ssp);
+        smartSpaceRepository.save(smartSpace);
 
-        user.getOwnedServices().add(preferredSspId);
+        user.getOwnedServices().add(preferredSmartSpaceId);
         userRepository.save(user);
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(username, password));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
-        revocationRequest.setCertificatePEMString(sspCertificate);
+        revocationRequest.setCertificatePEMString(smartSpaceCertificate);
 
         assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
     }
@@ -284,7 +288,7 @@ public class RevocationFunctionalTests extends
             ValidationException,
             AAMException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.PLATFORM_OWNER);
+        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
         Platform platform = new Platform(
                 platformId,
@@ -317,7 +321,7 @@ public class RevocationFunctionalTests extends
     }
 
     @Test
-    public void revokeSspCertificateUsingCommonNameOverRESTSuccess() throws
+    public void revokeSmartSpaceCertificateUsingCommonNameOverRESTSuccess() throws
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
@@ -325,31 +329,33 @@ public class RevocationFunctionalTests extends
             InvalidArgumentsException,
             WrongCredentialsException,
             AAMException,
-            KeyStoreException, InvalidAlgorithmParameterException, NotExistingUserException, ValidationException {
+            InvalidAlgorithmParameterException, NotExistingUserException, ValidationException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.SSP_OWNER);
+        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
-        // issue ssp registration
-        SmartSpace ssp = new SmartSpace(preferredSspId, sspExternalInterworkingInterfaceAddress, sspInternalInterworkingInterfaceAddress, exposedIIAddress, sspInstanceFriendlyName, new Certificate(), new HashMap<>(), user);
-        smartSpaceRepository.save(ssp);
-        // inject ssp AAM Cert
+        // issue smartSpace registration
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceExternalInterworkingInterfaceAddress, smartSpaceInternalInterworkingInterfaceAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), user);
+        smartSpaceRepository.save(smartSpace);
+        user.getOwnedServices().add(preferredSmartSpaceId);
+        userRepository.save(user);
+        // inject smartSpace AAM Cert
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSspId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
 
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
-        String sspCertificate = aamClient.signCertificateRequest(certRequest);
-        ssp.setSspAAMCertificate(new Certificate(sspCertificate));
+        String smartSpaceCertificate = aamClient.signCertificateRequest(certRequest);
+        smartSpace.setSmartSpaceAAMCertificate(new Certificate(smartSpaceCertificate));
         // save the certs into the repo
-        smartSpaceRepository.save(ssp);
+        smartSpaceRepository.save(smartSpace);
 
-        user.getOwnedServices().add(preferredSspId);
+        user.getOwnedServices().add(preferredSmartSpaceId);
         userRepository.save(user);
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(username, password));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
-        revocationRequest.setCertificateCommonName(preferredSspId);
+        revocationRequest.setCertificateCommonName(preferredSmartSpaceId);
 
         assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
     }

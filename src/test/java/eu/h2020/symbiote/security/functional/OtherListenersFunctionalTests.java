@@ -64,7 +64,7 @@ public class OtherListenersFunctionalTests extends
     private Credentials platformOwnerUserCredentials;
     private PlatformManagementRequest platformRegistrationOverAMQPRequest;
     private User platformOwner;
-    private User sspOwner;
+    private User smartSpaceOwner;
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -77,8 +77,8 @@ public class OtherListenersFunctionalTests extends
         super.setUp();
 
         //user registration useful
-        platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
-        sspOwner = createUser(sspOwnerUsername, sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
+        platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(platformOwner);
         // platform registration useful
         platformOwnerUserCredentials = new Credentials(platformOwner.getUsername(), platformOwner.getPasswordEncrypted());
@@ -145,13 +145,13 @@ public class OtherListenersFunctionalTests extends
         // save the certs into the repo
         platformRepository.save(platform);
 
-        // issue ssp registration
-        SmartSpace ssp = new SmartSpace(preferredSspId, sspExternalInterworkingInterfaceAddress, sspInternalInterworkingInterfaceAddress, exposedIIAddress, sspInstanceFriendlyName, new Certificate(), new HashMap<>(), sspOwner);
+        // issue smartSpace registration
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceExternalInterworkingInterfaceAddress, smartSpaceInternalInterworkingInterfaceAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), smartSpaceOwner);
         // inject platform AAM Cert
-        Certificate sspAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1")));
-        ssp.setSspAAMCertificate(sspAAMCertificate);
+        Certificate smartSpaceAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1")));
+        smartSpace.setSmartSpaceAAMCertificate(smartSpaceAAMCertificate);
         // save the certs into the repo
-        smartSpaceRepository.save(ssp);
+        smartSpaceRepository.save(smartSpace);
 
 
         AvailableAAMsCollection response = aamClient.getAvailableAAMs();
@@ -174,20 +174,20 @@ public class OtherListenersFunctionalTests extends
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
         assertEquals(platformAAMCertificate.getCertificateString(), platformAAM.getAamCACertificate().getCertificateString());
         assertEquals(0, platformAAM.getComponentCertificates().size());
-        // and then comes the registered ssp
-        assertTrue(aams.containsKey(preferredSspId));
-        AAM sspAAM = aams.get(preferredSspId);
-        assertEquals(preferredSspId, sspAAM.getAamInstanceId());
+        // and then comes the registered smartSpace
+        assertTrue(aams.containsKey(preferredSmartSpaceId));
+        AAM smartSpaceAAM = aams.get(preferredSmartSpaceId);
+        assertEquals(preferredSmartSpaceId, smartSpaceAAM.getAamInstanceId());
         if (exposedIIAddress) {
-            assertEquals(sspInternalInterworkingInterfaceAddress, sspAAM.getAamAddress());
+            assertEquals(smartSpaceInternalInterworkingInterfaceAddress, smartSpaceAAM.getAamAddress());
         } else {
-            assertEquals(sspExternalInterworkingInterfaceAddress, sspAAM
+            assertEquals(smartSpaceExternalInterworkingInterfaceAddress, smartSpaceAAM
                     .getAamAddress());
         }
 
-        assertEquals(sspInstanceFriendlyName, sspAAM.getAamInstanceFriendlyName());
-        assertEquals(sspAAMCertificate.getCertificateString(), sspAAM.getAamCACertificate().getCertificateString());
-        assertEquals(0, sspAAM.getComponentCertificates().size());
+        assertEquals(smartSpaceInstanceFriendlyName, smartSpaceAAM.getAamInstanceFriendlyName());
+        assertEquals(smartSpaceAAMCertificate.getCertificateString(), smartSpaceAAM.getAamCACertificate().getCertificateString());
+        assertEquals(0, smartSpaceAAM.getComponentCertificates().size());
 
     }
 

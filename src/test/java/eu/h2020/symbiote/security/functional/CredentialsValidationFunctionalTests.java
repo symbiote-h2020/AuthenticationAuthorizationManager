@@ -285,7 +285,7 @@ public class CredentialsValidationFunctionalTests extends
         String platformId = "platform-1";
 
         //user registration useful
-        User platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
+        User platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(platformOwner);
 
         // platform registration useful

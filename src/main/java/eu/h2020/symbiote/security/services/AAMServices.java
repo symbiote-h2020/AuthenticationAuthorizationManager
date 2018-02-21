@@ -108,14 +108,14 @@ public class AAMServices {
                 // add the platform AAM entry point to the results
                 availableAAMs.put(platformAAM.getAamInstanceId(), platformAAM);
             }
-            // registered ssps' AAMs
-            for (SmartSpace ssp : smartSpaceRepository.findAll()) {
-                String usedII = ssp.isExposedInternalInterworkingInterfaceAddress() ?
-                        ssp.getSspInternalInterworkingInterfaceAddress() : ssp.getSspExternalInterworkingInterfaceAddress();
-                AAM sspAAM = new AAM(usedII, ssp.getSspInstanceFriendlyName(), ssp.getSspInstanceId(),
-                        ssp.getSspAAMCertificate(), ssp.getComponentCertificates());
-                // add the ssp AAM entry point to the results
-                availableAAMs.put(sspAAM.getAamInstanceId(), sspAAM);
+            // registered smart Spaces' AAMs
+            for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
+                String usedII = smartSpace.isExposedInternalInterworkingInterfaceAddress() ?
+                        smartSpace.getSmartSpaceInternalInterworkingInterfaceAddress() : smartSpace.getSmartSpaceExternalInterworkingInterfaceAddress();
+                AAM smartSpaceAAM = new AAM(usedII, smartSpace.getSmartSpaceInstanceFriendlyName(), smartSpace.getSmartSpaceInstanceId(),
+                        smartSpace.getSmartSpaceAAMCertificate(), smartSpace.getComponentCertificates());
+                // add the smart Space AAM entry point to the results
+                availableAAMs.put(smartSpaceAAM.getAamInstanceId(), smartSpaceAAM);
             }
         } else {
             // a PAAM/SAAM needs to fetch them from core

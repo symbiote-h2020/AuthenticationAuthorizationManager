@@ -6,6 +6,7 @@ package eu.h2020.symbiote.security.commons.enums;
  * ServiceAAM
  *
  * @author Mikołaj Dobski (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 public enum IssuingAuthorityType {
     /**
@@ -19,7 +20,7 @@ public enum IssuingAuthorityType {
     /**
      * SMART SPACES AAM
      */
-    SSP,
+    SMART_SPACE,
 
     /**
      * uninitialised value of this enum, useful for TestAAM

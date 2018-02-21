@@ -8,14 +8,14 @@ import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.SspManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ServiceManagementException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.payloads.SspManagementRequest;
-import eu.h2020.symbiote.security.communication.payloads.SspManagementResponse;
+import eu.h2020.symbiote.security.communication.payloads.SmartSpaceManagementRequest;
+import eu.h2020.symbiote.security.communication.payloads.SmartSpaceManagementResponse;
 import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.SspManagementService;
+import eu.h2020.symbiote.security.services.SmartSpacesManagementService;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,19 +28,12 @@ import static org.junit.Assert.*;
 public class SmartSpaceManagementUnitTests extends
         AbstractAAMTestSuite {
 
-    private final String preferredSspId = SecurityConstants.SSP_IDENTIFIER_PREFIX + "preferredSspId";
-    private final String sspInstanceFriendlyName = "friendlySspName";
-    private final String sspExternalInterworkingInterfaceAddress =
-            "https://ssp.eu:8101/someFancyHiddenPath/andHiddenAgain";
-    private final String sspInternalInterworkingInterfaceAddress =
-            "https://ssp.hidden:8101/someFancyHiddenPath";
-    private final boolean exposedInternalII = true;
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     String coreInterfaceAddress;
-    private Credentials sspOwnerUserCredentials;
-    private SspManagementRequest sspManagementRequest;
+    private Credentials smartSpaceOwnerUserCredentials;
+    private SmartSpaceManagementRequest smartSpaceManagementRequest;
     @Autowired
-    private SspManagementService sspManagementService;
+    private SmartSpacesManagementService smartSpacesManagementService;
 
     @Override
     @Before
@@ -52,154 +45,154 @@ public class SmartSpaceManagementUnitTests extends
         userRepository.deleteAll();
 
         //user registration useful
-        User user = createUser(sspOwnerUsername, sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
+        User user = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
 
         // platform registration useful
-        sspOwnerUserCredentials = new Credentials(sspOwnerUsername, sspOwnerPassword);
-        sspManagementRequest = new SspManagementRequest(
+        smartSpaceOwnerUserCredentials = new Credentials(smartSpaceOwnerUsername, smartSpaceOwnerPassword);
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
-                preferredSspId,
-                exposedInternalII);
+                preferredSmartSpaceId,
+                exposedIIAddress);
     }
 
 
     @Test
-    public void sspRegistrationWithPreferredSspIdSuccess() throws
+    public void smartSpaceRegistrationWithPreferredSmartSpaceIdSuccess() throws
             SecurityException {
-        // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSspId));
-        assertTrue(userRepository.exists(sspOwnerUsername));
-        User sspOwner = userRepository.findOne(sspOwnerUsername);
-        assertTrue(sspOwner.getOwnedServices().isEmpty());
+        // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        User smartSpaceOwner = userRepository.findOne(smartSpaceOwnerUsername);
+        assertTrue(smartSpaceOwner.getOwnedServices().isEmpty());
 
-        // issue ssp registration
-        SspManagementResponse response = sspManagementService.authManage(sspManagementRequest);
+        // issue smartSpace registration
+        SmartSpaceManagementResponse response = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
 
-        // verified that we received the preferred sspId
-        assertEquals(preferredSspId, response.getSspId());
+        // verified that we received the preferred smartSpaceId
+        assertEquals(preferredSmartSpaceId, response.getSmartSpaceId());
 
         // verify that SO is in repository (as SO!)
-        User sspOwnerFromRepository = userRepository.findOne(sspOwnerUsername);
-        assertNotNull(sspOwnerFromRepository);
-        assertEquals(UserRole.SSP_OWNER, sspOwnerFromRepository.getRole());
+        User smartSpaceOwnerFromRepository = userRepository.findOne(smartSpaceOwnerUsername);
+        assertNotNull(smartSpaceOwnerFromRepository);
+        assertEquals(UserRole.SERVICE_OWNER, smartSpaceOwnerFromRepository.getRole());
 
-        // verify that ssp with preferred id is in repository and is tied with the given SO
-        SmartSpace registeredSsp = smartSpaceRepository.findOne(preferredSspId);
-        assertNotNull(registeredSsp);
-        // verify that ssp oriented fields are properly stored
-        assertEquals(sspExternalInterworkingInterfaceAddress, registeredSsp.getSspExternalInterworkingInterfaceAddress());
-        assertEquals(sspInternalInterworkingInterfaceAddress, registeredSsp.getSspInternalInterworkingInterfaceAddress());
-        assertEquals(exposedInternalII, registeredSsp.isExposedInternalInterworkingInterfaceAddress());
+        // verify that smartSpace with preferred id is in repository and is tied with the given SO
+        SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
+        assertNotNull(registeredSmartSpace);
+        // verify that smartSpace oriented fields are properly stored
+        assertEquals(smartSpaceExternalInterworkingInterfaceAddress, registeredSmartSpace.getSmartSpaceExternalInterworkingInterfaceAddress());
+        assertEquals(smartSpaceInternalInterworkingInterfaceAddress, registeredSmartSpace.getSmartSpaceInternalInterworkingInterfaceAddress());
+        assertEquals(exposedIIAddress, registeredSmartSpace.isExposedInternalInterworkingInterfaceAddress());
 
-        // verify that SO has this ssp in his collection
-        User sspOwnerFromSspEntity = registeredSsp.getSspOwner();
-        assertEquals(sspOwnerUsername, sspOwnerFromSspEntity.getUsername());
-        assertTrue(sspOwnerFromSspEntity.getOwnedServices().contains(preferredSspId));
+        // verify that SO has this smartSpace in his collection
+        User smartSpaceOwnerFromSmartSpaceEntity = registeredSmartSpace.getSmartSpaceOwner();
+        assertEquals(smartSpaceOwnerUsername, smartSpaceOwnerFromSmartSpaceEntity.getUsername());
+        assertTrue(smartSpaceOwnerFromSmartSpaceEntity.getOwnedServices().contains(preferredSmartSpaceId));
 
-        // verify that SO was properly updated in repository with new ssp ownership
-        sspOwnerFromRepository = userRepository.findOne(sspOwnerUsername);
-        assertEquals(sspOwnerUsername, sspOwnerFromRepository.getUsername());
-        assertFalse(sspOwnerFromRepository.getOwnedServices().isEmpty());
-        assertTrue(sspOwnerFromRepository.getOwnedServices().contains(preferredSspId));
+        // verify that SO was properly updated in repository with new smartSpace ownership
+        smartSpaceOwnerFromRepository = userRepository.findOne(smartSpaceOwnerUsername);
+        assertEquals(smartSpaceOwnerUsername, smartSpaceOwnerFromRepository.getUsername());
+        assertFalse(smartSpaceOwnerFromRepository.getOwnedServices().isEmpty());
+        assertTrue(smartSpaceOwnerFromRepository.getOwnedServices().contains(preferredSmartSpaceId));
 
         assertEquals(ManagementStatus.OK, response.getManagementStatus());
     }
 
     @Test
-    public void sspRegistrationWithGeneratedSspIdSuccess() throws
+    public void smartSpaceRegistrationWithGeneratedSmartSpaceIdSuccess() throws
             SecurityException {
-        // verify that our sspOwner is in repository
-        assertTrue(userRepository.exists(sspOwnerUsername));
+        // verify that our smartSpaceOwner is in repository
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
 
-        // issue ssp registration without preferred ssp identifier
-        sspManagementRequest = new SspManagementRequest(
+        // issue smartSpace registration without preferred smartSpace identifier
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 "",
-                exposedInternalII);
-        SspManagementResponse sspRegistrationResponse = sspManagementService.authManage(sspManagementRequest);
+                exposedIIAddress);
+        SmartSpaceManagementResponse smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
 
-        // verified that we received a generated sspId
-        String generatedSspId = sspRegistrationResponse.getSspId();
-        assertFalse(generatedSspId.isEmpty());
+        // verified that we received a generated smartSpaceId
+        String generatedSmartSpaceId = smartSpaceRegistrationResponse.getSmartSpaceId();
+        assertFalse(generatedSmartSpaceId.isEmpty());
 
         // verify that SO is in repository (as SO!)
-        User registeredSspOwner = userRepository.findOne(sspOwnerUsername);
-        assertNotNull(registeredSspOwner);
-        assertEquals(UserRole.SSP_OWNER, registeredSspOwner.getRole());
-        assertTrue(registeredSspOwner.getOwnedServices().contains(generatedSspId));
+        User registeredSmartSpaceOwner = userRepository.findOne(smartSpaceOwnerUsername);
+        assertNotNull(registeredSmartSpaceOwner);
+        assertEquals(UserRole.SERVICE_OWNER, registeredSmartSpaceOwner.getRole());
+        assertTrue(registeredSmartSpaceOwner.getOwnedServices().contains(generatedSmartSpaceId));
 
-        // verify that ssp with the generated id is in repository and is tied with the given SO
-        SmartSpace registeredSsp = smartSpaceRepository.findOne(generatedSspId);
-        assertNotNull(registeredSsp);
-        assertEquals(sspOwnerUsername, registeredSsp.getSspOwner().getUsername());
+        // verify that smartSpace with the generated id is in repository and is tied with the given SO
+        SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(generatedSmartSpaceId);
+        assertNotNull(registeredSmartSpace);
+        assertEquals(smartSpaceOwnerUsername, registeredSmartSpace.getSmartSpaceOwner().getUsername());
 
-        // verify that ssp oriented fields are properly stored
-        assertEquals(sspExternalInterworkingInterfaceAddress, registeredSsp.getSspExternalInterworkingInterfaceAddress());
-        assertEquals(sspInternalInterworkingInterfaceAddress, registeredSsp.getSspInternalInterworkingInterfaceAddress());
-        assertEquals(exposedInternalII, registeredSsp.isExposedInternalInterworkingInterfaceAddress());
-        assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
+        // verify that smartSpace oriented fields are properly stored
+        assertEquals(smartSpaceExternalInterworkingInterfaceAddress, registeredSmartSpace.getSmartSpaceExternalInterworkingInterfaceAddress());
+        assertEquals(smartSpaceInternalInterworkingInterfaceAddress, registeredSmartSpace.getSmartSpaceInternalInterworkingInterfaceAddress());
+        assertEquals(exposedIIAddress, registeredSmartSpace.isExposedInternalInterworkingInterfaceAddress());
+        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
     }
 
     @Test
-    public void sspRegistrationFailWrongSspId() {
-        // verify that our sspOwner is in repository
-        assertTrue(userRepository.exists(sspOwnerUsername));
+    public void smartSpaceRegistrationFailWrongSmartSpaceId() {
+        // verify that our smartSpaceOwner is in repository
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
 
-        // issue ssp registration with wrong preferred ssp identifier (no "SSP_" prefix)
-        sspManagementRequest = new SspManagementRequest(
+        // issue smartSpace registration with wrong preferred smartSpace identifier (no "SSP_" prefix)
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 "NO_SSP_in_front_id",
-                exposedInternalII);
+                exposedIIAddress);
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
             assertEquals(InvalidArgumentsException.NO_SSP_PREFIX, s.getMessage());
         }
-        // issue ssp registration with wrong preferred ssp identifier (containing "#")
-        sspManagementRequest = new SspManagementRequest(
+        // issue smartSpace registration with wrong preferred smartSpace identifier (containing "#")
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
-                SecurityConstants.SSP_IDENTIFIER_PREFIX + "Wrong#ssp_id",
-                exposedInternalII);
+                SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX + "Wrong#smartSpace_id",
+                exposedIIAddress);
 
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(SspManagementException.AWKWARD_SSP, s.getMessage());
+            assertEquals(ServiceManagementException.AWKWARD_SERVICE, s.getMessage());
         }
 
     }
 
     @Test
-    public void sspManagementFailMissingCredentials() {
-        // verify that our sspOwner is in repository
-        assertTrue(userRepository.exists(sspOwnerUsername));
-        sspManagementRequest.getSspOwnerCredentials().setUsername("");
+    public void smartSpaceManagementFailMissingCredentials() {
+        // verify that our smartSpaceOwner is in repository
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().setUsername("");
 
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
             assertEquals(InvalidArgumentsException.MISSING_USERNAME_OR_PASSWORD, s.getMessage());
@@ -207,13 +200,13 @@ public class SmartSpaceManagementUnitTests extends
     }
 
     @Test
-    public void sspManageFailNotExistingUser() {
-        // verify that our sspOwner is in repository
+    public void smartSpaceManageFailNotExistingUser() {
+        // verify that our smartSpaceOwner is in repository
         assertFalse(userRepository.exists(wrongUsername));
-        sspManagementRequest.getSspOwnerCredentials().setUsername(wrongUsername);
+        smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().setUsername(wrongUsername);
 
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
             assertEquals(new NotExistingUserException().getErrorMessage(), s.getErrorMessage());
@@ -221,64 +214,64 @@ public class SmartSpaceManagementUnitTests extends
     }
 
     @Test
-    public void sspManageFailWrongSO() throws SecurityException {
-        // verify that  sspOwner is in repository
-        assertTrue(userRepository.exists(sspOwnerUsername));
-        //create the ssp by sspOwner
-        SspManagementResponse sspManagementResponse = sspManagementService.authManage(sspManagementRequest);
-        assertEquals(ManagementStatus.OK, sspManagementResponse.getManagementStatus());
+    public void smartSpaceManageFailWrongSO() throws SecurityException {
+        // verify that  smartSpaceOwner is in repository
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        //create the smartSpace by smartSpaceOwner
+        SmartSpaceManagementResponse smartSpaceManagementResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        assertEquals(ManagementStatus.OK, smartSpaceManagementResponse.getManagementStatus());
 
-        // create other sspOwner
-        String othersspOwnerUsername = "otherSspOwner";
-        User otherSspOwner = createUser(othersspOwnerUsername, sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
-        userRepository.save(otherSspOwner);
-        Credentials otherSspOwnerCredentials = new Credentials(othersspOwnerUsername, sspOwnerPassword);
-        // verify that other sspOwner is in repository
-        assertTrue(userRepository.exists(othersspOwnerUsername));
+        // create other smartSpaceOwner
+        String otherSmartSpaceOwnerUsername = "otherSmartSpaceOwner";
+        User otherSmartSpaceOwner = createUser(otherSmartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        userRepository.save(otherSmartSpaceOwner);
+        Credentials otherSmartSpaceOwnerCredentials = new Credentials(otherSmartSpaceOwnerUsername, smartSpaceOwnerPassword);
+        // verify that other smartSpaceOwner is in repository
+        assertTrue(userRepository.exists(otherSmartSpaceOwnerUsername));
 
-        //try to update ssp by other sspOwner (without rights to this ssp)
-        SspManagementRequest sspUpdateRequest = new SspManagementRequest(
+        //try to update smartSpace by other smartSpaceOwner (without rights to this smartSpace)
+        SmartSpaceManagementRequest smartSpaceUpdateRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                otherSspOwnerCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                otherSmartSpaceOwnerCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
-                preferredSspId,
-                exposedInternalII);
+                preferredSmartSpaceId,
+                exposedIIAddress);
         try {
-            sspManagementService.authManage(sspUpdateRequest);
+            smartSpacesManagementService.authManage(smartSpaceUpdateRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(SspManagementException.USER_IS_NOT_A_SSP_OWNER, s.getMessage());
+            assertEquals(ServiceManagementException.USER_IS_NOT_A_SERVICE_OWNER, s.getMessage());
         }
 
-        //try to delete ssp by other sspOwner (without rights to this ssp)
-        SspManagementRequest sspDeleteRequest = new SspManagementRequest(
+        //try to delete smartSpace by other smartSpaceOwner (without rights to this smartSpace)
+        SmartSpaceManagementRequest smartSpaceDeleteRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                otherSspOwnerCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                otherSmartSpaceOwnerCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.DELETE,
-                preferredSspId,
-                exposedInternalII);
+                preferredSmartSpaceId,
+                exposedIIAddress);
         try {
-            sspManagementService.authManage(sspDeleteRequest);
+            smartSpacesManagementService.authManage(smartSpaceDeleteRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(SspManagementException.USER_IS_NOT_A_SSP_OWNER, s.getMessage());
+            assertEquals(ServiceManagementException.USER_IS_NOT_A_SERVICE_OWNER, s.getMessage());
         }
     }
 
     @Test
-    public void sspManagementFailWrongPassword() {
-        // verify that our sspOwner is in repository
-        assertTrue(userRepository.exists(sspOwnerUsername));
-        sspManagementRequest.getSspOwnerCredentials().setPassword(wrongPassword);
+    public void smartSpaceManagementFailWrongPassword() {
+        // verify that our smartSpaceOwner is in repository
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().setPassword(wrongPassword);
 
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
             assertEquals(new WrongCredentialsException().getErrorMessage(), s.getErrorMessage());
@@ -286,14 +279,14 @@ public class SmartSpaceManagementUnitTests extends
     }
 
     @Test
-    public void sspManagementFailUserNotSspOwner() {
+    public void smartSpaceManagementFailUserNotSmartSpaceOwner() {
         User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
         assertTrue(userRepository.exists(username));
-        sspManagementRequest.getSspOwnerCredentials().setUsername(username);
-        sspManagementRequest.getSspOwnerCredentials().setPassword(password);
+        smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().setUsername(username);
+        smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().setPassword(password);
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
             assertEquals(new WrongCredentialsException().getErrorMessage(), s.getErrorMessage());
@@ -301,74 +294,74 @@ public class SmartSpaceManagementUnitTests extends
     }
 
     @Test
-    public void sspRegistrationFailUnauthorized() {
-        // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSspId));
-        assertTrue(userRepository.exists(sspOwnerUsername));
+    public void smartSpaceRegistrationFailUnauthorized() {
+        // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
 
-        // issue ssp registration with wrong AAMOwnerUsername
-        sspManagementRequest.getAamOwnerCredentials().setUsername(AAMOwnerUsername + "somethingWrong");
+        // issue smartSpace registration with wrong AAMOwnerUsername
+        smartSpaceManagementRequest.getAamOwnerCredentials().setUsername(AAMOwnerUsername + "somethingWrong");
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
             assertEquals(new WrongCredentialsException().getErrorMessage(), s.getErrorMessage());
         }
-        // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSspId));
-        assertTrue(userRepository.exists(sspOwnerUsername));
+        // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
 
-        // issue ssp registration with wrong AAMOwnerPassword
-        sspManagementRequest.getAamOwnerCredentials().setUsername(AAMOwnerUsername);
-        sspManagementRequest.getAamOwnerCredentials().setPassword(AAMOwnerPassword + "somethingWrong");
+        // issue smartSpace registration with wrong AAMOwnerPassword
+        smartSpaceManagementRequest.getAamOwnerCredentials().setUsername(AAMOwnerUsername);
+        smartSpaceManagementRequest.getAamOwnerCredentials().setPassword(AAMOwnerPassword + "somethingWrong");
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
             assertEquals(new WrongCredentialsException().getErrorMessage(), s.getErrorMessage());
         }
 
-        // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSspId));
-        assertTrue(userRepository.exists(sspOwnerUsername));
+        // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
     }
 
     @Test
-    public void sspRegistrationFailMissingExposedURL() {
-        // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSspId));
-        assertTrue(userRepository.exists(sspOwnerUsername));
+    public void smartSpaceRegistrationFailMissingExposedURL() {
+        // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
 
-        // issue ssp registration without exposed II
-        SspManagementRequest sspCreateRequest = new SspManagementRequest(
+        // issue smartSpace registration without exposed II
+        SmartSpaceManagementRequest smartSpaceCreateRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
+                smartSpaceOwnerUserCredentials,
                 "",
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
-                preferredSspId,
+                preferredSmartSpaceId,
                 false);
 
         try {
-            sspManagementService.authManage(sspCreateRequest);
+            smartSpacesManagementService.authManage(smartSpaceCreateRequest);
             fail();
         } catch (SecurityException s) {
             assertEquals(InvalidArgumentsException.MISSING_EXPOSED_INTERWORKING_INTERFACE, s.getMessage());
         }
-        // issue ssp registration without exposed II
-        sspCreateRequest = new SspManagementRequest(
+        // issue smartSpace registration without exposed II
+        smartSpaceCreateRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
                 "",
-                sspInstanceFriendlyName,
+                smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
-                preferredSspId,
+                preferredSmartSpaceId,
                 true);
 
         try {
-            sspManagementService.authManage(sspCreateRequest);
+            smartSpacesManagementService.authManage(smartSpaceCreateRequest);
             fail();
         } catch (SecurityException s) {
             assertEquals(InvalidArgumentsException.MISSING_EXPOSED_INTERWORKING_INTERFACE, s.getMessage());
@@ -377,29 +370,29 @@ public class SmartSpaceManagementUnitTests extends
     }
 
     @Test
-    public void sspUpdateFailMissingExposedURL() throws SecurityException {
-        // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSspId));
-        assertTrue(userRepository.exists(sspOwnerUsername));
+    public void smartSpaceUpdateFailMissingExposedURL() throws SecurityException {
+        // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
 
-        //register SSP with exposed internal II - external is empty
-        sspManagementRequest.setSspExternalInterworkingInterfaceAddress("");
-        SspManagementResponse sspManagementResponse = sspManagementService.authManage(sspManagementRequest);
-        assertEquals(ManagementStatus.OK, sspManagementResponse.getManagementStatus());
+        //register SERVICE with exposed internal II - external is empty
+        smartSpaceManagementRequest.setSmartSpaceExternalInterworkingInterfaceAddress("");
+        SmartSpaceManagementResponse smartSpaceManagementResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        assertEquals(ManagementStatus.OK, smartSpaceManagementResponse.getManagementStatus());
 
-        // issue ssp update without exposed II
-        SspManagementRequest sspUpdateRequest = new SspManagementRequest(
+        // issue smartSpace update without exposed II
+        SmartSpaceManagementRequest smartSpaceUpdateRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
+                smartSpaceOwnerUserCredentials,
                 "",
                 "",
-                sspInstanceFriendlyName,
+                smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
-                preferredSspId,
+                preferredSmartSpaceId,
                 false);
 
         try {
-            sspManagementService.authManage(sspUpdateRequest);
+            smartSpacesManagementService.authManage(smartSpaceUpdateRequest);
             fail();
         } catch (SecurityException s) {
             assertEquals(InvalidArgumentsException.MISSING_EXPOSED_INTERWORKING_INTERFACE, s.getMessage());
@@ -407,23 +400,23 @@ public class SmartSpaceManagementUnitTests extends
     }
 
     @Test
-    public void sspRegistrationFailMissingFriendlyName() {
-        // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSspId));
-        assertTrue(userRepository.exists(sspOwnerUsername));
+    public void smartSpaceRegistrationFailMissingFriendlyName() {
+        // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
 
-        // issue ssp registration without required SmartSpace's instance friendly name
-        sspManagementRequest = new SspManagementRequest(
+        // issue smartSpace registration without required SmartSpace's instance friendly name
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
                 "",
                 OperationType.CREATE,
-                preferredSspId,
+                preferredSmartSpaceId,
                 true);
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
             assertEquals(InvalidArgumentsException.MISSING_INSTANCE_FRIENDLY_NAME, s.getMessage());
@@ -431,276 +424,276 @@ public class SmartSpaceManagementUnitTests extends
     }
 
     @Test
-    public void sspRegistrationFailExistingPreferredSspId() throws SecurityException {
-        // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSspId));
-        assertTrue(userRepository.exists(sspOwnerUsername));
+    public void smartSpaceRegistrationFailExistingPreferredSmartSpaceId() throws SecurityException {
+        // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
 
-        // issue ssp registration
-        SspManagementResponse sspManagementResponse = sspManagementService.authManage(sspManagementRequest);
-        assertEquals(ManagementStatus.OK, sspManagementResponse.getManagementStatus());
+        // issue smartSpace registration
+        SmartSpaceManagementResponse smartSpaceManagementResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        assertEquals(ManagementStatus.OK, smartSpaceManagementResponse.getManagementStatus());
 
-        assertNotNull(smartSpaceRepository.findOne(preferredSspId));
+        assertNotNull(smartSpaceRepository.findOne(preferredSmartSpaceId));
 
-        User user = createUser(sspOwnerUsername + "differentOne", sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
+        User user = createUser(smartSpaceOwnerUsername + "differentOne", smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
-        // issue registration request with the same preferred ssp identifier but different SO
-        sspManagementRequest.getSspOwnerCredentials().setUsername
-                (sspOwnerUsername + "differentOne");
+        // issue registration request with the same preferred smartSpace identifier but different SO
+        smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().setUsername
+                (smartSpaceOwnerUsername + "differentOne");
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(SspManagementException.SSP_EXISTS, s.getMessage());
+            assertEquals(ServiceManagementException.SERVICE_EXISTS, s.getMessage());
         }
     }
     @Test
-    public void sspUpdateSuccess() throws SecurityException {
-        // verify that our sspOwner is in repository
-        assertTrue(userRepository.exists(sspOwnerUsername));
-        //register ssp
-        SspManagementResponse sspRegistrationResponse = sspManagementService.authManage(sspManagementRequest);
-        //ensure ssp is registered
-        assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
+    public void smartSpaceUpdateSuccess() throws SecurityException {
+        // verify that our smartSpaceOwner is in repository
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        //register smartSpace
+        SmartSpaceManagementResponse smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        //ensure smartSpace is registered
+        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
 
-        sspManagementRequest = new SspManagementRequest(
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress + "dif",
-                sspInternalInterworkingInterfaceAddress + "dif",
-                sspInstanceFriendlyName,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress + "dif",
+                smartSpaceInternalInterworkingInterfaceAddress + "dif",
+                smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
-                preferredSspId,
-                !exposedInternalII);
-        sspRegistrationResponse = sspManagementService.authManage(sspManagementRequest);
-        //ensure ssp is registered
-        assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
-        // verify that SO was properly updated in repository with new ssp ownership
-        SmartSpace registeredSsp = smartSpaceRepository.findOne(preferredSspId);
-        assertNotNull(registeredSsp);
-        // verify that ssp oriented fields are properly stored
-        assertEquals(sspExternalInterworkingInterfaceAddress + "dif", registeredSsp.getSspExternalInterworkingInterfaceAddress());
-        assertEquals(sspInternalInterworkingInterfaceAddress + "dif", registeredSsp.getSspInternalInterworkingInterfaceAddress());
-        assertEquals(!exposedInternalII, registeredSsp.isExposedInternalInterworkingInterfaceAddress());
+                preferredSmartSpaceId,
+                !exposedIIAddress);
+        smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        //ensure smartSpace is registered
+        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
+        // verify that SO was properly updated in repository with new smartSpace ownership
+        SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
+        assertNotNull(registeredSmartSpace);
+        // verify that smartSpace oriented fields are properly stored
+        assertEquals(smartSpaceExternalInterworkingInterfaceAddress + "dif", registeredSmartSpace.getSmartSpaceExternalInterworkingInterfaceAddress());
+        assertEquals(smartSpaceInternalInterworkingInterfaceAddress + "dif", registeredSmartSpace.getSmartSpaceInternalInterworkingInterfaceAddress());
+        assertEquals(!exposedIIAddress, registeredSmartSpace.isExposedInternalInterworkingInterfaceAddress());
     }
 
     @Test
-    public void sspUpdateFailNotExistingSsp() {
-        // verify that our sspOwner is in repository
-        assertTrue(userRepository.exists(sspOwnerUsername));
-        // verify that our ssp is not in repository
-        assertFalse(smartSpaceRepository.exists(preferredSspId));
+    public void smartSpaceUpdateFailNotExistingSmartSpace() {
+        // verify that our smartSpaceOwner is in repository
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        // verify that our smartSpace is not in repository
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
 
-        sspManagementRequest = new SspManagementRequest(
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
-                preferredSspId,
-                !exposedInternalII);
+                preferredSmartSpaceId,
+                !exposedIIAddress);
 
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(SspManagementException.SSP_NOT_EXIST, s.getMessage());
+            assertEquals(ServiceManagementException.SERVICE_NOT_EXIST, s.getMessage());
         }
     }
 
     @Test
-    public void sspDeleteSuccess() throws
+    public void smartSpaceDeleteSuccess() throws
             SecurityException {
-        // verify that our sspOwner is in repository
-        assertTrue(userRepository.exists(sspOwnerUsername));
-        //register ssp
-        SspManagementResponse sspRegistrationResponse = sspManagementService.authManage(sspManagementRequest);
-        //ensure ssp is registered
-        assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
+        // verify that our smartSpaceOwner is in repository
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        //register smartSpace
+        SmartSpaceManagementResponse smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        //ensure smartSpace is registered
+        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
 
-        //register second ssp
-        sspManagementRequest = new SspManagementRequest(
+        //register second smartSpace
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress + "2",
-                sspInternalInterworkingInterfaceAddress + "2",
-                sspInstanceFriendlyName,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress + "2",
+                smartSpaceInternalInterworkingInterfaceAddress + "2",
+                smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
-                preferredSspId + "2",
-                exposedInternalII);
-        sspRegistrationResponse = sspManagementService.authManage(sspManagementRequest);
-        //ensure second ssp is registered
-        assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
+                preferredSmartSpaceId + "2",
+                exposedIIAddress);
+        smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        //ensure second smartSpace is registered
+        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
 
-        // delete ssp 1
-        sspManagementRequest = new SspManagementRequest(
+        // delete smartSpace 1
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
+                smartSpaceOwnerUserCredentials,
                 "",
                 "",
                 "",
                 OperationType.DELETE,
-                preferredSspId,
-                exposedInternalII);
-        sspRegistrationResponse = sspManagementService.authManage(sspManagementRequest);
-        assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
-        assertFalse(smartSpaceRepository.exists(preferredSspId));
-        assertTrue(smartSpaceRepository.exists(preferredSspId + "2"));
+                preferredSmartSpaceId,
+                exposedIIAddress);
+        smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
+        assertTrue(smartSpaceRepository.exists(preferredSmartSpaceId + "2"));
 
-        // delete ssp 2
-        sspManagementRequest = new SspManagementRequest(
+        // delete smartSpace 2
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
+                smartSpaceOwnerUserCredentials,
                 "",
                 "",
                 "",
                 OperationType.DELETE,
-                preferredSspId + "2",
-                exposedInternalII);
-        sspRegistrationResponse = sspManagementService.authManage(sspManagementRequest);
-        assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
-        assertFalse(smartSpaceRepository.exists(preferredSspId + "2"));
+                preferredSmartSpaceId + "2",
+                exposedIIAddress);
+        smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId + "2"));
 
-        assertTrue(userRepository.findOne(sspOwnerUsername).getOwnedServices().isEmpty());
+        assertTrue(userRepository.findOne(smartSpaceOwnerUsername).getOwnedServices().isEmpty());
     }
 
     @Test
-    public void sspDeleteFailNotExistingSsp() {
-        // verify that our sspOwner is in repository
-        assertTrue(userRepository.exists(sspOwnerUsername));
-        assertFalse(smartSpaceRepository.exists(preferredSspId));
+    public void smartSpaceDeleteFailNotExistingSmartSpace() {
+        // verify that our smartSpaceOwner is in repository
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
         // delete not existing platform
-        sspManagementRequest = new SspManagementRequest(
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.DELETE,
-                preferredSspId,
-                exposedInternalII);
+                preferredSmartSpaceId,
+                exposedIIAddress);
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(SspManagementException.SSP_NOT_EXIST, s.getMessage());
+            assertEquals(ServiceManagementException.SERVICE_NOT_EXIST, s.getMessage());
         }
     }
     @Test
-    public void sspRegistrationFailExistingInterworkingInterface() throws SecurityException {
-        // verify that our sspOwner is in repository
-        assertTrue(userRepository.exists(sspOwnerUsername));
-        //register ssp
-        SspManagementResponse sspRegistrationResponse = sspManagementService.authManage(sspManagementRequest);
-        //ensure ssp is registered
-        assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
+    public void smartSpaceRegistrationFailExistingInterworkingInterface() throws SecurityException {
+        // verify that our smartSpaceOwner is in repository
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        //register smartSpace
+        SmartSpaceManagementResponse smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        //ensure smartSpace is registered
+        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
 
-        //register ssp with exposed external II
-        sspManagementRequest = new SspManagementRequest(
+        //register smartSpace with exposed external II
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
-                preferredSspId + "_external",
-                !exposedInternalII);
-        sspRegistrationResponse = sspManagementService.authManage(sspManagementRequest);
-        //ensure ssp is registered
-        assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
+                preferredSmartSpaceId + "_external",
+                !exposedIIAddress);
+        smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        //ensure smartSpace is registered
+        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
 
-        //try to register ssp with the same exposed internal interface
-        sspManagementRequest = new SspManagementRequest(
+        //try to register smartSpace with the same exposed internal interface
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
+                smartSpaceOwnerUserCredentials,
                 "",
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
-                preferredSspId + "1",
-                exposedInternalII);
+                preferredSmartSpaceId + "1",
+                exposedIIAddress);
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(SspManagementException.SSP_INTERWARKING_INTERFACE_IN_USE, s.getMessage());
+            assertEquals(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, s.getMessage());
         }
 
-        //try to register ssp with the same exposed external interface
-        sspManagementRequest = new SspManagementRequest(
+        //try to register smartSpace with the same exposed external interface
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
+                smartSpaceOwnerUserCredentials,
                 "",
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
-                preferredSspId + "2",
-                exposedInternalII);
+                preferredSmartSpaceId + "2",
+                exposedIIAddress);
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(SspManagementException.SSP_INTERWARKING_INTERFACE_IN_USE, s.getMessage());
+            assertEquals(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, s.getMessage());
         }
 
     }
 
     @Test
-    public void sspUpdateFailExistingInterworkingInterface() throws SecurityException {
-        // verify that our sspOwner is in repository
-        assertTrue(userRepository.exists(sspOwnerUsername));
-        //register ssp
-        SspManagementResponse sspRegistrationResponse = sspManagementService.authManage(sspManagementRequest);
-        //ensure ssp is registered
-        assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
+    public void smartSpaceUpdateFailExistingInterworkingInterface() throws SecurityException {
+        // verify that our smartSpaceOwner is in repository
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        //register smartSpace
+        SmartSpaceManagementResponse smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        //ensure smartSpace is registered
+        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
 
-        //register ssp with exposed external II
-        sspManagementRequest = new SspManagementRequest(
+        //register smartSpace with exposed external II
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
-                preferredSspId + "_external",
-                !exposedInternalII);
-        sspRegistrationResponse = sspManagementService.authManage(sspManagementRequest);
-        //ensure ssp is registered
-        assertEquals(ManagementStatus.OK, sspRegistrationResponse.getManagementStatus());
+                preferredSmartSpaceId + "_external",
+                !exposedIIAddress);
+        smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        //ensure smartSpace is registered
+        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
 
-        //try to update first ssp to expose the same internal interface as second one
-        sspManagementRequest = new SspManagementRequest(
+        //try to update first smartSpace to expose the same internal interface as second one
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
-                preferredSspId + "_external",
-                exposedInternalII);
+                preferredSmartSpaceId + "_external",
+                exposedIIAddress);
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(SspManagementException.SSP_INTERWARKING_INTERFACE_IN_USE, s.getMessage());
+            assertEquals(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, s.getMessage());
         }
 
-        //try to update first ssp to expose the same internal interface as second one
-        sspManagementRequest = new SspManagementRequest(
+        //try to update first smartSpace to expose the same internal interface as second one
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                sspOwnerUserCredentials,
-                sspExternalInterworkingInterfaceAddress,
-                sspInternalInterworkingInterfaceAddress,
-                sspInstanceFriendlyName,
+                smartSpaceOwnerUserCredentials,
+                smartSpaceExternalInterworkingInterfaceAddress,
+                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
-                preferredSspId,
-                !exposedInternalII);
+                preferredSmartSpaceId,
+                !exposedIIAddress);
         try {
-            sspManagementService.authManage(sspManagementRequest);
+            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(SspManagementException.SSP_INTERWARKING_INTERFACE_IN_USE, s.getMessage());
+            assertEquals(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, s.getMessage());
         }
 
     }

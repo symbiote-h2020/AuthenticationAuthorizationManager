@@ -78,16 +78,13 @@ public class RevocationHelper {
             InvalidArgumentsException {
         switch (commonName.split(illegalSign).length) {
             case 1:
-                if (commonName.startsWith(SecurityConstants.SSP_IDENTIFIER_PREFIX)) {
-                    if (user.getRole() != UserRole.SSP_OWNER || !user.getOwnedServices().contains(commonName)) {
-                        throw new SecurityException("User has no rights to this ssp");
-                    }
-                    SmartSpace ssp = smartSpaceRepository.findOne(commonName);
-                    return revokeSspCertificateUsingCommonName(commonName, ssp);
+                if (user.getRole() != UserRole.SERVICE_OWNER || !user.getOwnedServices().contains(commonName)) {
+                    throw new SecurityException("User has no rights to this service");
+                }
+                if (commonName.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
+                    SmartSpace smartSpace = smartSpaceRepository.findOne(commonName);
+                    return revokeSmartSpaceCertificateUsingCommonName(commonName, smartSpace);
                 } else {
-                    if (user.getRole() != UserRole.PLATFORM_OWNER || !user.getOwnedServices().contains(commonName)) {
-                        throw new SecurityException("User has no rights to this platform");
-                    }
                     Platform platform = platformRepository.findOne(commonName);
                     return revokePlatformCertificateUsingCommonName(commonName, platform);
                 }
@@ -118,23 +115,23 @@ public class RevocationHelper {
         return true;
     }
 
-    private boolean revokeSspCertificateUsingCommonName(String commonName, SmartSpace ssp) throws
+    private boolean revokeSmartSpaceCertificateUsingCommonName(String commonName, SmartSpace smartSpace) throws
             WrongCredentialsException,
             CertificateException {
-        if (ssp == null) {
+        if (smartSpace == null) {
             throw new WrongCredentialsException(WrongCredentialsException.NO_SUCH_SERVICE);
         }
-        if (ssp.getSspAAMCertificate() == null
-                || ssp.getSspAAMCertificate().getCertificateString().isEmpty()
-                || !isMyCertificate(ssp.getSspAAMCertificate().getX509())) {
+        if (smartSpace.getSmartSpaceAAMCertificate() == null
+                || smartSpace.getSmartSpaceAAMCertificate().getCertificateString().isEmpty()
+                || !isMyCertificate(smartSpace.getSmartSpaceAAMCertificate().getX509())) {
             throw new CertificateException("SmartSpace certificate is empty or issuer does not equals with this AAM");
         }
-        revokeKey(commonName, ssp.getSspAAMCertificate());
-        ssp.setSspAAMCertificate(new Certificate());
-        smartSpaceRepository.save(ssp);
+        revokeKey(commonName, smartSpace.getSmartSpaceAAMCertificate());
+        smartSpace.setSmartSpaceAAMCertificate(new Certificate());
+        smartSpaceRepository.save(smartSpace);
         aamServices.deleteFromCacheInternalAAMs();
         aamServices.deleteFromCacheAvailableAAMs();
-        aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, ssp.getSspInstanceId());
+        aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, smartSpace.getSmartSpaceInstanceId());
         return true;
     }
     private boolean revokePlatformCertificateUsingCommonName(String commonName, Platform platform) throws
@@ -176,19 +173,14 @@ public class RevocationHelper {
             case 1:
 
                 String serviceId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
-                if (!ownedServices.contains(serviceId)) {
-                    throw new SecurityException("User is not the owner of the service from certificate");
+                if (user.getRole() != UserRole.SERVICE_OWNER
+                        || !ownedServices.contains(serviceId)) {
+                    throw new SecurityException("User has no rights to this service");
                 }
-                if (serviceId.startsWith(SecurityConstants.SSP_IDENTIFIER_PREFIX)) {
-                    if (user.getRole() != UserRole.SSP_OWNER) {
-                        throw new SecurityException("User is not the ssp owner");
-                    }
-                    SmartSpace ssp = smartSpaceRepository.findOne(serviceId);
-                    return revokeSspCertificateUsingCertificate(certificate, ssp);
+                if (serviceId.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
+                    SmartSpace smartSpace = smartSpaceRepository.findOne(serviceId);
+                    return revokeSmartSpaceCertificateUsingCertificate(certificate, smartSpace);
                 } else {
-                    if (user.getRole() != UserRole.PLATFORM_OWNER) {
-                        throw new SecurityException("User is not the platform owner");
-                    }
                     Platform platform = platformRepository.findOne(serviceId);
                     return revokePlatformCertificateUsingCertificate(certificate, platform);
                 }
@@ -262,29 +254,29 @@ public class RevocationHelper {
         throw new WrongCredentialsException(WrongCredentialsException.CERTIFICATE_NOT_EQUALS_DB);
     }
 
-    private boolean revokeSspCertificateUsingCertificate(X509Certificate certificate,
-                                                         SmartSpace ssp) throws
+    private boolean revokeSmartSpaceCertificateUsingCertificate(X509Certificate certificate,
+                                                                SmartSpace smartSpace) throws
             CertificateException,
             WrongCredentialsException,
             IOException {
-        String sspId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
-        if (ssp == null) {
+        String smartSpaceId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
+        if (smartSpace == null) {
             throw new WrongCredentialsException(WrongCredentialsException.NO_SUCH_SERVICE);
         }
-        if (ssp.getSspAAMCertificate() == null
-                || ssp.getSspAAMCertificate().getCertificateString().isEmpty()) {
+        if (smartSpace.getSmartSpaceAAMCertificate() == null
+                || smartSpace.getSmartSpaceAAMCertificate().getCertificateString().isEmpty()) {
             throw new CertificateException("There is no certificate to revoke");
         }
-        if (ssp.getSspAAMCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
-            revokeKey(sspId, ssp.getSspAAMCertificate());
-            ssp.setSspAAMCertificate(new Certificate());
-            smartSpaceRepository.save(ssp);
+        if (smartSpace.getSmartSpaceAAMCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
+            revokeKey(smartSpaceId, smartSpace.getSmartSpaceAAMCertificate());
+            smartSpace.setSmartSpaceAAMCertificate(new Certificate());
+            smartSpaceRepository.save(smartSpace);
             aamServices.deleteFromCacheInternalAAMs();
             aamServices.deleteFromCacheAvailableAAMs();
-            aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, ssp.getSspInstanceId());
+            aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, smartSpace.getSmartSpaceInstanceId());
             return true;
         }
-        if (isRevoked(sspId, certificate.getPublicKey())) {
+        if (isRevoked(smartSpaceId, certificate.getPublicKey())) {
             return true;
         }
         throw new WrongCredentialsException(WrongCredentialsException.CERTIFICATE_NOT_EQUALS_DB);
@@ -337,11 +329,11 @@ public class RevocationHelper {
             revokedTokensRepository.save(token);
             return true;
         }
-        //ssp owner
-        SmartSpace ssp = smartSpaceRepository.findBySspOwner(user);
-        if (ssp != null
-                && !ssp.getSspAAMCertificate().getCertificateString().isEmpty()
-                && Base64.getEncoder().encodeToString(ssp.getSspAAMCertificate().getX509().getPublicKey().getEncoded())
+        //smart space owner
+        SmartSpace smartSpace = smartSpaceRepository.findBySmartSpaceOwner(user);
+        if (smartSpace != null
+                && !smartSpace.getSmartSpaceAAMCertificate().getCertificateString().isEmpty()
+                && Base64.getEncoder().encodeToString(smartSpace.getSmartSpaceAAMCertificate().getX509().getPublicKey().getEncoded())
                 .equals(token.getClaims().get("ipk").toString())) {
             revokedTokensRepository.save(token);
             return true;
@@ -405,9 +397,9 @@ public class RevocationHelper {
             switch (certificateCommonName.split(illegalSign).length) {
                 case 1:
 
-                    if (certificateCommonName.startsWith(SecurityConstants.SSP_IDENTIFIER_PREFIX)) {
-                        SmartSpace ssp = smartSpaceRepository.findOne(certificateCommonName);
-                        return revokeSspCertificateUsingCommonName(certificateCommonName, ssp);
+                    if (certificateCommonName.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
+                        SmartSpace smartSpace = smartSpaceRepository.findOne(certificateCommonName);
+                        return revokeSmartSpaceCertificateUsingCommonName(certificateCommonName, smartSpace);
                     } else {
                         Platform platform = platformRepository.findOne(certificateCommonName);
                         return revokePlatformCertificateUsingCommonName(certificateCommonName, platform);
@@ -482,9 +474,9 @@ public class RevocationHelper {
         String certificateCommonName = certificate.getSubjectDN().getName().split("CN=")[1];
         switch (certificateCommonName.split(illegalSign).length) {
             case 1:
-                if (certificateCommonName.startsWith(SecurityConstants.SSP_IDENTIFIER_PREFIX)) {
-                    SmartSpace ssp = smartSpaceRepository.findOne(certificateCommonName);
-                    return revokeSspCertificateUsingCertificate(certificate, ssp);
+                if (certificateCommonName.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
+                    SmartSpace smartSpace = smartSpaceRepository.findOne(certificateCommonName);
+                    return revokeSmartSpaceCertificateUsingCertificate(certificate, smartSpace);
                 } else {
                     Platform platform = platformRepository.findOne(certificateCommonName);
                     return revokePlatformCertificateUsingCertificate(certificate, platform);

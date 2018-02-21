@@ -171,6 +171,8 @@ public class CertificatesIssuingFunctionalTests extends
                 new Certificate(),
                 new HashMap<>());
         platformRepository.save(platform);
+        platformOwner.getOwnedServices().add(platformId);
+        userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
@@ -184,7 +186,7 @@ public class CertificatesIssuingFunctionalTests extends
     }
 
     @Test
-    public void getSspAAMCertificateOverRESTSuccess() throws
+    public void getSmartSpaceAAMCertificateOverRESTSuccess() throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
@@ -196,22 +198,22 @@ public class CertificatesIssuingFunctionalTests extends
             ValidationException,
             AAMException {
 
-        User sspOwner = createUser(sspOwnerUsername, sspOwnerPassword, recoveryMail, UserRole.SSP_OWNER);
-        // issue ssp registration
-        SmartSpace ssp = new SmartSpace(preferredSspId, sspExternalInterworkingInterfaceAddress, sspInternalInterworkingInterfaceAddress, exposedIIAddress, sspInstanceFriendlyName, new Certificate(), new HashMap<>(), sspOwner);
-        smartSpaceRepository.save(ssp);
-        sspOwner.getOwnedServices().add(preferredSspId);
-        userRepository.save(sspOwner);
+        User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        // issue smartSpace registration
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceExternalInterworkingInterfaceAddress, smartSpaceInternalInterworkingInterfaceAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), smartSpaceOwner);
+        smartSpaceRepository.save(smartSpace);
+        smartSpaceOwner.getOwnedServices().add(preferredSmartSpaceId);
+        userRepository.save(smartSpaceOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(ssp.getSspInstanceId(), pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(smartSpace.getSmartSpaceInstanceId(), pair);
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(sspOwnerUsername, sspOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(smartSpaceOwnerUsername, smartSpaceOwnerPassword, clientId, csrString);
 
         String clientCertificate = aamClient.signCertificateRequest(certRequest);
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + ssp.getSspInstanceId(), x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + smartSpace.getSmartSpaceInstanceId(), x509Certificate.getSubjectDN().getName());
     }
 
     @Test

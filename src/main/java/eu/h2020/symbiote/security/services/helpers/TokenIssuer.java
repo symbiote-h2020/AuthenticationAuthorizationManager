@@ -117,8 +117,8 @@ public class TokenIssuer {
                         case USER:
                             attributes.put(CoreAttributes.ROLE.toString(), UserRole.USER.toString());
                             break;
-                        case PLATFORM_OWNER:
-                            attributes.put(CoreAttributes.ROLE.toString(), UserRole.PLATFORM_OWNER.toString());
+                        case SERVICE_OWNER:
+                            attributes.put(CoreAttributes.ROLE.toString(), UserRole.SERVICE_OWNER.toString());
                             break;
                         case NULL:
                             //TODO consider CoreComponents Attributes
@@ -128,7 +128,7 @@ public class TokenIssuer {
                 case PLATFORM:
                     // TODO R3 federation
                     break;
-                case SSP:
+                case SMART_SPACE:
                     // TODO
                     break;
 

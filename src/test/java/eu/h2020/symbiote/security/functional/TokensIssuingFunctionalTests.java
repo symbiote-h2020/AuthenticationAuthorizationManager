@@ -214,7 +214,7 @@ public class TokensIssuingFunctionalTests extends
         // verify that this JWT contains attributes relevant for platform owner
         Map<String, String> attributes = claimsFromToken.getAtt();
         // PO role
-        assertEquals(UserRole.PLATFORM_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
+        assertEquals(UserRole.SERVICE_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
         // owned platform identifier
     }
 
