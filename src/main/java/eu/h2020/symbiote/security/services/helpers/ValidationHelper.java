@@ -1,5 +1,6 @@
 package eu.h2020.symbiote.security.services.helpers;
 
+import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
@@ -32,6 +33,7 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.*;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
 
@@ -59,7 +61,7 @@ public class ValidationHelper {
     private final RevokedKeysRepository revokedKeysRepository;
     private final RevokedTokensRepository revokedTokensRepository;
     private final RevokedRemoteTokensRepository revokedRemoteTokensRepository;
-    private final FederationRulesRepository federationRulesRepository;
+    private final FederationsRepository federationsRepository;
     private final UserRepository userRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final AAMServices aamServices;
@@ -78,7 +80,7 @@ public class ValidationHelper {
                             RevokedKeysRepository revokedKeysRepository,
                             RevokedTokensRepository revokedTokensRepository,
                             RevokedRemoteTokensRepository revokedRemoteTokensRepository,
-                            FederationRulesRepository federationRulesRepository,
+                            FederationsRepository federationsRepository,
                             UserRepository userRepository,
                             ComponentCertificatesRepository componentCertificatesRepository,
                             AAMServices aamServices,
@@ -89,7 +91,7 @@ public class ValidationHelper {
         this.revokedKeysRepository = revokedKeysRepository;
         this.revokedTokensRepository = revokedTokensRepository;
         this.revokedRemoteTokensRepository = revokedRemoteTokensRepository;
-        this.federationRulesRepository = federationRulesRepository;
+        this.federationsRepository = federationsRepository;
         this.userRepository = userRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.aamServices = aamServices;
@@ -495,11 +497,14 @@ public class ValidationHelper {
             return false;
         }
         for (String federationId : claims.getAtt().values()) {
-            if (!federationRulesRepository.exists(federationId)
+            if (!federationsRepository.exists(federationId)
                     || claims.getSub().split(illegalSign).length != 4
-                    || !federationRulesRepository.findOne(federationId).getPlatformIds().contains(claims.getSub().split(illegalSign)[2])) {
+                    || !federationsRepository.findOne(federationId)
+                    .getMembers().stream()
+                    .map(FederationMember::getPlatformId)
+                    .collect(Collectors.toList())
+                    .contains(claims.getSub().split(illegalSign)[2]))
                 return false;
-            }
         }
         return true;
     }

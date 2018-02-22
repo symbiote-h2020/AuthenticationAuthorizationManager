@@ -1,5 +1,7 @@
 package eu.h2020.symbiote.security.unit.credentialsvalidation;
 
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
@@ -12,7 +14,10 @@ import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.payloads.*;
+import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.UserDetails;
+import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.RevokedRemoteTokensRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
@@ -362,20 +367,48 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         dummyPlatform.getComponentCertificates().put(clientId, new Certificate(dummyPlatformAAMPEMCertString));
         platformRepository.save(dummyPlatform);
 
-        FederationRule federationRule = new FederationRule("federationId", new HashSet<>());
-        federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
-        federationRulesRepository.save(federationRule);
+        // adding a federation
+        List<FederationMember> platformsId = new ArrayList<>();
+        FederationMember federationMember = new FederationMember();
+        federationMember.setPlatformId(dummyPlatform.getPlatformInstanceId());
+        platformsId.add(federationMember);
 
-        federationRule = new FederationRule("federationId2", new HashSet<>());
-        federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
-        federationRule.addPlatform("testPlatform");
-        federationRulesRepository.save(federationRule);
+        Federation federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId");
 
-        federationRule = new FederationRule("federationId3", new HashSet<>());
-        federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
-        federationRule.addPlatform("testPlatform");
-        federationRule.addPlatform("testPlatform2");
-        federationRulesRepository.save(federationRule);
+        federationsRepository.save(federation);
+
+        platformsId = new ArrayList<>();
+        federationMember = new FederationMember();
+        federationMember.setPlatformId(dummyPlatform.getPlatformInstanceId());
+        platformsId.add(federationMember);
+        federationMember = new FederationMember();
+        federationMember.setPlatformId("testPlatform");
+        platformsId.add(federationMember);
+
+        federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId2");
+
+        federationsRepository.save(federation);
+
+        platformsId = new ArrayList<>();
+        federationMember = new FederationMember();
+        federationMember.setPlatformId(dummyPlatform.getPlatformInstanceId());
+        platformsId.add(federationMember);
+        federationMember = new FederationMember();
+        federationMember.setPlatformId("testPlatform");
+        platformsId.add(federationMember);
+        federationMember = new FederationMember();
+        federationMember.setPlatformId("testPlatform2");
+        platformsId.add(federationMember);
+
+        federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId3");
+
+        federationsRepository.save(federation);
 
         Token foreignToken = null;
         try {
@@ -389,11 +422,21 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         assertEquals(ValidationStatus.VALID, validationHelper.validate(foreignToken.toString(), "", "", dummyPlatformAAMPEMCertString));
         //changing federation not to contain this platform
 
-        federationRule.deletePlatform(dummyPlatform.getPlatformInstanceId());
-        federationRulesRepository.save(federationRule);
+        platformsId = new ArrayList<>();
+        federationMember = new FederationMember();
+        federationMember.setPlatformId("testPlatform");
+        platformsId.add(federationMember);
+        federationMember = new FederationMember();
+        federationMember.setPlatformId("testPlatform2");
+        platformsId.add(federationMember);
+        federation.setMembers(platformsId);
+        federationsRepository.save(federation);
+
+        assertEquals(2, federationsRepository.findOne("federationId3").getMembers().size());
+
         //checking if foreign token is valid
         assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validate(foreignToken.toString(), "", "", ""));
-        federationRulesRepository.delete(federationRule);
+        federationsRepository.delete(federation);
         assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validate(foreignToken.toString(), "", "", ""));
     }
 
@@ -603,11 +646,21 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         dummyPlatform.getComponentCertificates().put(clientId, new Certificate(dummyPlatformAAMPEMCertString));
         platformRepository.save(dummyPlatform);
 
-        FederationRule federationRule = new FederationRule("federationId", new HashSet<>());
-        federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
-        federationRule.addPlatform("testPlatform");
-        federationRule.addPlatform("testPlatform2");
-        federationRulesRepository.save(federationRule);
+
+        // adding a federation
+        List<FederationMember> platformsId = new ArrayList<>();
+        FederationMember federationMember = new FederationMember();
+        federationMember.setPlatformId("testPlatform");
+        platformsId.add(federationMember);
+        federationMember = new FederationMember();
+        federationMember.setPlatformId("testPlatform2");
+        platformsId.add(federationMember);
+
+        Federation federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId");
+
+        federationsRepository.save(federation);
 
         Token foreignToken = null;
         try {
@@ -1079,11 +1132,20 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         dummyPlatform.getComponentCertificates().put(clientId, new Certificate(dummyPlatformAAMPEMCertString));
         platformRepository.save(dummyPlatform);
 
-        FederationRule federationRule = new FederationRule("federationId", new HashSet<>());
-        federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
-        federationRule.addPlatform("testPlatform");
-        federationRule.addPlatform("testPlatform2");
-        federationRulesRepository.save(federationRule);
+        // adding a federation
+        List<FederationMember> platformsId = new ArrayList<>();
+        FederationMember federationMember = new FederationMember();
+        federationMember.setPlatformId("testPlatform");
+        platformsId.add(federationMember);
+        federationMember = new FederationMember();
+        federationMember.setPlatformId("testPlatform2");
+        platformsId.add(federationMember);
+
+        Federation federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId");
+
+        federationsRepository.save(federation);
 
         Token foreignToken = null;
         try {
