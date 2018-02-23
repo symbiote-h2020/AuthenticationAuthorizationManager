@@ -105,6 +105,7 @@ public class AAMServices {
 
             // registered platforms' AAMs
             for (Platform platform : platformRepository.findAll()) {
+                // todo fix
                 AAM platformAAM = new AAM(platform.getPlatformInterworkingInterfaceAddress() + platformAAMSuffixAtInterWorkingInterface,
                         platform.getPlatformInstanceFriendlyName(),
                         platform.getPlatformInstanceId(),
@@ -168,8 +169,8 @@ public class AAMServices {
                                     PAAMAddress,
                                     " ",
                                     certificationAuthorityHelper.getAAMInstanceIdentifier(),
-                                    ""
-                                    , new Certificate(certificationAuthorityHelper.getAAMCert()),
+                                    "",
+                                    new Certificate(certificationAuthorityHelper.getAAMCert()),
                                     fillComponentCertificatesMap()));
                 }
             }

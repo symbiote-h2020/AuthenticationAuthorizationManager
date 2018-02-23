@@ -75,12 +75,9 @@ public class CertificationAuthorityHelper {
             case CORE:
                 break;
             case PLATFORM:
-                if (certificate_alias.equals(root_ca_certificate_alias))
-                    throw new SecurityMisconfigurationException("Platform AAM certificate must be different from Core AAM - root certificate");
-                break;
             case SMART_SPACE:
                 if (certificate_alias.equals(root_ca_certificate_alias))
-                    throw new SecurityMisconfigurationException("Smart Space AAM certificate must be different from Core AAM - root certificate");
+                    throw new SecurityMisconfigurationException("This AAM certificate must be different from Core AAM - root certificate");
                 break;
             case NULL:
                 throw new CertificateException("Failed to initialize AAM using given symbiote keystore");

@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 /**
- * RabbitMQ Consumer implementation used for Smart Spaces' Registration actions
+ * RabbitMQ Consumer implementation used for Smart Spaces' management actions
  *
  * @author Jakub Toczek (PSNC)
  * <p>

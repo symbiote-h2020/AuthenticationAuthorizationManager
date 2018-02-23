@@ -21,6 +21,7 @@ import java.security.cert.CertificateException;
 
 @RestController
 @Api(value = "docs/signCertificateRequest", description = "Used to sign symbiote certificates")
+//TODO rename
 public class SignCertificateRequestController implements ISignCertificateRequest {
     private IssueCertificateService issueCertificateService;
 

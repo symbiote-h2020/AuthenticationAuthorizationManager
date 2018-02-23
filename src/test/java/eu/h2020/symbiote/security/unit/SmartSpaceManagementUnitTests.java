@@ -617,7 +617,7 @@ public class SmartSpaceManagementUnitTests extends
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, s.getMessage());
+            assertEquals(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, s.getMessage());
         }
 
         //try to register smartSpace with the same exposed external interface
@@ -634,7 +634,7 @@ public class SmartSpaceManagementUnitTests extends
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, s.getMessage());
+            assertEquals(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, s.getMessage());
         }
 
     }
@@ -676,7 +676,7 @@ public class SmartSpaceManagementUnitTests extends
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, s.getMessage());
+            assertEquals(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, s.getMessage());
         }
 
         //try to update first smartSpace to expose the same internal interface as second one
@@ -693,7 +693,7 @@ public class SmartSpaceManagementUnitTests extends
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, s.getMessage());
+            assertEquals(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, s.getMessage());
         }
 
     }

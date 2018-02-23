@@ -108,7 +108,7 @@ public class PlatformsManagementService {
                 // checking if Interworking interface isn't already used
                 for (Platform platform : platformRepository.findAll()) {
                     if (platform.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress()))
-                        throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
+                        throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
                 }
 
                 if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME)
@@ -155,7 +155,7 @@ public class PlatformsManagementService {
                         if (platformInRepo.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())
                                 // and that is not us!
                                 && !platformInRepo.getPlatformInstanceId().equals(platform.getPlatformInstanceId()))
-                            throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
+                            throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
                     }
                     platform.setPlatformInterworkingInterfaceAddress(platformManagementRequest.getPlatformInterworkingInterfaceAddress());
                 }

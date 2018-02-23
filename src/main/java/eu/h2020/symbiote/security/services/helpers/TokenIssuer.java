@@ -4,7 +4,6 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
@@ -115,10 +114,8 @@ public class TokenIssuer {
                 case CORE:
                     switch (user.getRole()) {
                         case USER:
-                            attributes.put(CoreAttributes.ROLE.toString(), UserRole.USER.toString());
-                            break;
                         case SERVICE_OWNER:
-                            attributes.put(CoreAttributes.ROLE.toString(), UserRole.SERVICE_OWNER.toString());
+                            attributes.put(CoreAttributes.ROLE.toString(), user.getRole().toString());
                             break;
                         case NULL:
                             //TODO consider CoreComponents Attributes
@@ -126,12 +123,11 @@ public class TokenIssuer {
                     }
                     break;
                 case PLATFORM:
-                    // TODO R3 federation
+                    // TODO R3 federation, wtd?
                     break;
                 case SMART_SPACE:
-                    // TODO
+                    // TODO wtd?
                     break;
-
                 case NULL:
                     throw new JWTCreationException(JWTCreationException.MISCONFIGURED_AAM_DEPLOYMENT_TYPE);
             }

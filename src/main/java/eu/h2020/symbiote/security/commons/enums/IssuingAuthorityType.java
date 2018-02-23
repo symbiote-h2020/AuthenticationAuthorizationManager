@@ -3,7 +3,8 @@ package eu.h2020.symbiote.security.commons.enums;
 /**
  * Used to define the {eu.h2020.symbiote.security.AuthenticationAuthorizationManager} deployment type:
  * CoreAAM,
- * ServiceAAM
+ * Platform / Enabler
+ * Smart Space
  *
  * @author Mikołaj Dobski (PSNC)
  * @author Jakub Toczek (PSNC)
@@ -18,7 +19,7 @@ public enum IssuingAuthorityType {
      */
     PLATFORM,
     /**
-     * SMART SPACES AAM
+     * Smart Space AAM
      */
     SMART_SPACE,
     /**

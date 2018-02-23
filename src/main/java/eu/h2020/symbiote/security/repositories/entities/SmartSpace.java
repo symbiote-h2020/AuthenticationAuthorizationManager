@@ -44,6 +44,7 @@ public class SmartSpace {
                       Map<String, Certificate> componentCertificates,
                       User smartSpaceOwner)
             throws InvalidArgumentsException {
+        // TODO use setter and harden the sitelocal depending on bool
         this.instanceId = instanceId;
         setGatewayAddress(gatewayAddress);
         this.siteLocalAddress = siteLocalAddress;

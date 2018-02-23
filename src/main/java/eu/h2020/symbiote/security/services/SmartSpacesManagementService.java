@@ -126,7 +126,7 @@ public class SmartSpacesManagementService {
                     String usedInterworkingAddressRepo = smartSpace.isExposingSiteLocalAddress() ?
                             smartSpace.getSiteLocalAddress() : smartSpace.getGatewayAddress();
                     if (usedInterworkingAddressRepo.equals(usedInterworkingAddress))
-                        throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
+                        throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
                 }
 
                 if (smartSpaceManagementRequest.getInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME)
@@ -183,7 +183,7 @@ public class SmartSpacesManagementService {
                                 smartSpaceRepo.getSiteLocalAddress() : smartSpaceRepo.getGatewayAddress();
                         if (usedInterworkingAddressRepo.equals(usedInterworkingAddress) &&
                                 !smartSpaceRepo.getInstanceId().equals(smartSpace.getInstanceId()))
-                            throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
+                            throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
                     }
 
                     smartSpace.setExposingSiteLocalAddress(smartSpaceManagementRequest.isExposingSiteLocalAddress());

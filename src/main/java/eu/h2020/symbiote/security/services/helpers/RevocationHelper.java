@@ -76,7 +76,7 @@ public class RevocationHelper {
             WrongCredentialsException,
             CertificateException,
             InvalidArgumentsException {
-        switch (commonName.split(illegalSign).length) {
+        switch (commonName.split(illegalSign).length) { // TODO refactor length to enum with values
             case 1:
                 if (user.getRole() != UserRole.SERVICE_OWNER || !user.getOwnedServices().contains(commonName)) {
                     throw new SecurityException("User has no rights to this service");
@@ -394,9 +394,9 @@ public class RevocationHelper {
             IOException,
             NotExistingUserException {
         if (!certificateCommonName.isEmpty()) {
-            switch (certificateCommonName.split(illegalSign).length) {
+            // todo rename illegalSign to CN fields delimiter
+            switch (certificateCommonName.split(illegalSign).length) { //TODO use the enum
                 case 1:
-
                     if (certificateCommonName.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
                         SmartSpace smartSpace = smartSpaceRepository.findOne(certificateCommonName);
                         return revokeSmartSpaceCertificateUsingCommonName(certificateCommonName, smartSpace);
@@ -473,6 +473,7 @@ public class RevocationHelper {
         }
         String certificateCommonName = certificate.getSubjectDN().getName().split("CN=")[1];
         switch (certificateCommonName.split(illegalSign).length) {
+            //todo enum
             case 1:
                 if (certificateCommonName.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
                     SmartSpace smartSpace = smartSpaceRepository.findOne(certificateCommonName);

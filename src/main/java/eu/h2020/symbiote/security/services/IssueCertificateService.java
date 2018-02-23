@@ -93,7 +93,7 @@ public class IssueCertificateService {
             pem = createPem(certFromCSR);
             persistComponentCertificate(request, pem);
         }
-        //platform/smartSpace
+        // platform / smartSpace
         else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)$")) {
             X509Certificate certFromCSR = createServiceCertFromCSR(request);
             pem = createPem(certFromCSR);
