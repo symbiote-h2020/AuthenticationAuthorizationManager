@@ -121,17 +121,17 @@ public class RevocationHelper {
         if (smartSpace == null) {
             throw new WrongCredentialsException(WrongCredentialsException.NO_SUCH_SERVICE);
         }
-        if (smartSpace.getSmartSpaceAAMCertificate() == null
-                || smartSpace.getSmartSpaceAAMCertificate().getCertificateString().isEmpty()
-                || !isMyCertificate(smartSpace.getSmartSpaceAAMCertificate().getX509())) {
+        if (smartSpace.getAamCertificate() == null
+                || smartSpace.getAamCertificate().getCertificateString().isEmpty()
+                || !isMyCertificate(smartSpace.getAamCertificate().getX509())) {
             throw new CertificateException("SmartSpace certificate is empty or issuer does not equals with this AAM");
         }
-        revokeKey(commonName, smartSpace.getSmartSpaceAAMCertificate());
-        smartSpace.setSmartSpaceAAMCertificate(new Certificate());
+        revokeKey(commonName, smartSpace.getAamCertificate());
+        smartSpace.setAamCertificate(new Certificate());
         smartSpaceRepository.save(smartSpace);
-        aamServices.deleteFromCacheInternalAAMs();
-        aamServices.deleteFromCacheAvailableAAMs();
-        aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, smartSpace.getSmartSpaceInstanceId());
+        aamServices.invalidateInternalAAMsCache();
+        aamServices.invalidateAvailableAAMsCache();
+        aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, smartSpace.getInstanceId());
         return true;
     }
     private boolean revokePlatformCertificateUsingCommonName(String commonName, Platform platform) throws
@@ -148,9 +148,9 @@ public class RevocationHelper {
         revokeKey(commonName, platform.getPlatformAAMCertificate());
         platform.setPlatformAAMCertificate(new Certificate());
         platformRepository.save(platform);
-        aamServices.deleteFromCacheInternalAAMs();
-        aamServices.deleteFromCacheAvailableAAMs();
-        aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, platform.getPlatformInstanceId());
+        aamServices.invalidateInternalAAMsCache();
+        aamServices.invalidateAvailableAAMsCache();
+        aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, platform.getPlatformInstanceId());
         return true;
     }
 
@@ -243,9 +243,9 @@ public class RevocationHelper {
             revokeKey(platformId, platform.getPlatformAAMCertificate());
             platform.setPlatformAAMCertificate(new Certificate());
             platformRepository.save(platform);
-            aamServices.deleteFromCacheInternalAAMs();
-            aamServices.deleteFromCacheAvailableAAMs();
-            aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, platform.getPlatformInstanceId());
+            aamServices.invalidateInternalAAMsCache();
+            aamServices.invalidateAvailableAAMsCache();
+            aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, platform.getPlatformInstanceId());
             return true;
         }
         if (isRevoked(platformId, certificate.getPublicKey())) {
@@ -263,17 +263,17 @@ public class RevocationHelper {
         if (smartSpace == null) {
             throw new WrongCredentialsException(WrongCredentialsException.NO_SUCH_SERVICE);
         }
-        if (smartSpace.getSmartSpaceAAMCertificate() == null
-                || smartSpace.getSmartSpaceAAMCertificate().getCertificateString().isEmpty()) {
+        if (smartSpace.getAamCertificate() == null
+                || smartSpace.getAamCertificate().getCertificateString().isEmpty()) {
             throw new CertificateException("There is no certificate to revoke");
         }
-        if (smartSpace.getSmartSpaceAAMCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
-            revokeKey(smartSpaceId, smartSpace.getSmartSpaceAAMCertificate());
-            smartSpace.setSmartSpaceAAMCertificate(new Certificate());
+        if (smartSpace.getAamCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
+            revokeKey(smartSpaceId, smartSpace.getAamCertificate());
+            smartSpace.setAamCertificate(new Certificate());
             smartSpaceRepository.save(smartSpace);
-            aamServices.deleteFromCacheInternalAAMs();
-            aamServices.deleteFromCacheAvailableAAMs();
-            aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, smartSpace.getSmartSpaceInstanceId());
+            aamServices.invalidateInternalAAMsCache();
+            aamServices.invalidateAvailableAAMsCache();
+            aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, smartSpace.getInstanceId());
             return true;
         }
         if (isRevoked(smartSpaceId, certificate.getPublicKey())) {
@@ -332,8 +332,8 @@ public class RevocationHelper {
         //smart space owner
         SmartSpace smartSpace = smartSpaceRepository.findBySmartSpaceOwner(user);
         if (smartSpace != null
-                && !smartSpace.getSmartSpaceAAMCertificate().getCertificateString().isEmpty()
-                && Base64.getEncoder().encodeToString(smartSpace.getSmartSpaceAAMCertificate().getX509().getPublicKey().getEncoded())
+                && !smartSpace.getAamCertificate().getCertificateString().isEmpty()
+                && Base64.getEncoder().encodeToString(smartSpace.getAamCertificate().getX509().getPublicKey().getEncoded())
                 .equals(token.getClaims().get("ipk").toString())) {
             revokedTokensRepository.save(token);
             return true;
@@ -454,9 +454,9 @@ public class RevocationHelper {
         }
         revokeKey(componentId, componentCertificate.getCertificate());
         componentCertificatesRepository.delete(componentId);
-        aamServices.deleteFromCacheInternalAAMs();
-        aamServices.deleteFromCacheAvailableAAMs();
-        aamServices.deleteFromCacheComponentCertificate(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier());
+        aamServices.invalidateInternalAAMsCache();
+        aamServices.invalidateAvailableAAMsCache();
+        aamServices.invalidateComponentCertificateCache(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier());
         return true;
     }
 
@@ -513,9 +513,9 @@ public class RevocationHelper {
         if (componentCertificate.getCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
             revokeKey(componentId, componentCertificate.getCertificate());
             componentCertificatesRepository.delete(componentId);
-            aamServices.deleteFromCacheInternalAAMs();
-            aamServices.deleteFromCacheAvailableAAMs();
-            aamServices.deleteFromCacheComponentCertificate(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier());
+            aamServices.invalidateInternalAAMsCache();
+            aamServices.invalidateAvailableAAMsCache();
+            aamServices.invalidateComponentCertificateCache(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier());
             return true;
         }
         if (isRevoked(componentId, certificate.getPublicKey())) {

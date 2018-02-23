@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.repositories.entities;
 
 import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 
@@ -16,85 +17,88 @@ import java.util.Map;
 public class SmartSpace {
 
     @Id
-    private final String smartSpaceInstanceId;
-    private String smartSpaceExternalInterworkingInterfaceAddress = "";
-    private String smartSpaceInternalInterworkingInterfaceAddress = "";
-    private boolean exposedInternalInterworkingInterfaceAddress = false;
-    private String smartSpaceInstanceFriendlyName = "";
-    private Certificate smartSpaceAAMCertificate = new Certificate();
+    private final String instanceId;
+    private String gatewayAddress = "";
+    private String siteLocalAddress = "";
+    private boolean exposingSiteLocalAddress = false;
+    private String instanceFriendlyName = "";
+    private Certificate aamCertificate = new Certificate();
     private Map<String, Certificate> componentCertificates = new HashMap<>();
     @DBRef
     private User smartSpaceOwner;
 
     /**
-     * @param smartSpaceInstanceId                               SymbIoTe-unique smart Space identifier
-     * @param smartSpaceExternalInterworkingInterfaceAddress     Address where the SmartSpace exposes its Interworking Interface
-     * @param smartSpaceInternalInterworkingInterfaceAddress     Address where the SmartSpace exposes its Interworking Interface inside it's internal network
-     * @param exposedInternalInterworkingInterfaceAddress should smartSpaceInternalInterworkingInterfaceAddress be exposed
-     * @param smartSpaceInstanceFriendlyName                     a label for the end user to be able to identify the getHomeToken
-     *                                                    endrypoint
-     * @param smartSpaceOwner                                    details of the SmartSpace Owner
+     * @param instanceId                SymbIoTe-unique smart Space identifier
+     * @param gatewayAddress            Address where the SmartSpace is available from the Internet
+     * @param siteLocalAddress          Address where the SmartSpace is available from the local site net
+     * @param exposingSiteLocalAddress  should siteLocalAddress be exposed
+     * @param instanceFriendlyName      a label for the end user to be able to identify the getHomeToken entry point
+     * @param smartSpaceOwner           details of the SmartSpace Owner
      */
-    public SmartSpace(String smartSpaceInstanceId,
-                      String smartSpaceExternalInterworkingInterfaceAddress,
-                      String smartSpaceInternalInterworkingInterfaceAddress,
-                      boolean exposedInternalInterworkingInterfaceAddress,
-                      String smartSpaceInstanceFriendlyName,
-                      Certificate smartSpaceAAMCertificate,
+    public SmartSpace(String instanceId,
+                      String gatewayAddress,
+                      String siteLocalAddress,
+                      boolean exposingSiteLocalAddress,
+                      String instanceFriendlyName,
+                      Certificate aamCertificate,
                       Map<String, Certificate> componentCertificates,
-                      User smartSpaceOwner) {
-        this.smartSpaceInstanceId = smartSpaceInstanceId;
-        this.smartSpaceExternalInterworkingInterfaceAddress = smartSpaceExternalInterworkingInterfaceAddress;
-        this.smartSpaceInternalInterworkingInterfaceAddress = smartSpaceInternalInterworkingInterfaceAddress;
-        this.exposedInternalInterworkingInterfaceAddress = exposedInternalInterworkingInterfaceAddress;
-        this.smartSpaceInstanceFriendlyName = smartSpaceInstanceFriendlyName;
-        this.smartSpaceAAMCertificate = smartSpaceAAMCertificate;
+                      User smartSpaceOwner)
+            throws InvalidArgumentsException {
+        this.instanceId = instanceId;
+        setGatewayAddress(gatewayAddress);
+        this.siteLocalAddress = siteLocalAddress;
+        this.exposingSiteLocalAddress = exposingSiteLocalAddress;
+        this.instanceFriendlyName = instanceFriendlyName;
+        this.aamCertificate = aamCertificate;
         this.componentCertificates = componentCertificates;
         this.smartSpaceOwner = smartSpaceOwner;
     }
 
-    public String getSmartSpaceInstanceId() {
-        return smartSpaceInstanceId;
+    public String getInstanceId() {
+        return instanceId;
     }
 
-    public String getSmartSpaceExternalInterworkingInterfaceAddress() {
-        return smartSpaceExternalInterworkingInterfaceAddress;
+    public String getGatewayAddress() {
+        return gatewayAddress;
     }
 
-    public void setSmartSpaceExternalInterworkingInterfaceAddress(String smartSpaceExternalInterworkingInterfaceAddress) {
-        this.smartSpaceExternalInterworkingInterfaceAddress = smartSpaceExternalInterworkingInterfaceAddress;
+    public void setGatewayAddress(String gatewayAddress) throws InvalidArgumentsException {
+        if (!gatewayAddress.startsWith("https")) {
+            throw new InvalidArgumentsException("Gateway Address should start with https.");
+        }
+        this.gatewayAddress = gatewayAddress;
     }
 
-    public String getSmartSpaceInternalInterworkingInterfaceAddress() {
-        return smartSpaceInternalInterworkingInterfaceAddress;
+    public String getSiteLocalAddress() {
+        return siteLocalAddress;
     }
 
-    public void setSmartSpaceInternalInterworkingInterfaceAddress(String smartSpaceInternalInterworkingInterfaceAddress) {
-        this.smartSpaceInternalInterworkingInterfaceAddress = smartSpaceInternalInterworkingInterfaceAddress;
+    public void setSiteLocalAddress(String siteLocalAddress) {
+        this.siteLocalAddress = siteLocalAddress;
     }
 
-    public boolean isExposedInternalInterworkingInterfaceAddress() {
-        return exposedInternalInterworkingInterfaceAddress;
+    public boolean isExposingSiteLocalAddress() {
+        return exposingSiteLocalAddress;
     }
 
-    public void setExposedInternalInterworkingInterfaceAddress(boolean exposedInternalInterworkingInterfaceAddress) {
-        this.exposedInternalInterworkingInterfaceAddress = exposedInternalInterworkingInterfaceAddress;
+    public void setExposingSiteLocalAddress(boolean exposingSiteLocalAddress) {
+        this.exposingSiteLocalAddress = exposingSiteLocalAddress;
     }
 
-    public String getSmartSpaceInstanceFriendlyName() {
-        return smartSpaceInstanceFriendlyName;
+    public String getInstanceFriendlyName() {
+        return instanceFriendlyName;
     }
 
-    public void setSmartSpaceInstanceFriendlyName(String smartSpaceInstanceFriendlyName) {
-        this.smartSpaceInstanceFriendlyName = smartSpaceInstanceFriendlyName;
+    public void setInstanceFriendlyName(String instanceFriendlyName) {
+        this.instanceFriendlyName = instanceFriendlyName;
     }
 
-    public Certificate getSmartSpaceAAMCertificate() {
-        return smartSpaceAAMCertificate;
+    public Certificate getAamCertificate() {
+        return aamCertificate;
     }
 
-    public void setSmartSpaceAAMCertificate(Certificate smartSpaceAAMCertificate) {
-        this.smartSpaceAAMCertificate = smartSpaceAAMCertificate;
+    public void setAamCertificate(Certificate aamCertificate) {
+        this.aamCertificate = aamCertificate;
     }
 
     public Map<String, Certificate> getComponentCertificates() {

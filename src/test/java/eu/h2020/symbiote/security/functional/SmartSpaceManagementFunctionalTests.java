@@ -82,17 +82,17 @@ public class SmartSpaceManagementFunctionalTests extends
         SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
         assertNotNull(registeredSmartSpace);
         assertEquals(smartSpaceOwnerUsername, registeredSmartSpace.getSmartSpaceOwner().getUsername());
-        assertEquals(smartSpaceInstanceFriendlyName, registeredSmartSpace.getSmartSpaceInstanceFriendlyName());
-        assertEquals(smartSpaceExternalInterworkingInterfaceAddress, registeredSmartSpace.getSmartSpaceExternalInterworkingInterfaceAddress());
-        assertEquals(smartSpaceInternalInterworkingInterfaceAddress, registeredSmartSpace.getSmartSpaceInternalInterworkingInterfaceAddress());
-        assertEquals(true, registeredSmartSpace.isExposedInternalInterworkingInterfaceAddress());
+        assertEquals(smartSpaceInstanceFriendlyName, registeredSmartSpace.getInstanceFriendlyName());
+        assertEquals(smartSpaceExternalInterworkingInterfaceAddress, registeredSmartSpace.getGatewayAddress());
+        assertEquals(smartSpaceInternalInterworkingInterfaceAddress, registeredSmartSpace.getSiteLocalAddress());
+        assertEquals(true, registeredSmartSpace.isExposingSiteLocalAddress());
     }
 
     @Test
     public void sspRegistrationOverAMQPFailErrorResponseContainerReceived() throws IOException {
         //set Interworking Interfaces to empty to cause error
-        smartSpaceManagementRequest.setSmartSpaceExternalInterworkingInterfaceAddress("");
-        smartSpaceManagementRequest.setSmartSpaceInternalInterworkingInterfaceAddress("");
+        smartSpaceManagementRequest.setGatewayAddress("");
+        smartSpaceManagementRequest.setSiteLocalAddress("");
 
         // issue ssp registration over AMQP
         byte[] response = rabbitTemplate.sendAndReceive(smartSpaceManagementRequestQueue, new Message(mapper.writeValueAsBytes

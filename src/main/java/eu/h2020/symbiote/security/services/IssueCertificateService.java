@@ -40,8 +40,8 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
  */
 
 @Service
-public class SignCertificateRequestService {
-    private static final Log log = LogFactory.getLog(SignCertificateRequestService.class);
+public class IssueCertificateService {
+    private static final Log log = LogFactory.getLog(IssueCertificateService.class);
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
     private final SmartSpaceRepository smartSpaceRepository;
@@ -56,14 +56,14 @@ public class SignCertificateRequestService {
     private String AAMOwnerPassword;
 
     @Autowired
-    public SignCertificateRequestService(UserRepository userRepository,
-                                         PlatformRepository platformRepository,
-                                         SmartSpaceRepository smartSpaceRepository,
-                                         RevokedKeysRepository revokedKeysRepository,
-                                         ComponentCertificatesRepository componentCertificatesRepository,
-                                         CertificationAuthorityHelper certificationAuthorityHelper,
-                                         PasswordEncoder passwordEncoder,
-                                         AAMServices aamServices) {
+    public IssueCertificateService(UserRepository userRepository,
+                                   PlatformRepository platformRepository,
+                                   SmartSpaceRepository smartSpaceRepository,
+                                   RevokedKeysRepository revokedKeysRepository,
+                                   ComponentCertificatesRepository componentCertificatesRepository,
+                                   CertificationAuthorityHelper certificationAuthorityHelper,
+                                   PasswordEncoder passwordEncoder,
+                                   AAMServices aamServices) {
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
         this.smartSpaceRepository = smartSpaceRepository;
@@ -91,13 +91,13 @@ public class SignCertificateRequestService {
         if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)(@)(([\\w-])+)$")) {
             X509Certificate certFromCSR = createComponentCertFromCSR(request);
             pem = createPem(certFromCSR);
-            putComponentCertificateToRepository(request, pem);
+            persistComponentCertificate(request, pem);
         }
         //platform/smartSpace
         else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)$")) {
             X509Certificate certFromCSR = createServiceCertFromCSR(request);
             pem = createPem(certFromCSR);
-            putServiceCertificateToRepository(request, pem);
+            persistServiceCertificate(request, pem);
         }
         // user / platform owner
         else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)(@)(([\\w-])+)(@)(([\\w-])+)$")) {
@@ -106,7 +106,7 @@ public class SignCertificateRequestService {
             }
             X509Certificate certFromCSR = createUserCertFromCSR(request);
             pem = createPem(certFromCSR);
-            putUserCertificateToRepository(user, certificateRequest, pem);
+            persistUserCertificate(user, certificateRequest, pem);
         } else {
             throw new InvalidArgumentsException();
         }
@@ -182,39 +182,39 @@ public class SignCertificateRequestService {
         return user;
     }
 
-    private void putComponentCertificateToRepository(PKCS10CertificationRequest req,
-                                                     String pem) throws CertificateException {
+    private void persistComponentCertificate(PKCS10CertificationRequest req,
+                                             String pem) throws CertificateException {
 
         String componentId = req.getSubject().toString().split("CN=")[1].split("@")[0];
         String platformId = req.getSubject().toString().split("CN=")[1].split("@")[1];
 
         componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
-        aamServices.deleteFromCacheComponentCertificate(componentId, platformId);
-        aamServices.deleteFromCacheAvailableAAMs();
-        aamServices.deleteFromCacheInternalAAMs();
+        aamServices.invalidateComponentCertificateCache(componentId, platformId);
+        aamServices.invalidateAvailableAAMsCache();
+        aamServices.invalidateInternalAAMsCache();
     }
 
-    private void putServiceCertificateToRepository(PKCS10CertificationRequest req,
-                                                   String pem) throws CertificateException {
+    private void persistServiceCertificate(PKCS10CertificationRequest req,
+                                           String pem) throws CertificateException {
 
         String serviceId = req.getSubject().toString().split("CN=")[1];
         if (serviceId.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
             SmartSpace smartSpace = smartSpaceRepository.findOne(serviceId);
-            smartSpace.setSmartSpaceAAMCertificate(new Certificate(pem));
+            smartSpace.setAamCertificate(new Certificate(pem));
             smartSpaceRepository.save(smartSpace);
         } else {
             Platform platform = platformRepository.findOne(serviceId);
             platform.setPlatformAAMCertificate(new Certificate(pem));
             platformRepository.save(platform);
         }
-        aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, serviceId);
-        aamServices.deleteFromCacheAvailableAAMs();
-        aamServices.deleteFromCacheInternalAAMs();
+        aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, serviceId);
+        aamServices.invalidateAvailableAAMsCache();
+        aamServices.invalidateInternalAAMsCache();
     }
 
-    private void putUserCertificateToRepository(User user,
-                                                CertificateRequest certificateRequest,
-                                                String pem) throws CertificateException {
+    private void persistUserCertificate(User user,
+                                        CertificateRequest certificateRequest,
+                                        String pem) throws CertificateException {
 
         user.getClientCertificates().put(certificateRequest.getClientId(), new Certificate(pem));
         userRepository.save(user);

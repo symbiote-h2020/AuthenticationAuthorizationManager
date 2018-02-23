@@ -144,7 +144,7 @@ public class CacheTests extends AbstractAAMTestSuite {
         aamServices.getComponentCertificate(componentId, "platform-1");
         aamServices.getComponentCertificate(componentId, "platform-1");
         Mockito.verify(dummyPlatformAAM, times(1)).getComponentCertificate(Mockito.anyString(), Mockito.anyString());
-        aamServices.deleteFromCacheComponentCertificate(componentId, "platform-1");
+        aamServices.invalidateComponentCertificateCache(componentId, "platform-1");
         aamServices.getComponentCertificate(componentId, "platform-1");
         Mockito.verify(dummyPlatformAAM, times(2)).getComponentCertificate(Mockito.anyString(), Mockito.anyString());
     }
@@ -160,7 +160,7 @@ public class CacheTests extends AbstractAAMTestSuite {
         aamServices.getAvailableAAMs();
         aamServices.getAvailableAAMs();
         Mockito.verify(aamServices, times(1)).getAvailableAAMs();
-        aamServices.deleteFromCacheAvailableAAMs();
+        aamServices.invalidateAvailableAAMsCache();
         aamServices.getAvailableAAMs();
         Mockito.verify(aamServices, times(2)).getAvailableAAMs();
     }
@@ -176,7 +176,7 @@ public class CacheTests extends AbstractAAMTestSuite {
         aamServices.getAAMsInternally();
         aamServices.getAAMsInternally();
         Mockito.verify(aamServices, times(1)).getAAMsInternally();
-        aamServices.deleteFromCacheInternalAAMs();
+        aamServices.invalidateInternalAAMsCache();
         aamServices.getAAMsInternally();
         Mockito.verify(aamServices, times(2)).getAAMsInternally();
     }

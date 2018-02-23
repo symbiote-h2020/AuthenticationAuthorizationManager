@@ -303,7 +303,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, password),
                         "",
                         "",
-                        UserRole.NULL,
+                        UserRole.USER,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.DELETE);

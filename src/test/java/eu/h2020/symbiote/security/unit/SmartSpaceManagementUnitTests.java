@@ -86,9 +86,9 @@ public class SmartSpaceManagementUnitTests extends
         SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
         assertNotNull(registeredSmartSpace);
         // verify that smartSpace oriented fields are properly stored
-        assertEquals(smartSpaceExternalInterworkingInterfaceAddress, registeredSmartSpace.getSmartSpaceExternalInterworkingInterfaceAddress());
-        assertEquals(smartSpaceInternalInterworkingInterfaceAddress, registeredSmartSpace.getSmartSpaceInternalInterworkingInterfaceAddress());
-        assertEquals(exposedIIAddress, registeredSmartSpace.isExposedInternalInterworkingInterfaceAddress());
+        assertEquals(smartSpaceExternalInterworkingInterfaceAddress, registeredSmartSpace.getGatewayAddress());
+        assertEquals(smartSpaceInternalInterworkingInterfaceAddress, registeredSmartSpace.getSiteLocalAddress());
+        assertEquals(exposedIIAddress, registeredSmartSpace.isExposingSiteLocalAddress());
 
         // verify that SO has this smartSpace in his collection
         User smartSpaceOwnerFromSmartSpaceEntity = registeredSmartSpace.getSmartSpaceOwner();
@@ -138,9 +138,9 @@ public class SmartSpaceManagementUnitTests extends
         assertEquals(smartSpaceOwnerUsername, registeredSmartSpace.getSmartSpaceOwner().getUsername());
 
         // verify that smartSpace oriented fields are properly stored
-        assertEquals(smartSpaceExternalInterworkingInterfaceAddress, registeredSmartSpace.getSmartSpaceExternalInterworkingInterfaceAddress());
-        assertEquals(smartSpaceInternalInterworkingInterfaceAddress, registeredSmartSpace.getSmartSpaceInternalInterworkingInterfaceAddress());
-        assertEquals(exposedIIAddress, registeredSmartSpace.isExposedInternalInterworkingInterfaceAddress());
+        assertEquals(smartSpaceExternalInterworkingInterfaceAddress, registeredSmartSpace.getGatewayAddress());
+        assertEquals(smartSpaceInternalInterworkingInterfaceAddress, registeredSmartSpace.getSiteLocalAddress());
+        assertEquals(exposedIIAddress, registeredSmartSpace.isExposingSiteLocalAddress());
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
     }
 
@@ -189,7 +189,7 @@ public class SmartSpaceManagementUnitTests extends
     public void smartSpaceManagementFailMissingCredentials() {
         // verify that our smartSpaceOwner is in repository
         assertTrue(userRepository.exists(smartSpaceOwnerUsername));
-        smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().setUsername("");
+        smartSpaceManagementRequest.getServiceOwnerCredentials().setUsername("");
 
         try {
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
@@ -203,7 +203,7 @@ public class SmartSpaceManagementUnitTests extends
     public void smartSpaceManageFailNotExistingUser() {
         // verify that our smartSpaceOwner is in repository
         assertFalse(userRepository.exists(wrongUsername));
-        smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().setUsername(wrongUsername);
+        smartSpaceManagementRequest.getServiceOwnerCredentials().setUsername(wrongUsername);
 
         try {
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
@@ -268,7 +268,7 @@ public class SmartSpaceManagementUnitTests extends
     public void smartSpaceManagementFailWrongPassword() {
         // verify that our smartSpaceOwner is in repository
         assertTrue(userRepository.exists(smartSpaceOwnerUsername));
-        smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().setPassword(wrongPassword);
+        smartSpaceManagementRequest.getServiceOwnerCredentials().setPassword(wrongPassword);
 
         try {
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
@@ -283,8 +283,8 @@ public class SmartSpaceManagementUnitTests extends
         User user = createUser(username, password, recoveryMail, UserRole.USER);
         userRepository.save(user);
         assertTrue(userRepository.exists(username));
-        smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().setUsername(username);
-        smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().setPassword(password);
+        smartSpaceManagementRequest.getServiceOwnerCredentials().setUsername(username);
+        smartSpaceManagementRequest.getServiceOwnerCredentials().setPassword(password);
         try {
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
@@ -376,7 +376,7 @@ public class SmartSpaceManagementUnitTests extends
         assertTrue(userRepository.exists(smartSpaceOwnerUsername));
 
         //register SERVICE with exposed internal II - external is empty
-        smartSpaceManagementRequest.setSmartSpaceExternalInterworkingInterfaceAddress("");
+        smartSpaceManagementRequest.setGatewayAddress("");
         SmartSpaceManagementResponse smartSpaceManagementResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         assertEquals(ManagementStatus.OK, smartSpaceManagementResponse.getManagementStatus());
 
@@ -438,7 +438,7 @@ public class SmartSpaceManagementUnitTests extends
         User user = createUser(smartSpaceOwnerUsername + "differentOne", smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
         // issue registration request with the same preferred smartSpace identifier but different SO
-        smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().setUsername
+        smartSpaceManagementRequest.getServiceOwnerCredentials().setUsername
                 (smartSpaceOwnerUsername + "differentOne");
         try {
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
@@ -472,9 +472,9 @@ public class SmartSpaceManagementUnitTests extends
         SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
         assertNotNull(registeredSmartSpace);
         // verify that smartSpace oriented fields are properly stored
-        assertEquals(smartSpaceExternalInterworkingInterfaceAddress + "dif", registeredSmartSpace.getSmartSpaceExternalInterworkingInterfaceAddress());
-        assertEquals(smartSpaceInternalInterworkingInterfaceAddress + "dif", registeredSmartSpace.getSmartSpaceInternalInterworkingInterfaceAddress());
-        assertEquals(!exposedIIAddress, registeredSmartSpace.isExposedInternalInterworkingInterfaceAddress());
+        assertEquals(smartSpaceExternalInterworkingInterfaceAddress + "dif", registeredSmartSpace.getGatewayAddress());
+        assertEquals(smartSpaceInternalInterworkingInterfaceAddress + "dif", registeredSmartSpace.getSiteLocalAddress());
+        assertEquals(!exposedIIAddress, registeredSmartSpace.isExposingSiteLocalAddress());
     }
 
     @Test

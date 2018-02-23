@@ -141,7 +141,7 @@ public class UsersManagementFunctionalTests extends
 
         // verify error response
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
     }
 
 

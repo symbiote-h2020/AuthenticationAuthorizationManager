@@ -198,9 +198,9 @@ public class PlatformsManagementService {
                 throw new ServiceManagementException(ServiceManagementException.INVALID_OPERATION, HttpStatus.BAD_REQUEST);
         }
 
-        aamServices.deleteFromCacheAvailableAAMs();
-        aamServices.deleteFromCacheInternalAAMs();
-        aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, platformManagementRequest.getPlatformInstanceId());
+        aamServices.invalidateAvailableAAMsCache();
+        aamServices.invalidateInternalAAMsCache();
+        aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, platformManagementRequest.getPlatformInstanceId());
         return new PlatformManagementResponse(platformManagementRequest.getPlatformInstanceId(), ManagementStatus.OK);
     }
 

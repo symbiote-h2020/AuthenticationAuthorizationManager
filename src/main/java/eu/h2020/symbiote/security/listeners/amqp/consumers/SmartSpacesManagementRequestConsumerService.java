@@ -21,9 +21,9 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 /**
- * RabbitMQ Consumer implementation used for Platforms' Registration actions
+ * RabbitMQ Consumer implementation used for Smart Spaces' Registration actions
  *
- * @author Maksymilian Marcinowski (PSNC)
+ * @author Jakub Toczek (PSNC)
  * <p>
  */
 @Profile("core")
@@ -62,7 +62,7 @@ public class SmartSpacesManagementRequestConsumerService {
 
             try {
                 SmartSpaceManagementRequest request = om.readValue(message, SmartSpaceManagementRequest.class);
-                log.debug("[x] Received SmartSpace Management Request for: " + request.getSmartSpaceOwnerCredentials().getUsername());
+                log.debug("[x] Received SmartSpace Management Request for: " + request.getServiceOwnerCredentials().getUsername());
                 return om.writeValueAsBytes(smartSpacesManagementService.authManage(request));
             } catch (SecurityException e) {
                 log.error(e);

@@ -149,7 +149,7 @@ public class OtherListenersFunctionalTests extends
         SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceExternalInterworkingInterfaceAddress, smartSpaceInternalInterworkingInterfaceAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), smartSpaceOwner);
         // inject platform AAM Cert
         Certificate smartSpaceAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1")));
-        smartSpace.setSmartSpaceAAMCertificate(smartSpaceAAMCertificate);
+        smartSpace.setAamCertificate(smartSpaceAAMCertificate);
         // save the certs into the repo
         smartSpaceRepository.save(smartSpace);
 
@@ -178,12 +178,9 @@ public class OtherListenersFunctionalTests extends
         assertTrue(aams.containsKey(preferredSmartSpaceId));
         AAM smartSpaceAAM = aams.get(preferredSmartSpaceId);
         assertEquals(preferredSmartSpaceId, smartSpaceAAM.getAamInstanceId());
-        if (exposedIIAddress) {
-            assertEquals(smartSpaceInternalInterworkingInterfaceAddress, smartSpaceAAM.getAamAddress());
-        } else {
-            assertEquals(smartSpaceExternalInterworkingInterfaceAddress, smartSpaceAAM
-                    .getAamAddress());
-        }
+        assertEquals(smartSpaceInternalInterworkingInterfaceAddress, smartSpaceAAM.getSiteLocalAddress());
+        assertEquals(smartSpaceExternalInterworkingInterfaceAddress, smartSpaceAAM.getAamAddress());
+
 
         assertEquals(smartSpaceInstanceFriendlyName, smartSpaceAAM.getAamInstanceFriendlyName());
         assertEquals(smartSpaceAAMCertificate.getCertificateString(), smartSpaceAAM.getAamCACertificate().getCertificateString());

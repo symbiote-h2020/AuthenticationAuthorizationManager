@@ -27,7 +27,7 @@ public class Platform {
      * @param platformInstanceId                   SymbIoTe-unique platform identifier
      * @param platformInterworkingInterfaceAddress Address where the Platform exposes its Interworking Interface
      * @param platformInstanceFriendlyName         a label for the end user to be able to identify the getHomeToken
-     *                                             endrypoint
+     *                                             entry point
      * @param platformOwner                        details of the Platform Owner
      */
     public Platform(String platformInstanceId,

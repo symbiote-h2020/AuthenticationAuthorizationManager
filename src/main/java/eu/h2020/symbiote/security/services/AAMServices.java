@@ -77,8 +77,8 @@ public class AAMServices {
     }
 
     @CacheEvict(cacheNames = "getAvailableAAMs", allEntries = true)
-    public void deleteFromCacheAvailableAAMs() {
-        //function deleting cache thanks to proper annotation
+    public void invalidateAvailableAAMsCache() {
+        //function invalidating cache thanks to proper annotation
     }
 
     private Map<String, AAM> getAvailableAAMs(boolean provideInternalURL) throws
@@ -99,21 +99,29 @@ public class AAMServices {
             availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM(coreAAMAddress,
                     SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                     SecurityConstants.CORE_AAM_INSTANCE_ID,
-                    coreCertificate, fillComponentCertificatesMap()));
+                    "",
+                    coreCertificate,
+                    fillComponentCertificatesMap()));
 
             // registered platforms' AAMs
             for (Platform platform : platformRepository.findAll()) {
-                AAM platformAAM = new AAM(platform.getPlatformInterworkingInterfaceAddress() + platformAAMSuffixAtInterWorkingInterface, platform.getPlatformInstanceFriendlyName(), platform
-                        .getPlatformInstanceId(), platform.getPlatformAAMCertificate(), platform.getComponentCertificates());
+                AAM platformAAM = new AAM(platform.getPlatformInterworkingInterfaceAddress() + platformAAMSuffixAtInterWorkingInterface,
+                        platform.getPlatformInstanceFriendlyName(),
+                        platform.getPlatformInstanceId(),
+                        "",
+                        platform.getPlatformAAMCertificate(),
+                        platform.getComponentCertificates());
                 // add the platform AAM entry point to the results
                 availableAAMs.put(platformAAM.getAamInstanceId(), platformAAM);
             }
             // registered smart Spaces' AAMs
             for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
-                String usedII = smartSpace.isExposedInternalInterworkingInterfaceAddress() ?
-                        smartSpace.getSmartSpaceInternalInterworkingInterfaceAddress() : smartSpace.getSmartSpaceExternalInterworkingInterfaceAddress();
-                AAM smartSpaceAAM = new AAM(usedII, smartSpace.getSmartSpaceInstanceFriendlyName(), smartSpace.getSmartSpaceInstanceId(),
-                        smartSpace.getSmartSpaceAAMCertificate(), smartSpace.getComponentCertificates());
+                AAM smartSpaceAAM = new AAM(smartSpace.getGatewayAddress(),
+                        smartSpace.getInstanceFriendlyName(),
+                        smartSpace.getInstanceId(),
+                        smartSpace.getSiteLocalAddress(),
+                        smartSpace.getAamCertificate(),
+                        smartSpace.getComponentCertificates());
                 // add the smart Space AAM entry point to the results
                 availableAAMs.put(smartSpaceAAM.getAamInstanceId(), smartSpaceAAM);
             }
@@ -134,7 +142,9 @@ public class AAMServices {
                                 coreInterfaceAddress,
                                 SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                                 SecurityConstants.CORE_AAM_INSTANCE_ID,
-                                new Certificate(certificationAuthorityHelper.getRootCACert()), new HashMap<>()));
+                                "",
+                                new Certificate(certificationAuthorityHelper.getRootCACert()),
+                                new HashMap<>()));
             } finally {
                 // handling the local aam address
                 String PAAMAddress = provideInternalURL ? localAAMUrl : interworkingInterface;
@@ -146,6 +156,7 @@ public class AAMServices {
                             PAAMAddress,
                             aam.getAamInstanceFriendlyName(),
                             aam.getAamInstanceId(),
+                            "",
                             aam.getAamCACertificate(),
                             aam.getComponentCertificates()
                     );
@@ -157,7 +168,8 @@ public class AAMServices {
                                     PAAMAddress,
                                     " ",
                                     certificationAuthorityHelper.getAAMInstanceIdentifier(),
-                                    new Certificate(certificationAuthorityHelper.getAAMCert()),
+                                    ""
+                                    , new Certificate(certificationAuthorityHelper.getAAMCert()),
                                     fillComponentCertificatesMap()));
                 }
             }
@@ -176,8 +188,8 @@ public class AAMServices {
     }
 
     @CacheEvict(cacheNames = "getAAMsInternally", allEntries = true)
-    public void deleteFromCacheInternalAAMs() {
-        //function deleting cache thanks to proper annotation
+    public void invalidateInternalAAMsCache() {
+        //function invalidating cache thanks to proper annotation
     }
 
     private Map<String, Certificate> fillComponentCertificatesMap() {
@@ -224,10 +236,9 @@ public class AAMServices {
         }
         throw new AAMException(AAMException.SELECTED_CERTIFICATE_NOT_FOUND);
     }
-
     @CacheEvict(cacheNames = "getComponentCertificate", key = "#componentIdentifier + '@' +#serviceIdentifier")
-    public void deleteFromCacheComponentCertificate(String componentIdentifier,
+    public void invalidateComponentCertificateCache(String componentIdentifier,
                                                     String serviceIdentifier) {
-        //function deleting cache thanks to proper annotation
+        //function invalidating cache thanks to proper annotation
     }
 }

@@ -21,7 +21,6 @@ public enum IssuingAuthorityType {
      * SMART SPACES AAM
      */
     SMART_SPACE,
-
     /**
      * uninitialised value of this enum, useful for TestAAM
      */

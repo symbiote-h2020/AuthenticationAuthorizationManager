@@ -206,14 +206,14 @@ public class CertificatesIssuingFunctionalTests extends
         userRepository.save(smartSpaceOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(smartSpace.getSmartSpaceInstanceId(), pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(smartSpace.getInstanceId(), pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(smartSpaceOwnerUsername, smartSpaceOwnerPassword, clientId, csrString);
 
         String clientCertificate = aamClient.signCertificateRequest(certRequest);
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + smartSpace.getSmartSpaceInstanceId(), x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + smartSpace.getInstanceId(), x509Certificate.getSubjectDN().getName());
     }
 
     @Test

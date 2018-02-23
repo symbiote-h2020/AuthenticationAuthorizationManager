@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
+import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
@@ -112,16 +113,21 @@ public class UsersManagementService {
     	log.debug("Received a request for user management");
         UserDetails userDetails = userManagementRequest.getUserDetails();
 
-        // CORE AAM supports registering platform and smart spaces owners
-        // SMART_SPACE AAM can supports registering platform owners
+        // CORE and SMART_SPACE AAM supports registering platform owners
         switch (deploymentType) {
             case CORE:
             case SMART_SPACE:
+                if (userDetails.getRole() == UserRole.NULL
+                        && userManagementRequest.getOperationType().equals(OperationType.CREATE)) {
+                    log.error("This AAM does not support registration of users with this role.");
+                    throw new InvalidArgumentsException();
+                }
                 break;
             case NULL:
             case PLATFORM:
-                if (userDetails.getRole() != UserRole.USER) {
-                    log.error("This AAM does not support registration of users with this ");
+                if (userDetails.getRole() != UserRole.USER
+                        && userManagementRequest.getOperationType().equals(OperationType.CREATE)) {
+                    log.error("This AAM does not support registration of users with this role.");
                     throw new InvalidArgumentsException();
                 }
                 break;

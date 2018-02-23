@@ -176,7 +176,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
         String smartSpaceCertificate = aamClient.signCertificateRequest(certRequest);
-        smartSpace.setSmartSpaceAAMCertificate(new Certificate(smartSpaceCertificate));
+        smartSpace.setAamCertificate(new Certificate(smartSpaceCertificate));
         // save the certs into the repo
         smartSpaceRepository.save(smartSpace);
 
@@ -345,7 +345,7 @@ public class RevocationFunctionalTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
         String smartSpaceCertificate = aamClient.signCertificateRequest(certRequest);
-        smartSpace.setSmartSpaceAAMCertificate(new Certificate(smartSpaceCertificate));
+        smartSpace.setAamCertificate(new Certificate(smartSpaceCertificate));
         // save the certs into the repo
         smartSpaceRepository.save(smartSpace);
 

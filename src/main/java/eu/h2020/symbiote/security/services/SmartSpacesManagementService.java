@@ -69,7 +69,7 @@ public class SmartSpacesManagementService {
     public SmartSpaceManagementResponse manage(SmartSpaceManagementRequest smartSpaceManagementRequest) throws
             SecurityException {
 
-        Credentials smartSpaceOwnerCredentials = smartSpaceManagementRequest.getSmartSpaceOwnerCredentials();
+        Credentials smartSpaceOwnerCredentials = smartSpaceManagementRequest.getServiceOwnerCredentials();
 
         if (smartSpaceOwnerCredentials.getUsername().isEmpty() || smartSpaceOwnerCredentials.getPassword().isEmpty())
             throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_USERNAME_OR_PASSWORD);
@@ -83,66 +83,66 @@ public class SmartSpacesManagementService {
                 || !smartSpaceOwner.getRole().equals(UserRole.SERVICE_OWNER)) {
             throw new WrongCredentialsException();
         }
-        if (smartSpaceManagementRequest.getSmartSpaceExternalInterworkingInterfaceAddress() == null) {
-            smartSpaceManagementRequest.setSmartSpaceExternalInterworkingInterfaceAddress("");
+        if (smartSpaceManagementRequest.getGatewayAddress() == null) {
+            smartSpaceManagementRequest.setGatewayAddress("");
         }
-        if (smartSpaceManagementRequest.getSmartSpaceInternalInterworkingInterfaceAddress() == null) {
-            smartSpaceManagementRequest.setSmartSpaceInternalInterworkingInterfaceAddress("");
+        if (smartSpaceManagementRequest.getSiteLocalAddress() == null) {
+            smartSpaceManagementRequest.setSiteLocalAddress("");
         }
 
         switch (smartSpaceManagementRequest.getOperationType()) {
             case CREATE:
-                if (smartSpaceManagementRequest.getSmartSpaceExternalInterworkingInterfaceAddress().isEmpty()
-                        && smartSpaceManagementRequest.getSmartSpaceInternalInterworkingInterfaceAddress().isEmpty())
+                if (smartSpaceManagementRequest.getGatewayAddress().isEmpty()
+                        && smartSpaceManagementRequest.getSiteLocalAddress().isEmpty())
                     throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_INTERWORKING_INTERFACES);
 
-                if (smartSpaceManagementRequest.getSmartSpaceInstanceFriendlyName().isEmpty())
+                if (smartSpaceManagementRequest.getInstanceFriendlyName().isEmpty())
                     throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_INSTANCE_FRIENDLY_NAME);
 
                 String smartSpaceId;
                 // verify if smart space owner provided a preferred smart space identifier
-                if (smartSpaceManagementRequest.getSmartSpaceInstanceId() == null
-                        || smartSpaceManagementRequest.getSmartSpaceInstanceId().isEmpty()) {
+                if (smartSpaceManagementRequest.getInstanceId() == null
+                        || smartSpaceManagementRequest.getInstanceId().isEmpty()) {
                     // generate a new 'random' smart space identifier
                     smartSpaceId = SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX + new Date().getTime();
-                    smartSpaceManagementRequest.setSmartSpaceInstanceId(smartSpaceId);
+                    smartSpaceManagementRequest.setInstanceId(smartSpaceId);
                 }
-                if (!smartSpaceManagementRequest.getSmartSpaceInstanceId().startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
+                if (!smartSpaceManagementRequest.getInstanceId().startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
                     throw new InvalidArgumentsException(InvalidArgumentsException.NO_SSP_PREFIX);
                 }
 
                 // check if smart space is already in repository
-                if (smartSpaceRepository.exists(smartSpaceManagementRequest.getSmartSpaceInstanceId()))
+                if (smartSpaceRepository.exists(smartSpaceManagementRequest.getInstanceId()))
                     throw new ServiceManagementException(ServiceManagementException.SERVICE_EXISTS, HttpStatus.BAD_REQUEST);
 
                 // TODO try to improve it in R4 somehow
                 // checking if Interworking interface isn't already used
-                String usedInterworkingAddress = smartSpaceManagementRequest.isExposedInternalInterworkingInterfaceAddress() ?
-                        smartSpaceManagementRequest.getSmartSpaceInternalInterworkingInterfaceAddress() : smartSpaceManagementRequest.getSmartSpaceExternalInterworkingInterfaceAddress();
+                String usedInterworkingAddress = smartSpaceManagementRequest.isExposingSiteLocalAddress() ?
+                        smartSpaceManagementRequest.getSiteLocalAddress() : smartSpaceManagementRequest.getGatewayAddress();
                 if (usedInterworkingAddress.isEmpty()) {
                     throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_EXPOSED_INTERWORKING_INTERFACE);
                 }
                 for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
-                    String usedInterworkingAddressRepo = smartSpace.isExposedInternalInterworkingInterfaceAddress() ?
-                            smartSpace.getSmartSpaceInternalInterworkingInterfaceAddress() : smartSpace.getSmartSpaceExternalInterworkingInterfaceAddress();
+                    String usedInterworkingAddressRepo = smartSpace.isExposingSiteLocalAddress() ?
+                            smartSpace.getSiteLocalAddress() : smartSpace.getGatewayAddress();
                     if (usedInterworkingAddressRepo.equals(usedInterworkingAddress))
                         throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
                 }
 
-                if (smartSpaceManagementRequest.getSmartSpaceInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME)
+                if (smartSpaceManagementRequest.getInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME)
                         || usedInterworkingAddress.equals(coreInterfaceAddress)
-                        || !smartSpaceManagementRequest.getSmartSpaceInstanceId().matches("^(([\\w-])+)$"))
+                        || !smartSpaceManagementRequest.getInstanceId().matches("^(([\\w-])+)$"))
                     // such a name would pose awkward questions
                     throw new ServiceManagementException(ServiceManagementException.AWKWARD_SERVICE, HttpStatus.BAD_REQUEST);
 
                 // use SO preferred smart space identifier
-                smartSpaceId = smartSpaceManagementRequest.getSmartSpaceInstanceId();
+                smartSpaceId = smartSpaceManagementRequest.getInstanceId();
 
                 SmartSpace smartSpace = new SmartSpace(smartSpaceId,
-                        smartSpaceManagementRequest.getSmartSpaceExternalInterworkingInterfaceAddress(),
-                        smartSpaceManagementRequest.getSmartSpaceInternalInterworkingInterfaceAddress(),
-                        smartSpaceManagementRequest.isExposedInternalInterworkingInterfaceAddress(),
-                        smartSpaceManagementRequest.getSmartSpaceInstanceFriendlyName(),
+                        smartSpaceManagementRequest.getGatewayAddress(),
+                        smartSpaceManagementRequest.getSiteLocalAddress(),
+                        smartSpaceManagementRequest.isExposingSiteLocalAddress(),
+                        smartSpaceManagementRequest.getInstanceFriendlyName(),
                         new Certificate(),
                         new HashMap<>(),
                         smartSpaceOwner);
@@ -151,67 +151,67 @@ public class SmartSpacesManagementService {
                 userRepository.save(smartSpaceOwner);
                 break;
             case UPDATE:
-                smartSpace = smartSpaceRepository.findOne(smartSpaceManagementRequest.getSmartSpaceInstanceId());
+                smartSpace = smartSpaceRepository.findOne(smartSpaceManagementRequest.getInstanceId());
                 if (smartSpace == null)
                     throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
-                if (!smartSpace.getSmartSpaceOwner().getUsername().equals(smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().getUsername()))
+                if (!smartSpace.getSmartSpaceOwner().getUsername().equals(smartSpaceManagementRequest.getServiceOwnerCredentials().getUsername()))
                     throw new ServiceManagementException(ServiceManagementException.USER_IS_NOT_A_SERVICE_OWNER, HttpStatus.BAD_REQUEST);
 
-                if (!smartSpaceManagementRequest.getSmartSpaceInstanceFriendlyName().isEmpty())
-                    smartSpace.setSmartSpaceInstanceFriendlyName(smartSpaceManagementRequest.getSmartSpaceInstanceFriendlyName());
+                if (!smartSpaceManagementRequest.getInstanceFriendlyName().isEmpty())
+                    smartSpace.setInstanceFriendlyName(smartSpaceManagementRequest.getInstanceFriendlyName());
 
                 // II part
-                if (!smartSpaceManagementRequest.getSmartSpaceExternalInterworkingInterfaceAddress().isEmpty()
-                        || !smartSpaceManagementRequest.getSmartSpaceInternalInterworkingInterfaceAddress().isEmpty()
-                        || smartSpace.isExposedInternalInterworkingInterfaceAddress() != smartSpaceManagementRequest.isExposedInternalInterworkingInterfaceAddress()) {
+                if (!smartSpaceManagementRequest.getGatewayAddress().isEmpty()
+                        || !smartSpaceManagementRequest.getSiteLocalAddress().isEmpty()
+                        || smartSpace.isExposingSiteLocalAddress() != smartSpaceManagementRequest.isExposingSiteLocalAddress()) {
 
-                    usedInterworkingAddress = smartSpaceManagementRequest.isExposedInternalInterworkingInterfaceAddress() ?
-                            smartSpaceManagementRequest.getSmartSpaceInternalInterworkingInterfaceAddress() : smartSpaceManagementRequest.getSmartSpaceExternalInterworkingInterfaceAddress();
+                    usedInterworkingAddress = smartSpaceManagementRequest.isExposingSiteLocalAddress() ?
+                            smartSpaceManagementRequest.getSiteLocalAddress() : smartSpaceManagementRequest.getGatewayAddress();
 
                     if (usedInterworkingAddress.isEmpty()) {
                         throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_EXPOSED_INTERWORKING_INTERFACE);
                     }
 
-                    if (smartSpaceManagementRequest.isExposedInternalInterworkingInterfaceAddress()
-                            && smartSpaceManagementRequest.getSmartSpaceInternalInterworkingInterfaceAddress().isEmpty())
+                    if (smartSpaceManagementRequest.isExposingSiteLocalAddress()
+                            && smartSpaceManagementRequest.getSiteLocalAddress().isEmpty())
                         throw new InvalidArgumentsException("When you want to expose internal interworking interface, it should be provided");
 
 
                     // check if other smart space don't use that Interworking interface already
                     for (SmartSpace smartSpaceRepo : smartSpaceRepository.findAll()) {
-                        String usedInterworkingAddressRepo = smartSpaceRepo.isExposedInternalInterworkingInterfaceAddress() ?
-                                smartSpaceRepo.getSmartSpaceInternalInterworkingInterfaceAddress() : smartSpaceRepo.getSmartSpaceExternalInterworkingInterfaceAddress();
+                        String usedInterworkingAddressRepo = smartSpaceRepo.isExposingSiteLocalAddress() ?
+                                smartSpaceRepo.getSiteLocalAddress() : smartSpaceRepo.getGatewayAddress();
                         if (usedInterworkingAddressRepo.equals(usedInterworkingAddress) &&
-                                !smartSpaceRepo.getSmartSpaceInstanceId().equals(smartSpace.getSmartSpaceInstanceId()))
+                                !smartSpaceRepo.getInstanceId().equals(smartSpace.getInstanceId()))
                             throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
                     }
 
-                    smartSpace.setExposedInternalInterworkingInterfaceAddress(smartSpaceManagementRequest.isExposedInternalInterworkingInterfaceAddress());
-                    smartSpace.setSmartSpaceExternalInterworkingInterfaceAddress(smartSpaceManagementRequest.getSmartSpaceExternalInterworkingInterfaceAddress());
-                    smartSpace.setSmartSpaceInternalInterworkingInterfaceAddress(smartSpaceManagementRequest.getSmartSpaceInternalInterworkingInterfaceAddress());
+                    smartSpace.setExposingSiteLocalAddress(smartSpaceManagementRequest.isExposingSiteLocalAddress());
+                    smartSpace.setGatewayAddress(smartSpaceManagementRequest.getGatewayAddress());
+                    smartSpace.setSiteLocalAddress(smartSpaceManagementRequest.getSiteLocalAddress());
                 }
                 smartSpaceRepository.save(smartSpace);
                 break;
             case DELETE:
-                if (!smartSpaceRepository.exists(smartSpaceManagementRequest.getSmartSpaceInstanceId()))
+                if (!smartSpaceRepository.exists(smartSpaceManagementRequest.getInstanceId()))
                     throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
 
 
                 Set<String> keys = new HashSet<>();
                 try {
-                    SmartSpace smartSpaceForRemoval = smartSpaceRepository.findOne(smartSpaceManagementRequest.getSmartSpaceInstanceId());
-                    if (!smartSpaceForRemoval.getSmartSpaceOwner().getUsername().equals(smartSpaceManagementRequest.getSmartSpaceOwnerCredentials().getUsername()))
+                    SmartSpace smartSpaceForRemoval = smartSpaceRepository.findOne(smartSpaceManagementRequest.getInstanceId());
+                    if (!smartSpaceForRemoval.getSmartSpaceOwner().getUsername().equals(smartSpaceManagementRequest.getServiceOwnerCredentials().getUsername()))
                         throw new ServiceManagementException(ServiceManagementException.USER_IS_NOT_A_SERVICE_OWNER, HttpStatus.BAD_REQUEST);
                     // adding smart space AAM certificate for revocation
-                    if (!smartSpaceForRemoval.getSmartSpaceAAMCertificate().getCertificateString().isEmpty())
+                    if (!smartSpaceForRemoval.getAamCertificate().getCertificateString().isEmpty())
                         keys.add(Base64.getEncoder().encodeToString(
-                                smartSpaceForRemoval.getSmartSpaceAAMCertificate().getX509().getPublicKey().getEncoded()));
+                                smartSpaceForRemoval.getAamCertificate().getX509().getPublicKey().getEncoded()));
 
                     // checking if this key contains keys already
-                    SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(smartSpaceForRemoval.getSmartSpaceInstanceId());
+                    SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(smartSpaceForRemoval.getInstanceId());
                     if (subjectsRevokedKeys == null)
                         // no keys exist yet
-                        revokedKeysRepository.save(new SubjectsRevokedKeys(smartSpaceForRemoval.getSmartSpaceInstanceId(), keys));
+                        revokedKeysRepository.save(new SubjectsRevokedKeys(smartSpaceForRemoval.getInstanceId(), keys));
                     else {
                         // extending the existing set
                         subjectsRevokedKeys.getRevokedKeysSet().addAll(keys);
@@ -221,26 +221,26 @@ public class SmartSpacesManagementService {
                     throw new ServiceManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
                 }
 
-                smartSpaceRepository.delete(smartSpaceManagementRequest.getSmartSpaceInstanceId());
+                smartSpaceRepository.delete(smartSpaceManagementRequest.getInstanceId());
                 // unbinding the smart space from the platform owner
-                smartSpaceOwner.getOwnedServices().remove(smartSpaceManagementRequest.getSmartSpaceInstanceId());
+                smartSpaceOwner.getOwnedServices().remove(smartSpaceManagementRequest.getInstanceId());
                 userRepository.save(smartSpaceOwner);
                 break;
             default:
                 throw new ServiceManagementException(ServiceManagementException.INVALID_OPERATION, HttpStatus.BAD_REQUEST);
         }
 
-        aamServices.deleteFromCacheAvailableAAMs();
-        aamServices.deleteFromCacheInternalAAMs();
-        aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, smartSpaceManagementRequest.getSmartSpaceInstanceId());
-        return new SmartSpaceManagementResponse(smartSpaceManagementRequest.getSmartSpaceInstanceId(), ManagementStatus.OK);
+        aamServices.invalidateAvailableAAMsCache();
+        aamServices.invalidateInternalAAMsCache();
+        aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, smartSpaceManagementRequest.getInstanceId());
+        return new SmartSpaceManagementResponse(smartSpaceManagementRequest.getInstanceId(), ManagementStatus.OK);
     }
 
 
     public SmartSpaceManagementResponse authManage(SmartSpaceManagementRequest request) throws
             SecurityException {
         // check if we received required credentials
-        if (request.getAamOwnerCredentials() == null || request.getSmartSpaceOwnerCredentials() == null)
+        if (request.getAamOwnerCredentials() == null || request.getServiceOwnerCredentials() == null)
             throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_CREDENTIALS);
         // check if this operation is authorized
         if (!request.getAamOwnerCredentials().getUsername().equals(AAMOwnerUsername)

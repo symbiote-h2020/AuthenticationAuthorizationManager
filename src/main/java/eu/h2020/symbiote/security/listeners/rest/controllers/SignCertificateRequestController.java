@@ -3,7 +3,7 @@ package eu.h2020.symbiote.security.listeners.rest.controllers;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.listeners.rest.interfaces.ISignCertificateRequest;
-import eu.h2020.symbiote.security.services.SignCertificateRequestService;
+import eu.h2020.symbiote.security.services.IssueCertificateService;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,11 +22,11 @@ import java.security.cert.CertificateException;
 @RestController
 @Api(value = "docs/signCertificateRequest", description = "Used to sign symbiote certificates")
 public class SignCertificateRequestController implements ISignCertificateRequest {
-    private SignCertificateRequestService signCertificateRequestService;
+    private IssueCertificateService issueCertificateService;
 
     @Autowired
-    public SignCertificateRequestController(SignCertificateRequestService signCertificateRequestService) {
-        this.signCertificateRequestService = signCertificateRequestService;
+    public SignCertificateRequestController(IssueCertificateService issueCertificateService) {
+        this.issueCertificateService = issueCertificateService;
     }
 
     @Override
@@ -38,7 +38,7 @@ public class SignCertificateRequestController implements ISignCertificateRequest
             @ApiParam(value = "Request required to issue a certificate for given (username, clientId) tupple", required = true)
                     CertificateRequest certificateRequest) {
         try {
-            String certificate = signCertificateRequestService.signCertificate(certificateRequest);
+            String certificate = issueCertificateService.signCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
         } catch (WrongCredentialsException | NotExistingUserException | InvalidArgumentsException
                 | UserManagementException | ServiceManagementException | ValidationException e) {
