@@ -36,7 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 import static org.junit.Assert.*;
 
 /**
@@ -88,7 +88,7 @@ public class RevocationUnitTests extends
         issueCertificateService.signCertificate(certRequest);
         User user = userRepository.findOne(appUsername);
         assertNotNull(user.getClientCertificates().get(clientId));
-        String commonName = appUsername + illegalSign + clientId;
+        String commonName = appUsername + FIELDS_DELIMITER + clientId;
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(appUsername, password));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -174,7 +174,7 @@ public class RevocationUnitTests extends
         issueCertificateService.signCertificate(certRequest);
         User user = userRepository.findOne(appUsername);
         assertNotNull(user.getClientCertificates().get(clientId));
-        String commonName = appUsername + illegalSign + clientId;
+        String commonName = appUsername + FIELDS_DELIMITER + clientId;
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -208,7 +208,7 @@ public class RevocationUnitTests extends
         issueCertificateService.signCertificate(certRequest);
         User user = userRepository.findOne(appUsername);
         assertNotNull(user.getClientCertificates().get(clientId));
-        String commonName = wrongUsername + illegalSign + clientId;
+        String commonName = wrongUsername + FIELDS_DELIMITER + clientId;
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -216,7 +216,7 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentials(new Credentials(appUsername, password));
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
 
-        commonName = appUsername + illegalSign + wrongClientId;
+        commonName = appUsername + FIELDS_DELIMITER + wrongClientId;
         revocationRequest.setCertificateCommonName(commonName);
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
 
@@ -236,7 +236,7 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
 
-        commonName = componentId + illegalSign + platformId;
+        commonName = componentId + FIELDS_DELIMITER + platformId;
 
         revocationRequest.setCertificateCommonName(commonName);
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
@@ -250,7 +250,7 @@ public class RevocationUnitTests extends
     @Test
     public void revokeCertificateFailsUsingWrongCommonName() {
         saveUser();
-        String commonName = clientId + illegalSign + username + illegalSign + platformId;
+        String commonName = clientId + FIELDS_DELIMITER + username + FIELDS_DELIMITER + platformId;
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -888,7 +888,7 @@ public class RevocationUnitTests extends
         issueCertificateService.signCertificate(certRequest);
         User user = userRepository.findOne(appUsername);
         assertNotNull(user.getClientCertificates().get(clientId));
-        String commonName = appUsername + illegalSign + clientId;
+        String commonName = appUsername + FIELDS_DELIMITER + clientId;
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
@@ -970,7 +970,7 @@ public class RevocationUnitTests extends
         componentCertificatesRepository.save(
                 componentCertificate);
 
-        String commonName = componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID;
+        String commonName = componentId + FIELDS_DELIMITER + SecurityConstants.CORE_AAM_INSTANCE_ID;
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
@@ -986,7 +986,7 @@ public class RevocationUnitTests extends
 
     @Test
     public void revokeLocalComponentCertificateUsingCommonNameByAdminFailNoComponentInDatabase() {
-        String commonName = componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID;
+        String commonName = componentId + FIELDS_DELIMITER + SecurityConstants.CORE_AAM_INSTANCE_ID;
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
@@ -997,7 +997,7 @@ public class RevocationUnitTests extends
 
     @Test
     public void revokeByAdminFailWrongCommonName() {
-        String commonName = componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID + illegalSign + "WrongCommonNameEnding";
+        String commonName = componentId + FIELDS_DELIMITER + SecurityConstants.CORE_AAM_INSTANCE_ID + FIELDS_DELIMITER + "WrongCommonNameEnding";
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);

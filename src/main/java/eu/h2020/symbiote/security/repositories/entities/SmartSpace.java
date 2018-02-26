@@ -44,16 +44,16 @@ public class SmartSpace {
                       Map<String, Certificate> componentCertificates,
                       User smartSpaceOwner)
             throws InvalidArgumentsException {
-        // TODO use setter and harden the sitelocal depending on bool
         this.instanceId = instanceId;
-        setGatewayAddress(gatewayAddress);
-        this.siteLocalAddress = siteLocalAddress;
         this.exposingSiteLocalAddress = exposingSiteLocalAddress;
+        setGatewayAddress(gatewayAddress);
+        setSiteLocalAddress(siteLocalAddress, exposingSiteLocalAddress);
         this.instanceFriendlyName = instanceFriendlyName;
         this.aamCertificate = aamCertificate;
         this.componentCertificates = componentCertificates;
         this.smartSpaceOwner = smartSpaceOwner;
     }
+
 
     public String getInstanceId() {
         return instanceId;
@@ -64,8 +64,8 @@ public class SmartSpace {
     }
 
     public void setGatewayAddress(String gatewayAddress) throws InvalidArgumentsException {
-        if (!gatewayAddress.startsWith("https")) {
-            throw new InvalidArgumentsException("Gateway Address should start with https.");
+        if (!gatewayAddress.startsWith("https://")) {
+            throw new InvalidArgumentsException(InvalidArgumentsException.GATEWAY_ADDRESS_SHOULD_START_WITH_HTTPS);
         }
         this.gatewayAddress = gatewayAddress;
     }
@@ -74,8 +74,14 @@ public class SmartSpace {
         return siteLocalAddress;
     }
 
-    public void setSiteLocalAddress(String siteLocalAddress) {
+    public void setSiteLocalAddress(String siteLocalAddress,
+                                    boolean exposingSiteLocalAddress) throws
+            InvalidArgumentsException {
+        if (exposingSiteLocalAddress
+                && (siteLocalAddress == null || siteLocalAddress.isEmpty()))
+                throw new InvalidArgumentsException("Exposed siteLocalAddress should not be empty.");
         this.siteLocalAddress = siteLocalAddress;
+
     }
 
     public boolean isExposingSiteLocalAddress() {

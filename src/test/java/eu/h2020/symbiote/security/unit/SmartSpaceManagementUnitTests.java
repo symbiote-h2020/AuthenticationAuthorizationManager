@@ -53,8 +53,8 @@ public class SmartSpaceManagementUnitTests extends
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 preferredSmartSpaceId,
@@ -86,8 +86,8 @@ public class SmartSpaceManagementUnitTests extends
         SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
         assertNotNull(registeredSmartSpace);
         // verify that smartSpace oriented fields are properly stored
-        assertEquals(smartSpaceExternalInterworkingInterfaceAddress, registeredSmartSpace.getGatewayAddress());
-        assertEquals(smartSpaceInternalInterworkingInterfaceAddress, registeredSmartSpace.getSiteLocalAddress());
+        assertEquals(smartSpaceGateWayAddress, registeredSmartSpace.getGatewayAddress());
+        assertEquals(smartSpaceSiteLocalAddress, registeredSmartSpace.getSiteLocalAddress());
         assertEquals(exposedIIAddress, registeredSmartSpace.isExposingSiteLocalAddress());
 
         // verify that SO has this smartSpace in his collection
@@ -114,8 +114,8 @@ public class SmartSpaceManagementUnitTests extends
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 "",
@@ -138,14 +138,14 @@ public class SmartSpaceManagementUnitTests extends
         assertEquals(smartSpaceOwnerUsername, registeredSmartSpace.getSmartSpaceOwner().getUsername());
 
         // verify that smartSpace oriented fields are properly stored
-        assertEquals(smartSpaceExternalInterworkingInterfaceAddress, registeredSmartSpace.getGatewayAddress());
-        assertEquals(smartSpaceInternalInterworkingInterfaceAddress, registeredSmartSpace.getSiteLocalAddress());
+        assertEquals(smartSpaceGateWayAddress, registeredSmartSpace.getGatewayAddress());
+        assertEquals(smartSpaceSiteLocalAddress, registeredSmartSpace.getSiteLocalAddress());
         assertEquals(exposedIIAddress, registeredSmartSpace.isExposingSiteLocalAddress());
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
     }
 
     @Test
-    public void smartSpaceRegistrationFailWrongSmartSpaceId() {
+    public void smartSpaceRegistrationFailWrongSmartSpaceId() throws InvalidArgumentsException {
         // verify that our smartSpaceOwner is in repository
         assertTrue(userRepository.exists(smartSpaceOwnerUsername));
 
@@ -153,8 +153,8 @@ public class SmartSpaceManagementUnitTests extends
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 "NO_SSP_in_front_id",
@@ -169,8 +169,8 @@ public class SmartSpaceManagementUnitTests extends
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX + "Wrong#smartSpace_id",
@@ -233,8 +233,8 @@ public class SmartSpaceManagementUnitTests extends
         SmartSpaceManagementRequest smartSpaceUpdateRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 otherSmartSpaceOwnerCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
                 smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
                 preferredSmartSpaceId,
@@ -250,8 +250,8 @@ public class SmartSpaceManagementUnitTests extends
         SmartSpaceManagementRequest smartSpaceDeleteRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 otherSmartSpaceOwnerCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
                 smartSpaceInstanceFriendlyName,
                 OperationType.DELETE,
                 preferredSmartSpaceId,
@@ -333,74 +333,27 @@ public class SmartSpaceManagementUnitTests extends
         assertTrue(userRepository.exists(smartSpaceOwnerUsername));
 
         // issue smartSpace registration without exposed II
-        SmartSpaceManagementRequest smartSpaceCreateRequest = new SmartSpaceManagementRequest(
-                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                smartSpaceOwnerUserCredentials,
-                "",
-                smartSpaceInternalInterworkingInterfaceAddress,
-                smartSpaceInstanceFriendlyName,
-                OperationType.CREATE,
-                preferredSmartSpaceId,
-                false);
-
         try {
+            SmartSpaceManagementRequest smartSpaceCreateRequest = new SmartSpaceManagementRequest(
+                    new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                    smartSpaceOwnerUserCredentials,
+                    smartSpaceGateWayAddress,
+                    "",
+                    smartSpaceInstanceFriendlyName,
+                    OperationType.CREATE,
+                    preferredSmartSpaceId,
+                    true);
+
+
             smartSpacesManagementService.authManage(smartSpaceCreateRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(InvalidArgumentsException.MISSING_EXPOSED_INTERWORKING_INTERFACE, s.getMessage());
-        }
-        // issue smartSpace registration without exposed II
-        smartSpaceCreateRequest = new SmartSpaceManagementRequest(
-                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                "",
-                smartSpaceInstanceFriendlyName,
-                OperationType.CREATE,
-                preferredSmartSpaceId,
-                true);
-
-        try {
-            smartSpacesManagementService.authManage(smartSpaceCreateRequest);
-            fail();
-        } catch (SecurityException s) {
-            assertEquals(InvalidArgumentsException.MISSING_EXPOSED_INTERWORKING_INTERFACE, s.getMessage());
-        }
-
-    }
-
-    @Test
-    public void smartSpaceUpdateFailMissingExposedURL() throws SecurityException {
-        // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
-
-        //register SERVICE with exposed internal II - external is empty
-        smartSpaceManagementRequest.setGatewayAddress("");
-        SmartSpaceManagementResponse smartSpaceManagementResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
-        assertEquals(ManagementStatus.OK, smartSpaceManagementResponse.getManagementStatus());
-
-        // issue smartSpace update without exposed II
-        SmartSpaceManagementRequest smartSpaceUpdateRequest = new SmartSpaceManagementRequest(
-                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                smartSpaceOwnerUserCredentials,
-                "",
-                "",
-                smartSpaceInstanceFriendlyName,
-                OperationType.UPDATE,
-                preferredSmartSpaceId,
-                false);
-
-        try {
-            smartSpacesManagementService.authManage(smartSpaceUpdateRequest);
-            fail();
-        } catch (SecurityException s) {
-            assertEquals(InvalidArgumentsException.MISSING_EXPOSED_INTERWORKING_INTERFACE, s.getMessage());
+            assertEquals(InvalidArgumentsException.MISSING_SITE_LOCAL_ADDRESS, s.getMessage());
         }
     }
 
     @Test
-    public void smartSpaceRegistrationFailMissingFriendlyName() {
+    public void smartSpaceRegistrationFailMissingFriendlyName() throws InvalidArgumentsException {
         // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
         assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
         assertTrue(userRepository.exists(smartSpaceOwnerUsername));
@@ -409,8 +362,8 @@ public class SmartSpaceManagementUnitTests extends
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
                 "",
                 OperationType.CREATE,
                 preferredSmartSpaceId,
@@ -459,8 +412,8 @@ public class SmartSpaceManagementUnitTests extends
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress + "dif",
-                smartSpaceInternalInterworkingInterfaceAddress + "dif",
+                smartSpaceGateWayAddress + "dif",
+                smartSpaceSiteLocalAddress + "dif",
                 smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
                 preferredSmartSpaceId,
@@ -472,13 +425,13 @@ public class SmartSpaceManagementUnitTests extends
         SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
         assertNotNull(registeredSmartSpace);
         // verify that smartSpace oriented fields are properly stored
-        assertEquals(smartSpaceExternalInterworkingInterfaceAddress + "dif", registeredSmartSpace.getGatewayAddress());
-        assertEquals(smartSpaceInternalInterworkingInterfaceAddress + "dif", registeredSmartSpace.getSiteLocalAddress());
+        assertEquals(smartSpaceGateWayAddress + "dif", registeredSmartSpace.getGatewayAddress());
+        assertEquals(smartSpaceSiteLocalAddress + "dif", registeredSmartSpace.getSiteLocalAddress());
         assertEquals(!exposedIIAddress, registeredSmartSpace.isExposingSiteLocalAddress());
     }
 
     @Test
-    public void smartSpaceUpdateFailNotExistingSmartSpace() {
+    public void smartSpaceUpdateFailNotExistingSmartSpace() throws InvalidArgumentsException {
         // verify that our smartSpaceOwner is in repository
         assertTrue(userRepository.exists(smartSpaceOwnerUsername));
         // verify that our smartSpace is not in repository
@@ -487,8 +440,8 @@ public class SmartSpaceManagementUnitTests extends
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
                 smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
                 preferredSmartSpaceId,
@@ -516,8 +469,8 @@ public class SmartSpaceManagementUnitTests extends
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress + "2",
-                smartSpaceInternalInterworkingInterfaceAddress + "2",
+                smartSpaceGateWayAddress + "2",
+                smartSpaceSiteLocalAddress + "2",
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 preferredSmartSpaceId + "2",
@@ -559,7 +512,7 @@ public class SmartSpaceManagementUnitTests extends
     }
 
     @Test
-    public void smartSpaceDeleteFailNotExistingSmartSpace() {
+    public void smartSpaceDeleteFailNotExistingSmartSpace() throws InvalidArgumentsException {
         // verify that our smartSpaceOwner is in repository
         assertTrue(userRepository.exists(smartSpaceOwnerUsername));
         assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
@@ -567,8 +520,8 @@ public class SmartSpaceManagementUnitTests extends
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
                 smartSpaceInstanceFriendlyName,
                 OperationType.DELETE,
                 preferredSmartSpaceId,
@@ -589,43 +542,12 @@ public class SmartSpaceManagementUnitTests extends
         //ensure smartSpace is registered
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
 
-        //register smartSpace with exposed external II
+        //try to register smartSpace with the same gateway address
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
-                smartSpaceInstanceFriendlyName,
-                OperationType.CREATE,
-                preferredSmartSpaceId + "_external",
-                !exposedIIAddress);
-        smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
-        //ensure smartSpace is registered
-        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
-
-        //try to register smartSpace with the same exposed internal interface
-        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
-                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                smartSpaceOwnerUserCredentials,
-                "",
-                smartSpaceInternalInterworkingInterfaceAddress,
-                smartSpaceInstanceFriendlyName,
-                OperationType.CREATE,
-                preferredSmartSpaceId + "1",
-                exposedIIAddress);
-        try {
-            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
-            fail();
-        } catch (SecurityException s) {
-            assertEquals(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, s.getMessage());
-        }
-
-        //try to register smartSpace with the same exposed external interface
-        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
-                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                smartSpaceOwnerUserCredentials,
-                "",
-                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 preferredSmartSpaceId + "2",
@@ -634,13 +556,13 @@ public class SmartSpaceManagementUnitTests extends
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, s.getMessage());
+            assertEquals(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, s.getMessage());
         }
 
     }
 
     @Test
-    public void smartSpaceUpdateFailExistingInterworkingInterface() throws SecurityException {
+    public void smartSpaceUpdateFailExistingGateWayAddress() throws SecurityException {
         // verify that our smartSpaceOwner is in repository
         assertTrue(userRepository.exists(smartSpaceOwnerUsername));
         //register smartSpace
@@ -648,12 +570,12 @@ public class SmartSpaceManagementUnitTests extends
         //ensure smartSpace is registered
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
 
-        //register smartSpace with exposed external II
+        //register smartSpace with different GateWay address
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceGateWayAddress + "/differentOne",
+                smartSpaceSiteLocalAddress,
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 preferredSmartSpaceId + "_external",
@@ -666,8 +588,8 @@ public class SmartSpaceManagementUnitTests extends
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
                 smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
                 preferredSmartSpaceId + "_external",
@@ -676,24 +598,7 @@ public class SmartSpaceManagementUnitTests extends
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, s.getMessage());
-        }
-
-        //try to update first smartSpace to expose the same internal interface as second one
-        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
-                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                smartSpaceOwnerUserCredentials,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
-                smartSpaceInstanceFriendlyName,
-                OperationType.UPDATE,
-                preferredSmartSpaceId,
-                !exposedIIAddress);
-        try {
-            smartSpacesManagementService.authManage(smartSpaceManagementRequest);
-            fail();
-        } catch (SecurityException s) {
-            assertEquals(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, s.getMessage());
+            assertEquals(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, s.getMessage());
         }
 
     }

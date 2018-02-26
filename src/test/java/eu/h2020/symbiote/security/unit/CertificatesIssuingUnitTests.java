@@ -36,7 +36,7 @@ import java.security.spec.ECGenParameterSpec;
 import java.util.*;
 
 import static eu.h2020.symbiote.security.commons.SecurityConstants.CORE_AAM_INSTANCE_ID;
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 import static org.junit.Assert.*;
 
 /**
@@ -169,7 +169,7 @@ public class CertificatesIssuingUnitTests extends
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + appUsername + illegalSign + clientId + illegalSign + certificationAuthorityHelper.getAAMInstanceIdentifier(), x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + appUsername + FIELDS_DELIMITER + clientId + FIELDS_DELIMITER + certificationAuthorityHelper.getAAMInstanceIdentifier(), x509Certificate.getSubjectDN().getName());
         // -1 for end certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
     }
@@ -301,7 +301,7 @@ public class CertificatesIssuingUnitTests extends
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + componentId + illegalSign + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + componentId + FIELDS_DELIMITER + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
         assertNotNull(componentCertificatesRepository.findOne(componentId));
@@ -659,7 +659,7 @@ public class CertificatesIssuingUnitTests extends
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + appUsername + illegalSign + clientId + illegalSign + certificationAuthorityHelper.getAAMInstanceIdentifier(), x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + appUsername + FIELDS_DELIMITER + clientId + FIELDS_DELIMITER + certificationAuthorityHelper.getAAMInstanceIdentifier(), x509Certificate.getSubjectDN().getName());
         // -1 for end certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
 
@@ -707,7 +707,7 @@ public class CertificatesIssuingUnitTests extends
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + appUsername + illegalSign + clientId + illegalSign + certificationAuthorityHelper.getAAMInstanceIdentifier(), x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + appUsername + FIELDS_DELIMITER + clientId + FIELDS_DELIMITER + certificationAuthorityHelper.getAAMInstanceIdentifier(), x509Certificate.getSubjectDN().getName());
         // -1 for end certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
 
@@ -925,7 +925,7 @@ public class CertificatesIssuingUnitTests extends
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + componentId + illegalSign + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + componentId + FIELDS_DELIMITER + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
 
@@ -940,7 +940,7 @@ public class CertificatesIssuingUnitTests extends
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + componentId + illegalSign + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + componentId + FIELDS_DELIMITER + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
     }
@@ -968,7 +968,7 @@ public class CertificatesIssuingUnitTests extends
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + componentId + illegalSign + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + componentId + FIELDS_DELIMITER + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
 
@@ -981,7 +981,7 @@ public class CertificatesIssuingUnitTests extends
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         x509Certificate = CryptoHelper.convertPEMToX509(certificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + componentId + illegalSign + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + componentId + FIELDS_DELIMITER + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
         // pair should not be revoked
@@ -996,8 +996,15 @@ public class CertificatesIssuingUnitTests extends
         userRepository.save(platformOwner);
     }
 
-    private void saveSmartSpace(User smartSpaceOwner) {
-        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceExternalInterworkingInterfaceAddress, smartSpaceInternalInterworkingInterfaceAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), smartSpaceOwner);
+    private void saveSmartSpace(User smartSpaceOwner) throws InvalidArgumentsException {
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
+                exposedIIAddress,
+                smartSpaceInstanceFriendlyName,
+                new Certificate(),
+                new HashMap<>(),
+                smartSpaceOwner);
         smartSpaceRepository.save(smartSpace);
         smartSpaceOwner.getOwnedServices().add(preferredSmartSpaceId);
         userRepository.save(smartSpaceOwner);

@@ -85,9 +85,9 @@ public abstract class AbstractAAMTestSuite {
     protected final String recoveryMail = "null@dev.null";
     protected final String preferredSmartSpaceId = SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX + "preferredSmartSpaceId";
     protected final String smartSpaceInstanceFriendlyName = "friendlySmartSpaceName";
-    protected final String smartSpaceExternalInterworkingInterfaceAddress =
+    protected final String smartSpaceGateWayAddress =
             "https://smartSpace.external:8101/someFancyHiddenPath/andHiddenAgain";
-    protected final String smartSpaceInternalInterworkingInterfaceAddress =
+    protected final String smartSpaceSiteLocalAddress =
             "https://smartSpace.internal:8101/someFancyHiddenPath";
     protected final boolean exposedIIAddress = true;
 

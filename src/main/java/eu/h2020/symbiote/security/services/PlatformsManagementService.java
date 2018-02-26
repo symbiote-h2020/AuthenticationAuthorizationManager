@@ -14,8 +14,10 @@ import eu.h2020.symbiote.security.communication.payloads.PlatformManagementReque
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementResponse;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
+import eu.h2020.symbiote.security.repositories.SmartSpaceRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +44,7 @@ public class PlatformsManagementService {
     private static final String GENERATED_PLATFORM_IDENTIFIER_PREFIX = "PLATFORM_";
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
+    private final SmartSpaceRepository smartSpaceRepository;
     private final PasswordEncoder passwordEncoder;
     private final RevokedKeysRepository revokedKeysRepository;
     private final AAMServices aamServices;
@@ -57,11 +60,13 @@ public class PlatformsManagementService {
     @Autowired
     public PlatformsManagementService(UserRepository userRepository,
                                       PlatformRepository platformRepository,
+                                      SmartSpaceRepository smartSpaceRepository,
                                       PasswordEncoder passwordEncoder,
                                       RevokedKeysRepository revokedKeysRepository,
                                       AAMServices aamServices) {
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
+        this.smartSpaceRepository = smartSpaceRepository;
         this.passwordEncoder = passwordEncoder;
         this.revokedKeysRepository = revokedKeysRepository;
         this.aamServices = aamServices;
@@ -104,19 +109,25 @@ public class PlatformsManagementService {
                 if (platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
                     throw new ServiceManagementException(ServiceManagementException.SERVICE_EXISTS, HttpStatus.BAD_REQUEST);
 
-                // TODO try to improve it in R4 somehow
-                // checking if Interworking interface isn't already used
-                for (Platform platform : platformRepository.findAll()) {
-                    if (platform.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress()))
-                        throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
-                }
-
                 if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME)
                         || platformManagementRequest.getPlatformInterworkingInterfaceAddress().equals(coreInterfaceAddress)
                         || !platformManagementRequest.getPlatformInstanceId().matches("^(([\\w-])+)$")
                         || platformManagementRequest.getPlatformInstanceId().startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX))
                     // such a name would pose awkward questions
                     throw new ServiceManagementException(ServiceManagementException.AWKWARD_SERVICE, HttpStatus.BAD_REQUEST);
+
+                // TODO try to improve it in R4 somehow
+                // checking if Interworking interface isn't already used
+                for (Platform platform : platformRepository.findAll()) {
+                    if (platform.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())) {
+                        throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
+                    }
+                }
+                for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
+                    if (smartSpace.getGatewayAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())) {
+                        throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
+                    }
+                }
 
                 // use PO preferred platform identifier
                 platformId = platformManagementRequest.getPlatformInstanceId();
@@ -155,7 +166,12 @@ public class PlatformsManagementService {
                         if (platformInRepo.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())
                                 // and that is not us!
                                 && !platformInRepo.getPlatformInstanceId().equals(platform.getPlatformInstanceId()))
-                            throw new ServiceManagementException(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
+                            throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
+                    }
+                    for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
+                        if (smartSpace.getGatewayAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())) {
+                            throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
+                        }
                     }
                     platform.setPlatformInterworkingInterfaceAddress(platformManagementRequest.getPlatformInterworkingInterfaceAddress());
                 }

@@ -91,8 +91,8 @@ public class ServiceCertificateKeyStoreTests extends AbstractAAMTestSuite {
         //smart space Owner and Smart Space  registration
         User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId,
-                smartSpaceExternalInterworkingInterfaceAddress,
-                smartSpaceInternalInterworkingInterfaceAddress,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
                 exposedIIAddress,
                 smartSpaceInstanceFriendlyName,
                 new Certificate(),

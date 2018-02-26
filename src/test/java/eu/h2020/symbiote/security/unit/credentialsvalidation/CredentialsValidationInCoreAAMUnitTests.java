@@ -50,7 +50,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.*;
 
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 import static eu.h2020.symbiote.security.services.helpers.TokenIssuer.buildAuthorizationToken;
 import static org.junit.Assert.*;
 
@@ -435,7 +435,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         userRepository.save(user);
 
         String foreignTokenString = buildAuthorizationToken(
-                username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID + illegalSign + originHomeTokenJti,
+                username + FIELDS_DELIMITER + clientId + FIELDS_DELIMITER + SecurityConstants.CORE_AAM_INSTANCE_ID + FIELDS_DELIMITER + originHomeTokenJti,
                 new HashMap<>(),
                 userKeyPair.getPublic().getEncoded(),
                 Token.Type.FOREIGN,
@@ -462,7 +462,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         KeyPair keyPair = CryptoHelper.createKeyPair();
         String originHomeTokenJti = String.valueOf(random.nextInt());
         String foreignTokenString = buildAuthorizationToken(
-                username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID + illegalSign + originHomeTokenJti,
+                username + FIELDS_DELIMITER + clientId + FIELDS_DELIMITER + SecurityConstants.CORE_AAM_INSTANCE_ID + FIELDS_DELIMITER + originHomeTokenJti,
                 new HashMap<>(),
                 userKeyPair.getPublic().getEncoded(),
                 Token.Type.FOREIGN,
@@ -520,7 +520,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         KeyPair keyPair = CryptoHelper.createKeyPair();
         Token homeToken = new Token(buildAuthorizationToken(
-                username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID,
+                username + FIELDS_DELIMITER + clientId + FIELDS_DELIMITER + SecurityConstants.CORE_AAM_INSTANCE_ID,
                 new HashMap<>(),
                 userKeyPair.getPublic().getEncoded(),
                 Token.Type.HOME,
@@ -530,7 +530,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 keyPair.getPrivate()));
 
         Token foreignToken = new Token(buildAuthorizationToken(
-                username + illegalSign + clientId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID + illegalSign + homeToken.getClaims().getId(),
+                username + FIELDS_DELIMITER + clientId + FIELDS_DELIMITER + SecurityConstants.CORE_AAM_INSTANCE_ID + FIELDS_DELIMITER + homeToken.getClaims().getId(),
                 new HashMap<>(),
                 userKeyPair.getPublic().getEncoded(),
                 Token.Type.FOREIGN,
@@ -1035,7 +1035,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                         "")
         );
         // check, if invalid token saved in local repo
-        assertTrue(revokedRemoteTokensRepository.exists(homeToken.getClaims().getIssuer() + illegalSign + homeToken.getId()));
+        assertTrue(revokedRemoteTokensRepository.exists(homeToken.getClaims().getIssuer() + FIELDS_DELIMITER + homeToken.getId()));
         // check, if token was recognized as revoked during remote validation
         assertEquals(
                 ValidationStatus.REVOKED_TOKEN,

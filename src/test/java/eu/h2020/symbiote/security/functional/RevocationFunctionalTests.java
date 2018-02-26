@@ -36,7 +36,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
@@ -165,7 +165,7 @@ public class RevocationFunctionalTests extends
         User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
         // issue smartSpace registration
-        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceExternalInterworkingInterfaceAddress, smartSpaceInternalInterworkingInterfaceAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), user);
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceGateWayAddress, smartSpaceSiteLocalAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), user);
         smartSpaceRepository.save(smartSpace);
         user.getOwnedServices().add(preferredSmartSpaceId);
         userRepository.save(user);
@@ -267,7 +267,7 @@ public class RevocationFunctionalTests extends
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(username, password));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
-        String commonName = username + illegalSign + clientId;
+        String commonName = username + FIELDS_DELIMITER + clientId;
         revocationRequest.setCertificateCommonName(commonName);
 
         assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
@@ -334,7 +334,7 @@ public class RevocationFunctionalTests extends
         User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
         // issue smartSpace registration
-        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceExternalInterworkingInterfaceAddress, smartSpaceInternalInterworkingInterfaceAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), user);
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceGateWayAddress, smartSpaceSiteLocalAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), user);
         smartSpaceRepository.save(smartSpace);
         user.getOwnedServices().add(preferredSmartSpaceId);
         userRepository.save(user);

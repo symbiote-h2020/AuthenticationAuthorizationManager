@@ -29,7 +29,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 
 /**
  * Spring service used to provide client certificates issuing
@@ -149,7 +149,7 @@ public class IssueCertificateService {
             if (!certificateRequest.getPassword().equals(AAMOwnerPassword))
                 throw new WrongCredentialsException();
             //deployment id check
-            if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(illegalSign)[1]))
+            if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[1]))
                 throw new ValidationException(ValidationException.WRONG_DEPLOYMENT_ID);
             if (revokedKeysRepository.exists(certificationAuthorityHelper.getAAMInstanceIdentifier())
                     && revokedKeysRepository.findOne(certificationAuthorityHelper.getAAMInstanceIdentifier()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
@@ -171,7 +171,7 @@ public class IssueCertificateService {
             if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
                     !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
                 throw new WrongCredentialsException();
-            if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(illegalSign)[2]))
+            if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[2]))
                 throw new ValidationException(ValidationException.WRONG_DEPLOYMENT_ID);
             if (revokedKeysRepository.exists(user.getUsername())
                     && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
@@ -185,8 +185,8 @@ public class IssueCertificateService {
     private void persistComponentCertificate(PKCS10CertificationRequest req,
                                              String pem) throws CertificateException {
 
-        String componentId = req.getSubject().toString().split("CN=")[1].split("@")[0];
-        String platformId = req.getSubject().toString().split("CN=")[1].split("@")[1];
+        String componentId = req.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[0];
+        String platformId = req.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[1];
 
         componentCertificatesRepository.save(new ComponentCertificate(componentId, new Certificate(pem)));
         aamServices.invalidateComponentCertificateCache(componentId, platformId);
@@ -295,7 +295,7 @@ public class IssueCertificateService {
             ServiceManagementException {
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
         // component id must not be AAM
-        if (request.getSubject().toString().split("CN=")[1].split(illegalSign)[0].equals(SecurityConstants.AAM_COMPONENT_NAME))
+        if (request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[0].equals(SecurityConstants.AAM_COMPONENT_NAME))
             throw new ServiceManagementException(ServiceManagementException.WRONG_WAY_TO_ISSUE_AAM_CERTIFICATE, HttpStatus.BAD_REQUEST);
     }
 }

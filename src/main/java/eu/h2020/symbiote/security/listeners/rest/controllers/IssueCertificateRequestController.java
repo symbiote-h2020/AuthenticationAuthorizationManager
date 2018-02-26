@@ -17,24 +17,24 @@ import java.security.cert.CertificateException;
  * Spring controller to handle HTTPS requests related to the RESTful web services associated to certificates signing.
  *
  * @author Maks Marcinowski (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 
 @RestController
-@Api(value = "docs/signCertificateRequest", description = "Used to sign symbiote certificates")
-//TODO rename
-public class SignCertificateRequestController implements ISignCertificateRequest {
+@Api(value = "docs/issueCertificateRequest", description = "Used to issue symbiote certificates")
+public class IssueCertificateRequestController implements ISignCertificateRequest {
     private IssueCertificateService issueCertificateService;
 
     @Autowired
-    public SignCertificateRequestController(IssueCertificateService issueCertificateService) {
+    public IssueCertificateRequestController(IssueCertificateService issueCertificateService) {
         this.issueCertificateService = issueCertificateService;
     }
 
     @Override
-    @ApiOperation(value = "Allows signing user's Certificates")
+    @ApiOperation(value = "Allows issuing user's Certificates")
     @ApiResponses({
-            @ApiResponse(code = 500, message = "Could not sign the requested certificate")})
-    public ResponseEntity<String> signCertificateRequest(
+            @ApiResponse(code = 500, message = "Could not issue the requested certificate")})
+    public ResponseEntity<String> issueCertificateRequest(
             @RequestBody
             @ApiParam(value = "Request required to issue a certificate for given (username, clientId) tupple", required = true)
                     CertificateRequest certificateRequest) {

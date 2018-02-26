@@ -19,5 +19,5 @@ public interface ISignCertificateRequest {
      * @return the certificate issued using the provided CSR in PEM format
      */
     @PostMapping(value = SecurityConstants.AAM_SIGN_CERTIFICATE_REQUEST, consumes = "application/json")
-    ResponseEntity<String> signCertificateRequest(@RequestBody CertificateRequest certificateRequest);
+    ResponseEntity<String> issueCertificateRequest(@RequestBody CertificateRequest certificateRequest);
 }

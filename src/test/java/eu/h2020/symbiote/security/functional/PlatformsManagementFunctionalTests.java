@@ -465,7 +465,7 @@ public class PlatformsManagementFunctionalTests extends
         response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
                 (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(ServiceManagementException.SERVICE_INTERWORKING_INTERFACE_IN_USE, errorResponse.getErrorMessage());
+        assertEquals(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, errorResponse.getErrorMessage());
     }
 
     @Test

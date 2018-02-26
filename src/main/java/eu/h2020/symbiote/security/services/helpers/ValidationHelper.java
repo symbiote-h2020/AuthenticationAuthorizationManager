@@ -33,7 +33,7 @@ import java.security.*;
 import java.security.cert.*;
 import java.util.*;
 
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 
 import eu.h2020.symbiote.security.commons.Certificate;
 
@@ -145,7 +145,7 @@ public class ValidationHelper {
                 return ValidationStatus.REVOKED_TOKEN;
             }
 
-            String userFromToken = claims.getSubject().split(illegalSign)[0];
+            String userFromToken = claims.getSubject().split(FIELDS_DELIMITER)[0];
 
             // check if SPK is is in the revoked repository
             if (revokedKeysRepository.exists(userFromToken) && revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
@@ -155,7 +155,7 @@ public class ValidationHelper {
             switch (tokenForValidation.getType()) {
                 case HOME:
                     // check if subject certificate is valid & matching the token SPK
-                    switch (claims.getSubject().split("@").length) {
+                    switch (claims.getSubject().split(FIELDS_DELIMITER).length) {
                         case 1: // local components case
                             Certificate certificate = null;
                             // component case - SUB/userFromToken is component name, ISS is AAM instanceId
@@ -174,7 +174,7 @@ public class ValidationHelper {
                                 return ValidationStatus.REVOKED_SPK;
                             break;
                         case 2: // user token case
-                            String clientId = claims.getSubject().split("@")[1];
+                            String clientId = claims.getSubject().split(FIELDS_DELIMITER)[1];
                             // check if we have such a user and his certificate
                             if (!userRepository.exists(userFromToken)
                                     || !userRepository.findOne(userFromToken).getClientCertificates().containsKey(clientId))
@@ -249,7 +249,7 @@ public class ValidationHelper {
 
         Claims claims = JWTEngine.getClaims(tokenString);
         //checking if token is revoked
-        if (revokedRemoteTokensRepository.exists(claims.getIssuer() + illegalSign + claims.getId())) {
+        if (revokedRemoteTokensRepository.exists(claims.getIssuer() + FIELDS_DELIMITER + claims.getId())) {
             return ValidationStatus.REVOKED_TOKEN;
         }
 
@@ -319,7 +319,7 @@ public class ValidationHelper {
                     return status.getBody();
                 default:
                     // we need to invalidate our token
-                    revokedRemoteTokensRepository.save(new RevokedRemoteToken(claims.getIssuer() + illegalSign + claims.getId()));
+                    revokedRemoteTokensRepository.save(new RevokedRemoteToken(claims.getIssuer() + FIELDS_DELIMITER + claims.getId()));
                     return status.getBody();
             }
         } catch (Exception e) {
@@ -343,7 +343,7 @@ public class ValidationHelper {
 
         X509Certificate clientCertificate = CryptoHelper.convertPEMToX509(clientCertificateString);
         // ref client certificate CN=username@clientId@platformId (or SymbIoTe_Core_AAM for core user)
-        String[] clientCommonNameFields = clientCertificate.getSubjectDN().getName().split("CN=")[1].split("@");
+        String[] clientCommonNameFields = clientCertificate.getSubjectDN().getName().split("CN=")[1].split(FIELDS_DELIMITER);
         if (clientCommonNameFields.length != 3)
             return false;
 
@@ -384,16 +384,16 @@ public class ValidationHelper {
                 if (!token.getClaims().getIssuer().equals(clientCommonNameFields[2]))
                     return false;
                 // ref SUB: username@clientIdentifier
-                if (!token.getClaims().getSubject().equals(clientCommonNameFields[0] + "@" + clientCommonNameFields[1]))
+                if (!token.getClaims().getSubject().equals(clientCommonNameFields[0] + FIELDS_DELIMITER + clientCommonNameFields[1]))
                     return false;
                 break;
             case FOREIGN:
                 // ref SUB: username@clientIdentifier@homeAAMInstanceIdentifier
                 if (!token.getClaims().getSubject().equals(
                         clientCommonNameFields[0]
-                                + "@"
+                                + FIELDS_DELIMITER
                                 + clientCommonNameFields[1]
-                                + "@"
+                                + FIELDS_DELIMITER
                                 + CryptoHelper.convertPEMToX509(clientCertificateSigningAAMCertificate).getSubjectDN().getName().split("CN=")[1]))
                     return false;
                 break;
@@ -496,8 +496,8 @@ public class ValidationHelper {
         }
         for (String federationId : claims.getAtt().values()) {
             if (!federationRulesRepository.exists(federationId)
-                    || claims.getSub().split(illegalSign).length != 4
-                    || !federationRulesRepository.findOne(federationId).getPlatformIds().contains(claims.getSub().split(illegalSign)[2])) {
+                    || claims.getSub().split(FIELDS_DELIMITER).length != 4
+                    || !federationRulesRepository.findOne(federationId).getPlatformIds().contains(claims.getSub().split(FIELDS_DELIMITER)[2])) {
                 return false;
             }
         }
@@ -512,14 +512,14 @@ public class ValidationHelper {
             MalformedJWTException {
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(foreignToken);
         // TODO R4 consider component tokens in P2P L2 communication!
-        if (claimsFromToken.getSub().split("@").length != 4) {
+        if (claimsFromToken.getSub().split(FIELDS_DELIMITER).length != 4) {
             throw new MalformedJWTException(MalformedJWTException.TOKEN_SUBJECT_HAS_WRONG_STRUCTURE);
         }
 
-        String userFromToken = claimsFromToken.getSub().split("@")[0];
-        String clientID = claimsFromToken.getSub().split("@")[1];
-        String platformId = claimsFromToken.getSub().split("@")[2];
-        String jti = claimsFromToken.getSub().split("@")[3];
+        String userFromToken = claimsFromToken.getSub().split(FIELDS_DELIMITER)[0];
+        String clientID = claimsFromToken.getSub().split(FIELDS_DELIMITER)[1];
+        String platformId = claimsFromToken.getSub().split(FIELDS_DELIMITER)[2];
+        String jti = claimsFromToken.getSub().split(FIELDS_DELIMITER)[3];
 
         // checking if we issued the Home token
         if (!deploymentId.equals(platformId))
@@ -553,7 +553,7 @@ public class ValidationHelper {
             IOException,
             ValidationException {
         Token token = new Token(stringToken);
-        String platformId = token.getClaims().getSubject().split(illegalSign)[2];
+        String platformId = token.getClaims().getSubject().split(FIELDS_DELIMITER)[2];
         // fetching origin token AAM
         if (aamServices.getAvailableAAMs().get(platformId) == null) {
             return ValidationStatus.INVALID_TRUST_CHAIN;

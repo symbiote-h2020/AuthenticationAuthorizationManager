@@ -200,7 +200,7 @@ public class CertificatesIssuingFunctionalTests extends
 
         User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         // issue smartSpace registration
-        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceExternalInterworkingInterfaceAddress, smartSpaceInternalInterworkingInterfaceAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), smartSpaceOwner);
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceGateWayAddress, smartSpaceSiteLocalAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), smartSpaceOwner);
         smartSpaceRepository.save(smartSpace);
         smartSpaceOwner.getOwnedServices().add(preferredSmartSpaceId);
         userRepository.save(smartSpaceOwner);
