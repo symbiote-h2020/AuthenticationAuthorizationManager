@@ -12,7 +12,6 @@ import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -24,10 +23,6 @@ public class FederationManagementRequestConsumersService {
     private static Log log = LogFactory.getLog(FederationManagementRequestConsumersService.class);
     @Autowired
     private FederationsRepository federationsRepository;
-    @Value("${aam.deployment.owner.username}")
-    private String adminUsername;
-    @Value("${aam.deployment.owner.password}")
-    private String adminPassword;
 
     private static boolean isFederationConsistent(Federation federation) {
         //check of federation consistency - size of members should be the same as size of set of members' platformIds

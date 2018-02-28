@@ -61,8 +61,9 @@ public class TokenIssuer {
     private KeyPair guestKeyPair;
 
     @Autowired
-    public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper, LocalUsersAttributesRepository localUsersAttributesRepository, FederationsRepository federationsRepository) {
-
+    public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper,
+                       LocalUsersAttributesRepository localUsersAttributesRepository,
+                       FederationsRepository federationsRepository) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
@@ -70,9 +71,14 @@ public class TokenIssuer {
         this.federationsRepository = federationsRepository;
     }
 
-    public static String buildAuthorizationToken(String subject, Map<String, String> attributes, byte[] subjectPublicKey,
-                                                 Token.Type tokenType, Long tokenValidity, String
-                                                         issuer, PublicKey issuerPublicKey, PrivateKey issuerPrivateKey) {
+    public static String buildAuthorizationToken(String subject,
+                                                 Map<String, String> attributes,
+                                                 byte[] subjectPublicKey,
+                                                 Token.Type tokenType,
+                                                 Long tokenValidity,
+                                                 String issuer,
+                                                 PublicKey issuerPublicKey,
+                                                 PrivateKey issuerPrivateKey) {
         ECDSAHelper.enableECDSAProvider();
 
         String jti = String.valueOf(random.nextInt());
@@ -125,12 +131,10 @@ public class TokenIssuer {
                             attributes.put(CoreAttributes.ROLE.toString(), UserRole.PLATFORM_OWNER.toString());
                             break;
                         case NULL:
-                            //TODO consider CoreComponents Attributes
                             break;
                     }
                     break;
                 case PLATFORM:
-                    // TODO R3 federation
                     break;
                 case NULL:
                     throw new JWTCreationException(JWTCreationException.MISCONFIGURED_AAM_DEPLOYMENT_TYPE);
@@ -192,7 +196,10 @@ public class TokenIssuer {
 
 
             for (Federation federation : federationsRepository.findAll()) {
-                if (federation.getMembers().stream().map(FederationMember::getPlatformId).collect(Collectors.toSet()).contains(claims.getIss())) {
+                if (federation.getMembers().stream()
+                        .map(FederationMember::getPlatformId)
+                        .collect(Collectors.toSet())
+                        .contains(claims.getIss())) {
                     foreignAttributes.put(SecurityConstants.FEDERATION_CLAIM_KEY_PREFIX + i, federation.getId());
                     i++;
                 }
