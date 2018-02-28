@@ -502,7 +502,7 @@ public class ValidationHelper {
                     || !federationsRepository.findOne(federationId)
                     .getMembers().stream()
                     .map(FederationMember::getPlatformId)
-                    .collect(Collectors.toList())
+                    .collect(Collectors.toSet())
                     .contains(claims.getSub().split(illegalSign)[2]))
                 return false;
         }

@@ -192,7 +192,7 @@ public class TokenIssuer {
 
 
             for (Federation federation : federationsRepository.findAll()) {
-                if (federation.getMembers().stream().map(FederationMember::getPlatformId).collect(Collectors.toList()).contains(claims.getIss())) {
+                if (federation.getMembers().stream().map(FederationMember::getPlatformId).collect(Collectors.toSet()).contains(claims.getIss())) {
                     foreignAttributes.put(SecurityConstants.FEDERATION_CLAIM_KEY_PREFIX + i, federation.getId());
                     i++;
                 }
