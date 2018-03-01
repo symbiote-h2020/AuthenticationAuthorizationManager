@@ -6,3 +6,6 @@ rootProject.name = 'AuthenticationAuthorizationManager'
 */
 include 'SymbIoTeSecurity'
 project(':SymbIoTeSecurity').projectDir = new File(settingsDir, "../SymbIoTeSecurity")
+
+include 'SymbIoTeLibraries'
+project(':SymbIoTeLibraries').projectDir = new File(settingsDir, "../SymbIoTeLibraries")

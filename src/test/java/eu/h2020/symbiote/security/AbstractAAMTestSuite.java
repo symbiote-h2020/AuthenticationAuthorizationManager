@@ -95,7 +95,7 @@ public abstract class AbstractAAMTestSuite {
     public ExpectedException expectedEx = ExpectedException.none();
     protected KeyPair userKeyPair;
     @Autowired
-    protected FederationRulesRepository federationRulesRepository;
+    protected FederationsRepository federationsRepository;
     @Autowired
     protected LocalUsersAttributesRepository localUsersAttributesRepository;
     @Autowired
@@ -135,6 +135,19 @@ public abstract class AbstractAAMTestSuite {
     @Value("${rabbit.routingKey.manage.smartspace.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String smartSpaceManagementRoutingKey;
 
+    @Value("${rabbit.routingKey.federation.created}")
+    protected String federationManagementCreateRoutingKey;
+    @Value("${rabbit.queue.federation.created}")
+    protected String federationManagementCreateQueue;
+    @Value("${rabbit.routingKey.federation.changed}")
+    protected String federationManagementUpdateRoutingKey;
+    @Value("${rabbit.queue.federation.changed}")
+    protected String federationManagementUpdateQueue;
+    @Value("${rabbit.routingKey.federation.deleted}")
+    protected String federationManagementDeleteRoutingKey;
+    @Value("${rabbit.queue.federation.deleted}")
+    protected String federationManagementDeleteQueue;
+
     @Value("${rabbit.queue.manage.revocation.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String revocationRequestQueue;
     @Value("${rabbit.queue.validate.request}")
@@ -165,6 +178,8 @@ public abstract class AbstractAAMTestSuite {
     private String rabbitUsername;
     @Value("${rabbit.password}")
     private String rabbitPassword;
+    @Value("${rabbit.exchange.federation}")
+    public String rabbitExchangeFederation;
 
     @Autowired
     private AAMServices aamServices;
@@ -181,7 +196,7 @@ public abstract class AbstractAAMTestSuite {
     }
 
     @Bean
-    SimpleMessageConverter simpleMessageConverter() {
+    public SimpleMessageConverter simpleMessageConverter() {
         return new SimpleMessageConverter();
     }
 

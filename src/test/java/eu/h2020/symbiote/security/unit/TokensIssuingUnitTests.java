@@ -1,5 +1,7 @@
 package eu.h2020.symbiote.security.unit;
 
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
@@ -10,7 +12,6 @@ import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.payloads.FederationRule;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.entities.Attribute;
@@ -33,8 +34,9 @@ import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.*;
@@ -272,9 +274,16 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
                 new Certificate(dummyPlatformAAMPEMCertString),
                 new HashMap<>());
         platformRepository.save(dummyPlatform);
-        FederationRule federationRule = new FederationRule("federationId", new HashSet<>());
-        federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
-        federationRulesRepository.save(federationRule);
+        // adding a federation
+        List<FederationMember> platformsId = new ArrayList<>();
+        FederationMember federationMember = new FederationMember();
+        federationMember.setPlatformId(dummyPlatform.getPlatformInstanceId());
+        platformsId.add(federationMember);
+
+        Federation federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId");
+        federationsRepository.save(federation);
 
         Token foreignToken = null;
         try {
@@ -302,7 +311,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         } catch (Exception e) {
             fail("Exception thrown");
         }
-        federationRulesRepository.deleteAll();
+        federationsRepository.deleteAll();
         tokenIssuer.getForeignToken(token);
     }
 

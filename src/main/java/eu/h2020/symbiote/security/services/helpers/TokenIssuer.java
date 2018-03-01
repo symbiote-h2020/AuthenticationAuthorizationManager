@@ -1,5 +1,7 @@
 package eu.h2020.symbiote.security.services.helpers;
 
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
@@ -9,10 +11,9 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigura
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.payloads.FederationRule;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.helpers.ECDSAHelper;
-import eu.h2020.symbiote.security.repositories.FederationRulesRepository;
+import eu.h2020.symbiote.security.repositories.FederationsRepository;
 import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
 import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -33,6 +34,9 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 
 /**
  * Used to issue tokens.
@@ -50,24 +54,30 @@ public class TokenIssuer {
     private final IssuingAuthorityType deploymentType;
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final LocalUsersAttributesRepository localUsersAttributesRepository;
-    private final FederationRulesRepository federationRulesRepository;
+    private final FederationsRepository federationsRepository;
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
     private KeyPair guestKeyPair;
 
     @Autowired
-    public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper, LocalUsersAttributesRepository localUsersAttributesRepository, FederationRulesRepository federationRulesRepository) {
-
+    public TokenIssuer(CertificationAuthorityHelper certificationAuthorityHelper,
+                       LocalUsersAttributesRepository localUsersAttributesRepository,
+                       FederationsRepository federationsRepository) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
         this.localUsersAttributesRepository = localUsersAttributesRepository;
-        this.federationRulesRepository = federationRulesRepository;
+        this.federationsRepository = federationsRepository;
     }
 
-    public static String buildAuthorizationToken(String subject, Map<String, String> attributes, byte[] subjectPublicKey,
-                                                 Token.Type tokenType, Long tokenValidity, String
-                                                         issuer, PublicKey issuerPublicKey, PrivateKey issuerPrivateKey) {
+    public static String buildAuthorizationToken(String subject,
+                                                 Map<String, String> attributes,
+                                                 byte[] subjectPublicKey,
+                                                 Token.Type tokenType,
+                                                 Long tokenValidity,
+                                                 String issuer,
+                                                 PublicKey issuerPublicKey,
+                                                 PrivateKey issuerPrivateKey) {
         ECDSAHelper.enableECDSAProvider();
 
         String jti = String.valueOf(random.nextInt());
@@ -118,7 +128,6 @@ public class TokenIssuer {
                             attributes.put(CoreAttributes.ROLE.toString(), user.getRole().toString());
                             break;
                         case NULL:
-                            //TODO consider CoreComponents Attributes
                             break;
                     }
                     break;
@@ -144,7 +153,7 @@ public class TokenIssuer {
             if (user.getUsername().isEmpty()) {
                 subject = sub;
             } else {
-                subject = user.getUsername() + "@" + sub;
+                subject = user.getUsername() + FIELDS_DELIMITER + sub;
             }
 
             return new Token(buildAuthorizationToken(
@@ -182,18 +191,23 @@ public class TokenIssuer {
             JWTClaims claims = JWTEngine.getClaimsFromToken(remoteHomeToken.toString());
             HashMap<String, String> foreignAttributes = new HashMap<>();
             // disabling foreign token issuing when the mapping rule is empty
-            if (federationRulesRepository.findAll().isEmpty())
+            if (federationsRepository.findAll().isEmpty())
                 throw new SecurityMisconfigurationException(SecurityMisconfigurationException.AAM_HAS_NO_FOREIGN_RULES_DEFINED);
             int i = 1;
-            for (FederationRule federationRule : federationRulesRepository.findAll()) {
-                if (federationRule.getPlatformIds().contains(claims.getIss())) {
-                    foreignAttributes.put(SecurityConstants.FEDERATION_CLAIM_KEY_PREFIX + i, federationRule.getFederationId());
+
+
+            for (Federation federation : federationsRepository.findAll()) {
+                if (federation.getMembers().stream()
+                        .map(FederationMember::getPlatformId)
+                        .collect(Collectors.toSet())
+                        .contains(claims.getIss())) {
+                    foreignAttributes.put(SecurityConstants.FEDERATION_CLAIM_KEY_PREFIX + i, federation.getId());
                     i++;
                 }
             }
             return new Token(buildAuthorizationToken(
                     // FOREIGN SUB: username@clientIdentifier@homeAAMInstanceIdentifier@originHomeTokenJTI
-                    claims.getSub() + "@" + claims.getIss() + "@" + claims.getJti(),
+                    claims.getSub() + FIELDS_DELIMITER + claims.getIss() + FIELDS_DELIMITER + claims.getJti(),
                     foreignAttributes,
                     Base64.getDecoder().decode(claims.getSpk()),
                     Token.Type.FOREIGN,

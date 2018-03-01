@@ -1,5 +1,7 @@
 package eu.h2020.symbiote.security.unit;
 
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
@@ -7,7 +9,10 @@ import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
-import eu.h2020.symbiote.security.communication.payloads.*;
+import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
+import eu.h2020.symbiote.security.communication.payloads.RevocationResponse;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
@@ -31,10 +36,7 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 import static org.junit.Assert.*;
@@ -797,11 +799,17 @@ public class RevocationUnitTests extends
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
         platformRepository.save(dummyPlatform);
 
-        Set<String> platformsId = new HashSet<>();
-        platformsId.add(platformId);
 
-        FederationRule federationRule = new FederationRule("federationId", platformsId);
-        federationRulesRepository.save(federationRule);
+        // adding a federation
+        List<FederationMember> platformsId = new ArrayList<>();
+        FederationMember federationMember = new FederationMember();
+        federationMember.setPlatformId(platformId);
+        platformsId.add(federationMember);
+
+        Federation federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId");
+        federationsRepository.save(federation);
 
         Token foreignToken = getTokenService.getForeignToken(token, "", "");
         assertNotNull(foreignToken);
@@ -846,10 +854,17 @@ public class RevocationUnitTests extends
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
         platformRepository.save(dummyPlatform);
 
-        Set<String> platformsId = new HashSet<>();
-        platformsId.add(platformId);
-        FederationRule federationRule = new FederationRule("federationId", platformsId);
-        federationRulesRepository.save(federationRule);
+        // adding a federation
+        List<FederationMember> platformsId = new ArrayList<>();
+        FederationMember federationMember = new FederationMember();
+        federationMember.setPlatformId(platformId);
+        platformsId.add(federationMember);
+
+        Federation federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId");
+
+        federationsRepository.save(federation);
 
         Token foreignToken = getTokenService.getForeignToken(token, "", "");
         assertNotNull(foreignToken);

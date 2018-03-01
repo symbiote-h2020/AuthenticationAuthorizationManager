@@ -1,5 +1,7 @@
 package eu.h2020.symbiote.security.unit;
 
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
@@ -7,7 +9,6 @@ import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
-import eu.h2020.symbiote.security.communication.payloads.FederationRule;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -31,8 +32,9 @@ import java.security.NoSuchProviderException;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 
 import static eu.h2020.symbiote.security.services.helpers.TokenIssuer.buildAuthorizationToken;
 import static org.junit.Assert.assertEquals;
@@ -86,12 +88,21 @@ public class CacheTests extends AbstractAAMTestSuite {
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
-        // defining federation
         Platform dummyPlatform = platformRepository.findOne("platform-1");
-        FederationRule federationRule = new FederationRule("federationId", new HashSet<>());
-        federationRule.addPlatform(dummyPlatform.getPlatformInstanceId());
-        federationRule.addPlatform(SecurityConstants.CORE_AAM_INSTANCE_ID);
-        federationRulesRepository.save(federationRule);
+        // adding a federation
+        List<FederationMember> platformsId = new ArrayList<>();
+        FederationMember federationMember = new FederationMember();
+        federationMember.setPlatformId(dummyPlatform.getPlatformInstanceId());
+        platformsId.add(federationMember);
+        federationMember = new FederationMember();
+        federationMember.setPlatformId(SecurityConstants.CORE_AAM_INSTANCE_ID);
+        platformsId.add(federationMember);
+
+        Federation federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId");
+
+        federationsRepository.save(federation);
 
         Token foreignToken = tokenIssuer.getForeignToken(dummyHomeToken);
 

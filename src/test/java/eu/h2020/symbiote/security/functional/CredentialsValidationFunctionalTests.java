@@ -1,5 +1,7 @@
 package eu.h2020.symbiote.security.functional;
 
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
@@ -11,7 +13,10 @@ import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.payloads.*;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
+import eu.h2020.symbiote.security.communication.payloads.PlatformManagementResponse;
+import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
@@ -38,10 +43,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Base64;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -317,12 +319,17 @@ public class CredentialsValidationFunctionalTests extends
         JWTClaims claims = JWTEngine.getClaimsFromToken(dummyHomeToken.getToken());
         assertTrue(claims.getAtt().containsKey("name"));
         assertTrue(claims.getAtt().containsValue("test2"));
-        // adding a federation rule
-        Set<String> platformsId = new HashSet<>();
-        platformsId.add(platformId);
+        // adding a federation
+        List<FederationMember> platformsId = new ArrayList<>();
+        FederationMember federationMember = new FederationMember();
+        federationMember.setPlatformId(platformId);
+        platformsId.add(federationMember);
 
-        FederationRule federationRule = new FederationRule("federationId", platformsId);
-        federationRulesRepository.save(federationRule);
+        Federation federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId");
+
+        federationsRepository.save(federation);
 
         // checking issuing of foreign token using the dummy platform token
         String token = aamClient.getForeignToken(dummyHomeToken.getToken(), Optional.of(clientCertificate), Optional.of(CryptoHelper.convertX509ToPEM(platformAAMCertificate)));

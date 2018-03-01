@@ -1,6 +1,8 @@
 package eu.h2020.symbiote.security.functional;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
@@ -13,7 +15,6 @@ import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.communication.payloads.FederationRule;
 import eu.h2020.symbiote.security.communication.payloads.LocalAttributesManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
@@ -277,12 +278,17 @@ public class TokensIssuingFunctionalTests extends
         JWTClaims claims = JWTEngine.getClaimsFromToken(dummyHomeToken.getToken());
         assertTrue(claims.getAtt().containsKey("name"));
         assertTrue(claims.getAtt().containsValue("test2"));
-        // adding a federation rule
-        Set<String> platformsId = new HashSet<>();
-        platformsId.add(platformId);
+        // adding a federation
+        List<FederationMember> platformsId = new ArrayList<>();
+        FederationMember federationMember = new FederationMember();
+        federationMember.setPlatformId(platformId);
+        platformsId.add(federationMember);
 
-        FederationRule federationRule = new FederationRule("federationId", platformsId);
-        federationRulesRepository.save(federationRule);
+        Federation federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId");
+
+        federationsRepository.save(federation);
 
         // checking issuing of foreign token using the dummy platform token
         String token = aamClient.getForeignToken(
@@ -313,12 +319,17 @@ public class TokensIssuingFunctionalTests extends
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         String platformId = "platform-1";
-        // adding a federation rule
-        Set<String> platformsId = new HashSet<>();
-        platformsId.add(platformId);
+        // adding a federation
+        List<FederationMember> platformsId = new ArrayList<>();
+        FederationMember federationMember = new FederationMember();
+        federationMember.setPlatformId(platformId);
+        platformsId.add(federationMember);
 
-        FederationRule federationRule = new FederationRule("federationId", platformsId);
-        federationRulesRepository.save(federationRule);
+        Federation federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId");
+
+        federationsRepository.save(federation);
 
         // checking issuing of foreign token using the dummy platform token
         aamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
@@ -341,11 +352,17 @@ public class TokensIssuingFunctionalTests extends
         Platform dummyPlatform = new Platform(platformId, serverAddress + "/test", platformInstanceFriendlyName, userRepository.findOne(platformOwnerUsername), new Certificate(), new HashMap<>());
         platformRepository.save(dummyPlatform);
 
-        // adding a federation rule
-        Set<String> platformsId = new HashSet<>();
-        platformsId.add(platformId);
-        FederationRule federationRule = new FederationRule("federationId", platformsId);
-        federationRulesRepository.save(federationRule);
+        // adding a federation
+        List<FederationMember> platformsId = new ArrayList<>();
+        FederationMember federationMember = new FederationMember();
+        federationMember.setPlatformId(platformId);
+        platformsId.add(federationMember);
+
+        Federation federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId");
+
+        federationsRepository.save(federation);
 
         // checking issuing of foreign token using the dummy platform token
         aamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());
@@ -382,7 +399,7 @@ public class TokensIssuingFunctionalTests extends
         Platform dummyPlatform = new Platform(platformId, serverAddress + "/test", platformInstanceFriendlyName, userRepository.findOne(platformOwnerUsername), new Certificate(CryptoHelper.convertX509ToPEM(platformAAMCertificate)), new HashMap<>());
         platformRepository.save(dummyPlatform);
         // making sure the foreignMappingRules are empty
-        federationRulesRepository.deleteAll();
+        federationsRepository.deleteAll();
 
         // checking issuing of foreign token using the dummy platform token
         aamClient.getForeignToken(dummyHomeToken.getToken(), Optional.empty(), Optional.empty());

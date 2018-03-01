@@ -1,5 +1,7 @@
 package eu.h2020.symbiote.security.functional;
 
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
@@ -32,9 +34,9 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 import static org.junit.Assert.*;
@@ -433,12 +435,17 @@ public class RevocationFunctionalTests extends
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
         platformRepository.save(dummyPlatform);
 
-        // adding a federation rule
-        Set<String> platformsId = new HashSet<>();
-        platformsId.add(platformId);
+        // adding a federation
+        List<FederationMember> platformsId = new ArrayList<>();
+        FederationMember federationMember = new FederationMember();
+        federationMember.setPlatformId(platformId);
+        platformsId.add(federationMember);
 
-        FederationRule federationRule = new FederationRule("federationId", platformsId);
-        federationRulesRepository.save(federationRule);
+        Federation federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId");
+
+        federationsRepository.save(federation);
 
         Token foreignToken = getTokenService.getForeignToken(token, "", "");
         assertNotNull(foreignToken);
