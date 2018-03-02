@@ -47,7 +47,7 @@ public class SmartSpace {
         this.instanceId = instanceId;
         this.exposingSiteLocalAddress = exposingSiteLocalAddress;
         setGatewayAddress(gatewayAddress);
-        setSiteLocalAddress(siteLocalAddress, exposingSiteLocalAddress);
+        setSiteLocalAddress(siteLocalAddress);
         this.instanceFriendlyName = instanceFriendlyName;
         this.aamCertificate = aamCertificate;
         this.componentCertificates = componentCertificates;
@@ -74,10 +74,9 @@ public class SmartSpace {
         return siteLocalAddress;
     }
 
-    public void setSiteLocalAddress(String siteLocalAddress,
-                                    boolean exposingSiteLocalAddress) throws
+    public void setSiteLocalAddress(String siteLocalAddress) throws
             InvalidArgumentsException {
-        if (exposingSiteLocalAddress
+        if (this.exposingSiteLocalAddress
                 && (siteLocalAddress == null || siteLocalAddress.isEmpty()))
                 throw new InvalidArgumentsException("Exposed siteLocalAddress should not be empty.");
         this.siteLocalAddress = siteLocalAddress;

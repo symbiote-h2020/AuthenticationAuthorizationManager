@@ -168,7 +168,7 @@ public class SmartSpacesManagementService {
                 }
                 smartSpace.setExposingSiteLocalAddress(smartSpaceManagementRequest.isExposingSiteLocalAddress());
                 smartSpace.setGatewayAddress(smartSpaceManagementRequest.getGatewayAddress());
-                smartSpace.setSiteLocalAddress(smartSpaceManagementRequest.getSiteLocalAddress(), smartSpaceManagementRequest.isExposingSiteLocalAddress());
+                smartSpace.setSiteLocalAddress(smartSpaceManagementRequest.getSiteLocalAddress());
 
                 smartSpaceRepository.save(smartSpace);
                 break;
