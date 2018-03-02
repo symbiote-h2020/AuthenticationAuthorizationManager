@@ -2,24 +2,24 @@ package eu.h2020.symbiote.security.services.helpers.enums;
 
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 
-public enum CertificateCommonNameFieldsNumber {
+public enum RevocationCaseCNFieldsNumber {
 
     /**
      * Platform or smart space
      */
     SERVICE,
-    COMPONENT,
-    CLIENT;
+    /**
+     * Component or client
+     */
+    COMPONENT_OR_CLIENT;
 
-    public static CertificateCommonNameFieldsNumber getEnumFromInt(int parts) throws
+    public static RevocationCaseCNFieldsNumber fromInt(int parts) throws
             InvalidArgumentsException {
         switch (parts) {
             case 1:
                 return SERVICE;
             case 2:
-                return COMPONENT;
-            case 3:
-                return CLIENT;
+                return COMPONENT_OR_CLIENT;
             default:
                 throw new InvalidArgumentsException("Wrong number of fields.");
         }

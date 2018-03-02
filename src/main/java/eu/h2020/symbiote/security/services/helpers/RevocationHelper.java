@@ -12,8 +12,8 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.*;
 import eu.h2020.symbiote.security.repositories.entities.*;
 import eu.h2020.symbiote.security.services.AAMServices;
-import eu.h2020.symbiote.security.services.helpers.enums.CertificateCommonNameFieldsNumber;
-import eu.h2020.symbiote.security.services.helpers.enums.RevocationCommonNameFieldsNumber;
+import eu.h2020.symbiote.security.services.helpers.enums.CertificateCaseCNFieldsNumber;
+import eu.h2020.symbiote.security.services.helpers.enums.RevocationCaseCNFieldsNumber;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -78,8 +78,7 @@ public class RevocationHelper {
             WrongCredentialsException,
             CertificateException,
             InvalidArgumentsException {
-        RevocationCommonNameFieldsNumber revocationCommonNameFieldsNumber = RevocationCommonNameFieldsNumber.getEnumFromInt(commonName.split(FIELDS_DELIMITER).length);
-        switch (revocationCommonNameFieldsNumber) {
+        switch (RevocationCaseCNFieldsNumber.fromInt(commonName.split(FIELDS_DELIMITER).length)) {
             case SERVICE:
                 if (user.getRole() != UserRole.SERVICE_OWNER || !user.getOwnedServices().contains(commonName)) {
                     throw new SecurityException("User has no rights to this service");
@@ -172,8 +171,7 @@ public class RevocationHelper {
         }
 
         Set<String> ownedServices = user.getOwnedServices();
-        CertificateCommonNameFieldsNumber certificateCommonNameFieldsNumber = CertificateCommonNameFieldsNumber.getEnumFromInt(certificate.getSubjectDN().getName().split("CN=")[1].split(FIELDS_DELIMITER).length);
-        switch (certificateCommonNameFieldsNumber) {
+        switch (CertificateCaseCNFieldsNumber.fromInt(certificate.getSubjectDN().getName().split("CN=")[1].split(FIELDS_DELIMITER).length)) {
             //revoking services certificate
             case SERVICE:
 
@@ -400,8 +398,7 @@ public class RevocationHelper {
             NotExistingUserException,
             InvalidArgumentsException {
         if (!certificateCommonName.isEmpty()) {
-            RevocationCommonNameFieldsNumber revocationCommonNameFieldsNumber = RevocationCommonNameFieldsNumber.getEnumFromInt(certificateCommonName.split(FIELDS_DELIMITER).length);
-            switch (revocationCommonNameFieldsNumber) {
+            switch (RevocationCaseCNFieldsNumber.fromInt(certificateCommonName.split(FIELDS_DELIMITER).length)) {
                 case SERVICE:
                     if (certificateCommonName.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
                         SmartSpace smartSpace = smartSpaceRepository.findOne(certificateCommonName);
@@ -474,8 +471,7 @@ public class RevocationHelper {
             throw new CertificateException("Wrong structure of Subject item");
         }
         String certificateCommonName = certificate.getSubjectDN().getName().split("CN=")[1];
-        CertificateCommonNameFieldsNumber certificateCommonNameFieldsNumber = CertificateCommonNameFieldsNumber.getEnumFromInt(certificateCommonName.split(FIELDS_DELIMITER).length);
-        switch (certificateCommonNameFieldsNumber) {
+        switch (CertificateCaseCNFieldsNumber.fromInt(certificateCommonName.split(FIELDS_DELIMITER).length)) {
             case SERVICE:
                 if (certificateCommonName.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
                     SmartSpace smartSpace = smartSpaceRepository.findOne(certificateCommonName);
