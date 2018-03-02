@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
@@ -12,6 +13,7 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import eu.h2020.symbiote.security.services.helpers.enums.CertificateCaseCNFieldsNumber;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -29,6 +31,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 
+import static eu.h2020.symbiote.security.commons.SecurityConstants.PLATFORM_AGENT_IDENTIFIER_PREFIX;
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 
 /**
@@ -128,7 +131,8 @@ public class IssueCertificateService {
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            ServiceManagementException {
+            ServiceManagementException,
+            InvalidArgumentsException {
 
         User user = null;
         PublicKey pubKey;
@@ -142,43 +146,62 @@ public class IssueCertificateService {
             throw new SecurityException();
         }
 
-        // component path
-        //TODO SAAM accepts serviceOwner accounts
-        if (certificateRequest.getUsername().equals(AAMOwnerUsername)) {
-            // password check
-            if (!certificateRequest.getPassword().equals(AAMOwnerPassword))
-                throw new WrongCredentialsException();
-            //deployment id check
-            if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[1]))
-                throw new ValidationException(ValidationException.WRONG_DEPLOYMENT_ID);
-            if (revokedKeysRepository.exists(certificationAuthorityHelper.getAAMInstanceIdentifier())
-                    && revokedKeysRepository.findOne(certificationAuthorityHelper.getAAMInstanceIdentifier()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
-                throw new ValidationException(ValidationException.USING_REVOKED_KEY);
-            }
-            componentRequestCheck(certificateRequest);
+        switch (CertificateCaseCNFieldsNumber.fromInt(request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER).length)) {
+            case COMPONENT:
+                if (certificateRequest.getUsername().equals(AAMOwnerUsername)) {
+                    // password check
+                    if (!certificateRequest.getPassword().equals(AAMOwnerPassword))
+                        throw new WrongCredentialsException();
+                    //deployment id check
+                    if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[1]))
+                        throw new ValidationException(ValidationException.WRONG_DEPLOYMENT_ID);
+                    if (revokedKeysRepository.exists(certificationAuthorityHelper.getAAMInstanceIdentifier())
+                            && revokedKeysRepository.findOne(certificationAuthorityHelper.getAAMInstanceIdentifier()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                        throw new ValidationException(ValidationException.USING_REVOKED_KEY);
+                    }
+                    componentRequestCheck(certificateRequest);
+                } else if (certificationAuthorityHelper.getDeploymentType().equals(IssuingAuthorityType.SMART_SPACE)) {
+                    User platformAgent = userRepository.findOne(certificateRequest.getUsername());
+                    if (platformAgent == null
+                            || !platformAgent.getRole().equals(UserRole.SERVICE_OWNER)) {
+                        throw new ValidationException("This user can't get component certificate.");
+                    }
+                    if (!certificateRequest.getPassword().equals(platformAgent.getPasswordEncrypted()) &&
+                            !passwordEncoder.matches(certificateRequest.getPassword(), platformAgent.getPasswordEncrypted()))
+                        throw new WrongCredentialsException();
+                    if (revokedKeysRepository.exists(platformAgent.getUsername())
+                            && revokedKeysRepository.findOne(platformAgent.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                        throw new ValidationException(ValidationException.USING_REVOKED_KEY);
+                    }
+                    if (!request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[0].startsWith(PLATFORM_AGENT_IDENTIFIER_PREFIX)) {
+                        throw new ValidationException("Invalid component name. Platform Agents' components' ids should have 'PA_' prefix.");
+                    }
+                } else {
+                    throw new InvalidArgumentsException("You don't have rights to ask for component certificate!");
+                }
+                break;
+            case SERVICE:
+                if (revokedKeysRepository.exists(request.getSubject().toString().split("CN=")[1])
+                        && revokedKeysRepository.findOne(request.getSubject().toString().split("CN=")[1]).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                    throw new ValidationException(ValidationException.USING_REVOKED_KEY);
+                }
+                serviceRequestCheck(certificateRequest);
+                break;
+            case CLIENT:
+                user = userRepository.findOne(certificateRequest.getUsername());
+                if (user == null)
+                    throw new NotExistingUserException();
+                if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
+                        !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
+                    throw new WrongCredentialsException();
+                if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[2]))
+                    throw new ValidationException(ValidationException.WRONG_DEPLOYMENT_ID);
+                if (revokedKeysRepository.exists(user.getUsername())
+                        && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                    throw new ValidationException(ValidationException.USING_REVOKED_KEY);
+                }
+                break;
         }
-        // services path (platform, enabler, smartSpace)
-        else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)$")) {
-            if (revokedKeysRepository.exists(request.getSubject().toString().split("CN=")[1])
-                    && revokedKeysRepository.findOne(request.getSubject().toString().split("CN=")[1]).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
-                throw new ValidationException(ValidationException.USING_REVOKED_KEY);
-            }
-            serviceRequestCheck(certificateRequest);
-        } else {
-            user = userRepository.findOne(certificateRequest.getUsername());
-            if (user == null)
-                throw new NotExistingUserException();
-            if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
-                    !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
-                throw new WrongCredentialsException();
-            if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[2]))
-                throw new ValidationException(ValidationException.WRONG_DEPLOYMENT_ID);
-            if (revokedKeysRepository.exists(user.getUsername())
-                    && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
-                throw new ValidationException(ValidationException.USING_REVOKED_KEY);
-            }
-        }
-
         return user;
     }
 
