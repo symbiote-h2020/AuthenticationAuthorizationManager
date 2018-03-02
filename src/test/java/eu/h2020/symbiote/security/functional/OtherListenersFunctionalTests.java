@@ -11,6 +11,7 @@ import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.listeners.amqp.consumers.FederationManagementRequestConsumersService;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
@@ -22,6 +23,7 @@ import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
@@ -67,6 +69,8 @@ public class OtherListenersFunctionalTests extends
     private RabbitTemplate rabbitTemplate;
     @Autowired
     private ComponentCertificatesRepository componentCertificatesRepository;
+    @Autowired
+    private ApplicationContext ctx;
 
     @Override
     @Before
@@ -330,6 +334,14 @@ public class OtherListenersFunctionalTests extends
         GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
                 GetPlatformOwnersResponse.class);
         assertEquals(401, platformOwners.getHttpStatus().value());
+    }
+
+    @Test
+    public void checkAvailabilityOfFederationManagementAMQPListener() {
+        char c[] = FederationManagementRequestConsumersService.class.getSimpleName().toCharArray();
+        c[0] = Character.toLowerCase(c[0]);
+        String beanName = new String(c);
+        assertFalse(ctx.containsBean(beanName));
     }
 
     @Test

@@ -1,19 +1,16 @@
 package eu.h2020.symbiote.security.functional;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.model.mim.InformationModel;
 import eu.h2020.symbiote.model.mim.QoSConstraint;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -25,7 +22,8 @@ import static org.junit.Assert.*;
 /**
  * Test suite for Core AAM deployment scenarios.
  */
-@TestPropertySource("/core.properties")
+@TestPropertySource("/platform.properties")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class FederatedManagementFunctionalTests extends
         AbstractAAMTestSuite {
 
@@ -33,8 +31,16 @@ public class FederatedManagementFunctionalTests extends
     private final String federationName = "testFederationName";
     @Autowired
     RabbitTemplate rabbitTemplate;
-    private String oldExchange;
     private Federation federation;
+
+    @Value("${rabbit.exchange.federation}")
+    public String rabbitExchangeFederation;
+    @Value("${rabbit.routingKey.federation.created}")
+    protected String federationManagementCreateRoutingKey;
+    @Value("${rabbit.routingKey.federation.changed}")
+    protected String federationManagementUpdateRoutingKey;
+    @Value("${rabbit.routingKey.federation.deleted}")
+    protected String federationManagementDeleteRoutingKey;
 
     @Before
     public void before() {
@@ -54,11 +60,6 @@ public class FederatedManagementFunctionalTests extends
         federation.setMembers(federationMembers);
         federation.setName(federationName);
         federation.setPublic(true);
-    }
-
-    @After
-    public void after() {
-        rabbitTemplate.setExchange(oldExchange);
     }
 
     @Test
@@ -107,12 +108,5 @@ public class FederatedManagementFunctionalTests extends
         //wait until rabbit listener remove federation
         Thread.sleep(1000);
         assertFalse(federationsRepository.exists(federationId));
-    }
-
-    private String convertObjectToJson(Object obj) throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.configure(SerializationFeature.INDENT_OUTPUT, false);
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        return mapper.writeValueAsString(obj);
     }
 }

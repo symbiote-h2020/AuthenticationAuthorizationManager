@@ -1,6 +1,9 @@
 package eu.h2020.symbiote.security;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
@@ -106,8 +109,6 @@ public abstract class AbstractAAMTestSuite {
     protected String serverAddress;
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     protected String coreInterfaceAddress;
-    @Value("${rabbit.queue.getHomeToken.request}")
-    protected String loginRequestQueue;
     @Value("${rabbit.queue.manage.user.request}")
     protected String userManagementRequestQueue;
     @Value("${rabbit.routingKey.manage.user.request}")
@@ -117,19 +118,6 @@ public abstract class AbstractAAMTestSuite {
     protected String platformManagementRequestQueue;
     @Value("${rabbit.routingKey.manage.platform.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String platformManagementRoutingKey;
-
-    @Value("${rabbit.routingKey.federation.created}")
-    protected String federationManagementCreateRoutingKey;
-    @Value("${rabbit.queue.federation.created}")
-    protected String federationManagementCreateQueue;
-    @Value("${rabbit.routingKey.federation.changed}")
-    protected String federationManagementUpdateRoutingKey;
-    @Value("${rabbit.queue.federation.changed}")
-    protected String federationManagementUpdateQueue;
-    @Value("${rabbit.routingKey.federation.deleted}")
-    protected String federationManagementDeleteRoutingKey;
-    @Value("${rabbit.queue.federation.deleted}")
-    protected String federationManagementDeleteQueue;
 
     @Value("${rabbit.queue.manage.revocation.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String revocationRequestQueue;
@@ -161,8 +149,7 @@ public abstract class AbstractAAMTestSuite {
     private String rabbitUsername;
     @Value("${rabbit.password}")
     private String rabbitPassword;
-    @Value("${rabbit.exchange.federation}")
-    public String rabbitExchangeFederation;
+
 
     @Autowired
     private AAMServices aamServices;
@@ -326,6 +313,13 @@ public abstract class AbstractAAMTestSuite {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
         pkcs12Store.load(new ClassPathResource(keyStoreName).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         return (PrivateKey) pkcs12Store.getKey(certificateAlias, PV_KEY_PASSWORD.toCharArray());
+    }
+
+    public String convertObjectToJson(Object obj) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(SerializationFeature.INDENT_OUTPUT, false);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+        return mapper.writeValueAsString(obj);
     }
 
 }
