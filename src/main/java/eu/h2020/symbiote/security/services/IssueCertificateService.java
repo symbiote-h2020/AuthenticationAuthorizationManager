@@ -77,7 +77,7 @@ public class IssueCertificateService {
         this.aamServices = aamServices;
     }
 
-    public String issueCertificate(CertificateRequest certificateRequest) throws
+    public String signCertificate(CertificateRequest certificateRequest) throws
             WrongCredentialsException,
             NotExistingUserException,
             InvalidArgumentsException,

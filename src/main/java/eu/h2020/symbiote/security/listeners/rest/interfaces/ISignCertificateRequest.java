@@ -13,11 +13,11 @@ import org.springframework.web.bind.annotation.RequestBody;
  * @author Mikołaj Dobski (PSNC)
  */
 
-public interface IIssueCertificate {
+public interface ISignCertificateRequest {
     /**
-     * @param certificateRequest required to issue a certificate for given (username, clientId) tupple.
+     * @param certificateRequest required to sign a certificate request for given (username, clientId) tupple.
      * @return the certificate issued using the provided CSR in PEM format
      */
-    @PostMapping(value = SecurityConstants.AAM_ISSUE_CERTIFICATE, consumes = "application/json")
-    ResponseEntity<String> issueCertificate(@RequestBody CertificateRequest certificateRequest);
+    @PostMapping(value = SecurityConstants.AAM_SIGN_CERTIFICATE_REQUEST, consumes = "application/json")
+    ResponseEntity<String> issueCertificateRequest(@RequestBody CertificateRequest certificateRequest);
 }
