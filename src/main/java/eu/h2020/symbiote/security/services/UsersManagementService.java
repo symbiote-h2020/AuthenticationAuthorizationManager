@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
+import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
@@ -40,6 +41,7 @@ import java.util.Set;
  * @author Nemanja Ignjatov (UNIVIE)
  * @author Maksymilian Marcinowski (PSNC)
  * @author Mikołaj Dobski (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 @Service
 public class UsersManagementService {
@@ -111,11 +113,24 @@ public class UsersManagementService {
     	log.debug("Received a request for user management");
         UserDetails userDetails = userManagementRequest.getUserDetails();
 
-        // Platform AAM does not support registering platform owners
-        if (deploymentType == IssuingAuthorityType.PLATFORM
-                && userDetails.getRole() != UserRole.USER) {
-        	log.error("Platform AAM does not support registering platform owners");
-            throw new InvalidArgumentsException();
+        // CORE and SMART_SPACE AAM supports registering platform owners
+        switch (deploymentType) {
+            case CORE:
+            case SMART_SPACE:
+                if (userDetails.getRole() == UserRole.NULL
+                        && userManagementRequest.getOperationType().equals(OperationType.CREATE)) {
+                    log.error("This AAM does not support registration of users with this role.");
+                    throw new InvalidArgumentsException();
+                }
+                break;
+            case NULL:
+            case PLATFORM:
+                if (userDetails.getRole() != UserRole.USER
+                        && userManagementRequest.getOperationType().equals(OperationType.CREATE)) {
+                    log.error("This AAM does not support registration of users with this role.");
+                    throw new InvalidArgumentsException();
+                }
+                break;
         }
 
         User userToManage = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
@@ -217,8 +232,8 @@ public class UsersManagementService {
             throw new NotExistingUserException();
 
         User user = userRepository.findOne(username);
-        if (user.getOwnedPlatforms() != null && !user.getOwnedPlatforms().isEmpty())
-            throw new UserManagementException(UserManagementException.CANNOT_REMOVE_PLATFORM_OWNER_WITH_PLATFORMS, HttpStatus.BAD_REQUEST);
+        if (user.getOwnedServices() != null && !user.getOwnedServices().isEmpty())
+            throw new UserManagementException(UserManagementException.CANNOT_REMOVE_SERVICE_OWNER_WITH_SERVICES, HttpStatus.BAD_REQUEST);
 
         // add user certificated to revoked repository
         Set<String> keys = new HashSet<>();

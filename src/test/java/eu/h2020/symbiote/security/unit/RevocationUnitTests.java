@@ -21,8 +21,8 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.GetTokenService;
+import eu.h2020.symbiote.security.services.IssueCertificateService;
 import eu.h2020.symbiote.security.services.RevocationService;
-import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
@@ -38,7 +38,7 @@ import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.*;
 
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 import static org.junit.Assert.*;
 
 /**
@@ -55,7 +55,7 @@ public class RevocationUnitTests extends
     @Autowired
     private CertificationAuthorityHelper certificationAuthorityHelper;
     @Autowired
-    private SignCertificateRequestService signCertificateRequestService;
+    private IssueCertificateService issueCertificateService;
     @Autowired
     private ComponentCertificatesRepository componentCertificatesRepository;
     @Autowired
@@ -79,7 +79,7 @@ public class RevocationUnitTests extends
             WrongCredentialsException,
             UserManagementException,
             ValidationException,
-            PlatformManagementException,
+            ServiceManagementException,
             InvalidArgumentsException,
             NotExistingUserException {
         saveUser();
@@ -87,10 +87,10 @@ public class RevocationUnitTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        signCertificateRequestService.signCertificate(certRequest);
+        issueCertificateService.issueCertificate(certRequest);
         User user = userRepository.findOne(appUsername);
         assertNotNull(user.getClientCertificates().get(clientId));
-        String commonName = appUsername + illegalSign + clientId;
+        String commonName = appUsername + FIELDS_DELIMITER + clientId;
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(appUsername, password));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -115,27 +115,29 @@ public class RevocationUnitTests extends
             WrongCredentialsException,
             UserManagementException,
             ValidationException,
-            PlatformManagementException,
+            ServiceManagementException,
             InvalidArgumentsException,
             NotExistingUserException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
+        platformOwner.getOwnedServices().add(platformId);
+        userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateString = signCertificateRequestService.signCertificate(certRequest);
+        String certificateString = issueCertificateService.issueCertificate(certRequest);
 
         platform.setPlatformAAMCertificate(new Certificate(certificateString));
         platformRepository.save(platform);
 
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         platformOwner = userRepository.findOne(platformOwnerUsername);
-        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+        assertFalse(platformOwner.getOwnedServices().isEmpty());
         assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
 
         assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
@@ -163,7 +165,7 @@ public class RevocationUnitTests extends
             WrongCredentialsException,
             UserManagementException,
             ValidationException,
-            PlatformManagementException,
+            ServiceManagementException,
             InvalidArgumentsException,
             NotExistingUserException {
         saveUser();
@@ -171,10 +173,10 @@ public class RevocationUnitTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        signCertificateRequestService.signCertificate(certRequest);
+        issueCertificateService.issueCertificate(certRequest);
         User user = userRepository.findOne(appUsername);
         assertNotNull(user.getClientCertificates().get(clientId));
-        String commonName = appUsername + illegalSign + clientId;
+        String commonName = appUsername + FIELDS_DELIMITER + clientId;
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -197,7 +199,7 @@ public class RevocationUnitTests extends
             WrongCredentialsException,
             UserManagementException,
             ValidationException,
-            PlatformManagementException,
+            ServiceManagementException,
             InvalidArgumentsException,
             NotExistingUserException {
         saveUser();
@@ -205,10 +207,10 @@ public class RevocationUnitTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        signCertificateRequestService.signCertificate(certRequest);
+        issueCertificateService.issueCertificate(certRequest);
         User user = userRepository.findOne(appUsername);
         assertNotNull(user.getClientCertificates().get(clientId));
-        String commonName = wrongUsername + illegalSign + clientId;
+        String commonName = wrongUsername + FIELDS_DELIMITER + clientId;
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -216,7 +218,7 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentials(new Credentials(appUsername, password));
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
 
-        commonName = appUsername + illegalSign + wrongClientId;
+        commonName = appUsername + FIELDS_DELIMITER + wrongClientId;
         revocationRequest.setCertificateCommonName(commonName);
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
 
@@ -236,7 +238,7 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
 
-        commonName = componentId + illegalSign + platformId;
+        commonName = componentId + FIELDS_DELIMITER + platformId;
 
         revocationRequest.setCertificateCommonName(commonName);
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
@@ -250,7 +252,7 @@ public class RevocationUnitTests extends
     @Test
     public void revokeCertificateFailsUsingWrongCommonName() {
         saveUser();
-        String commonName = clientId + illegalSign + username + illegalSign + platformId;
+        String commonName = clientId + FIELDS_DELIMITER + username + FIELDS_DELIMITER + platformId;
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -270,7 +272,7 @@ public class RevocationUnitTests extends
             WrongCredentialsException,
             UserManagementException,
             ValidationException,
-            PlatformManagementException,
+            ServiceManagementException,
             InvalidArgumentsException,
             NotExistingUserException {
 
@@ -279,7 +281,7 @@ public class RevocationUnitTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String certificate = signCertificateRequestService.signCertificate(certRequest);
+        String certificate = issueCertificateService.issueCertificate(certRequest);
         //revoke certificate using revoked certificate
         //check if there is user certificate in database
         assertNotNull(userRepository.findOne(appUsername).getClientCertificates().get(clientId));
@@ -300,7 +302,7 @@ public class RevocationUnitTests extends
         assertFalse(revokedKeysRepository.findOne(appUsername).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
         csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        signCertificateRequestService.signCertificate(certRequest);
+        issueCertificateService.issueCertificate(certRequest);
         //revoke certificate using revoked certificate
         //check if there is user certificate in database
         assertNotNull(userRepository.findOne(appUsername).getClientCertificates().get(clientId));
@@ -314,7 +316,7 @@ public class RevocationUnitTests extends
             WrongCredentialsException,
             UserManagementException,
             ValidationException,
-            PlatformManagementException,
+            ServiceManagementException,
             InvalidArgumentsException,
             NotExistingUserException,
             InvalidAlgorithmParameterException,
@@ -326,13 +328,15 @@ public class RevocationUnitTests extends
         KeyPair pair = CryptoHelper.createKeyPair();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
+        platformOwner.getOwnedServices().add(platformId);
+        userRepository.save(platformOwner);
         //create platform certificate
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificate = signCertificateRequestService.signCertificate(certRequest);
+        String certificate = issueCertificateService.issueCertificate(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(certificate));
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
         //revoke platform certificate
         //check if there is platform certificate in database
@@ -352,9 +356,9 @@ public class RevocationUnitTests extends
 
         //create new certificate for platform
         pair = CryptoHelper.createKeyPair();
-        csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateNew = signCertificateRequestService.signCertificate(certRequest);
+        String certificateNew = issueCertificateService.issueCertificate(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(certificateNew));
         platformRepository.save(platform);
 
@@ -370,7 +374,7 @@ public class RevocationUnitTests extends
             WrongCredentialsException,
             UserManagementException,
             ValidationException,
-            PlatformManagementException,
+            ServiceManagementException,
             InvalidArgumentsException,
             NotExistingUserException,
             InvalidAlgorithmParameterException,
@@ -382,21 +386,23 @@ public class RevocationUnitTests extends
         KeyPair pair = CryptoHelper.createKeyPair();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
+        platformOwner.getOwnedServices().add(platformId);
+        userRepository.save(platformOwner);
         //create platform certificate
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificate = signCertificateRequestService.signCertificate(certRequest);
+        String certificate = issueCertificateService.issueCertificate(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(certificate));
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         //create new certificate for platform
         pair = CryptoHelper.createKeyPair();
-        csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
 
-        String certFromCSR = signCertificateRequestService.signCertificate(certRequest);
+        String certFromCSR = issueCertificateService.issueCertificate(certRequest);
         //revoke certificate using revoked certificate
         //check if there is platform certificate in database
         assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
@@ -420,7 +426,7 @@ public class RevocationUnitTests extends
             WrongCredentialsException,
             UserManagementException,
             ValidationException,
-            PlatformManagementException,
+            ServiceManagementException,
             InvalidArgumentsException,
             NotExistingUserException {
         saveUser();
@@ -428,7 +434,7 @@ public class RevocationUnitTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String certificateString = signCertificateRequestService.signCertificate(certRequest);
+        String certificateString = issueCertificateService.issueCertificate(certRequest);
 
         User user = userRepository.findOne(appUsername);
         user.getClientCertificates().remove(clientId);
@@ -444,7 +450,7 @@ public class RevocationUnitTests extends
         csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), wrongUsername, clientId, pair);
         assertNotNull(csrString);
         certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        certificateString = signCertificateRequestService.signCertificate(certRequest);
+        certificateString = issueCertificateService.issueCertificate(certRequest);
         revocationRequest.setCertificatePEMString(certificateString);
         revocationRequest.setCredentials(new Credentials(appUsername, password));
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
@@ -460,17 +466,21 @@ public class RevocationUnitTests extends
             WrongCredentialsException,
             UserManagementException,
             ValidationException,
-            PlatformManagementException,
+            ServiceManagementException,
             InvalidArgumentsException,
             NotExistingUserException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
+        platformOwner.getOwnedServices().add(platformId);
+        userRepository.save(platformOwner);
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateString = signCertificateRequestService.signCertificate(certRequest);
+        String certificateString = issueCertificateService.issueCertificate(certRequest);
+        platformOwner.getOwnedServices().remove(platformId);
+        userRepository.save(platformOwner);
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -539,7 +549,7 @@ public class RevocationUnitTests extends
             ValidationException,
             InvalidAlgorithmParameterException,
             InvalidArgumentsException,
-            PlatformManagementException,
+            ServiceManagementException,
             UserManagementException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -548,7 +558,7 @@ public class RevocationUnitTests extends
         assertNotNull(csrString);
 
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        String clientCertificate = signCertificateRequestService.signCertificate(certRequest);
+        String clientCertificate = issueCertificateService.issueCertificate(certRequest);
 
         assertNotNull(clientCertificate);
 
@@ -577,16 +587,18 @@ public class RevocationUnitTests extends
             ValidationException,
             InvalidAlgorithmParameterException,
             InvalidArgumentsException,
-            PlatformManagementException,
+            ServiceManagementException,
             UserManagementException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
+        platformOwner.getOwnedServices().add(platformId);
+        userRepository.save(platformOwner);
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
-        String platformCertificate = signCertificateRequestService.signCertificate(certRequest);
+        String platformCertificate = issueCertificateService.issueCertificate(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(platformCertificate));
         platformRepository.save(platform);
         assertNotNull(platformCertificate);
@@ -621,7 +633,7 @@ public class RevocationUnitTests extends
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         KeyPair pair2 = CryptoHelper.createKeyPair();
@@ -656,21 +668,21 @@ public class RevocationUnitTests extends
             NotExistingUserException,
             InvalidAlgorithmParameterException,
             InvalidArgumentsException,
-            PlatformManagementException,
+            ServiceManagementException,
             UserManagementException,
             MalformedJWTException,
             ClassNotFoundException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
-        String certificateString = signCertificateRequestService.signCertificate(certRequest);
+        String certificateString = issueCertificateService.issueCertificate(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(certificateString));
         platformRepository.save(platform);
 
@@ -780,7 +792,7 @@ public class RevocationUnitTests extends
                 new HashMap<>());
         platformRepository.save(platform);
 
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         Platform dummyPlatform = platformRepository.findOne(platformId);
@@ -835,7 +847,7 @@ public class RevocationUnitTests extends
         String platformId = "platform-1";
         Platform platform = new Platform(platformId, serverAddress + "/test", null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         Platform dummyPlatform = platformRepository.findOne(platformId);
@@ -880,7 +892,7 @@ public class RevocationUnitTests extends
             WrongCredentialsException,
             UserManagementException,
             ValidationException,
-            PlatformManagementException,
+            ServiceManagementException,
             InvalidArgumentsException,
             NotExistingUserException {
         saveUser();
@@ -888,10 +900,10 @@ public class RevocationUnitTests extends
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
-        signCertificateRequestService.signCertificate(certRequest);
+        issueCertificateService.issueCertificate(certRequest);
         User user = userRepository.findOne(appUsername);
         assertNotNull(user.getClientCertificates().get(clientId));
-        String commonName = appUsername + illegalSign + clientId;
+        String commonName = appUsername + FIELDS_DELIMITER + clientId;
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
@@ -917,24 +929,26 @@ public class RevocationUnitTests extends
             WrongCredentialsException,
             UserManagementException,
             ValidationException,
-            PlatformManagementException,
+            ServiceManagementException,
             InvalidArgumentsException,
             NotExistingUserException {
         //platform certificate revoking
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
+        platformOwner.getOwnedServices().add(platformId);
+        userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildPlatformCertificateSigningRequestPEM(platformId, pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificateString = signCertificateRequestService.signCertificate(certRequest);
+        String certificateString = issueCertificateService.issueCertificate(certRequest);
 
         platform.setPlatformAAMCertificate(new Certificate(certificateString));
         platformRepository.save(platform);
 
-        platformOwner.getOwnedPlatforms().add(platformId);
+        platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
         platformOwner = userRepository.findOne(platformOwnerUsername);
@@ -943,7 +957,7 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCertificateCommonName(platformId);
 
-        assertFalse(platformOwner.getOwnedPlatforms().isEmpty());
+        assertFalse(platformOwner.getOwnedServices().isEmpty());
         assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
 
         assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
@@ -971,7 +985,7 @@ public class RevocationUnitTests extends
         componentCertificatesRepository.save(
                 componentCertificate);
 
-        String commonName = componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID;
+        String commonName = componentId + FIELDS_DELIMITER + SecurityConstants.CORE_AAM_INSTANCE_ID;
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
@@ -987,7 +1001,7 @@ public class RevocationUnitTests extends
 
     @Test
     public void revokeLocalComponentCertificateUsingCommonNameByAdminFailNoComponentInDatabase() {
-        String commonName = componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID;
+        String commonName = componentId + FIELDS_DELIMITER + SecurityConstants.CORE_AAM_INSTANCE_ID;
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
@@ -998,7 +1012,7 @@ public class RevocationUnitTests extends
 
     @Test
     public void revokeByAdminFailWrongCommonName() {
-        String commonName = componentId + illegalSign + SecurityConstants.CORE_AAM_INSTANCE_ID + illegalSign + "WrongCommonNameEnding";
+        String commonName = componentId + FIELDS_DELIMITER + SecurityConstants.CORE_AAM_INSTANCE_ID + FIELDS_DELIMITER + "WrongCommonNameEnding";
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
@@ -1034,7 +1048,7 @@ public class RevocationUnitTests extends
             IOException,
             InvalidArgumentsException,
             UserManagementException,
-            PlatformManagementException,
+            ServiceManagementException,
             WrongCredentialsException,
             NotExistingUserException,
             CertificateException,
@@ -1059,7 +1073,7 @@ public class RevocationUnitTests extends
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier(), keyPair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csrString);
-        String certificateString = signCertificateRequestService.signCertificate(certRequest);
+        String certificateString = issueCertificateService.issueCertificate(certRequest);
 
         ComponentCertificate componentCertificate = new ComponentCertificate(
                 "registry",

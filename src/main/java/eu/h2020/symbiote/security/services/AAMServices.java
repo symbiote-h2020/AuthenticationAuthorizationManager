@@ -10,8 +10,10 @@ import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.repositories.SmartSpaceRepository;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -37,6 +39,7 @@ public class AAMServices {
     private static Log log = LogFactory.getLog(AAMServices.class);
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PlatformRepository platformRepository;
+    private final SmartSpaceRepository smartSpaceRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final String coreInterfaceAddress;
     private final String platformAAMSuffixAtInterWorkingInterface;
@@ -46,6 +49,7 @@ public class AAMServices {
     @Autowired
     public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper,
                        PlatformRepository platformRepository,
+                       SmartSpaceRepository smartSpaceRepository,
                        ComponentCertificatesRepository componentCertificatesRepository,
                        @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
                        @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}") String platformAAMSuffixAtInterWorkingInterface,
@@ -54,6 +58,7 @@ public class AAMServices {
     ) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.platformRepository = platformRepository;
+        this.smartSpaceRepository = smartSpaceRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.coreInterfaceAddress = coreInterfaceAddress;
         this.platformAAMSuffixAtInterWorkingInterface = platformAAMSuffixAtInterWorkingInterface;
@@ -72,8 +77,8 @@ public class AAMServices {
     }
 
     @CacheEvict(cacheNames = "getAvailableAAMs", allEntries = true)
-    public void deleteFromCacheAvailableAAMs() {
-        //function deleting cache thanks to proper annotation
+    public void invalidateAvailableAAMsCache() {
+        //function invalidating cache thanks to proper annotation
     }
 
     private Map<String, AAM> getAvailableAAMs(boolean provideInternalURL) throws
@@ -94,17 +99,35 @@ public class AAMServices {
             availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM(coreAAMAddress,
                     SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                     SecurityConstants.CORE_AAM_INSTANCE_ID,
-                    coreCertificate, fillComponentCertificatesMap()));
+                    "",
+                    coreCertificate,
+                    fillComponentCertificatesMap()));
 
             // registered platforms' AAMs
             for (Platform platform : platformRepository.findAll()) {
-                AAM platformAAM = new AAM(platform.getPlatformInterworkingInterfaceAddress() + platformAAMSuffixAtInterWorkingInterface, platform.getPlatformInstanceFriendlyName(), platform
-                        .getPlatformInstanceId(), platform.getPlatformAAMCertificate(), platform.getComponentCertificates());
+                // todo fix
+                AAM platformAAM = new AAM(platform.getPlatformInterworkingInterfaceAddress() + platformAAMSuffixAtInterWorkingInterface,
+                        platform.getPlatformInstanceFriendlyName(),
+                        platform.getPlatformInstanceId(),
+                        "",
+                        platform.getPlatformAAMCertificate(),
+                        platform.getComponentCertificates());
                 // add the platform AAM entry point to the results
                 availableAAMs.put(platformAAM.getAamInstanceId(), platformAAM);
             }
+            // registered smart Spaces' AAMs
+            for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
+                AAM smartSpaceAAM = new AAM(smartSpace.getGatewayAddress(),
+                        smartSpace.getInstanceFriendlyName(),
+                        smartSpace.getInstanceId(),
+                        smartSpace.getSiteLocalAddress(),
+                        smartSpace.getAamCertificate(),
+                        smartSpace.getComponentCertificates());
+                // add the smart Space AAM entry point to the results
+                availableAAMs.put(smartSpaceAAM.getAamInstanceId(), smartSpaceAAM);
+            }
         } else {
-            // a PAAM needs to fetch them from core
+            // a PAAM/SAAM needs to fetch them from core
             try {
                 IAAMClient aamClient = new AAMClient(coreInterfaceAddress);
                 availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
@@ -112,7 +135,7 @@ public class AAMServices {
                 String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
                 availableAAMs.get(deploymentId).getComponentCertificates().putAll(fillComponentCertificatesMap());
             } catch (AAMException e) {
-                // platform AAM might be disconnected from the core for which we need fallback option
+                // service AAM might be disconnected from the core for which we need fallback option
                 log.error("Couldn't establish connection with CoreAAM... falling back to local configuration");
                 // adding core aam info to the response
                 availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID,
@@ -120,7 +143,9 @@ public class AAMServices {
                                 coreInterfaceAddress,
                                 SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                                 SecurityConstants.CORE_AAM_INSTANCE_ID,
-                                new Certificate(certificationAuthorityHelper.getRootCACert()), new HashMap<>()));
+                                "",
+                                new Certificate(certificationAuthorityHelper.getRootCACert()),
+                                new HashMap<>()));
             } finally {
                 // handling the local aam address
                 String PAAMAddress = provideInternalURL ? localAAMUrl : interworkingInterface;
@@ -132,6 +157,7 @@ public class AAMServices {
                             PAAMAddress,
                             aam.getAamInstanceFriendlyName(),
                             aam.getAamInstanceId(),
+                            "",
                             aam.getAamCACertificate(),
                             aam.getComponentCertificates()
                     );
@@ -143,6 +169,7 @@ public class AAMServices {
                                     PAAMAddress,
                                     " ",
                                     certificationAuthorityHelper.getAAMInstanceIdentifier(),
+                                    "",
                                     new Certificate(certificationAuthorityHelper.getAAMCert()),
                                     fillComponentCertificatesMap()));
                 }
@@ -162,8 +189,8 @@ public class AAMServices {
     }
 
     @CacheEvict(cacheNames = "getAAMsInternally", allEntries = true)
-    public void deleteFromCacheInternalAAMs() {
-        //function deleting cache thanks to proper annotation
+    public void invalidateInternalAAMsCache() {
+        //function invalidating cache thanks to proper annotation
     }
 
     private Map<String, Certificate> fillComponentCertificatesMap() {
@@ -175,9 +202,9 @@ public class AAMServices {
         return componentsCertificatesMap;
     }
 
-    @Cacheable(cacheNames = "getComponentCertificate", key = "#componentIdentifier + '@' +#platformIdentifier")
+    @Cacheable(cacheNames = "getComponentCertificate", key = "#componentIdentifier + '@' +#serviceIdentifier")
     public String getComponentCertificate(String componentIdentifier,
-                                          String platformIdentifier) throws
+                                          String serviceIdentifier) throws
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
@@ -187,8 +214,8 @@ public class AAMServices {
             InvalidArgumentsException {
 
         String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
-        // our platform case
-        if (platformIdentifier.equals(deploymentId)) {
+        // our service case
+        if (serviceIdentifier.equals(deploymentId)) {
             if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME))
                 return certificationAuthorityHelper.getAAMCert();
 
@@ -196,24 +223,23 @@ public class AAMServices {
                 throw new InvalidArgumentsException(InvalidArgumentsException.COMPONENT_NOT_EXIST);
             return componentCertificatesRepository.findOne(componentIdentifier).getCertificate().getCertificateString();
         }
-        // not our platform
+        // not our service
         Map<String, AAM> availableAAMs = getAvailableAAMs();
-        if (availableAAMs.containsKey(platformIdentifier)) {
-            AAM aam = availableAAMs.get(platformIdentifier);
+        if (availableAAMs.containsKey(serviceIdentifier)) {
+            AAM aam = availableAAMs.get(serviceIdentifier);
             if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME)) {
-                // AAM cert can be fetched without contacting the platform AAM itself
+                // AAM cert can be fetched without contacting the service AAM itself
                 return aam.getAamCACertificate().getCertificateString();
             } else {
                 IAAMClient aamClient = new AAMClient(aam.getAamAddress());
-                return aamClient.getComponentCertificate(componentIdentifier, platformIdentifier);
+                return aamClient.getComponentCertificate(componentIdentifier, serviceIdentifier);
             }
         }
         throw new AAMException(AAMException.SELECTED_CERTIFICATE_NOT_FOUND);
     }
-
-    @CacheEvict(cacheNames = "getComponentCertificate", key = "#componentIdentifier + '@' +#platformIdentifier")
-    public void deleteFromCacheComponentCertificate(String componentIdentifier,
-                                                    String platformIdentifier) {
-        //function deleting cache thanks to proper annotation
+    @CacheEvict(cacheNames = "getComponentCertificate", key = "#componentIdentifier + '@' +#serviceIdentifier")
+    public void invalidateComponentCertificateCache(String componentIdentifier,
+                                                    String serviceIdentifier) {
+        //function invalidating cache thanks to proper annotation
     }
 }

@@ -81,9 +81,19 @@ public abstract class AbstractAAMTestSuite {
     protected final String platformId = "test-PlatformId";
     protected final String componentId = "componentId";
     protected final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    protected final String smartSpaceOwnerUsername = "testSmartSpaceOwnerUsername";
+    protected final String smartSpaceOwnerPassword = "testSmartSpaceOwnerPassword";
     protected final String platformOwnerUsername = "testPlatformOwnerUsername";
     protected final String platformOwnerPassword = "testPlatformOwnerPassword";
     protected final String recoveryMail = "null@dev.null";
+    protected final String preferredSmartSpaceId = SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX + "preferredSmartSpaceId";
+    protected final String smartSpaceInstanceFriendlyName = "friendlySmartSpaceName";
+    protected final String smartSpaceGateWayAddress =
+            "https://smartSpace.external:8101/someFancyHiddenPath/andHiddenAgain";
+    protected final String smartSpaceSiteLocalAddress =
+            "https://smartSpace.internal:8101/someFancyHiddenPath";
+    protected final boolean exposedIIAddress = true;
+
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
     protected KeyPair userKeyPair;
@@ -105,6 +115,8 @@ public abstract class AbstractAAMTestSuite {
     protected CertificationAuthorityHelper certificationAuthorityHelper;
     @Autowired
     protected UsersManagementService usersManagementService;
+    @Autowired
+    protected SmartSpaceRepository smartSpaceRepository;
     protected ObjectMapper mapper = new ObjectMapper();
     protected String serverAddress;
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
@@ -118,6 +130,11 @@ public abstract class AbstractAAMTestSuite {
     protected String platformManagementRequestQueue;
     @Value("${rabbit.routingKey.manage.platform.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String platformManagementRoutingKey;
+
+    @Value("${rabbit.queue.manage.smartspace.request:defaultOverridenBySpringConfigInCoreEnvironment}")
+    protected String smartSpaceManagementRequestQueue;
+    @Value("${rabbit.routingKey.manage.smartspace.request:defaultOverridenBySpringConfigInCoreEnvironment}")
+    protected String smartSpaceManagementRoutingKey;
 
     @Value("${rabbit.queue.manage.revocation.request:defaultOverridenBySpringConfigInCoreEnvironment}")
     protected String revocationRequestQueue;
@@ -210,6 +227,7 @@ public abstract class AbstractAAMTestSuite {
         revokedKeysRepository.deleteAll();
         revokedTokensRepository.deleteAll();
         platformRepository.deleteAll();
+        smartSpaceRepository.deleteAll();
         componentCertificatesRepository.deleteAll();
         localUsersAttributesRepository.deleteAll();
     }
@@ -227,7 +245,7 @@ public abstract class AbstractAAMTestSuite {
 
     protected User savePlatformOwner() {
         User user = this.createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail,
-                UserRole.PLATFORM_OWNER);
+                UserRole.SERVICE_OWNER);
         userRepository.save(user);
 
         return user;

@@ -10,11 +10,10 @@ import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.*;
-import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
-import eu.h2020.symbiote.security.repositories.entities.Platform;
-import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
-import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.repositories.entities.*;
 import eu.h2020.symbiote.security.services.AAMServices;
+import eu.h2020.symbiote.security.services.helpers.enums.CertificateCaseCNFieldsNumber;
+import eu.h2020.symbiote.security.services.helpers.enums.RevocationCaseCNFieldsNumber;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -30,7 +29,7 @@ import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 
 /**
  * Helper for revoking credentials.
@@ -46,6 +45,7 @@ public class RevocationHelper {
 
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final PlatformRepository platformRepository;
+    private final SmartSpaceRepository smartSpaceRepository;
     private final RevokedKeysRepository revokedKeysRepository;
     private final RevokedTokensRepository revokedTokensRepository;
     private final UserRepository userRepository;
@@ -58,6 +58,7 @@ public class RevocationHelper {
     @Autowired
     public RevocationHelper(ComponentCertificatesRepository componentCertificatesRepository,
                             PlatformRepository platformRepository,
+                            SmartSpaceRepository smartSpaceRepository,
                             RevokedKeysRepository revokedKeysRepository,
                             RevokedTokensRepository revokedTokensRepository,
                             UserRepository userRepository,
@@ -65,6 +66,7 @@ public class RevocationHelper {
                             AAMServices aamServices) {
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.platformRepository = platformRepository;
+        this.smartSpaceRepository = smartSpaceRepository;
         this.revokedKeysRepository = revokedKeysRepository;
         this.revokedTokensRepository = revokedTokensRepository;
         this.userRepository = userRepository;
@@ -76,18 +78,23 @@ public class RevocationHelper {
             WrongCredentialsException,
             CertificateException,
             InvalidArgumentsException {
-        switch (commonName.split(illegalSign).length) {
-            case 1:
-                if (user.getRole() != UserRole.PLATFORM_OWNER || !user.getOwnedPlatforms().contains(commonName)) {
-                    throw new SecurityException("User has no rights to this platform");
+        switch (RevocationCaseCNFieldsNumber.fromInt(commonName.split(FIELDS_DELIMITER).length)) {
+            case SERVICE:
+                if (user.getRole() != UserRole.SERVICE_OWNER || !user.getOwnedServices().contains(commonName)) {
+                    throw new SecurityException("User has no rights to this service");
                 }
-                Platform platform = platformRepository.findOne(commonName);
-                return revokePlatformCertificateUsingCommonName(commonName, platform);
-            case 2:
-                if (!commonName.split(illegalSign)[0].equals(user.getUsername())) {
+                if (commonName.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
+                    SmartSpace smartSpace = smartSpaceRepository.findOne(commonName);
+                    return revokeSmartSpaceCertificateUsingCommonName(commonName, smartSpace);
+                } else {
+                    Platform platform = platformRepository.findOne(commonName);
+                    return revokePlatformCertificateUsingCommonName(commonName, platform);
+                }
+            case COMPONENT_OR_CLIENT:
+                if (!commonName.split(FIELDS_DELIMITER)[0].equals(user.getUsername())) {
                     throw new SecurityException("User has no rights to this client");
                 }
-                String clientId = commonName.split(illegalSign)[1];
+                String clientId = commonName.split(FIELDS_DELIMITER)[1];
                 return revokeUserCertificateUsingCommonName(user, clientId);
             default:
                 throw new InvalidArgumentsException(InvalidArgumentsException.COMMON_NAME_IS_WRONG);
@@ -110,11 +117,30 @@ public class RevocationHelper {
         return true;
     }
 
+    private boolean revokeSmartSpaceCertificateUsingCommonName(String commonName, SmartSpace smartSpace) throws
+            WrongCredentialsException,
+            CertificateException {
+        if (smartSpace == null) {
+            throw new WrongCredentialsException(WrongCredentialsException.NO_SUCH_SERVICE);
+        }
+        if (smartSpace.getAamCertificate() == null
+                || smartSpace.getAamCertificate().getCertificateString().isEmpty()
+                || !isMyCertificate(smartSpace.getAamCertificate().getX509())) {
+            throw new CertificateException("SmartSpace certificate is empty or issuer does not equals with this AAM");
+        }
+        revokeKey(commonName, smartSpace.getAamCertificate());
+        smartSpace.setAamCertificate(new Certificate());
+        smartSpaceRepository.save(smartSpace);
+        aamServices.invalidateInternalAAMsCache();
+        aamServices.invalidateAvailableAAMsCache();
+        aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, smartSpace.getInstanceId());
+        return true;
+    }
     private boolean revokePlatformCertificateUsingCommonName(String commonName, Platform platform) throws
             WrongCredentialsException,
             CertificateException {
         if (platform == null) {
-            throw new WrongCredentialsException(WrongCredentialsException.NO_SUCH_PLATFORM);
+            throw new WrongCredentialsException(WrongCredentialsException.NO_SUCH_SERVICE);
         }
         if (platform.getPlatformAAMCertificate() == null
                 || platform.getPlatformAAMCertificate().getCertificateString().isEmpty()
@@ -124,9 +150,9 @@ public class RevocationHelper {
         revokeKey(commonName, platform.getPlatformAAMCertificate());
         platform.setPlatformAAMCertificate(new Certificate());
         platformRepository.save(platform);
-        aamServices.deleteFromCacheInternalAAMs();
-        aamServices.deleteFromCacheAvailableAAMs();
-        aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, platform.getPlatformInstanceId());
+        aamServices.invalidateInternalAAMsCache();
+        aamServices.invalidateAvailableAAMsCache();
+        aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, platform.getPlatformInstanceId());
         return true;
     }
 
@@ -134,7 +160,8 @@ public class RevocationHelper {
                                                       X509Certificate certificate) throws
             WrongCredentialsException,
             CertificateException,
-            IOException {
+            IOException,
+            InvalidArgumentsException {
 
         if (!isMyCertificate(certificate)) {
             throw new CertificateException("Issuer does not equals with this AAM");
@@ -143,27 +170,31 @@ public class RevocationHelper {
             throw new CertificateException("Wrong structure of Subject item");
         }
 
-        Set<String> ownedPlatforms = user.getOwnedPlatforms();
-        switch (certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign).length) {
-            //revoking platform certificate
-            case 1:
-                if (user.getRole() != UserRole.PLATFORM_OWNER) {
-                    throw new SecurityException("User is not the platform owner");
+        Set<String> ownedServices = user.getOwnedServices();
+        switch (CertificateCaseCNFieldsNumber.fromInt(certificate.getSubjectDN().getName().split("CN=")[1].split(FIELDS_DELIMITER).length)) {
+            //revoking services certificate
+            case SERVICE:
+
+                String serviceId = certificate.getSubjectDN().getName().split("CN=")[1].split(FIELDS_DELIMITER)[0];
+                if (user.getRole() != UserRole.SERVICE_OWNER
+                        || !ownedServices.contains(serviceId)) {
+                    throw new SecurityException("User has no rights to this service");
                 }
-                String platformId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
-                if (!ownedPlatforms.contains(platformId)) {
-                    throw new SecurityException("User is not the owner of the platform from certificate");
+                if (serviceId.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
+                    SmartSpace smartSpace = smartSpaceRepository.findOne(serviceId);
+                    return revokeSmartSpaceCertificateUsingCertificate(certificate, smartSpace);
+                } else {
+                    Platform platform = platformRepository.findOne(serviceId);
+                    return revokePlatformCertificateUsingCertificate(certificate, platform);
                 }
-                Platform platform = platformRepository.findOne(platformId);
-                return revokePlatformCertificateUsingCertificate(certificate, platform);
             //revoking user certificate
-            case 3:
-                if (!certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0].equals(user.getUsername())) {
+            case CLIENT:
+                if (!certificate.getSubjectDN().getName().split("CN=")[1].split(FIELDS_DELIMITER)[0].equals(user.getUsername())) {
                     throw new WrongCredentialsException(WrongCredentialsException.USER_NOT_EQUALS_CN);
                 }
                 return revokeUserCertificateUsingCertificate(user, certificate);
             default:
-                throw new CertificateException("Wrong length of CN");
+                throw new InvalidArgumentsException("That's not the way to revoke component certificate.");
 
         }
 
@@ -179,7 +210,7 @@ public class RevocationHelper {
             CertificateException,
             WrongCredentialsException,
             IOException {
-        String clientId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[1];
+        String clientId = certificate.getSubjectDN().getName().split("CN=")[1].split(FIELDS_DELIMITER)[1];
         if (user.getClientCertificates().get(clientId) == null
                 || user.getClientCertificates().get(clientId).getCertificateString().isEmpty()) {
             throw new CertificateException("Client or his certificate doesn't exist");
@@ -203,9 +234,9 @@ public class RevocationHelper {
             CertificateException,
             WrongCredentialsException,
             IOException {
-        String platformId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
+        String platformId = certificate.getSubjectDN().getName().split("CN=")[1].split(FIELDS_DELIMITER)[0];
         if (platform == null) {
-            throw new WrongCredentialsException(WrongCredentialsException.NO_SUCH_PLATFORM);
+            throw new WrongCredentialsException(WrongCredentialsException.NO_SUCH_SERVICE);
         }
         if (platform.getPlatformAAMCertificate() == null
                 || platform.getPlatformAAMCertificate().getCertificateString().isEmpty()) {
@@ -215,12 +246,40 @@ public class RevocationHelper {
             revokeKey(platformId, platform.getPlatformAAMCertificate());
             platform.setPlatformAAMCertificate(new Certificate());
             platformRepository.save(platform);
-            aamServices.deleteFromCacheInternalAAMs();
-            aamServices.deleteFromCacheAvailableAAMs();
-            aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, platform.getPlatformInstanceId());
+            aamServices.invalidateInternalAAMsCache();
+            aamServices.invalidateAvailableAAMsCache();
+            aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, platform.getPlatformInstanceId());
             return true;
         }
         if (isRevoked(platformId, certificate.getPublicKey())) {
+            return true;
+        }
+        throw new WrongCredentialsException(WrongCredentialsException.CERTIFICATE_NOT_EQUALS_DB);
+    }
+
+    private boolean revokeSmartSpaceCertificateUsingCertificate(X509Certificate certificate,
+                                                                SmartSpace smartSpace) throws
+            CertificateException,
+            WrongCredentialsException,
+            IOException {
+        String smartSpaceId = certificate.getSubjectDN().getName().split("CN=")[1].split(FIELDS_DELIMITER)[0];
+        if (smartSpace == null) {
+            throw new WrongCredentialsException(WrongCredentialsException.NO_SUCH_SERVICE);
+        }
+        if (smartSpace.getAamCertificate() == null
+                || smartSpace.getAamCertificate().getCertificateString().isEmpty()) {
+            throw new CertificateException("There is no certificate to revoke");
+        }
+        if (smartSpace.getAamCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
+            revokeKey(smartSpaceId, smartSpace.getAamCertificate());
+            smartSpace.setAamCertificate(new Certificate());
+            smartSpaceRepository.save(smartSpace);
+            aamServices.invalidateInternalAAMsCache();
+            aamServices.invalidateAvailableAAMsCache();
+            aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, smartSpace.getInstanceId());
+            return true;
+        }
+        if (isRevoked(smartSpaceId, certificate.getPublicKey())) {
             return true;
         }
         throw new WrongCredentialsException(WrongCredentialsException.CERTIFICATE_NOT_EQUALS_DB);
@@ -257,9 +316,9 @@ public class RevocationHelper {
         if (JWTEngine.validateTokenString(token.getToken()) != ValidationStatus.VALID) {
             throw new ValidationException(ValidationException.INVALID_TOKEN);
         }
-        if (token.getClaims().get("sub").toString().split(illegalSign).length == 2
-                && user.getClientCertificates().get(token.getClaims().get("sub").toString().split(illegalSign)[1]) != null
-                && Base64.getEncoder().encodeToString(user.getClientCertificates().get(token.getClaims().get("sub").toString().split(illegalSign)[1]).getX509().getPublicKey().getEncoded())
+        if (token.getClaims().get("sub").toString().split(FIELDS_DELIMITER).length == 2
+                && user.getClientCertificates().get(token.getClaims().get("sub").toString().split(FIELDS_DELIMITER)[1]) != null
+                && Base64.getEncoder().encodeToString(user.getClientCertificates().get(token.getClaims().get("sub").toString().split(FIELDS_DELIMITER)[1]).getX509().getPublicKey().getEncoded())
                 .equals(token.getClaims().get("spk"))) {
             revokedTokensRepository.save(token);
             return true;
@@ -269,6 +328,15 @@ public class RevocationHelper {
         if (platform != null
                 && !platform.getPlatformAAMCertificate().getCertificateString().isEmpty()
                 && Base64.getEncoder().encodeToString(platform.getPlatformAAMCertificate().getX509().getPublicKey().getEncoded())
+                .equals(token.getClaims().get("ipk").toString())) {
+            revokedTokensRepository.save(token);
+            return true;
+        }
+        //smart space owner
+        SmartSpace smartSpace = smartSpaceRepository.findBySmartSpaceOwner(user);
+        if (smartSpace != null
+                && !smartSpace.getAamCertificate().getCertificateString().isEmpty()
+                && Base64.getEncoder().encodeToString(smartSpace.getAamCertificate().getX509().getPublicKey().getEncoded())
                 .equals(token.getClaims().get("ipk").toString())) {
             revokedTokensRepository.save(token);
             return true;
@@ -292,14 +360,14 @@ public class RevocationHelper {
         if (!foreignTokenClaims.getIpk().equals(Base64.getEncoder().encodeToString(certificationAuthorityHelper.getAAMPublicKey().getEncoded()))) {
             return false;
         }
-        if (remoteHomeToken.getClaims().getSubject().split(illegalSign).length != 2
-                || foreignToken.getClaims().getSubject().split(illegalSign).length != 4) {
+        if (remoteHomeToken.getClaims().getSubject().split(FIELDS_DELIMITER).length != 2
+                || foreignToken.getClaims().getSubject().split(FIELDS_DELIMITER).length != 4) {
             return false;
         }
-        if (!foreignTokenClaims.getSub().split(illegalSign)[0].equals(remoteHomeTokenClaims.getSub().split(illegalSign)[0])
-                || !foreignTokenClaims.getSub().split(illegalSign)[1].equals(remoteHomeTokenClaims.getSub().split(illegalSign)[1])
-                || !foreignTokenClaims.getSub().split(illegalSign)[2].equals(remoteHomeTokenClaims.getIss())
-                || !foreignTokenClaims.getSub().split(illegalSign)[3].equals(remoteHomeTokenClaims.getJti())) {
+        if (!foreignTokenClaims.getSub().split(FIELDS_DELIMITER)[0].equals(remoteHomeTokenClaims.getSub().split(FIELDS_DELIMITER)[0])
+                || !foreignTokenClaims.getSub().split(FIELDS_DELIMITER)[1].equals(remoteHomeTokenClaims.getSub().split(FIELDS_DELIMITER)[1])
+                || !foreignTokenClaims.getSub().split(FIELDS_DELIMITER)[2].equals(remoteHomeTokenClaims.getIss())
+                || !foreignTokenClaims.getSub().split(FIELDS_DELIMITER)[3].equals(remoteHomeTokenClaims.getJti())) {
             return false;
         }
         return foreignToken.getClaims().get("spk").equals(remoteHomeToken.getClaims().get("spk"));
@@ -327,16 +395,22 @@ public class RevocationHelper {
             WrongCredentialsException,
             CertificateException,
             IOException,
-            NotExistingUserException {
+            NotExistingUserException,
+            InvalidArgumentsException {
         if (!certificateCommonName.isEmpty()) {
-            switch (certificateCommonName.split(illegalSign).length) {
-                case 1:
-                    Platform platform = platformRepository.findOne(certificateCommonName);
-                    return revokePlatformCertificateUsingCommonName(certificateCommonName, platform);
-                case 2:
-                    if (userRepository.exists(certificateCommonName.split(illegalSign)[0])) {
-                        String username = certificateCommonName.split(illegalSign)[0];
-                        String clientId = certificateCommonName.split(illegalSign)[1];
+            switch (RevocationCaseCNFieldsNumber.fromInt(certificateCommonName.split(FIELDS_DELIMITER).length)) {
+                case SERVICE:
+                    if (certificateCommonName.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
+                        SmartSpace smartSpace = smartSpaceRepository.findOne(certificateCommonName);
+                        return revokeSmartSpaceCertificateUsingCommonName(certificateCommonName, smartSpace);
+                    } else {
+                        Platform platform = platformRepository.findOne(certificateCommonName);
+                        return revokePlatformCertificateUsingCommonName(certificateCommonName, platform);
+                    }
+                case COMPONENT_OR_CLIENT:
+                    if (userRepository.exists(certificateCommonName.split(FIELDS_DELIMITER)[0])) {
+                        String username = certificateCommonName.split(FIELDS_DELIMITER)[0];
+                        String clientId = certificateCommonName.split(FIELDS_DELIMITER)[1];
                         User user = userRepository.findOne(username);
                         if (user == null
                                 || user.getClientCertificates().get(clientId) == null) {
@@ -344,18 +418,13 @@ public class RevocationHelper {
                         }
                         return revokeUserCertificateUsingCommonName(user, clientId);
                     }
-                    String componentId = certificateCommonName.split(illegalSign)[0];
-                    String platformId = certificateCommonName.split(illegalSign)[1];
+                    String componentId = certificateCommonName.split(FIELDS_DELIMITER)[0];
+                    String platformId = certificateCommonName.split(FIELDS_DELIMITER)[1];
                     if (!platformId.equals(certificationAuthorityHelper.getAAMInstanceIdentifier())) {
                         throw new WrongCredentialsException(WrongCredentialsException.AAM_CAN_REVOKE_ONLY_LOCAL_COMPONENTS);
                     }
                     return revokeLocalComponentUsingCommonName(componentId);
-                default:
-                    throw new WrongCredentialsException(WrongCredentialsException.CERTIFICATE_COMMON_NAME_IS_WRONG);
-
             }
-
-
         }
         if (certificate == null) {
             throw new IllegalArgumentException("Certificate and common name are empty");
@@ -383,9 +452,9 @@ public class RevocationHelper {
         }
         revokeKey(componentId, componentCertificate.getCertificate());
         componentCertificatesRepository.delete(componentId);
-        aamServices.deleteFromCacheInternalAAMs();
-        aamServices.deleteFromCacheAvailableAAMs();
-        aamServices.deleteFromCacheComponentCertificate(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier());
+        aamServices.invalidateInternalAAMsCache();
+        aamServices.invalidateAvailableAAMsCache();
+        aamServices.invalidateComponentCertificateCache(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier());
         return true;
     }
 
@@ -393,7 +462,8 @@ public class RevocationHelper {
             CertificateException,
             IOException,
             WrongCredentialsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            InvalidArgumentsException {
         if (!isMyCertificate(certificate)) {
             throw new CertificateException("Issuer does not equal with this AAM");
         }
@@ -401,18 +471,23 @@ public class RevocationHelper {
             throw new CertificateException("Wrong structure of Subject item");
         }
         String certificateCommonName = certificate.getSubjectDN().getName().split("CN=")[1];
-        switch (certificateCommonName.split(illegalSign).length) {
-            case 1:
-                Platform platform = platformRepository.findOne(certificateCommonName);
-                return revokePlatformCertificateUsingCertificate(certificate, platform);
-            case 2:
-                String platformId = certificateCommonName.split(illegalSign)[1];
-                if (!platformId.equals(certificationAuthorityHelper.getAAMInstanceIdentifier())) {
+        switch (CertificateCaseCNFieldsNumber.fromInt(certificateCommonName.split(FIELDS_DELIMITER).length)) {
+            case SERVICE:
+                if (certificateCommonName.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
+                    SmartSpace smartSpace = smartSpaceRepository.findOne(certificateCommonName);
+                    return revokeSmartSpaceCertificateUsingCertificate(certificate, smartSpace);
+                } else {
+                    Platform platform = platformRepository.findOne(certificateCommonName);
+                    return revokePlatformCertificateUsingCertificate(certificate, platform);
+                }
+            case COMPONENT:
+                String serviceId = certificateCommonName.split(FIELDS_DELIMITER)[1];
+                if (!serviceId.equals(certificationAuthorityHelper.getAAMInstanceIdentifier())) {
                     throw new CertificateException("AAM can revoke only local components certificates");
                 }
                 return revokeLocalComponentUsingCertificate(certificate);
-            case 3:
-                String username = certificateCommonName.split(illegalSign)[0];
+            case CLIENT:
+                String username = certificateCommonName.split(FIELDS_DELIMITER)[0];
                 User user = userRepository.findOne(username);
                 if (user == null) {
                     throw new NotExistingUserException();
@@ -427,7 +502,7 @@ public class RevocationHelper {
             WrongCredentialsException,
             IOException,
             CertificateException {
-        String componentId = certificate.getSubjectDN().getName().split("CN=")[1].split(illegalSign)[0];
+        String componentId = certificate.getSubjectDN().getName().split("CN=")[1].split(FIELDS_DELIMITER)[0];
         ComponentCertificate componentCertificate = componentCertificatesRepository.findOne(componentId);
         if (componentCertificate == null
                 || componentCertificate.getCertificate() == null
@@ -437,9 +512,9 @@ public class RevocationHelper {
         if (componentCertificate.getCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
             revokeKey(componentId, componentCertificate.getCertificate());
             componentCertificatesRepository.delete(componentId);
-            aamServices.deleteFromCacheInternalAAMs();
-            aamServices.deleteFromCacheAvailableAAMs();
-            aamServices.deleteFromCacheComponentCertificate(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier());
+            aamServices.invalidateInternalAAMsCache();
+            aamServices.invalidateAvailableAAMsCache();
+            aamServices.invalidateComponentCertificateCache(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier());
             return true;
         }
         if (isRevoked(componentId, certificate.getPublicKey())) {

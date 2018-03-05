@@ -7,7 +7,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
-import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
@@ -42,7 +41,11 @@ public class GetTokenService {
     private final String deploymentId;
 
     @Autowired
-    public GetTokenService(TokenIssuer tokenIssuer, UserRepository userRepository, ValidationHelper validationHelper, ComponentCertificatesRepository componentCertificateRepository, PlatformRepository platformRepository, CertificationAuthorityHelper certificationAuthorityHelper) {
+    public GetTokenService(TokenIssuer tokenIssuer,
+                           UserRepository userRepository,
+                           ValidationHelper validationHelper,
+                           ComponentCertificatesRepository componentCertificateRepository,
+                           CertificationAuthorityHelper certificationAuthorityHelper) {
         this.tokenIssuer = tokenIssuer;
         this.userRepository = userRepository;
         this.validationHelper = validationHelper;

@@ -6,7 +6,6 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
@@ -37,7 +36,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.illegalSign;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 
 /**
  * Used to issue tokens.
@@ -125,16 +124,18 @@ public class TokenIssuer {
                 case CORE:
                     switch (user.getRole()) {
                         case USER:
-                            attributes.put(CoreAttributes.ROLE.toString(), UserRole.USER.toString());
-                            break;
-                        case PLATFORM_OWNER:
-                            attributes.put(CoreAttributes.ROLE.toString(), UserRole.PLATFORM_OWNER.toString());
+                        case SERVICE_OWNER:
+                            attributes.put(CoreAttributes.ROLE.toString(), user.getRole().toString());
                             break;
                         case NULL:
                             break;
                     }
                     break;
                 case PLATFORM:
+                    // TODO R3 federation, wtd?
+                    break;
+                case SMART_SPACE:
+                    // TODO wtd?
                     break;
                 case NULL:
                     throw new JWTCreationException(JWTCreationException.MISCONFIGURED_AAM_DEPLOYMENT_TYPE);
@@ -152,7 +153,7 @@ public class TokenIssuer {
             if (user.getUsername().isEmpty()) {
                 subject = sub;
             } else {
-                subject = user.getUsername() + illegalSign + sub;
+                subject = user.getUsername() + FIELDS_DELIMITER + sub;
             }
 
             return new Token(buildAuthorizationToken(
@@ -206,7 +207,7 @@ public class TokenIssuer {
             }
             return new Token(buildAuthorizationToken(
                     // FOREIGN SUB: username@clientIdentifier@homeAAMInstanceIdentifier@originHomeTokenJTI
-                    claims.getSub() + illegalSign + claims.getIss() + illegalSign + claims.getJti(),
+                    claims.getSub() + FIELDS_DELIMITER + claims.getIss() + FIELDS_DELIMITER + claims.getJti(),
                     foreignAttributes,
                     Base64.getDecoder().decode(claims.getSpk()),
                     Token.Type.FOREIGN,

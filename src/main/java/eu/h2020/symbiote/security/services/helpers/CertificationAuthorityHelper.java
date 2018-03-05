@@ -82,8 +82,9 @@ public class CertificationAuthorityHelper {
                     throw new SecurityMisconfigurationException("You are loading Core certificate. In your bootstrap.properties, following line should be present: 'spring.profiles.active=core'");
                 break;
             case PLATFORM:
+            case SMART_SPACE:
                 if (certificate_alias.equals(root_ca_certificate_alias))
-                    throw new SecurityMisconfigurationException("Platform AAM certificate must be different from Core AAM - root certificate");
+                    throw new SecurityMisconfigurationException("This AAM certificate must be different from Core AAM - root certificate");
                 if (!activeProfiles.get(0).equals("platform"))
                     throw new SecurityMisconfigurationException("You are loading Platform certificate. In your bootstrap.properties, following line should be present: 'spring.profiles.active=platform'");
                 break;
@@ -108,6 +109,8 @@ public class CertificationAuthorityHelper {
             return IssuingAuthorityType.NULL;
         if (aamInstanceIdentifier.equals(SecurityConstants.CORE_AAM_INSTANCE_ID))
             return IssuingAuthorityType.CORE;
+        if (aamInstanceIdentifier.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX))
+            return IssuingAuthorityType.SMART_SPACE;
         return IssuingAuthorityType.PLATFORM;
     }
 

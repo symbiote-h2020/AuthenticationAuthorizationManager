@@ -3,18 +3,21 @@ package eu.h2020.symbiote.security.services;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.PlatformManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ServiceManagementException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementResponse;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
+import eu.h2020.symbiote.security.repositories.SmartSpaceRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +44,7 @@ public class PlatformsManagementService {
     private static final String GENERATED_PLATFORM_IDENTIFIER_PREFIX = "PLATFORM_";
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
+    private final SmartSpaceRepository smartSpaceRepository;
     private final PasswordEncoder passwordEncoder;
     private final RevokedKeysRepository revokedKeysRepository;
     private final AAMServices aamServices;
@@ -56,11 +60,13 @@ public class PlatformsManagementService {
     @Autowired
     public PlatformsManagementService(UserRepository userRepository,
                                       PlatformRepository platformRepository,
+                                      SmartSpaceRepository smartSpaceRepository,
                                       PasswordEncoder passwordEncoder,
                                       RevokedKeysRepository revokedKeysRepository,
                                       AAMServices aamServices) {
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
+        this.smartSpaceRepository = smartSpaceRepository;
         this.passwordEncoder = passwordEncoder;
         this.revokedKeysRepository = revokedKeysRepository;
         this.aamServices = aamServices;
@@ -79,7 +85,8 @@ public class PlatformsManagementService {
 
         User platformOwner = userRepository.findOne(platformOwnerCredentials.getUsername());
         if (!platformOwnerCredentials.getPassword().equals(platformOwner.getPasswordEncrypted())
-                && !passwordEncoder.matches(platformOwnerCredentials.getPassword(), platformOwner.getPasswordEncrypted())) {
+                && !passwordEncoder.matches(platformOwnerCredentials.getPassword(), platformOwner.getPasswordEncrypted())
+                || !platformOwner.getRole().equals(UserRole.SERVICE_OWNER)) {
             throw new WrongCredentialsException();
         }
 
@@ -88,7 +95,7 @@ public class PlatformsManagementService {
                 if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty())
                     throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_PLATFORM_AAM_URL);
                 if (platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
-                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_PLATFORM_INSTANCE_FRIENDLY_NAME);
+                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_INSTANCE_FRIENDLY_NAME);
 
                 String platformId;
                 // verify if platform owner provided a preferred platform identifier
@@ -100,20 +107,27 @@ public class PlatformsManagementService {
 
                 // check if platform already in repository
                 if (platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
-                    throw new PlatformManagementException(PlatformManagementException.PLATFORM_EXISTS, HttpStatus.BAD_REQUEST);
+                    throw new ServiceManagementException(ServiceManagementException.SERVICE_EXISTS, HttpStatus.BAD_REQUEST);
+
+                if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME)
+                        || platformManagementRequest.getPlatformInterworkingInterfaceAddress().equals(coreInterfaceAddress)
+                        || !platformManagementRequest.getPlatformInstanceId().matches("^(([\\w-])+)$")
+                        || platformManagementRequest.getPlatformInstanceId().startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX))
+                    // such a name would pose awkward questions
+                    throw new ServiceManagementException(ServiceManagementException.AWKWARD_SERVICE, HttpStatus.BAD_REQUEST);
 
                 // TODO try to improve it in R4 somehow
                 // checking if Interworking interface isn't already used
                 for (Platform platform : platformRepository.findAll()) {
-                    if (platform.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress()))
-                        throw new PlatformManagementException(PlatformManagementException.PLATFORM_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
+                    if (platform.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())) {
+                        throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
+                    }
                 }
-
-                if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME)
-                        || platformManagementRequest.getPlatformInterworkingInterfaceAddress().equals(coreInterfaceAddress)
-                        || !platformManagementRequest.getPlatformInstanceId().matches("^(([\\w-])+)$"))
-                    // such a name would pose awkward questions
-                    throw new PlatformManagementException(PlatformManagementException.AWKWARD_PLATFORM, HttpStatus.BAD_REQUEST);
+                for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
+                    if (smartSpace.getGatewayAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())) {
+                        throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
+                    }
+                }
 
                 // use PO preferred platform identifier
                 platformId = platformManagementRequest.getPlatformInstanceId();
@@ -125,14 +139,16 @@ public class PlatformsManagementService {
                         new Certificate(),
                         new HashMap<>());
                 platformRepository.save(platform);
-                platformOwner.getOwnedPlatforms().add(platformId);
+                platformOwner.getOwnedServices().add(platformId);
                 userRepository.save(platformOwner);
                 break;
             case UPDATE:
                 platform = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
                 if (platform == null)
-                    throw new PlatformManagementException(PlatformManagementException.PLATFORM_NOT_EXIST, HttpStatus.BAD_REQUEST);
-
+                    throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
+                if (!platformOwner.getOwnedServices().contains(platformManagementRequest.getPlatformInstanceId())) {
+                    throw new ServiceManagementException(ServiceManagementException.NOT_OWNED_SERVICE, HttpStatus.BAD_REQUEST);
+                }
                 if (!platformManagementRequest.getPlatformInstanceFriendlyName().isEmpty())
                     platform.setPlatformInstanceFriendlyName(platformManagementRequest.getPlatformInstanceFriendlyName());
 
@@ -140,7 +156,7 @@ public class PlatformsManagementService {
                 if (!platformManagementRequest.getPlatformInterworkingInterfaceAddress().isEmpty()) {
                     // check if other platforms don't use that Interworking interface already
                     if (platformManagementRequest.getPlatformInterworkingInterfaceAddress().equals(coreInterfaceAddress))
-                        throw new PlatformManagementException(PlatformManagementException.AWKWARD_PLATFORM, HttpStatus.BAD_REQUEST);
+                        throw new ServiceManagementException(ServiceManagementException.AWKWARD_SERVICE, HttpStatus.BAD_REQUEST);
 
                     // TODO try to improve it in R4 somehow
                     // checking if Interworking interface isn't already used
@@ -150,7 +166,12 @@ public class PlatformsManagementService {
                         if (platformInRepo.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())
                                 // and that is not us!
                                 && !platformInRepo.getPlatformInstanceId().equals(platform.getPlatformInstanceId()))
-                            throw new PlatformManagementException(PlatformManagementException.PLATFORM_INTERWARKING_INTERFACE_IN_USE, HttpStatus.BAD_REQUEST);
+                            throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
+                    }
+                    for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
+                        if (smartSpace.getGatewayAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())) {
+                            throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
+                        }
                     }
                     platform.setPlatformInterworkingInterfaceAddress(platformManagementRequest.getPlatformInterworkingInterfaceAddress());
                 }
@@ -158,7 +179,10 @@ public class PlatformsManagementService {
                 break;
             case DELETE:
                 if (!platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
-                    throw new PlatformManagementException(PlatformManagementException.PLATFORM_NOT_EXIST, HttpStatus.BAD_REQUEST);
+                    throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
+                if (!platformOwner.getOwnedServices().contains(platformManagementRequest.getPlatformInstanceId())) {
+                    throw new ServiceManagementException(ServiceManagementException.NOT_OWNED_SERVICE, HttpStatus.BAD_REQUEST);
+                }
                 Set<String> keys = new HashSet<>();
                 try {
                     Platform platformForRemoval = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
@@ -178,21 +202,21 @@ public class PlatformsManagementService {
                         revokedKeysRepository.save(subjectsRevokedKeys);
                     }
                 } catch (CertificateException e) {
-                    throw new PlatformManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+                    throw new ServiceManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
                 }
 
                 platformRepository.delete(platformManagementRequest.getPlatformInstanceId());
                 // unbinding the platform from the platform owner
-                platformOwner.getOwnedPlatforms().remove(platformManagementRequest.getPlatformInstanceId());
+                platformOwner.getOwnedServices().remove(platformManagementRequest.getPlatformInstanceId());
                 userRepository.save(platformOwner);
                 break;
             default:
-                throw new PlatformManagementException(PlatformManagementException.INVALID_OPERATION, HttpStatus.BAD_REQUEST);
+                throw new ServiceManagementException(ServiceManagementException.INVALID_OPERATION, HttpStatus.BAD_REQUEST);
         }
 
-        aamServices.deleteFromCacheAvailableAAMs();
-        aamServices.deleteFromCacheInternalAAMs();
-        aamServices.deleteFromCacheComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, platformManagementRequest.getPlatformInstanceId());
+        aamServices.invalidateAvailableAAMsCache();
+        aamServices.invalidateInternalAAMsCache();
+        aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, platformManagementRequest.getPlatformInstanceId());
         return new PlatformManagementResponse(platformManagementRequest.getPlatformInstanceId(), ManagementStatus.OK);
     }
 

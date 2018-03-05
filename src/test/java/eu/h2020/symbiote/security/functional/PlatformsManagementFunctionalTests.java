@@ -59,7 +59,7 @@ public class PlatformsManagementFunctionalTests extends
         userRepository.deleteAll();
 
         //user registration useful
-        User user = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
+        User user = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
 
         // platform registration useful
@@ -100,7 +100,7 @@ public class PlatformsManagementFunctionalTests extends
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
         User platformOwner = userRepository.findOne(platformOwnerUsername);
-        assertTrue(platformOwner.getOwnedPlatforms().isEmpty());
+        assertTrue(platformOwner.getOwnedServices().isEmpty());
 
         // issue platform registration over AMQP
         byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
@@ -114,7 +114,7 @@ public class PlatformsManagementFunctionalTests extends
         // verify that PO is in repository (as PO!)
         User platformOwnerFromRepository = userRepository.findOne(platformOwnerUsername);
         assertNotNull(platformOwnerFromRepository);
-        assertEquals(UserRole.PLATFORM_OWNER, platformOwnerFromRepository.getRole());
+        assertEquals(UserRole.SERVICE_OWNER, platformOwnerFromRepository.getRole());
 
         // verify that platform with preferred id is in repository and is tied with the given PO
         Platform registeredPlatform = platformRepository.findOne(preferredPlatformId);
@@ -125,13 +125,13 @@ public class PlatformsManagementFunctionalTests extends
         // verify that PO has this platform in his collection
         User platformOwnerFromPlatformEntity = registeredPlatform.getPlatformOwner();
         assertEquals(platformOwnerUsername, platformOwnerFromPlatformEntity.getUsername());
-        assertTrue(platformOwnerFromPlatformEntity.getOwnedPlatforms().contains(preferredPlatformId));
+        assertTrue(platformOwnerFromPlatformEntity.getOwnedServices().contains(preferredPlatformId));
 
         // verify that PO was properly updated in repository with new platform ownership
         platformOwnerFromRepository = userRepository.findOne(platformOwnerUsername);
         assertEquals(platformOwnerUsername, platformOwnerFromRepository.getUsername());
-        assertFalse(platformOwnerFromRepository.getOwnedPlatforms().isEmpty());
-        assertTrue(platformOwnerFromRepository.getOwnedPlatforms().contains(preferredPlatformId));
+        assertFalse(platformOwnerFromRepository.getOwnedServices().isEmpty());
+        assertTrue(platformOwnerFromRepository.getOwnedServices().contains(preferredPlatformId));
 
         assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse.getRegistrationStatus());
     }
@@ -166,8 +166,8 @@ public class PlatformsManagementFunctionalTests extends
         // verify that PO is in repository (as PO!)
         User registeredPlatformOwner = userRepository.findOne(platformOwnerUsername);
         assertNotNull(registeredPlatformOwner);
-        assertEquals(UserRole.PLATFORM_OWNER, registeredPlatformOwner.getRole());
-        assertTrue(registeredPlatformOwner.getOwnedPlatforms().contains(generatedPlatformId));
+        assertEquals(UserRole.SERVICE_OWNER, registeredPlatformOwner.getRole());
+        assertTrue(registeredPlatformOwner.getOwnedServices().contains(generatedPlatformId));
 
         // verify that platform with the generated id is in repository and is tied with the given PO
         Platform registeredPlatform = platformRepository.findOne(generatedPlatformId);
@@ -197,7 +197,7 @@ public class PlatformsManagementFunctionalTests extends
         ErrorResponseContainer errorResponse = mapper.readValue(response,
                 ErrorResponseContainer.class);
 
-        assertEquals(PlatformManagementException.AWKWARD_PLATFORM, errorResponse.getErrorMessage());
+        assertEquals(ServiceManagementException.AWKWARD_SERVICE, errorResponse.getErrorMessage());
     }
 
     @Test
@@ -229,10 +229,73 @@ public class PlatformsManagementFunctionalTests extends
     }
 
     @Test
+    public void platformManageOverAMQPFailWrongPO() throws IOException {
+        // verify that  platformOwner is in repository
+        assertTrue(userRepository.exists(platformOwnerUsername));
+        //create the platform by platformOwner
+        byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
+        PlatformManagementResponse platformManagementResponse = mapper.readValue(response,
+                PlatformManagementResponse.class);
+        assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
+
+        // create other platformOwner
+        String otherPlatformOwnerUsername = "otherPlatformOwner";
+        User otherPlatformOwner = createUser(otherPlatformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        userRepository.save(otherPlatformOwner);
+        Credentials otherPlatformOwnerCredentials = new Credentials(otherPlatformOwnerUsername, platformOwnerPassword);
+        // verify that other platformOwner is in repository
+        assertTrue(userRepository.exists(otherPlatformOwnerUsername));
+
+        //try to update platform by other platformOwner (without rights to this platform)
+        PlatformManagementRequest platformUpdateOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                otherPlatformOwnerCredentials,
+                platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
+                preferredPlatformId,
+                OperationType.UPDATE);
+        response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (platformUpdateOverAMQPRequest), new MessageProperties())).getBody();
+        ErrorResponseContainer errorResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+        assertEquals(ServiceManagementException.NOT_OWNED_SERVICE, errorResponse.getErrorMessage());
+
+        //try to delete platform by other platformOwner (without rights to this platform)
+        PlatformManagementRequest platformDeleteOverAMQPRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                otherPlatformOwnerCredentials,
+                platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
+                preferredPlatformId,
+                OperationType.DELETE);
+        response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (platformDeleteOverAMQPRequest), new MessageProperties())).getBody();
+        errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
+        assertEquals(ServiceManagementException.NOT_OWNED_SERVICE, errorResponse.getErrorMessage());
+    }
+
+    @Test
     public void platformManageOverAMQPFailwrongPassword() throws IOException {
         // verify that our platformOwner is in repository
         assertTrue(userRepository.exists(platformOwnerUsername));
         platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setPassword(wrongPassword);
+
+        byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
+        ErrorResponseContainer errorResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+
+        assertEquals(new WrongCredentialsException().getErrorMessage(), errorResponse.getErrorMessage());
+    }
+
+    @Test
+    public void platformManageOverAMQPFailUserNotPlatformOwner() throws IOException {
+        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        userRepository.save(user);
+        assertTrue(userRepository.exists(username));
+        platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setUsername(username);
+        platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setPassword(password);
 
         byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
                 (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
@@ -326,7 +389,7 @@ public class PlatformsManagementFunctionalTests extends
                 (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.MISSING_PLATFORM_INSTANCE_FRIENDLY_NAME, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.MISSING_INSTANCE_FRIENDLY_NAME, errorResponse.getErrorMessage());
     }
 
     /**
@@ -351,7 +414,7 @@ public class PlatformsManagementFunctionalTests extends
         assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
         assertNotNull(platformRepository.findOne(preferredPlatformId));
 
-        User user = createUser(platformOwnerUsername + "differentOne", platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
+        User user = createUser(platformOwnerUsername + "differentOne", platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
         // issue registration request with the same preferred platform identifier but different PO
         platformRegistrationOverAMQPRequest.getPlatformOwnerCredentials().setUsername
@@ -361,7 +424,7 @@ public class PlatformsManagementFunctionalTests extends
                 (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(PlatformManagementException.PLATFORM_EXISTS, errorResponse.getErrorMessage());
+        assertEquals(ServiceManagementException.SERVICE_EXISTS, errorResponse.getErrorMessage());
     }
 
     /**
@@ -375,7 +438,6 @@ public class PlatformsManagementFunctionalTests extends
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
-
         // issue platform registration over AMQP
         byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
                 (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
@@ -387,7 +449,7 @@ public class PlatformsManagementFunctionalTests extends
         assertEquals(preferredPlatformId, platformRegistrationOverAMQPResponse.getPlatformId());
         assertNotNull(platformRepository.findOne(preferredPlatformId));
 
-        User user = createUser(platformOwnerUsername + "differentOne", platformOwnerPassword, recoveryMail, UserRole.PLATFORM_OWNER);
+        User user = createUser(platformOwnerUsername + "differentOne", platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
         // issue registration request with the same preferred platform identifier but different PO
         platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
@@ -403,7 +465,7 @@ public class PlatformsManagementFunctionalTests extends
         response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
                 (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(PlatformManagementException.PLATFORM_INTERWARKING_INTERFACE_IN_USE, errorResponse.getErrorMessage());
+        assertEquals(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, errorResponse.getErrorMessage());
     }
 
     @Test
@@ -454,7 +516,7 @@ public class PlatformsManagementFunctionalTests extends
         byte[] response2 = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
                 (platformUpdateOverAMQPRequest), new MessageProperties())).getBody();
         ErrorResponseContainer errorResponse = mapper.readValue(response2, ErrorResponseContainer.class);
-        assertEquals(PlatformManagementException.PLATFORM_NOT_EXIST, errorResponse.getErrorMessage());
+        assertEquals(ServiceManagementException.SERVICE_NOT_EXIST, errorResponse.getErrorMessage());
     }
 
     @Test
@@ -505,7 +567,7 @@ public class PlatformsManagementFunctionalTests extends
                 PlatformManagementResponse.class);
         assertEquals(ManagementStatus.OK, platformRegistrationOverAMQPResponse2.getRegistrationStatus());
 
-        assertTrue(userRepository.findOne(platformOwnerUsername).getOwnedPlatforms().isEmpty());
+        assertTrue(userRepository.findOne(platformOwnerUsername).getOwnedServices().isEmpty());
     }
 
     @Test
@@ -530,7 +592,7 @@ public class PlatformsManagementFunctionalTests extends
         byte[] response2 = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
                 (platformDeleteOverAMQPRequest), new MessageProperties())).getBody();
         ErrorResponseContainer errorResponse = mapper.readValue(response2, ErrorResponseContainer.class);
-        assertEquals(PlatformManagementException.PLATFORM_NOT_EXIST, errorResponse.getErrorMessage());
+        assertEquals(ServiceManagementException.SERVICE_NOT_EXIST, errorResponse.getErrorMessage());
     }
 
     @Test

@@ -27,7 +27,7 @@ public class User {
     private String passwordEncrypted = "";
     private String recoveryMail = "";
     private Map<String, Certificate> clientCertificates = new HashMap<>();
-    private Set<String> ownedPlatforms = new HashSet<>();
+    private Set<String> ownedServices = new HashSet<>();
 
     // TODO Release 4 - add OAuth federated ID support
 
@@ -45,7 +45,7 @@ public class User {
      * @param clientCertificates user's public certificates
      * @param role               user's role in symbIoTe ecosystem, see @{@link UserRole}
      * @param attributes         used to assign in registration phase user-unique attributes
-     * @param ownedPlatforms     bound to the user
+     * @param ownedServices     bound to the user
      */
     public User(String username,
                 String passwordEncrypted,
@@ -53,14 +53,14 @@ public class User {
                 Map<String, Certificate> clientCertificates,
                 UserRole role,
                 Map<String, String> attributes,
-                Set<String> ownedPlatforms) {
+                Set<String> ownedServices) {
         this.username = username;
         this.passwordEncrypted = passwordEncrypted;
         this.recoveryMail = recoveryMail;
         this.clientCertificates = clientCertificates;
         this.role = role;
         this.attributes = attributes;
-        this.ownedPlatforms = ownedPlatforms;
+        this.ownedServices = ownedServices;
     }
 
     public UserRole getRole() {
@@ -108,11 +108,11 @@ public class User {
         this.clientCertificates = clientCertificates;
     }
 
-    public Set<String> getOwnedPlatforms() {
-        return ownedPlatforms;
+    public Set<String> getOwnedServices() {
+        return ownedServices;
     }
 
-    public void setOwnedPlatforms(Set<String> ownedPlatforms) {
-        this.ownedPlatforms = ownedPlatforms;
+    public void setOwnedServices(Set<String> ownedServices) {
+        this.ownedServices = ownedServices;
     }
 }
