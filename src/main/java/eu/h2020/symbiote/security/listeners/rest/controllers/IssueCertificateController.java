@@ -2,7 +2,7 @@ package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
-import eu.h2020.symbiote.security.listeners.rest.interfaces.ISignCertificateRequest;
+import eu.h2020.symbiote.security.listeners.rest.interfaces.IIssueCertificate;
 import eu.h2020.symbiote.security.services.IssueCertificateService;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +22,11 @@ import java.security.cert.CertificateException;
 
 @RestController
 @Api(value = "docs/issueCertificateRequest", description = "Used to issue symbiote certificates")
-public class IssueCertificateRequestController implements ISignCertificateRequest {
+public class IssueCertificateController implements IIssueCertificate {
     private IssueCertificateService issueCertificateService;
 
     @Autowired
-    public IssueCertificateRequestController(IssueCertificateService issueCertificateService) {
+    public IssueCertificateController(IssueCertificateService issueCertificateService) {
         this.issueCertificateService = issueCertificateService;
     }
 
@@ -39,7 +39,7 @@ public class IssueCertificateRequestController implements ISignCertificateReques
             @ApiParam(value = "Request required to issue a certificate for given (username, clientId) tupple", required = true)
                     CertificateRequest certificateRequest) {
         try {
-            String certificate = issueCertificateService.signCertificate(certificateRequest);
+            String certificate = issueCertificateService.issueCertificate(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
         } catch (WrongCredentialsException | NotExistingUserException | InvalidArgumentsException
                 | UserManagementException | ServiceManagementException | ValidationException e) {

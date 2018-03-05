@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
  * @author Mikołaj Dobski (PSNC)
  */
 
-public interface ISignCertificateRequest {
+public interface IIssueCertificate {
     /**
      * @param certificateRequest required to sign a certificate request for given (username, clientId) tupple.
      * @return the certificate issued using the provided CSR in PEM format
