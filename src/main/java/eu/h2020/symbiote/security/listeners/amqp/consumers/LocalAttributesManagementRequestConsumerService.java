@@ -16,6 +16,7 @@ import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -32,6 +33,7 @@ import java.util.Map;
  *
  * @author Jakub Toczek
  */
+@Profile({"core", "platform"})
 @Component
 public class LocalAttributesManagementRequestConsumerService {
 

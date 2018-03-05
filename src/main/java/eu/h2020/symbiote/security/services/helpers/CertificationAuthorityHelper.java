@@ -28,7 +28,9 @@ import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Certificate related set of functions.
@@ -70,13 +72,20 @@ public class CertificationAuthorityHelper {
         KEY_STORE_PASSWORD = key_store_password;
         PV_KEY_PASSWORD = pv_key_password;
 		this.ctx = ctx;
+        List<String> activeProfiles = Arrays.asList(ctx.getEnvironment().getActiveProfiles());
+        if (activeProfiles.size() != 1)
+            throw new SecurityMisconfigurationException("You have to have only one active profile. Please check in your bootstrap.properties 'spring.profiles.active'.");
         Security.addProvider(new BouncyCastleProvider());
         switch (getDeploymentType()) {
             case CORE:
+                if (!activeProfiles.get(0).equals("core"))
+                    throw new SecurityMisconfigurationException("You are loading Core certificate. In your bootstrap.properties, following line should be present: 'spring.profiles.active=core'");
                 break;
             case PLATFORM:
                 if (certificate_alias.equals(root_ca_certificate_alias))
                     throw new SecurityMisconfigurationException("Platform AAM certificate must be different from Core AAM - root certificate");
+                if (!activeProfiles.get(0).equals("platform"))
+                    throw new SecurityMisconfigurationException("You are loading Platform certificate. In your bootstrap.properties, following line should be present: 'spring.profiles.active=platform'");
                 break;
             case NULL:
                 throw new CertificateException("Failed to initialize AAM using given symbiote keystore");

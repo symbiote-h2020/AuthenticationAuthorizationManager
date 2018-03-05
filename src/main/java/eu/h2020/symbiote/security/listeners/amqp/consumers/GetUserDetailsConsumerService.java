@@ -15,6 +15,7 @@ import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -26,6 +27,7 @@ import java.io.UnsupportedEncodingException;
  * RabbitMQ Consumer implementation used for providing requested user's details
  * <p>
  */
+@Profile({"core", "platform"})
 @Component
 public class GetUserDetailsConsumerService {
 

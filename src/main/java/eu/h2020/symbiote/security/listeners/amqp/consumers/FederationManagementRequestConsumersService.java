@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
-@Profile("!core")
+@Profile("platform")
 @Component
 public class FederationManagementRequestConsumersService {
 

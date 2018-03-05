@@ -12,6 +12,7 @@ import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,7 @@ import java.io.UnsupportedEncodingException;
 /**
  * RabbitMQ Consumer implementation used for credentials validation actions
  */
+@Profile({"core", "platform"})
 @Component
 public class ValidationRequestConsumerService {
 
