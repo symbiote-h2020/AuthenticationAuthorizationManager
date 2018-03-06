@@ -123,17 +123,17 @@ public class RevocationHelper {
         if (smartSpace == null) {
             throw new WrongCredentialsException(WrongCredentialsException.NO_SUCH_SERVICE);
         }
-        if (smartSpace.getAamCertificate() == null
-                || smartSpace.getAamCertificate().getCertificateString().isEmpty()
-                || !isMyCertificate(smartSpace.getAamCertificate().getX509())) {
+        if (smartSpace.getLocalCertificationAuthorityCertificate() == null
+                || smartSpace.getLocalCertificationAuthorityCertificate().getCertificateString().isEmpty()
+                || !isMyCertificate(smartSpace.getLocalCertificationAuthorityCertificate().getX509())) {
             throw new CertificateException("SmartSpace certificate is empty or issuer does not equals with this AAM");
         }
-        revokeKey(commonName, smartSpace.getAamCertificate());
-        smartSpace.setAamCertificate(new Certificate());
+        revokeKey(commonName, smartSpace.getLocalCertificationAuthorityCertificate());
+        smartSpace.setLocalCertificationAuthorityCertificate(new Certificate());
         smartSpaceRepository.save(smartSpace);
         aamServices.invalidateInternalAAMsCache();
         aamServices.invalidateAvailableAAMsCache();
-        aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, smartSpace.getInstanceId());
+        aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, smartSpace.getInstanceIdentifier());
         return true;
     }
     private boolean revokePlatformCertificateUsingCommonName(String commonName, Platform platform) throws
@@ -266,17 +266,17 @@ public class RevocationHelper {
         if (smartSpace == null) {
             throw new WrongCredentialsException(WrongCredentialsException.NO_SUCH_SERVICE);
         }
-        if (smartSpace.getAamCertificate() == null
-                || smartSpace.getAamCertificate().getCertificateString().isEmpty()) {
+        if (smartSpace.getLocalCertificationAuthorityCertificate() == null
+                || smartSpace.getLocalCertificationAuthorityCertificate().getCertificateString().isEmpty()) {
             throw new CertificateException("There is no certificate to revoke");
         }
-        if (smartSpace.getAamCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
-            revokeKey(smartSpaceId, smartSpace.getAamCertificate());
-            smartSpace.setAamCertificate(new Certificate());
+        if (smartSpace.getLocalCertificationAuthorityCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
+            revokeKey(smartSpaceId, smartSpace.getLocalCertificationAuthorityCertificate());
+            smartSpace.setLocalCertificationAuthorityCertificate(new Certificate());
             smartSpaceRepository.save(smartSpace);
             aamServices.invalidateInternalAAMsCache();
             aamServices.invalidateAvailableAAMsCache();
-            aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, smartSpace.getInstanceId());
+            aamServices.invalidateComponentCertificateCache(SecurityConstants.AAM_COMPONENT_NAME, smartSpace.getInstanceIdentifier());
             return true;
         }
         if (isRevoked(smartSpaceId, certificate.getPublicKey())) {
@@ -335,8 +335,8 @@ public class RevocationHelper {
         //smart space owner
         SmartSpace smartSpace = smartSpaceRepository.findBySmartSpaceOwner(user);
         if (smartSpace != null
-                && !smartSpace.getAamCertificate().getCertificateString().isEmpty()
-                && Base64.getEncoder().encodeToString(smartSpace.getAamCertificate().getX509().getPublicKey().getEncoded())
+                && !smartSpace.getLocalCertificationAuthorityCertificate().getCertificateString().isEmpty()
+                && Base64.getEncoder().encodeToString(smartSpace.getLocalCertificationAuthorityCertificate().getX509().getPublicKey().getEncoded())
                 .equals(token.getClaims().get("ipk").toString())) {
             revokedTokensRepository.save(token);
             return true;

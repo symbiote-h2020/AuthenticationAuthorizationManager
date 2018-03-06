@@ -200,20 +200,20 @@ public class CertificatesIssuingFunctionalTests extends
 
         User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         // issue smartSpace registration
-        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceGateWayAddress, smartSpaceSiteLocalAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), smartSpaceOwner);
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceInstanceFriendlyName, smartSpaceGateWayAddress, exposedIIAddress, smartSpaceSiteLocalAddress, new Certificate(), new HashMap<>(), smartSpaceOwner);
         smartSpaceRepository.save(smartSpace);
         smartSpaceOwner.getOwnedServices().add(preferredSmartSpaceId);
         userRepository.save(smartSpaceOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();
-        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(smartSpace.getInstanceId(), pair);
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(smartSpace.getInstanceIdentifier(), pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(smartSpaceOwnerUsername, smartSpaceOwnerPassword, clientId, csrString);
 
         String clientCertificate = aamClient.signCertificateRequest(certRequest);
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
         assertNotNull(x509Certificate);
-        assertEquals("CN=" + smartSpace.getInstanceId(), x509Certificate.getSubjectDN().getName());
+        assertEquals("CN=" + smartSpace.getInstanceIdentifier(), x509Certificate.getSubjectDN().getName());
     }
 
     @Test

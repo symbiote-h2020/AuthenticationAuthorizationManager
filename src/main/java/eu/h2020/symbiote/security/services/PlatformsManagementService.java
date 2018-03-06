@@ -124,7 +124,7 @@ public class PlatformsManagementService {
                     }
                 }
                 for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
-                    if (smartSpace.getGatewayAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())) {
+                    if (smartSpace.getExternalAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())) {
                         throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
                     }
                 }
@@ -169,7 +169,7 @@ public class PlatformsManagementService {
                             throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
                     }
                     for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
-                        if (smartSpace.getGatewayAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())) {
+                        if (smartSpace.getExternalAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())) {
                             throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
                         }
                     }

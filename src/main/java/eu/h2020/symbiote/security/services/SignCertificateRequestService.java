@@ -222,7 +222,7 @@ public class SignCertificateRequestService {
         String serviceId = req.getSubject().toString().split("CN=")[1];
         if (serviceId.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
             SmartSpace smartSpace = smartSpaceRepository.findOne(serviceId);
-            smartSpace.setAamCertificate(new Certificate(pem));
+            smartSpace.setLocalCertificationAuthorityCertificate(new Certificate(pem));
             smartSpaceRepository.save(smartSpace);
         } else {
             Platform platform = platformRepository.findOne(serviceId);

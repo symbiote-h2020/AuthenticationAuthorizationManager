@@ -115,7 +115,7 @@ public class SmartSpacesManagementService {
                 // checking if Gateway Address isn't already used
                 if (!smartSpaceManagementRequest.getGatewayAddress().isEmpty()) {
                     for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
-                        if (smartSpace.getGatewayAddress().equals(smartSpaceManagementRequest.getGatewayAddress()))
+                        if (smartSpace.getExternalAddress().equals(smartSpaceManagementRequest.getGatewayAddress()))
                             throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
                     }
                     for (Platform platform : platformRepository.findAll()) {
@@ -130,10 +130,10 @@ public class SmartSpacesManagementService {
                     throw new ServiceManagementException(ServiceManagementException.AWKWARD_SERVICE, HttpStatus.BAD_REQUEST);
 
                 SmartSpace smartSpace = new SmartSpace(smartSpaceId,
-                        smartSpaceManagementRequest.getGatewayAddress(),
-                        smartSpaceManagementRequest.getSiteLocalAddress(),
-                        smartSpaceManagementRequest.isExposingSiteLocalAddress(),
                         smartSpaceManagementRequest.getInstanceFriendlyName(),
+                        smartSpaceManagementRequest.getGatewayAddress(),
+                        smartSpaceManagementRequest.isExposingSiteLocalAddress(),
+                        smartSpaceManagementRequest.getSiteLocalAddress(),
                         new Certificate(),
                         new HashMap<>(),
                         smartSpaceOwner);
@@ -155,10 +155,10 @@ public class SmartSpacesManagementService {
                 // check if other smart space don't use provided address already
 
                 if (!smartSpaceManagementRequest.getGatewayAddress().isEmpty()
-                        && !smartSpace.getGatewayAddress().equals(smartSpaceManagementRequest.getGatewayAddress())) {
+                        && !smartSpace.getExternalAddress().equals(smartSpaceManagementRequest.getGatewayAddress())) {
                     for (SmartSpace smartSpaceRepo : smartSpaceRepository.findAll()) {
-                        if (!smartSpaceRepo.getInstanceId().equals(smartSpace.getInstanceId())
-                                && smartSpaceRepo.getGatewayAddress().equals(smartSpaceManagementRequest.getGatewayAddress()))
+                        if (!smartSpaceRepo.getInstanceIdentifier().equals(smartSpace.getInstanceIdentifier())
+                                && smartSpaceRepo.getExternalAddress().equals(smartSpaceManagementRequest.getGatewayAddress()))
                             throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
                     }
                     for (Platform platform : platformRepository.findAll()) {
@@ -167,7 +167,7 @@ public class SmartSpacesManagementService {
                     }
                 }
                 smartSpace.setExposingSiteLocalAddress(smartSpaceManagementRequest.isExposingSiteLocalAddress());
-                smartSpace.setGatewayAddress(smartSpaceManagementRequest.getGatewayAddress());
+                smartSpace.setExternalAddress(smartSpaceManagementRequest.getGatewayAddress());
                 smartSpace.setSiteLocalAddress(smartSpaceManagementRequest.getSiteLocalAddress());
 
                 smartSpaceRepository.save(smartSpace);
@@ -184,15 +184,15 @@ public class SmartSpacesManagementService {
                     if (!smartSpaceForRemoval.getSmartSpaceOwner().getUsername().equals(smartSpaceManagementRequest.getServiceOwnerCredentials().getUsername()))
                         throw new ServiceManagementException(ServiceManagementException.USER_IS_NOT_A_SERVICE_OWNER, HttpStatus.BAD_REQUEST);
                     // adding smart space AAM certificate for revocation
-                    if (!smartSpaceForRemoval.getAamCertificate().getCertificateString().isEmpty())
+                    if (!smartSpaceForRemoval.getLocalCertificationAuthorityCertificate().getCertificateString().isEmpty())
                         keys.add(Base64.getEncoder().encodeToString(
-                                smartSpaceForRemoval.getAamCertificate().getX509().getPublicKey().getEncoded()));
+                                smartSpaceForRemoval.getLocalCertificationAuthorityCertificate().getX509().getPublicKey().getEncoded()));
 
                     // checking if this key contains keys already
-                    SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(smartSpaceForRemoval.getInstanceId());
+                    SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(smartSpaceForRemoval.getInstanceIdentifier());
                     if (subjectsRevokedKeys == null)
                         // no keys exist yet
-                        revokedKeysRepository.save(new SubjectsRevokedKeys(smartSpaceForRemoval.getInstanceId(), keys));
+                        revokedKeysRepository.save(new SubjectsRevokedKeys(smartSpaceForRemoval.getInstanceIdentifier(), keys));
                     else {
                         // extending the existing set
                         subjectsRevokedKeys.getRevokedKeysSet().addAll(keys);

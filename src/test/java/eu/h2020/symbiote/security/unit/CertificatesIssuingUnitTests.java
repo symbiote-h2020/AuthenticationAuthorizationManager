@@ -838,7 +838,7 @@ public class CertificatesIssuingUnitTests extends
         assertEquals("CN=" + preferredSmartSpaceId, x509Certificate.getSubjectDN().getName());
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
-        assertTrue(smartSpaceRepository.findOne(preferredSmartSpaceId).getAamCertificate().getCertificateString().equals(certificate));
+        assertTrue(smartSpaceRepository.findOne(preferredSmartSpaceId).getLocalCertificationAuthorityCertificate().getCertificateString().equals(certificate));
 
         pair = CryptoHelper.createKeyPair();
         csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
@@ -995,10 +995,10 @@ public class CertificatesIssuingUnitTests extends
 
     private void saveSmartSpace(User smartSpaceOwner) throws InvalidArgumentsException {
         SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId,
-                smartSpaceGateWayAddress,
-                smartSpaceSiteLocalAddress,
-                exposedIIAddress,
                 smartSpaceInstanceFriendlyName,
+                smartSpaceGateWayAddress,
+                exposedIIAddress,
+                smartSpaceSiteLocalAddress,
                 new Certificate(),
                 new HashMap<>(),
                 smartSpaceOwner);

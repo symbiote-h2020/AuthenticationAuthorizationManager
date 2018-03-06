@@ -17,57 +17,58 @@ import java.util.Map;
 public class SmartSpace {
 
     @Id
-    private final String instanceId;
-    private String gatewayAddress = "";
+    private final String instanceIdentifier;
+    private String externalAddress = "";
     private String siteLocalAddress = "";
     private boolean exposingSiteLocalAddress = false;
     private String instanceFriendlyName = "";
-    private Certificate aamCertificate = new Certificate();
+    private Certificate localCertificationAuthorityCertificate = new Certificate();
     private Map<String, Certificate> componentCertificates = new HashMap<>();
     @DBRef
     private User smartSpaceOwner;
 
     /**
-     * @param instanceId                SymbIoTe-unique smart Space identifier
-     * @param gatewayAddress            Address where the SmartSpace is available from the Internet
-     * @param siteLocalAddress          Address where the SmartSpace is available from the local site net
-     * @param exposingSiteLocalAddress  should siteLocalAddress be exposed
-     * @param instanceFriendlyName      a label for the end user to be able to identify the getHomeToken entry point
-     * @param smartSpaceOwner           details of the SmartSpace Owner
+     * @param instanceIdentifier                     SymbIoTe-unique smart Space identifier
+     * @param instanceFriendlyName                   a label for the end user to be able to identify the getHomeToken entry point
+     * @param externalAddress                        address where the AAM is available from the Internet e.g. the Core, Platforms and SmartSpaces' gateways
+     * @param exposingSiteLocalAddress               should siteLocalAddress be exposed
+     * @param siteLocalAddress                       address where the AAM is available for clients residing in the same network that the server (e.g. local WiFi of a smart space)
+     * @param localCertificationAuthorityCertificate the Certification Authority certificate that this AAM uses to sign its clients certificates and tokens
+     * @param smartSpaceOwner                        details of the SmartSpace Owner
      */
-    public SmartSpace(String instanceId,
-                      String gatewayAddress,
-                      String siteLocalAddress,
-                      boolean exposingSiteLocalAddress,
+    public SmartSpace(String instanceIdentifier,
                       String instanceFriendlyName,
-                      Certificate aamCertificate,
+                      String externalAddress,
+                      boolean exposingSiteLocalAddress,
+                      String siteLocalAddress,
+                      Certificate localCertificationAuthorityCertificate,
                       Map<String, Certificate> componentCertificates,
                       User smartSpaceOwner)
             throws InvalidArgumentsException {
-        this.instanceId = instanceId;
+        this.instanceIdentifier = instanceIdentifier;
         this.exposingSiteLocalAddress = exposingSiteLocalAddress;
-        setGatewayAddress(gatewayAddress);
+        setExternalAddress(externalAddress);
         setSiteLocalAddress(siteLocalAddress);
         this.instanceFriendlyName = instanceFriendlyName;
-        this.aamCertificate = aamCertificate;
+        this.localCertificationAuthorityCertificate = localCertificationAuthorityCertificate;
         this.componentCertificates = componentCertificates;
         this.smartSpaceOwner = smartSpaceOwner;
     }
 
 
-    public String getInstanceId() {
-        return instanceId;
+    public String getInstanceIdentifier() {
+        return instanceIdentifier;
     }
 
-    public String getGatewayAddress() {
-        return gatewayAddress;
+    public String getExternalAddress() {
+        return externalAddress;
     }
 
-    public void setGatewayAddress(String gatewayAddress) throws InvalidArgumentsException {
-        if (!gatewayAddress.startsWith("https://")) {
+    public void setExternalAddress(String externalAddress) throws InvalidArgumentsException {
+        if (!externalAddress.startsWith("https://")) {
             throw new InvalidArgumentsException(InvalidArgumentsException.GATEWAY_ADDRESS_MUST_START_WITH_HTTPS);
         }
-        this.gatewayAddress = gatewayAddress;
+        this.externalAddress = externalAddress;
     }
 
     public String getSiteLocalAddress() {
@@ -78,7 +79,7 @@ public class SmartSpace {
             InvalidArgumentsException {
         if (this.exposingSiteLocalAddress
                 && (siteLocalAddress == null || siteLocalAddress.isEmpty()))
-                throw new InvalidArgumentsException("Exposed siteLocalAddress should not be empty.");
+            throw new InvalidArgumentsException("Exposed siteLocalAddress should not be empty.");
         this.siteLocalAddress = siteLocalAddress;
 
     }
@@ -99,12 +100,12 @@ public class SmartSpace {
         this.instanceFriendlyName = instanceFriendlyName;
     }
 
-    public Certificate getAamCertificate() {
-        return aamCertificate;
+    public Certificate getLocalCertificationAuthorityCertificate() {
+        return localCertificationAuthorityCertificate;
     }
 
-    public void setAamCertificate(Certificate aamCertificate) {
-        this.aamCertificate = aamCertificate;
+    public void setLocalCertificationAuthorityCertificate(Certificate localCertificationAuthorityCertificate) {
+        this.localCertificationAuthorityCertificate = localCertificationAuthorityCertificate;
     }
 
     public Map<String, Certificate> getComponentCertificates() {

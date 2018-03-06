@@ -81,7 +81,7 @@ public class SmartSpaceManagementFunctionalTests extends
         assertNotNull(registeredSmartSpace);
         assertEquals(smartSpaceOwnerUsername, registeredSmartSpace.getSmartSpaceOwner().getUsername());
         assertEquals(smartSpaceInstanceFriendlyName, registeredSmartSpace.getInstanceFriendlyName());
-        assertEquals(smartSpaceGateWayAddress, registeredSmartSpace.getGatewayAddress());
+        assertEquals(smartSpaceGateWayAddress, registeredSmartSpace.getExternalAddress());
         assertEquals(smartSpaceSiteLocalAddress, registeredSmartSpace.getSiteLocalAddress());
         assertEquals(true, registeredSmartSpace.isExposingSiteLocalAddress());
     }
@@ -90,7 +90,7 @@ public class SmartSpaceManagementFunctionalTests extends
     @Test
     public void sspRegistrationOverAMQPFailErrorResponseContainerReceived() throws IOException {
         //set Interworking Interfaces to empty to cause error
-         smartSpaceManagementRequest.setGatewayAddress("");
+         smartSpaceManagementRequest.setExternalAddress("");
         smartSpaceManagementRequest.setSiteLocalAddress("");
 
         // issue ssp registration over AMQP

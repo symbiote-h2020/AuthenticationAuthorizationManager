@@ -118,11 +118,11 @@ public class AAMServices {
             }
             // registered smart Spaces' AAMs
             for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
-                AAM smartSpaceAAM = new AAM(smartSpace.getGatewayAddress(),
+                AAM smartSpaceAAM = new AAM(smartSpace.getExternalAddress(),
                         smartSpace.getSiteLocalAddress(),
-                        smartSpace.getInstanceId(),
+                        smartSpace.getInstanceIdentifier(),
                         smartSpace.getInstanceFriendlyName(),
-                        smartSpace.getAamCertificate(),
+                        smartSpace.getLocalCertificationAuthorityCertificate(),
                         smartSpace.getComponentCertificates());
                 // add the smart Space AAM entry point to the results
                 availableAAMs.put(smartSpaceAAM.getAamInstanceId(), smartSpaceAAM);

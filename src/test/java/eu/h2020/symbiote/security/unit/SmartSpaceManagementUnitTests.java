@@ -86,7 +86,7 @@ public class SmartSpaceManagementUnitTests extends
         SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
         assertNotNull(registeredSmartSpace);
         // verify that smartSpace oriented fields are properly stored
-        assertEquals(smartSpaceGateWayAddress, registeredSmartSpace.getGatewayAddress());
+        assertEquals(smartSpaceGateWayAddress, registeredSmartSpace.getExternalAddress());
         assertEquals(smartSpaceSiteLocalAddress, registeredSmartSpace.getSiteLocalAddress());
         assertEquals(exposedIIAddress, registeredSmartSpace.isExposingSiteLocalAddress());
 
@@ -138,7 +138,7 @@ public class SmartSpaceManagementUnitTests extends
         assertEquals(smartSpaceOwnerUsername, registeredSmartSpace.getSmartSpaceOwner().getUsername());
 
         // verify that smartSpace oriented fields are properly stored
-        assertEquals(smartSpaceGateWayAddress, registeredSmartSpace.getGatewayAddress());
+        assertEquals(smartSpaceGateWayAddress, registeredSmartSpace.getExternalAddress());
         assertEquals(smartSpaceSiteLocalAddress, registeredSmartSpace.getSiteLocalAddress());
         assertEquals(exposedIIAddress, registeredSmartSpace.isExposingSiteLocalAddress());
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
@@ -425,7 +425,7 @@ public class SmartSpaceManagementUnitTests extends
         SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
         assertNotNull(registeredSmartSpace);
         // verify that smartSpace oriented fields are properly stored
-        assertEquals(smartSpaceGateWayAddress + "dif", registeredSmartSpace.getGatewayAddress());
+        assertEquals(smartSpaceGateWayAddress + "dif", registeredSmartSpace.getExternalAddress());
         assertEquals(smartSpaceSiteLocalAddress + "dif", registeredSmartSpace.getSiteLocalAddress());
         assertEquals(!exposedIIAddress, registeredSmartSpace.isExposingSiteLocalAddress());
     }
