@@ -13,12 +13,17 @@ import org.springframework.stereotype.Component;
 @Component
 public class RabbitInitialization {
 
-    @Value("${rabbit.host}")
-    private String rabbitHost;
-    @Value("${rabbit.username}")
-    private String rabbitUsername;
-    @Value("${rabbit.password}")
-    private String rabbitPassword;
+    private final String rabbitHost;
+    private final String rabbitUsername;
+    private final String rabbitPassword;
+
+    public RabbitInitialization(@Value("${rabbit.host}") String rabbitHost,
+                                @Value("${rabbit.username}") String rabbitUsername,
+                                @Value("${rabbit.password}") String rabbitPassword) {
+        this.rabbitHost = rabbitHost;
+        this.rabbitUsername = rabbitUsername;
+        this.rabbitPassword = rabbitPassword;
+    }
 
     @Bean
     public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(ConnectionFactory connectionFactory) {
