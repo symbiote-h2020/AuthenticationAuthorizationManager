@@ -2,8 +2,8 @@ package eu.h2020.symbiote.security.listeners.rest.controllers;
 
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
-import eu.h2020.symbiote.security.listeners.rest.interfaces.IIssueCertificate;
-import eu.h2020.symbiote.security.services.IssueCertificateService;
+import eu.h2020.symbiote.security.listeners.rest.interfaces.ISignCertificateRequest;
+import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,25 +21,25 @@ import java.security.cert.CertificateException;
  */
 
 @RestController
-@Api(value = "docs/issueCertificateRequest", description = "Used to issue symbiote certificates")
-public class IssueCertificateController implements IIssueCertificate {
-    private IssueCertificateService issueCertificateService;
+@Api(value = "docs/signCertificateRequest", description = "Used to sign symbiote certificates")
+public class SignCertificateRequestController implements ISignCertificateRequest {
+    private SignCertificateRequestService signCertificateRequestService;
 
     @Autowired
-    public IssueCertificateController(IssueCertificateService issueCertificateService) {
-        this.issueCertificateService = issueCertificateService;
+    public SignCertificateRequestController(SignCertificateRequestService signCertificateRequestService) {
+        this.signCertificateRequestService = signCertificateRequestService;
     }
 
     @Override
-    @ApiOperation(value = "Allows issuing user's Certificates")
+    @ApiOperation(value = "Allows signing certificates' requests")
     @ApiResponses({
-            @ApiResponse(code = 500, message = "Could not issue the requested certificate")})
-    public ResponseEntity<String> issueCertificateRequest(
+            @ApiResponse(code = 500, message = "Could not sign the requested certificate")})
+    public ResponseEntity<String> signCertificateRequest(
             @RequestBody
-            @ApiParam(value = "Request required to issue a certificate for given (username, clientId) tupple", required = true)
+            @ApiParam(value = "Request required to sign a certificate for given (username, clientId) tupple", required = true)
                     CertificateRequest certificateRequest) {
         try {
-            String certificate = issueCertificateService.issueCertificate(certificateRequest);
+            String certificate = signCertificateRequestService.signCertificateRequest(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
         } catch (WrongCredentialsException | NotExistingUserException | InvalidArgumentsException
                 | UserManagementException | ServiceManagementException | ValidationException e) {

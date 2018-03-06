@@ -35,16 +35,15 @@ import static eu.h2020.symbiote.security.commons.SecurityConstants.PLATFORM_AGEN
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 
 /**
- * Spring service used to provide client certificates issuing
- *
+ * Spring service used to sign received certificates request
  * @author Maksymilian Marcinowski (PSNC)
  * @author Jakub Toczek (PSNC)
  * @author Mikołaj Dobski (PSNC)
  */
 
 @Service
-public class IssueCertificateService {
-    private static final Log log = LogFactory.getLog(IssueCertificateService.class);
+public class SignCertificateRequestService {
+    private static final Log log = LogFactory.getLog(SignCertificateRequestService.class);
     private final UserRepository userRepository;
     private final PlatformRepository platformRepository;
     private final SmartSpaceRepository smartSpaceRepository;
@@ -59,14 +58,14 @@ public class IssueCertificateService {
     private String AAMOwnerPassword;
 
     @Autowired
-    public IssueCertificateService(UserRepository userRepository,
-                                   PlatformRepository platformRepository,
-                                   SmartSpaceRepository smartSpaceRepository,
-                                   RevokedKeysRepository revokedKeysRepository,
-                                   ComponentCertificatesRepository componentCertificatesRepository,
-                                   CertificationAuthorityHelper certificationAuthorityHelper,
-                                   PasswordEncoder passwordEncoder,
-                                   AAMServices aamServices) {
+    public SignCertificateRequestService(UserRepository userRepository,
+                                         PlatformRepository platformRepository,
+                                         SmartSpaceRepository smartSpaceRepository,
+                                         RevokedKeysRepository revokedKeysRepository,
+                                         ComponentCertificatesRepository componentCertificatesRepository,
+                                         CertificationAuthorityHelper certificationAuthorityHelper,
+                                         PasswordEncoder passwordEncoder,
+                                         AAMServices aamServices) {
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
         this.smartSpaceRepository = smartSpaceRepository;
@@ -77,7 +76,7 @@ public class IssueCertificateService {
         this.aamServices = aamServices;
     }
 
-    public String issueCertificate(CertificateRequest certificateRequest) throws
+    public String signCertificateRequest(CertificateRequest certificateRequest) throws
             WrongCredentialsException,
             NotExistingUserException,
             InvalidArgumentsException,

@@ -7,7 +7,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.IssueCertificateService;
+import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,7 +36,7 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
     CertificationAuthorityHelper certificationAuthorityHelper;
 
     @Autowired
-    IssueCertificateService issueCertificateService;
+    SignCertificateRequestService signCertificateRequestService;
 
     @Before
     @Override
@@ -72,7 +72,7 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        String certificate = issueCertificateService.issueCertificate(certRequest);
+        String certificate = signCertificateRequestService.signCertificateRequest(certRequest);
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(certificate);
@@ -105,7 +105,7 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        issueCertificateService.issueCertificate(certRequest);
+        signCertificateRequestService.signCertificateRequest(certRequest);
     }
 
     @Test(expected = InvalidArgumentsException.class)
@@ -132,7 +132,7 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
-        issueCertificateService.issueCertificate(certRequest);
+        signCertificateRequestService.signCertificateRequest(certRequest);
     }
 
     @Test(expected = ValidationException.class)
@@ -157,6 +157,6 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, "wrong" + platformOwnerPassword, clientId, csrString);
-        issueCertificateService.issueCertificate(certRequest);
+        signCertificateRequestService.signCertificateRequest(certRequest);
     }
 }
