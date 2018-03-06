@@ -288,6 +288,12 @@ public class ValidationHelper {
 
         // resolving available AAMs in search of the token issuer
         Map<String, AAM> availableAAMs = aamServices.getAvailableAAMs();
+
+        // validate CoreAAM trust
+        if (!certificationAuthorityHelper.getRootCACert()
+                .equals(availableAAMs.get(SecurityConstants.CORE_AAM_INSTANCE_ID).getAamCACertificate().getCertificateString()))
+            throw new ValidationException(ValidationException.CERTIFICATE_MISMATCH);
+
         String issuer = claims.getIssuer();
         // Core does not know such an issuer and therefore this might be a forfeit
         if (!availableAAMs.containsKey(issuer))
@@ -298,7 +304,7 @@ public class ValidationHelper {
 
         // check IPK
         if (!Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(claims.get("ipk"))) {
-            return ValidationStatus.REVOKED_IPK;
+            return ValidationStatus.INVALID_TRUST_CHAIN;
         }
         // TODO use the AAMClient
         // rest check revocation

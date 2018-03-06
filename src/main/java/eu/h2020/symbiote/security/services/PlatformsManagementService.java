@@ -160,8 +160,7 @@ public class PlatformsManagementService {
 
                     // TODO try to improve it in R4 somehow
                     // checking if Interworking interface isn't already used
-                    List<Platform> platformsInRepo = platformRepository.findAll();
-                    for (Platform platformInRepo : platformsInRepo) {
+                    for (Platform platformInRepo : platformRepository.findAll()) {
                         // we check if some has the same II as the one passed
                         if (platformInRepo.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())
                                 // and that is not us!

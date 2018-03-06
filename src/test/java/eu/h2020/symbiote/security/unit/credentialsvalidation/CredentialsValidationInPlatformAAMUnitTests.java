@@ -8,7 +8,6 @@ import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -180,11 +179,10 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     }
 
     @Test
-    public void validateIssuerDiffersDeploymentIdAndInAvailableAAMsButRevoked() throws
+    public void validateRemoteTokenWhichHasIssuerCertificateDifferentFromTheOneFetchedFromCoreAAM() throws
             ValidationException,
             MalformedJWTException {
-        // issuing dummy platform token
-        // acquiring valid token
+        // acquiring valid token from an AAM that is malicious
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<?> loginResponse = dummyCoreAAM.getHomeToken(loginRequest);
@@ -193,7 +191,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
 
         // check if home token is valid
         ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
-        assertEquals(ValidationStatus.REVOKED_IPK, response);
+        assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
 
     @Test
@@ -204,8 +202,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
             KeyStoreException,
             IOException,
             UnrecoverableKeyException,
-            ValidationException,
-            AAMException {
+            ValidationException {
         //setting wrong core AAM url to make it offline
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", "wrong AAM url");
         ReflectionTestUtils.setField(validationHelper, "isOfflineEnough", true);
@@ -242,8 +239,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
             KeyStoreException,
             IOException,
             UnrecoverableKeyException,
-            ValidationException,
-            AAMException {
+            ValidationException {
 
         ReflectionTestUtils.setField(validationHelper, "isOfflineEnough", true);
 

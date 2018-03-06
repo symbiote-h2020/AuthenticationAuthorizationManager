@@ -132,10 +132,8 @@ public class TokenIssuer {
                     }
                     break;
                 case PLATFORM:
-                    // TODO R3 federation, wtd?
                     break;
                 case SMART_SPACE:
-                    // TODO wtd?
                     break;
                 case NULL:
                     throw new JWTCreationException(JWTCreationException.MISCONFIGURED_AAM_DEPLOYMENT_TYPE);
