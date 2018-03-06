@@ -32,7 +32,7 @@ import java.util.Map;
  * @author Mikołaj Dobski (PSNC)
  */
 @RestController
-@Api(value = "/docs/aamservices", description = "Exposes services provided by AAM", produces = "application/json")
+@Api(value = "/docs/aamServices", description = "Exposes services provided by AAM", produces = "application/json")
 public class AAMServicesController implements IAAMServices, IGetComponentCertificate {
 
     private static final Log log = LogFactory.getLog(AAMServicesController.class);

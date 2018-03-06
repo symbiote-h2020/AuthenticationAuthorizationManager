@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Maks Marcinowski (PSNC)
  * @see UsersManagementService
  */
-@Api(value = "/docs/usermanagement", description = "Exposes a service that allows users' management")
+@Api(value = "/docs/manageUsers", description = "Exposes a service that allows users' management")
 @RestController
 public class ManageUsersController implements IManageUsers {
     private static final Log log = LogFactory.getLog(ManageUsersController.class);

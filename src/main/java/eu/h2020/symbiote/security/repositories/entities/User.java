@@ -29,8 +29,6 @@ public class User {
     private Map<String, Certificate> clientCertificates = new HashMap<>();
     private Set<String> ownedServices = new HashSet<>();
 
-    // TODO Release 4 - add OAuth federated ID support
-
     /**
      * Might be used to assign in registration phase user-unique attributes
      */
@@ -45,7 +43,7 @@ public class User {
      * @param clientCertificates user's public certificates
      * @param role               user's role in symbIoTe ecosystem, see @{@link UserRole}
      * @param attributes         used to assign in registration phase user-unique attributes
-     * @param ownedServices     bound to the user
+     * @param ownedServices      bound to the user
      */
     public User(String username,
                 String passwordEncrypted,

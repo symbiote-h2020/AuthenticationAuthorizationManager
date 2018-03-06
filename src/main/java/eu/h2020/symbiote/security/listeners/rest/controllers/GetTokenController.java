@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @see GetTokenService
  */
 @RestController
-@Api(value = "/docs/gettokenservice", description = "Exposes services responsible for providing Tokens")
+@Api(value = "/docs/getTokens", description = "Exposes services responsible for providing Tokens")
 public class GetTokenController implements IGetToken {
 
     private final GetTokenService getTokenService;
