@@ -267,7 +267,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
             IOException {
 
         // prepare the user in db
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
         Map<String, Certificate> clientCertificates = new HashMap<>();
         clientCertificates.put("clientId", new Certificate(CryptoHelper.convertX509ToPEM(userCertificate)));
         userRepository.save(
@@ -316,7 +316,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertTrue(revokedKeys.getRevokedKeysSet().containsAll(certs));
 
         // verify that revoked keys doesn't include a fake cert
-        certs.add(Base64.getEncoder().encodeToString(getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1").getPublicKey().getEncoded()));
+        certs.add(Base64.getEncoder().encodeToString(getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1").getPublicKey().getEncoded()));
         assertFalse(revokedKeys.getRevokedKeysSet().containsAll(certs));
     }
 
@@ -331,7 +331,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
             IOException {
 
         // prepare the user in db
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
         Map<String, Certificate> clientCertificates = new HashMap<>();
         clientCertificates.put("clientId", new Certificate(CryptoHelper.convertX509ToPEM(userCertificate)));
         userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, new HashMap<>(), new HashSet<>()));
@@ -389,7 +389,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         // add a different cert to the repo
         user.getClientCertificates().put(
                 "someId",
-                new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "platform-1-2-c1"))));
+                new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-2-c1"))));
         userRepository.save(user);
 
         // delete user again
@@ -404,7 +404,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertTrue(revokedKeys.getRevokedKeysSet().containsAll(testCertificatesSet));
 
         // verify that revoked keys doesn't include a fake cert
-        testCertificatesSet.add(Base64.getEncoder().encodeToString(getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1").getPublicKey().getEncoded()));
+        testCertificatesSet.add(Base64.getEncoder().encodeToString(getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1").getPublicKey().getEncoded()));
         assertFalse(revokedKeys.getRevokedKeysSet().containsAll(testCertificatesSet));
     }
 

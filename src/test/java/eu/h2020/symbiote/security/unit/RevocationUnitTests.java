@@ -980,7 +980,7 @@ public class RevocationUnitTests extends
                 componentId,
                 new Certificate(
                         CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
-                                "core.p12",
+                                "keystores/core.p12",
                                 "registry-core-1"))));
         componentCertificatesRepository.save(
                 componentCertificate);
@@ -1056,7 +1056,7 @@ public class RevocationUnitTests extends
             UnrecoverableKeyException,
             ValidationException {
         String cert = CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
-                "core.p12",
+                "keystores/core.p12",
                 "registry-core-1"));
         // adding key to revoked repository
         SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne("registry");
@@ -1068,7 +1068,7 @@ public class RevocationUnitTests extends
 
         //register component
         KeyPair keyPair = new KeyPair(CryptoHelper.convertPEMToX509(cert).getPublicKey(), getPrivateKeyTestFromKeystore(
-                "core.p12",
+                "keystores/core.p12",
                 "registry-core-1"));
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier(), keyPair);
         assertNotNull(csrString);
@@ -1100,7 +1100,7 @@ public class RevocationUnitTests extends
                 "registry",
                 new Certificate(
                         CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
-                                "core.p12",
+                                "keystores/core.p12",
                                 "registry-core-1"))));
         componentCertificatesRepository.save(
                 componentCertificate);
@@ -1109,7 +1109,7 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCertificatePEMString(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
-                "core.p12",
+                "keystores/core.p12",
                 "registry-core-1")));
         assertFalse(componentCertificatesRepository.findOne("registry").getCertificate().getCertificateString().isEmpty());
         assertNull(revokedKeysRepository.findOne("registry"));
@@ -1132,7 +1132,7 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCertificatePEMString(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
-                "core.p12",
+                "keystores/core.p12",
                 "registry-core-1")));
         assertNull(componentCertificatesRepository.findOne("registry"));
         assertNull(revokedKeysRepository.findOne("registry"));

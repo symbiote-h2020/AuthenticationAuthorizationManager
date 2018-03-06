@@ -37,7 +37,7 @@ import java.util.HashMap;
 public class DummyPlatformAAM2 {
     private static final Log log = LogFactory.getLog(DummyPlatformAAM2.class);
     private static final String CERTIFICATE_ALIAS = "platform-2-1-c1";
-    private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_2.p12";
+    private static final String CERTIFICATE_LOCATION = "./src/test/resources/keystores/platform_2.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String PATH = "/test/second/paam";
 

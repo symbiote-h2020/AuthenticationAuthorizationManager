@@ -190,12 +190,12 @@ public class TokensIssuingFunctionalTests extends
         assertTrue(userRepository.exists(platformOwnerUsername));
         // issue platform registration
         User user = userRepository.findOne(platformOwnerUsername);
-        X509Certificate certificate = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate certificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
         String dummyPlatformAAMPEMCertString = CryptoHelper.convertX509ToPEM(certificate);
         user.getClientCertificates().put(platformId, new Certificate(dummyPlatformAAMPEMCertString));
         userRepository.save(user);
 
-        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-1-c1"));
+        HomeCredentials homeCredentials = new HomeCredentials(null, platformOwnerUsername, platformId, null, getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1"));
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         String homeToken = aamClient.getHomeToken(loginRequest);
         //verify that JWT was issued for user
@@ -269,10 +269,10 @@ public class TokensIssuingFunctionalTests extends
 
         String platformId = "platform-1";
         //inject platform with PEM Certificate to the database
-        X509Certificate platformAAMCertificate = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate platformAAMCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
         Platform dummyPlatform = new Platform(platformId, serverAddress + "/test", platformInstanceFriendlyName, userRepository.findOne(platformOwnerUsername), new Certificate(CryptoHelper.convertX509ToPEM(platformAAMCertificate)), new HashMap<>());
         platformRepository.save(dummyPlatform);
-        String clientCertificate = CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1"));
+        String clientCertificate = CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1"));
 
         //checking token attributes
         JWTClaims claims = JWTEngine.getClaimsFromToken(dummyHomeToken.getToken());
@@ -395,7 +395,7 @@ public class TokensIssuingFunctionalTests extends
 
         String platformId = "platform-1";
         //inject platform with PEM Certificate to the database
-        X509Certificate platformAAMCertificate = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate platformAAMCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
         Platform dummyPlatform = new Platform(platformId, serverAddress + "/test", platformInstanceFriendlyName, userRepository.findOne(platformOwnerUsername), new Certificate(CryptoHelper.convertX509ToPEM(platformAAMCertificate)), new HashMap<>());
         platformRepository.save(dummyPlatform);
         // making sure the foreignMappingRules are empty

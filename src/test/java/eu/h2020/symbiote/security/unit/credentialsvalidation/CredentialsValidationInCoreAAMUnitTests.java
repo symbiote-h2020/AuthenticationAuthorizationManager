@@ -47,7 +47,6 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.security.auth.x500.X500Principal;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.security.*;
@@ -224,7 +223,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         String platformId = "platform-1";
         User platformOwner = savePlatformOwner();
-        X509Certificate certificate = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate certificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
         String dummyPlatformAAMPEMCertString = CryptoHelper.convertX509ToPEM(certificate);
         Platform dummyPlatform = new Platform(platformId,
                 serverAddress + "/test",
@@ -259,7 +258,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         String platformId = "core-2";
         //inject platform PEM Certificate to the database
-        X509Certificate certificate = getCertificateFromTestKeystore("core.p12", platformId);
+        X509Certificate certificate = getCertificateFromTestKeystore("keystores/core.p12", platformId);
         String dummyPlatformAAMPEMCertString = CryptoHelper.convertX509ToPEM(certificate);
 
         String issuer = JWTEngine.getClaims(dummyHomeToken.getToken()).getIssuer();
@@ -300,8 +299,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         String platformId = "core-2";
         //inject platform PEM Certificate to the database
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/core.p12"), "1234567".toCharArray());
-        X509Certificate certificate = (X509Certificate) ks.getCertificate(platformId);
+        X509Certificate certificate = getCertificateFromTestKeystore("keystores/platform_1.p12", platformId);
         StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
         JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);
         pemWriter.writeObject(certificate);
@@ -354,7 +352,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         User platformOwner = savePlatformOwner();
         //inject dummy platform with platform PEM Certificate to the database
-        X509Certificate certificate = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate certificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
         String dummyPlatformAAMPEMCertString = CryptoHelper.convertX509ToPEM(certificate);
         Platform dummyPlatform = new Platform("platform-1",
                 serverAddress + "/test",
@@ -633,7 +631,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         User platformOwner = savePlatformOwner();
         //inject dummy platform with platform PEM Certificate to the database
-        X509Certificate certificate = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate certificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
         String dummyPlatformAAMPEMCertString = CryptoHelper.convertX509ToPEM(certificate);
         Platform dummyPlatform = new Platform("platform-1",
                 serverAddress + "/test",
@@ -706,7 +704,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         saveUser();
         User platformOwner = savePlatformOwner();
         //inject dummy platform with platform PEM Certificate to the database
-        X509Certificate certificate = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate certificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
         String dummyPlatformAAMPEMCertString = CryptoHelper.convertX509ToPEM(certificate);
         Platform dummyPlatform = new Platform(platformId,
                 serverAddress + "/test/conn_err",
@@ -732,8 +730,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             KeyStoreException,
             NoSuchProviderException, UnrecoverableKeyException {
 
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
@@ -743,7 +741,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 100000l,
                 "bad_issuer", // mismatch token ISS
                 properAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-1-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
         );
 
         assertEquals(
@@ -765,9 +763,9 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             KeyStoreException,
             NoSuchProviderException, UnrecoverableKeyException {
 
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
-        X509Certificate wrongAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-2-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
+        X509Certificate wrongAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-2-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
@@ -777,7 +775,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 100000l,
                 "platform-1",
                 wrongAAMCert.getPublicKey(), // mismatch token IPK
-                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-2-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-2-c1")
         );
 
         assertEquals(
@@ -798,8 +796,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             KeyStoreException,
             NoSuchProviderException, UnrecoverableKeyException {
 
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
@@ -809,7 +807,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 100000l,
                 "platform-1",
                 properAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-2-c1") // token signature mismatch
+                getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-2-c1") // token signature mismatch
         );
 
         assertEquals(
@@ -830,8 +828,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             KeyStoreException,
             NoSuchProviderException, UnrecoverableKeyException {
 
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
@@ -841,7 +839,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 100000l,
                 "platform-1",
                 properAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-1-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
         );
 
         assertEquals(
@@ -863,8 +861,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             KeyStoreException,
             NoSuchProviderException, UnrecoverableKeyException {
 
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "bad_token_sub", // mismatch token SUB
@@ -874,7 +872,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 100000l,
                 "platform-1",
                 properAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-1-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
         );
 
         assertEquals(
@@ -895,9 +893,9 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             KeyStoreException,
             NoSuchProviderException, UnrecoverableKeyException {
 
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
-        X509Certificate wrongAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-2-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
+        X509Certificate wrongAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-2-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
@@ -907,7 +905,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 100000l,
                 "platform-1",
                 properAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-1-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
         );
 
         assertEquals(
@@ -929,8 +927,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             KeyStoreException,
             IOException, UnrecoverableKeyException {
 
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
@@ -940,7 +938,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 100000l,
                 "platform-1",
                 properAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-1-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
         );
 
         assertEquals(
@@ -969,9 +967,9 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             NoSuchProviderException,
             KeyStoreException,
             IOException, UnrecoverableKeyException {
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
-        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("platform_2.p12", "platform-2-1-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
+        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("keystores/platform_2.p12", "platform-2-1-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId@wrong-platform-id",
@@ -981,7 +979,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 100000l,
                 "platform-2",
                 tokenIssuerAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_2.p12", "platform-2-1-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_2.p12", "platform-2-1-c1")
         );
 
         assertEquals(
@@ -1002,9 +1000,9 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             NoSuchProviderException,
             KeyStoreException,
             IOException, UnrecoverableKeyException {
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
-        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("platform_2.p12", "platform-2-1-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
+        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("keystores/platform_2.p12", "platform-2-1-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId@platform-1",
@@ -1014,7 +1012,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 100000l,
                 "platform-2",
                 tokenIssuerAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_2.p12", "platform-2-1-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_2.p12", "platform-2-1-c1")
         );
 
         assertEquals(
@@ -1051,8 +1049,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         User platformOwner = savePlatformOwner();
         //inject dummy platform with platform PEM Certificate to the database
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
         // registering the platform to the Core AAM so it will be available for token revocation
         String dummyPlatformAAMPEMCertString = CryptoHelper.convertX509ToPEM(properAAMCert);
         Platform dummyPlatform = new Platform("platform-1",
@@ -1073,7 +1071,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 100000l,
                 "platform-1",
                 properAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-1-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
         );
         Token homeToken = new Token(testHomeToken);
         assertFalse(revokedTokensRepository.exists(homeToken.getId()));
@@ -1111,7 +1109,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             MalformedJWTException,
             ClassNotFoundException {
         // issuing dummy platform token
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         ResponseEntity<?> loginResponse = dummyPlatformAAM.getHomeToken(loginRequest);

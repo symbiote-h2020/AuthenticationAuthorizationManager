@@ -40,7 +40,7 @@ import static eu.h2020.symbiote.security.services.helpers.TokenIssuer.buildAutho
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.times;
 
-@TestPropertySource("/cache.properties")
+@TestPropertySource("/core_cache.properties")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class CacheTests extends AbstractAAMTestSuite {
 
@@ -62,7 +62,7 @@ public class CacheTests extends AbstractAAMTestSuite {
         Thread.sleep(1100);
         User platformOwner = savePlatformOwner();
         addTestUserWithClientCertificateToRepository();
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
         Platform dummyPlatform = new Platform(
                 "platform-1",
                 serverAddress + "/test",
@@ -121,8 +121,8 @@ public class CacheTests extends AbstractAAMTestSuite {
             UnrecoverableKeyException {
 
 
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
@@ -132,7 +132,7 @@ public class CacheTests extends AbstractAAMTestSuite {
                 100000l,
                 "platform-1",
                 properAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-1-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
         );
 
         // valid remote home token chain, token will be cached

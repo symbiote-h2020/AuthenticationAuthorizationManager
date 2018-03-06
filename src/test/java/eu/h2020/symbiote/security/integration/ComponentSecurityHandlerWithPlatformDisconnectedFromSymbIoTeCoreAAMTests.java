@@ -37,7 +37,7 @@ import static org.mockito.Mockito.doReturn;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 @TestPropertySource("/platform_no_ssl.properties")
 public class ComponentSecurityHandlerWithPlatformDisconnectedFromSymbIoTeCoreAAMTests extends AbstractAAMTestSuite {
-    private final String KEY_STORE_PATH = "./src/test/resources/new.p12";
+    private final String KEY_STORE_PATH = "./src/test/resources/keystores/new.p12";
     private final String KEY_STORE_PASSWORD = "1234567";
 
     @LocalServerPort

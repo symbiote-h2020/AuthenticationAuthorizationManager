@@ -46,6 +46,11 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
+    public void smartSpaceAAMDeploymentTypeSuccess() {
+        assertEquals(IssuingAuthorityType.SMART_SPACE, certificationAuthorityHelper.getDeploymentType());
+    }
+
+    @Test
     public void getPlatformAgentCertificateSuccess() throws
             IOException,
             NoSuchAlgorithmException,

@@ -304,7 +304,7 @@ public class CredentialsValidationFunctionalTests extends
         assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
         //inject platform PEM Certificate to the database
         KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
+        ks.load(new FileInputStream("./src/test/resources/keystores/platform_1.p12"), "1234567".toCharArray());
 
         X509Certificate platformAAMCertificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
 

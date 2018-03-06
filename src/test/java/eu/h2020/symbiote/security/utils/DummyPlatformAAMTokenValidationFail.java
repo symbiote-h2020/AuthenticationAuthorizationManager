@@ -40,7 +40,7 @@ public class DummyPlatformAAMTokenValidationFail {
     private static final Log log = LogFactory.getLog(DummyPlatformAAMTokenValidationFail.class);
     private static final String PLATFORM_CERTIFICATE_ALIAS = "platform-1-1-c1";
     private static final String P1_CLIENT_CERTIFICATE_CN = "userId@clientId@platform-1";
-    private static final String CERTIFICATE_LOCATION = "./src/test/resources/platform_1.p12";
+    private static final String CERTIFICATE_LOCATION = "./src/test/resources/keystores/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String PATH = "/test/failvalidation/paam";
 
@@ -61,7 +61,7 @@ public class DummyPlatformAAMTokenValidationFail {
     public ResponseEntity<?> getComponentCertificate(String componentIdentifier, String platformIdentifier) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
         Certificate cert = new Certificate(
                 CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
-                        "core.p12",
+                        "keystores/core.p12",
                         "registry-core-1")));
 
         return new ResponseEntity<>(cert.getCertificateString(), HttpStatus.OK);

@@ -107,7 +107,7 @@ public class OtherListenersFunctionalTests extends
                 componentId,
                 new Certificate(
                         CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
-                                "core.p12",
+                                "keystores/core.p12",
                                 "registry-core-1"))));
         componentCertificatesRepository.save(
                 componentCertificate);
@@ -144,7 +144,7 @@ public class OtherListenersFunctionalTests extends
         // issue platform registration
         Platform platform = new Platform(preferredPlatformId, platformInterworkingInterfaceAddress, platformInstanceFriendlyName, platformOwner, new Certificate(), new HashMap<>());
         // inject platform AAM Cert
-        Certificate platformAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1")));
+        Certificate platformAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1")));
         platform.setPlatformAAMCertificate(platformAAMCertificate);
         // save the certs into the repo
         platformRepository.save(platform);
@@ -152,7 +152,7 @@ public class OtherListenersFunctionalTests extends
         // issue smartSpace registration
         SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceGateWayAddress, smartSpaceSiteLocalAddress, exposedIIAddress, smartSpaceInstanceFriendlyName, new Certificate(), new HashMap<>(), smartSpaceOwner);
         // inject platform AAM Cert
-        Certificate smartSpaceAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1")));
+        Certificate smartSpaceAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1")));
         smartSpace.setAamCertificate(smartSpaceAAMCertificate);
         // save the certs into the repo
         smartSpaceRepository.save(smartSpace);

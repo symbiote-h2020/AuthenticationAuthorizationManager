@@ -29,7 +29,7 @@ import static org.junit.Assert.assertNotNull;
 
 @TestPropertySource("/core_long_validity.properties")
 public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSuite {
-    private final String KEY_STORE_PATH = "./src/test/resources/new.p12";
+    private final String KEY_STORE_PATH = "./src/test/resources/keystores/new.p12";
     private final String KEY_STORE_PASSWORD = "1234567";
     @Autowired
     private AAMServices aamServices;

@@ -158,12 +158,12 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
                 componentId,
                 new Certificate(
                         CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
-                                "core.p12",
+                                "keystores/core.p12",
                                 "registry-core-1"))));
         componentCertificatesRepository.save(
                 componentCertificate);
         HomeCredentials homeCredentials = new HomeCredentials(null, SecurityConstants.CORE_AAM_INSTANCE_ID, componentId, null, getPrivateKeyTestFromKeystore(
-                "core.p12",
+                "keystores/core.p12",
                 "registry-core-1"));
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
 
@@ -189,7 +189,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
                 componentId,
                 new Certificate(
                         CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
-                                "core.p12",
+                                "keystores/core.p12",
                                 "registry-core-1"))));
         componentCertificatesRepository.save(
                 componentCertificate);
@@ -265,7 +265,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
         User platformOwner = savePlatformOwner();
         //inject dummy platform with platform PEM Certificate to the database
-        X509Certificate certificate = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate certificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
         String dummyPlatformAAMPEMCertString = CryptoHelper.convertX509ToPEM(certificate);
         Platform dummyPlatform = new Platform(platformId,
                 serverAddress + "/test",

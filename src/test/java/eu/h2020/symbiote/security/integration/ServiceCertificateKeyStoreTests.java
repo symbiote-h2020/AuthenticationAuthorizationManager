@@ -28,7 +28,7 @@ import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
 
 @TestPropertySource("/core.properties")
 public class ServiceCertificateKeyStoreTests extends AbstractAAMTestSuite {
-    private final String KEY_STORE_PATH = "./src/test/resources/new.p12";
+    private final String KEY_STORE_PATH = "./src/test/resources/keystores/new.p12";
     private final String KEY_STORE_PASSWORD = "1234567";
 
 

@@ -41,7 +41,7 @@ import static org.junit.Assert.*;
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 @TestPropertySource("/platform.properties")
 public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTestSuite {
-    private final String KEY_STORE_PATH = "./src/test/resources/new.p12";
+    private final String KEY_STORE_PATH = "./src/test/resources/keystores/new.p12";
     private final String KEY_STORE_PASSWORD = "1234567";
     private String oldCoreAAMAddress;
     @Autowired

@@ -29,9 +29,11 @@ import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.*;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
@@ -164,9 +166,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         assertFalse(revokedKeysRepository.exists(username));
 
         // injection of expired certificate
-        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/platform_1.p12"), "1234567".toCharArray());
-        X509Certificate cert = (X509Certificate) ks.getCertificate("platform-1-1-exp-c1");
+        X509Certificate cert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-exp-c1");
         Certificate certificate = new Certificate(CryptoHelper.convertX509ToPEM(cert));
         user.getClientCertificates().put(clientId, certificate);
         userRepository.save(user);
@@ -209,8 +209,8 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         //setting wrong core AAM url to make it offline
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", "wrong AAM url");
         ReflectionTestUtils.setField(validationHelper, "isOfflineEnough", true);
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
@@ -220,7 +220,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 100000l,
                 "platform-1",
                 properAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-1-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
         );
 
         // valid remote home token chain
@@ -247,8 +247,8 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
 
         ReflectionTestUtils.setField(validationHelper, "isOfflineEnough", true);
 
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId",
@@ -258,7 +258,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 100000l,
                 "platform-1",
                 properAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_1.p12", "platform-1-1-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
         );
 
         // valid remote home token chain
@@ -283,9 +283,9 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         //setting wrong core AAM url to make it offline
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", "wrong AAM url");
         ReflectionTestUtils.setField(validationHelper, "isOfflineEnough", true);
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
-        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("platform_2.p12", "platform-2-1-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
+        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("keystores/platform_2.p12", "platform-2-1-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId@platform-1",
@@ -295,7 +295,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 100000l,
                 "platform-2",
                 tokenIssuerAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_2.p12", "platform-2-1-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_2.p12", "platform-2-1-c1")
         );
 
         // valid remote foreign token chain
@@ -333,9 +333,9 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
 
         //set dummy Core AAM to return valid platform 2 certificate
         dummyCoreAAM.addPlatform2Certificate();
-        X509Certificate userCertificate = getCertificateFromTestKeystore("platform_1.p12", "userid@clientid@platform-1");
-        X509Certificate properAAMCert = getCertificateFromTestKeystore("platform_1.p12", "platform-1-1-c1");
-        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("platform_2.p12", "platform-2-1-c1");
+        X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
+        X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
+        X509Certificate tokenIssuerAAMCert = getCertificateFromTestKeystore("keystores/platform_2.p12", "platform-2-1-c1");
 
         String testHomeToken = buildAuthorizationToken(
                 "userId@clientId@platform-1",
@@ -345,7 +345,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 100000l,
                 "platform-2",
                 tokenIssuerAAMCert.getPublicKey(),
-                getPrivateKeyTestFromKeystore("platform_2.p12", "platform-2-1-c1")
+                getPrivateKeyTestFromKeystore("keystores/platform_2.p12", "platform-2-1-c1")
         );
 
         // valid remote foreign token chain
