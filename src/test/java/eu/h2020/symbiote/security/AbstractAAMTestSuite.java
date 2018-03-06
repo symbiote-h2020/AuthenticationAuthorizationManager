@@ -32,8 +32,6 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.SimpleMessageConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -121,25 +119,7 @@ public abstract class AbstractAAMTestSuite {
     protected String serverAddress;
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     protected String coreInterfaceAddress;
-    @Value("${rabbit.queue.manage.user.request}")
-    protected String userManagementRequestQueue;
-    @Value("${rabbit.routingKey.manage.user.request}")
-    protected String userManagementRequestRoutingKey;
 
-    @Value("${rabbit.queue.manage.platform.request:defaultOverridenBySpringConfigInCoreEnvironment}")
-    protected String platformManagementRequestQueue;
-    @Value("${rabbit.routingKey.manage.platform.request:defaultOverridenBySpringConfigInCoreEnvironment}")
-    protected String platformManagementRoutingKey;
-
-    @Value("${rabbit.queue.manage.smartspace.request:defaultOverridenBySpringConfigInCoreEnvironment}")
-    protected String smartSpaceManagementRequestQueue;
-    @Value("${rabbit.routingKey.manage.smartspace.request:defaultOverridenBySpringConfigInCoreEnvironment}")
-    protected String smartSpaceManagementRoutingKey;
-
-    @Value("${rabbit.queue.manage.revocation.request:defaultOverridenBySpringConfigInCoreEnvironment}")
-    protected String revocationRequestQueue;
-    @Value("${rabbit.queue.validate.request}")
-    protected String validateRequestQueue;
     @Value("${aam.deployment.owner.username}")
     protected String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
@@ -160,12 +140,6 @@ public abstract class AbstractAAMTestSuite {
     protected Long componentCertificateCacheExpirationTime;
     @Value("${aam.cache.availableAAMs.expireSeconds}")
     protected Long availableAAMsCacheExpirationTime;
-    @Value("${rabbit.host}")
-    private String rabbitHost;
-    @Value("${rabbit.username}")
-    private String rabbitUsername;
-    @Value("${rabbit.password}")
-    private String rabbitPassword;
 
 
     @Autowired
@@ -174,13 +148,6 @@ public abstract class AbstractAAMTestSuite {
     protected IAAMClient aamClient;
     @LocalServerPort
     private int port;
-
-    @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
-        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-        rabbitTemplate.setMessageConverter(simpleMessageConverter());
-        return rabbitTemplate;
-    }
 
     @Bean
     public SimpleMessageConverter simpleMessageConverter() {

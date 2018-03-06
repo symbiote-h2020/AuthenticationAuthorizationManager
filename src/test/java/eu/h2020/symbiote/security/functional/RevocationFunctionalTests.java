@@ -2,7 +2,7 @@ package eu.h2020.symbiote.security.functional;
 
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
-import eu.h2020.symbiote.security.AbstractAAMTestSuite;
+import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
@@ -43,7 +43,7 @@ import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
 public class RevocationFunctionalTests extends
-        AbstractAAMTestSuite {
+        AbstractAAMAMQPTestSuite {
 
     private final String recoveryMail = "null@dev.null";
     private final String platformId = "testPlatformId";

@@ -123,8 +123,8 @@ public class ServiceCertificateKeyStoreTests extends AbstractAAMTestSuite {
             assertNotNull(trustStore.getCertificate("aam_cert"));
         }
         //cleanup
-        File file = new File(KEY_STORE_PATH);
-        assertTrue(file.delete());
+        // File file = new File(KEY_STORE_PATH);
+        // assertTrue(file.delete());
     }
 
 }

@@ -25,7 +25,7 @@ import static org.junit.Assert.assertEquals;
  *
  * @author Piotr Kicki (PSNC)
  */
-@TestPropertySource("/platformExpired.properties")
+@TestPropertySource("/platform_expired.properties")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class CredentialsValidationInPlatformAAMWithExpiredCertificateUnitTests extends
         AbstractAAMTestSuite {

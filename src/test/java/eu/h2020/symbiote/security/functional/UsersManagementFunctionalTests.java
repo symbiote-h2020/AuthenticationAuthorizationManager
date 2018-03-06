@@ -3,7 +3,7 @@ package eu.h2020.symbiote.security.functional;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.security.AbstractAAMTestSuite;
+import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
@@ -35,7 +35,7 @@ import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
 public class UsersManagementFunctionalTests extends
-        AbstractAAMTestSuite {
+        AbstractAAMAMQPTestSuite {
 
     private static Log log = LogFactory.getLog(OtherListenersFunctionalTests.class);
     private final String federatedOAuthId = "federatedOAuthId";

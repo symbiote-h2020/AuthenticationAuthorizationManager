@@ -18,7 +18,7 @@ import java.io.File;
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertEquals;
 
-@TestPropertySource("/long_validity_core.properties")
+@TestPropertySource("/core_long_validity.properties")
 public class ClientSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSuite {
     private final String KEY_STORE_PATH = "./src/test/resources/new.p12";
     private final String KEY_STORE_PASSWORD = "1234567";

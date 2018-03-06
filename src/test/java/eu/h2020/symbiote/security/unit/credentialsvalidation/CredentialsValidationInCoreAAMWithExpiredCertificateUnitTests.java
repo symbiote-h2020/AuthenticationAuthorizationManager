@@ -19,7 +19,7 @@ import org.springframework.test.context.TestPropertySource;
 import static org.junit.Assert.assertEquals;
 
 
-@TestPropertySource("/coreExpired.properties")
+@TestPropertySource("/core_expired.properties")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
 public class CredentialsValidationInCoreAAMWithExpiredCertificateUnitTests extends AbstractAAMTestSuite {
 
