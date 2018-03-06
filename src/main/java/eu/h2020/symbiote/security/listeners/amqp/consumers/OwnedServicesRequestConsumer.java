@@ -30,15 +30,15 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * RabbitMQ Consumer implementation used for providing owned platform instances details for the platform owners
+ * RabbitMQ Consumer implementation used for providing owned services details for the service owners
  * through Administration module
  * <p>
  */
 @Profile("core")
 @Component
-public class OwnedPlatformDetailsRequestConsumerService {
+public class OwnedServicesRequestConsumer {
 
-    private static Log log = LogFactory.getLog(OwnedPlatformDetailsRequestConsumerService.class);
+    private static Log log = LogFactory.getLog(OwnedServicesRequestConsumer.class);
     @Autowired
     private UserRepository userRepository;
     @Value("${aam.deployment.owner.username}")
@@ -87,6 +87,8 @@ public class OwnedPlatformDetailsRequestConsumerService {
                 if (!administratorCredentials.getUsername().equals(adminUsername)
                         || !administratorCredentials.getPassword().equals(adminPassword))
                     throw new UserManagementException(HttpStatus.UNAUTHORIZED);
+
+                // TODO change to include all services
 
                 // preparing collections
                 Set<OwnedPlatformDetails> ownedPlatformDetailsSet = new HashSet<>();

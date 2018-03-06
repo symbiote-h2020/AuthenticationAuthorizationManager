@@ -20,9 +20,9 @@ import java.util.stream.Collectors;
 
 @Profile("platform")
 @Component
-public class FederationManagementRequestConsumersService {
+public class FederationManagementRequestConsumer {
 
-    private static Log log = LogFactory.getLog(FederationManagementRequestConsumersService.class);
+    private static Log log = LogFactory.getLog(FederationManagementRequestConsumer.class);
     @Autowired
     private FederationsRepository federationsRepository;
 

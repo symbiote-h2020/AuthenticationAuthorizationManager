@@ -2,9 +2,10 @@ package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
-import eu.h2020.symbiote.security.services.CredentialsValidationService;
+import eu.h2020.symbiote.security.communication.payloads.SmartSpaceManagementRequest;
+import eu.h2020.symbiote.security.services.SmartSpacesManagementService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -20,19 +21,22 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 /**
- * RabbitMQ Consumer implementation used for credentials validation actions
+ * RabbitMQ Consumer implementation used for Smart Space's management actions
+ *
+ * @author Jakub Toczek (PSNC)
+ * <p>
  */
-@Profile({"core", "platform"})
+@Profile("core")
 @Component
-public class ValidationRequestConsumerService {
+public class SmartSpaceManagementRequestConsumer {
 
-    private static Log log = LogFactory.getLog(ValidationRequestConsumerService.class);
+    private static Log log = LogFactory.getLog(SmartSpaceManagementRequestConsumer.class);
     @Autowired
-    private CredentialsValidationService credentialsValidationService;
+    private SmartSpacesManagementService smartSpacesManagementService;
 
     @RabbitListener(bindings = @QueueBinding(
             value = @Queue(
-                    value = "${rabbit.queue.validate.request}",
+                    value = "${rabbit.queue.manage.smartspace.request}",
                     durable = "${rabbit.exchange.aam.durable}",
                     autoDelete = "${rabbit.exchange.aam.autodelete}",
                     exclusive = "false"),
@@ -43,10 +47,10 @@ public class ValidationRequestConsumerService {
                     autoDelete = "${rabbit.exchange.aam.autodelete}",
                     internal = "${rabbit.exchange.aam.internal}",
                     type = "${rabbit.exchange.aam.type}"),
-            key = "${rabbit.routingKey.validate.request}"))
-    public byte[] validation(byte[] body) {
+            key = "${rabbit.routingKey.manage.smartspace.request}"))
+
+    public byte[] smartSpaceManagement(byte[] body) {
         try {
-            log.debug("[x] Received Validation Request");
             String message;
             ObjectMapper om = new ObjectMapper();
             try {
@@ -56,23 +60,17 @@ public class ValidationRequestConsumerService {
                 return om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
             }
 
-            ValidationRequest validationRequest;
-
             try {
-                validationRequest = om.readValue(message, ValidationRequest.class);
+                SmartSpaceManagementRequest request = om.readValue(message, SmartSpaceManagementRequest.class);
+                log.debug("[x] Received SmartSpace Management Request for: " + request.getServiceOwnerCredentials().getUsername());
+                return om.writeValueAsBytes(smartSpacesManagementService.authManage(request));
+            } catch (SecurityException e) {
+                log.error(e);
+                return om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), e.getStatusCode().value()));
             } catch (IOException e) {
                 log.error(e);
                 return om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
             }
-
-            return om.writeValueAsBytes(credentialsValidationService.validate(
-                    validationRequest.getToken(),
-                    validationRequest.getClientCertificate(),
-                    validationRequest.getClientCertificateSigningAAMCertificate(),
-                    validationRequest.getForeignTokenIssuingAAMCertificate()
-            ));
-
-
         } catch (JsonProcessingException e) {
             log.error("Couldn't convert response to byte[]");
             return new ErrorResponseContainer(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()).toJson().getBytes();

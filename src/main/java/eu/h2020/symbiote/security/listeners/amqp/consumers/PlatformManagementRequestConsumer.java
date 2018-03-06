@@ -4,8 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.communication.payloads.SmartSpaceManagementRequest;
-import eu.h2020.symbiote.security.services.SmartSpacesManagementService;
+import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
+import eu.h2020.symbiote.security.services.PlatformsManagementService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -21,22 +21,22 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 /**
- * RabbitMQ Consumer implementation used for Smart Spaces' management actions
+ * RabbitMQ Consumer implementation used for Platforms' Registration actions
  *
- * @author Jakub Toczek (PSNC)
+ * @author Maksymilian Marcinowski (PSNC)
  * <p>
  */
 @Profile("core")
 @Component
-public class SmartSpacesManagementRequestConsumerService {
+public class PlatformManagementRequestConsumer {
 
-    private static Log log = LogFactory.getLog(SmartSpacesManagementRequestConsumerService.class);
+    private static Log log = LogFactory.getLog(PlatformManagementRequestConsumer.class);
     @Autowired
-    private SmartSpacesManagementService smartSpacesManagementService;
+    private PlatformsManagementService platformsManagementService;
 
     @RabbitListener(bindings = @QueueBinding(
             value = @Queue(
-                    value = "${rabbit.queue.manage.smartspace.request}",
+                    value = "${rabbit.queue.manage.platform.request}",
                     durable = "${rabbit.exchange.aam.durable}",
                     autoDelete = "${rabbit.exchange.aam.autodelete}",
                     exclusive = "false"),
@@ -47,9 +47,9 @@ public class SmartSpacesManagementRequestConsumerService {
                     autoDelete = "${rabbit.exchange.aam.autodelete}",
                     internal = "${rabbit.exchange.aam.internal}",
                     type = "${rabbit.exchange.aam.type}"),
-            key = "${rabbit.routingKey.manage.smartspace.request}"))
+            key = "${rabbit.routingKey.manage.platform.request}"))
 
-    public byte[] smartSpaceManagement(byte[] body) {
+    public byte[] platformManagement(byte[] body) {
         try {
             String message;
             ObjectMapper om = new ObjectMapper();
@@ -61,9 +61,9 @@ public class SmartSpacesManagementRequestConsumerService {
             }
 
             try {
-                SmartSpaceManagementRequest request = om.readValue(message, SmartSpaceManagementRequest.class);
-                log.debug("[x] Received SmartSpace Management Request for: " + request.getServiceOwnerCredentials().getUsername());
-                return om.writeValueAsBytes(smartSpacesManagementService.authManage(request));
+                PlatformManagementRequest request = om.readValue(message, PlatformManagementRequest.class);
+                log.debug("[x] Received Platform Management Request for: " + request.getPlatformOwnerCredentials().getUsername());
+                return om.writeValueAsBytes(platformsManagementService.authManage(request));
             } catch (SecurityException e) {
                 log.error(e);
                 return om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), e.getStatusCode().value()));

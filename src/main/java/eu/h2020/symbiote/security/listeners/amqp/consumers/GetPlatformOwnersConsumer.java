@@ -4,10 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.communication.payloads.LocalAttributesManagementRequest;
-import eu.h2020.symbiote.security.repositories.LocalUsersAttributesRepository;
-import eu.h2020.symbiote.security.repositories.entities.Attribute;
+import eu.h2020.symbiote.security.communication.payloads.GetPlatformOwnersRequest;
+import eu.h2020.symbiote.security.communication.payloads.GetPlatformOwnersResponse;
+import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -23,23 +25,19 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
-import java.util.Map;
+
 
 /**
- * Consumer service responsible for Local Attributes Management.
- * To work, LocalAttributesManagementRequest is required.
- * As a return, actual Map<String,String> of LocalAttributes are sent (in case of WRITE operation - after the replacement).
- * In case of error, new ErrorResponseContainer is returned.
- *
- * @author Jakub Toczek
+ * RabbitMQ Consumer implementation used to provide names of owners of given platforms
+ * <p>
  */
-@Profile({"core", "platform"})
+@Profile("core")
 @Component
-public class LocalAttributesManagementRequestConsumerService {
+public class GetPlatformOwnersConsumer {
 
-    private static Log log = LogFactory.getLog(LocalAttributesManagementRequestConsumerService.class);
+    private static Log log = LogFactory.getLog(OwnedServicesRequestConsumer.class);
     @Autowired
-    private LocalUsersAttributesRepository localUsersAttributesRepository;
+    private PlatformRepository platformRepository;
     @Value("${aam.deployment.owner.username}")
     private String adminUsername;
     @Value("${aam.deployment.owner.password}")
@@ -47,7 +45,7 @@ public class LocalAttributesManagementRequestConsumerService {
 
     @RabbitListener(bindings = @QueueBinding(
             value = @Queue(
-                    value = "${rabbit.queue.manage.attributes}",
+                    value = "${rabbit.queue.get.platform.owners.names:defaultOverridenBySpringConfigInCoreEnvironment}",
                     durable = "${rabbit.exchange.aam.durable}",
                     autoDelete = "${rabbit.exchange.aam.autodelete}",
                     exclusive = "false"),
@@ -58,12 +56,13 @@ public class LocalAttributesManagementRequestConsumerService {
                     autoDelete = "${rabbit.exchange.aam.autodelete}",
                     internal = "${rabbit.exchange.aam.internal}",
                     type = "${rabbit.exchange.aam.type}"),
-            key = "${rabbit.routingKey.manage.attributes}"))
-    public byte[] localAttributesManagementRequest(byte[] body) {
+            key = "${rabbit.routingKey.get.platform.owners.names:defaultOverridenBySpringConfigInCoreEnvironment}"))
+    public byte[] getPlatformOwnersNames(byte[] body) {
+
         try {
-            log.debug("[x] Received Local Attributes Management Request");
-            String message;
+            log.debug("[x] Received Platform Owners Names Request");
             byte[] response;
+            String message;
             ObjectMapper om = new ObjectMapper();
             try {
                 message = new String(body, "UTF-8");
@@ -73,48 +72,38 @@ public class LocalAttributesManagementRequestConsumerService {
                 return response;
             }
 
-            LocalAttributesManagementRequest request;
-
             try {
-                request = om.readValue(message, LocalAttributesManagementRequest.class);
+                GetPlatformOwnersRequest platformOwnersRequest = om.readValue(message, GetPlatformOwnersRequest.class);
+                Credentials administratorCredentials = platformOwnersRequest.getAdministratorCredentials();
 
-
-                if (request.getAdminCredentials() == null)
+                // Request should contain Administrator credentials as well as at least a set of identifiers to look for
+                if (administratorCredentials == null || platformOwnersRequest.getPlatformsIdentifiers() == null)
                     throw new InvalidArgumentsException();
-                // and if they don't match the admin credentials from properties
-                if (!request.getAdminCredentials().getUsername().equals(adminUsername)
-                        || !request.getAdminCredentials().getPassword().equals(adminPassword))
+
+                if (!administratorCredentials.getUsername().equals(adminUsername)
+                        || !administratorCredentials.getPassword().equals(adminPassword))
                     throw new UserManagementException(HttpStatus.UNAUTHORIZED);
 
-                switch (request.getOperationType()) {
-                    case READ:
-                        Map<String, String> localAttributes = new HashMap<>();
-                        for (Attribute attr : localUsersAttributesRepository.findAll()) {
-                            localAttributes.put(attr.getKey(), attr.getValue());
-                        }
-                        response = om.writeValueAsBytes(localAttributes);
-                        break;
-                    case WRITE:
-                        localUsersAttributesRepository.deleteAll();
-                        for (Map.Entry<String, String> entry : request.getAttributes().entrySet()) {
-                            localUsersAttributesRepository.save(new Attribute(entry.getKey(), entry.getValue()));
-                        }
-                        response = om.writeValueAsBytes(request.getAttributes());
-                        break;
-                    default:
-                        throw new InvalidArgumentsException();
+                GetPlatformOwnersResponse foundPlatformOwners = new GetPlatformOwnersResponse(new HashMap<>(), HttpStatus.OK);
+
+                for (String platformID : platformOwnersRequest.getPlatformsIdentifiers()) {
+                    Platform foundPlatform = platformRepository.findOne(platformID);
+                    if (foundPlatform != null)
+                        foundPlatformOwners.getplatformsOwners().put(platformID, foundPlatform.getPlatformOwner().getUsername());
                 }
-            } catch (InvalidArgumentsException | UserManagementException e) {
+                response = om.writeValueAsBytes(foundPlatformOwners);
+
+            } catch (UserManagementException | InvalidArgumentsException e) {
                 log.error(e);
-                response = om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), e.getStatusCode().value()));
+                response = om.writeValueAsBytes(new GetPlatformOwnersResponse(new HashMap<>(), HttpStatus.UNAUTHORIZED));
                 return response;
             } catch (IOException e) {
                 log.error(e);
                 response = om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
                 return response;
             }
-            return response;
 
+            return response;
 
         } catch (JsonProcessingException e) {
             log.error("Couldn't convert response to byte[]");

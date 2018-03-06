@@ -28,9 +28,9 @@ import java.io.UnsupportedEncodingException;
  */
 @Profile({"core", "platform"})
 @Component
-public class UserManagementRequestConsumerService {
+public class UserManagementRequestConsumer {
 
-    private static Log log = LogFactory.getLog(UserManagementRequestConsumerService.class);
+    private static Log log = LogFactory.getLog(UserManagementRequestConsumer.class);
     @Autowired
     private UsersManagementService usersManagementService;
 

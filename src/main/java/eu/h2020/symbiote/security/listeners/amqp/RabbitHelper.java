@@ -1,4 +1,4 @@
-package eu.h2020.symbiote.security.listeners;
+package eu.h2020.symbiote.security.listeners.amqp;
 
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
@@ -11,15 +11,15 @@ import org.springframework.stereotype.Component;
 
 @Profile({"core", "platform"})
 @Component
-public class RabbitInitialization {
+public class RabbitHelper {
 
     private final String rabbitHost;
     private final String rabbitUsername;
     private final String rabbitPassword;
 
-    public RabbitInitialization(@Value("${rabbit.host}") String rabbitHost,
-                                @Value("${rabbit.username}") String rabbitUsername,
-                                @Value("${rabbit.password}") String rabbitPassword) {
+    public RabbitHelper(@Value("${rabbit.host}") String rabbitHost,
+                        @Value("${rabbit.username}") String rabbitUsername,
+                        @Value("${rabbit.password}") String rabbitPassword) {
         this.rabbitHost = rabbitHost;
         this.rabbitUsername = rabbitUsername;
         this.rabbitPassword = rabbitPassword;

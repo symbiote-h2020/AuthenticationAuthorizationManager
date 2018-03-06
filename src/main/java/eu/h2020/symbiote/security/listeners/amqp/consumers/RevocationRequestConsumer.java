@@ -27,9 +27,9 @@ import java.io.UnsupportedEncodingException;
  */
 @Profile({"core", "platform"})
 @Component
-public class RevocationRequestConsumerService {
+public class RevocationRequestConsumer {
 
-    private static Log log = LogFactory.getLog(RevocationRequestConsumerService.class);
+    private static Log log = LogFactory.getLog(RevocationRequestConsumer.class);
     @Autowired
     private RevocationService revocationService;
 
