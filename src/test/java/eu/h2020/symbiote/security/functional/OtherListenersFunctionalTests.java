@@ -150,7 +150,7 @@ public class OtherListenersFunctionalTests extends
         platformRepository.save(platform);
 
         // issue smartSpace registration
-        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceInstanceFriendlyName, smartSpaceGateWayAddress, exposedIIAddress, smartSpaceSiteLocalAddress, new Certificate(), new HashMap<>(), smartSpaceOwner);
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceInstanceFriendlyName, smartSpaceGateWayAddress, isExposingSiteLocalAddress, smartSpaceSiteLocalAddress, new Certificate(), new HashMap<>(), smartSpaceOwner);
         // inject platform AAM Cert
         Certificate smartSpaceAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1")));
         smartSpace.setLocalCertificationAuthorityCertificate(smartSpaceAAMCertificate);

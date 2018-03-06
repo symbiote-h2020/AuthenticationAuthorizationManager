@@ -93,7 +93,7 @@ public class ServiceCertificateKeyStoreTests extends AbstractAAMTestSuite {
         SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId,
                 smartSpaceInstanceFriendlyName,
                 smartSpaceGateWayAddress,
-                exposedIIAddress,
+                isExposingSiteLocalAddress,
                 smartSpaceSiteLocalAddress,
                 new Certificate(),
                 new HashMap<>(),

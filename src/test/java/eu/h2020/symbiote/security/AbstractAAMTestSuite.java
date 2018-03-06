@@ -90,7 +90,7 @@ public abstract class AbstractAAMTestSuite {
             "https://smartSpace.external:8101/someFancyHiddenPath/andHiddenAgain";
     protected final String smartSpaceSiteLocalAddress =
             "https://smartSpace.internal:8101/someFancyHiddenPath";
-    protected final boolean exposedIIAddress = true;
+    protected final boolean isExposingSiteLocalAddress = true;
 
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();

@@ -997,7 +997,7 @@ public class CertificatesIssuingUnitTests extends
         SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId,
                 smartSpaceInstanceFriendlyName,
                 smartSpaceGateWayAddress,
-                exposedIIAddress,
+                isExposingSiteLocalAddress,
                 smartSpaceSiteLocalAddress,
                 new Certificate(),
                 new HashMap<>(),

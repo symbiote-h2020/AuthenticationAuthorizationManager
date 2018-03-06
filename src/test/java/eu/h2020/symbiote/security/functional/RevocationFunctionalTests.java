@@ -167,7 +167,7 @@ public class RevocationFunctionalTests extends
         User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
         // issue smartSpace registration
-        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceInstanceFriendlyName, smartSpaceGateWayAddress, exposedIIAddress, smartSpaceSiteLocalAddress, new Certificate(), new HashMap<>(), user);
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceInstanceFriendlyName, smartSpaceGateWayAddress, isExposingSiteLocalAddress, smartSpaceSiteLocalAddress, new Certificate(), new HashMap<>(), user);
         smartSpaceRepository.save(smartSpace);
         user.getOwnedServices().add(preferredSmartSpaceId);
         userRepository.save(user);
@@ -336,7 +336,7 @@ public class RevocationFunctionalTests extends
         User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
         // issue smartSpace registration
-        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceInstanceFriendlyName, smartSpaceGateWayAddress, exposedIIAddress, smartSpaceSiteLocalAddress, new Certificate(), new HashMap<>(), user);
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceInstanceFriendlyName, smartSpaceGateWayAddress, isExposingSiteLocalAddress, smartSpaceSiteLocalAddress, new Certificate(), new HashMap<>(), user);
         smartSpaceRepository.save(smartSpace);
         user.getOwnedServices().add(preferredSmartSpaceId);
         userRepository.save(user);

@@ -58,7 +58,7 @@ public class SmartSpaceManagementUnitTests extends
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 preferredSmartSpaceId,
-                exposedIIAddress);
+                isExposingSiteLocalAddress);
     }
 
 
@@ -88,7 +88,7 @@ public class SmartSpaceManagementUnitTests extends
         // verify that smartSpace oriented fields are properly stored
         assertEquals(smartSpaceGateWayAddress, registeredSmartSpace.getExternalAddress());
         assertEquals(smartSpaceSiteLocalAddress, registeredSmartSpace.getSiteLocalAddress());
-        assertEquals(exposedIIAddress, registeredSmartSpace.isExposingSiteLocalAddress());
+        assertEquals(isExposingSiteLocalAddress, registeredSmartSpace.isExposingSiteLocalAddress());
 
         // verify that SO has this smartSpace in his collection
         User smartSpaceOwnerFromSmartSpaceEntity = registeredSmartSpace.getSmartSpaceOwner();
@@ -119,7 +119,7 @@ public class SmartSpaceManagementUnitTests extends
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 "",
-                exposedIIAddress);
+                isExposingSiteLocalAddress);
         SmartSpaceManagementResponse smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
 
         // verified that we received a generated smartSpaceId
@@ -140,7 +140,7 @@ public class SmartSpaceManagementUnitTests extends
         // verify that smartSpace oriented fields are properly stored
         assertEquals(smartSpaceGateWayAddress, registeredSmartSpace.getExternalAddress());
         assertEquals(smartSpaceSiteLocalAddress, registeredSmartSpace.getSiteLocalAddress());
-        assertEquals(exposedIIAddress, registeredSmartSpace.isExposingSiteLocalAddress());
+        assertEquals(isExposingSiteLocalAddress, registeredSmartSpace.isExposingSiteLocalAddress());
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
     }
 
@@ -158,7 +158,7 @@ public class SmartSpaceManagementUnitTests extends
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 "NO_SSP_in_front_id",
-                exposedIIAddress);
+                isExposingSiteLocalAddress);
         try {
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
@@ -174,7 +174,7 @@ public class SmartSpaceManagementUnitTests extends
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX + "Wrong#smartSpace_id",
-                exposedIIAddress);
+                isExposingSiteLocalAddress);
 
         try {
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
@@ -238,7 +238,7 @@ public class SmartSpaceManagementUnitTests extends
                 smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
                 preferredSmartSpaceId,
-                exposedIIAddress);
+                isExposingSiteLocalAddress);
         try {
             smartSpacesManagementService.authManage(smartSpaceUpdateRequest);
             fail();
@@ -255,7 +255,7 @@ public class SmartSpaceManagementUnitTests extends
                 smartSpaceInstanceFriendlyName,
                 OperationType.DELETE,
                 preferredSmartSpaceId,
-                exposedIIAddress);
+                isExposingSiteLocalAddress);
         try {
             smartSpacesManagementService.authManage(smartSpaceDeleteRequest);
             fail();
@@ -417,7 +417,7 @@ public class SmartSpaceManagementUnitTests extends
                 smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
                 preferredSmartSpaceId,
-                !exposedIIAddress);
+                !isExposingSiteLocalAddress);
         smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         //ensure smartSpace is registered
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
@@ -427,7 +427,7 @@ public class SmartSpaceManagementUnitTests extends
         // verify that smartSpace oriented fields are properly stored
         assertEquals(smartSpaceGateWayAddress + "dif", registeredSmartSpace.getExternalAddress());
         assertEquals(smartSpaceSiteLocalAddress + "dif", registeredSmartSpace.getSiteLocalAddress());
-        assertEquals(!exposedIIAddress, registeredSmartSpace.isExposingSiteLocalAddress());
+        assertEquals(!isExposingSiteLocalAddress, registeredSmartSpace.isExposingSiteLocalAddress());
     }
 
     @Test
@@ -445,7 +445,7 @@ public class SmartSpaceManagementUnitTests extends
                 smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
                 preferredSmartSpaceId,
-                !exposedIIAddress);
+                !isExposingSiteLocalAddress);
 
         try {
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
@@ -474,7 +474,7 @@ public class SmartSpaceManagementUnitTests extends
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 preferredSmartSpaceId + "2",
-                exposedIIAddress);
+                isExposingSiteLocalAddress);
         smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         //ensure second smartSpace is registered
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
@@ -488,7 +488,7 @@ public class SmartSpaceManagementUnitTests extends
                 "",
                 OperationType.DELETE,
                 preferredSmartSpaceId,
-                exposedIIAddress);
+                isExposingSiteLocalAddress);
         smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
         assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
@@ -503,7 +503,7 @@ public class SmartSpaceManagementUnitTests extends
                 "",
                 OperationType.DELETE,
                 preferredSmartSpaceId + "2",
-                exposedIIAddress);
+                isExposingSiteLocalAddress);
         smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
         assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId + "2"));
@@ -525,7 +525,7 @@ public class SmartSpaceManagementUnitTests extends
                 smartSpaceInstanceFriendlyName,
                 OperationType.DELETE,
                 preferredSmartSpaceId,
-                exposedIIAddress);
+                isExposingSiteLocalAddress);
         try {
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
@@ -551,7 +551,7 @@ public class SmartSpaceManagementUnitTests extends
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 preferredSmartSpaceId + "2",
-                exposedIIAddress);
+                isExposingSiteLocalAddress);
         try {
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
@@ -579,7 +579,7 @@ public class SmartSpaceManagementUnitTests extends
                 smartSpaceInstanceFriendlyName,
                 OperationType.CREATE,
                 preferredSmartSpaceId + "_external",
-                !exposedIIAddress);
+                !isExposingSiteLocalAddress);
         smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         //ensure smartSpace is registered
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
@@ -593,7 +593,7 @@ public class SmartSpaceManagementUnitTests extends
                 smartSpaceInstanceFriendlyName,
                 OperationType.UPDATE,
                 preferredSmartSpaceId + "_external",
-                exposedIIAddress);
+                isExposingSiteLocalAddress);
         try {
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
