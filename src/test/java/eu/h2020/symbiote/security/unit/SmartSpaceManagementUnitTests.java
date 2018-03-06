@@ -195,7 +195,7 @@ public class SmartSpaceManagementUnitTests extends
             smartSpacesManagementService.authManage(smartSpaceManagementRequest);
             fail();
         } catch (SecurityException s) {
-            assertEquals(InvalidArgumentsException.MISSING_USERNAME_OR_PASSWORD, s.getMessage());
+            assertEquals(InvalidArgumentsException.MISSING_CREDENTIAL, s.getMessage());
         }
     }
 

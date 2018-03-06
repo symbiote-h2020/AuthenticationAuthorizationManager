@@ -96,20 +96,21 @@ public class AAMServices {
             String coreAAMAddress = provideInternalURL ? localAAMUrl : coreInterfaceAddress;
 
             // adding core aam info to the response
-            availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM(coreAAMAddress,
-                    SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                    SecurityConstants.CORE_AAM_INSTANCE_ID,
-                    "",
-                    coreCertificate,
-                    fillComponentCertificatesMap()));
+            availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID,
+                    new AAM(coreAAMAddress,
+                            "",
+                            SecurityConstants.CORE_AAM_INSTANCE_ID,
+                            SecurityConstants.CORE_AAM_FRIENDLY_NAME,
+                            coreCertificate,
+                            fillComponentCertificatesMap()));
 
             // registered platforms' AAMs
             for (Platform platform : platformRepository.findAll()) {
                 // todo fix
                 AAM platformAAM = new AAM(platform.getPlatformInterworkingInterfaceAddress() + platformAAMSuffixAtInterWorkingInterface,
-                        platform.getPlatformInstanceFriendlyName(),
-                        platform.getPlatformInstanceId(),
                         "",
+                        platform.getPlatformInstanceId(),
+                        platform.getPlatformInstanceFriendlyName(),
                         platform.getPlatformAAMCertificate(),
                         platform.getComponentCertificates());
                 // add the platform AAM entry point to the results
@@ -118,9 +119,9 @@ public class AAMServices {
             // registered smart Spaces' AAMs
             for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
                 AAM smartSpaceAAM = new AAM(smartSpace.getGatewayAddress(),
-                        smartSpace.getInstanceFriendlyName(),
-                        smartSpace.getInstanceId(),
                         smartSpace.getSiteLocalAddress(),
+                        smartSpace.getInstanceId(),
+                        smartSpace.getInstanceFriendlyName(),
                         smartSpace.getAamCertificate(),
                         smartSpace.getComponentCertificates());
                 // add the smart Space AAM entry point to the results
@@ -141,9 +142,9 @@ public class AAMServices {
                 availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID,
                         new AAM(
                                 coreInterfaceAddress,
-                                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                                SecurityConstants.CORE_AAM_INSTANCE_ID,
                                 "",
+                                SecurityConstants.CORE_AAM_INSTANCE_ID,
+                                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                                 new Certificate(certificationAuthorityHelper.getRootCACert()),
                                 new HashMap<>()));
             } finally {
@@ -155,9 +156,9 @@ public class AAMServices {
                     AAM aam = availableAAMs.get(certificationAuthorityHelper.getAAMInstanceIdentifier());
                     AAM localAAM = new AAM(
                             PAAMAddress,
-                            aam.getAamInstanceFriendlyName(),
-                            aam.getAamInstanceId(),
                             "",
+                            aam.getAamInstanceId(),
+                            aam.getAamInstanceFriendlyName(),
                             aam.getAamCACertificate(),
                             aam.getComponentCertificates()
                     );
@@ -165,11 +166,10 @@ public class AAMServices {
                 } else {
                     // adding local (this) aam info to the response
                     availableAAMs.put(certificationAuthorityHelper.getAAMInstanceIdentifier(),
-                            new AAM(
-                                    PAAMAddress,
-                                    " ",
-                                    certificationAuthorityHelper.getAAMInstanceIdentifier(),
+                            new AAM(PAAMAddress,
                                     "",
+                                    certificationAuthorityHelper.getAAMInstanceIdentifier(),
+                                    " ",
                                     new Certificate(certificationAuthorityHelper.getAAMCert()),
                                     fillComponentCertificatesMap()));
                 }
@@ -237,6 +237,7 @@ public class AAMServices {
         }
         throw new AAMException(AAMException.SELECTED_CERTIFICATE_NOT_FOUND);
     }
+
     @CacheEvict(cacheNames = "getComponentCertificate", key = "#componentIdentifier + '@' +#serviceIdentifier")
     public void invalidateComponentCertificateCache(String componentIdentifier,
                                                     String serviceIdentifier) {

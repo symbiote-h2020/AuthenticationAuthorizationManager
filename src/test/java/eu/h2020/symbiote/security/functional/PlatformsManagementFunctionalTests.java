@@ -211,7 +211,7 @@ public class PlatformsManagementFunctionalTests extends
         ErrorResponseContainer errorResponse = mapper.readValue(response,
                 ErrorResponseContainer.class);
 
-        assertEquals(InvalidArgumentsException.MISSING_USERNAME_OR_PASSWORD, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.MISSING_CREDENTIAL, errorResponse.getErrorMessage());
     }
 
     @Test

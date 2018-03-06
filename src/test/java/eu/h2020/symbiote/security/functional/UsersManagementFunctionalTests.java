@@ -63,7 +63,7 @@ public class UsersManagementFunctionalTests extends
         ReflectionTestUtils.setField(usersManagementService, "deploymentType", IssuingAuthorityType.CORE);
         // user registration useful
         appUserDetails = new UserDetails(new Credentials(
-                username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>());
+                username, password), recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>());
         appUserRegistrationRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 new Credentials(username, password), appUserDetails, OperationType.CREATE);
         appUserUpdateRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -95,7 +95,7 @@ public class UsersManagementFunctionalTests extends
         byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername + "wrongString", AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
+                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
                 OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
 
         // verify that our app was not registered in the repository
@@ -109,7 +109,7 @@ public class UsersManagementFunctionalTests extends
         response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword + "wrongString"), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
+                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
                 OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
 
         // verify that our app was not registered in the repository
@@ -133,7 +133,7 @@ public class UsersManagementFunctionalTests extends
         byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.NULL, new HashMap<>(), new HashMap<>()),
+                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.NULL, new HashMap<>(), new HashMap<>()),
                 OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
 
         // verify that our app was not registered in the repository
@@ -158,7 +158,7 @@ public class UsersManagementFunctionalTests extends
         byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
+                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
                 OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
 
 
@@ -172,7 +172,7 @@ public class UsersManagementFunctionalTests extends
         response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
+                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
                 OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
 
         ManagementStatus errorResponse = mapper.readValue(response, ManagementStatus.class);
@@ -213,7 +213,7 @@ public class UsersManagementFunctionalTests extends
                 .getBytes(), new MessageProperties())).getBody();
 
         ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.MISSING_USERNAME_OR_PASSWORD, errorResponse.getErrorMessage());
+        assertEquals(InvalidArgumentsException.MISSING_CREDENTIAL, errorResponse.getErrorMessage());
     }
 
     /**
@@ -250,7 +250,7 @@ public class UsersManagementFunctionalTests extends
         byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, attributesMap, new HashMap<>()),
+                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, attributesMap, new HashMap<>()),
                 OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
 
         ManagementStatus appRegistrationResponse = mapper.readValue(response,
@@ -274,7 +274,7 @@ public class UsersManagementFunctionalTests extends
         Message message = new Message(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
+                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
                 OperationType.CREATE)).getBytes(), new MessageProperties());
         byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, message).getBody();
 
@@ -305,7 +305,7 @@ public class UsersManagementFunctionalTests extends
         byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
+                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
                 OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
         ManagementStatus appRegistrationResponse = mapper.readValue(response, ManagementStatus.class);
         assertEquals(ManagementStatus.OK, appRegistrationResponse);
@@ -329,7 +329,7 @@ public class UsersManagementFunctionalTests extends
         byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail,
+                new UserDetails(new Credentials(username, password), recoveryMail,
                         UserRole.SERVICE_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
 
         ManagementStatus platformOwnerRegistrationResponse = mapper.readValue(response,
@@ -354,7 +354,7 @@ public class UsersManagementFunctionalTests extends
         byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail,
+                new UserDetails(new Credentials(username, password), recoveryMail,
                         UserRole.SERVICE_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
 
         ManagementStatus platformOwnerRegistrationResponse = mapper.readValue(response,
@@ -378,7 +378,7 @@ public class UsersManagementFunctionalTests extends
         byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), federatedOAuthId, recoveryMail,
+                new UserDetails(new Credentials(username, password), recoveryMail,
                         UserRole.SERVICE_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
 
         ManagementStatus smartSpaceOwnerRegistrationResponse = mapper.readValue(response,
@@ -399,7 +399,7 @@ public class UsersManagementFunctionalTests extends
             AAMException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), "federatedId",
+                new UserDetails(new Credentials(username, password),
                         "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
         ManagementStatus managementStatus = aamClient.manageUser(userManagementRequest);
         assertTrue(ManagementStatus.OK.equals(managementStatus));
@@ -411,7 +411,7 @@ public class UsersManagementFunctionalTests extends
             AAMException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, wrongPassword), new Credentials(username, wrongPassword),
-                new UserDetails(new Credentials(username, wrongPassword), "federatedId",
+                new UserDetails(new Credentials(username, wrongPassword),
                         "", UserRole.SERVICE_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
         aamClient.manageUser(userManagementRequest);
     }

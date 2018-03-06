@@ -65,7 +65,7 @@ public class SmartSpace {
 
     public void setGatewayAddress(String gatewayAddress) throws InvalidArgumentsException {
         if (!gatewayAddress.startsWith("https://")) {
-            throw new InvalidArgumentsException(InvalidArgumentsException.GATEWAY_ADDRESS_SHOULD_START_WITH_HTTPS);
+            throw new InvalidArgumentsException(InvalidArgumentsException.GATEWAY_ADDRESS_MUST_START_WITH_HTTPS);
         }
         this.gatewayAddress = gatewayAddress;
     }

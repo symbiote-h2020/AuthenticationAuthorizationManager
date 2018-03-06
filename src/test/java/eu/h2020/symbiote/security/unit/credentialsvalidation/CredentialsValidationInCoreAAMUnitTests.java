@@ -170,7 +170,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         UserManagementRequest userManagementRequest = new UserManagementRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 new Credentials(username, password),
                 new UserDetails(new Credentials(username, password),
-                        "sth",
                         recoveryMail,
                         UserRole.USER,
                         new HashMap<>(),
@@ -455,7 +454,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         String originHomeTokenJti = String.valueOf(random.nextInt());
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), "federatedId",
+                new UserDetails(new Credentials(username, password),
                         "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
 
 
@@ -519,7 +518,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), "federatedId",
+                new UserDetails(new Credentials(username, password),
                         "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
 
         User user = createUser(userManagementRequest.getUserDetails().getCredentials().getUsername(), userManagementRequest.getUserDetails().getCredentials().getPassword(), userManagementRequest.getUserDetails().getRecoveryMail(), userManagementRequest.getUserDetails().getRole());
@@ -585,7 +584,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), "federatedId",
+                new UserDetails(new Credentials(username, password),
                         "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
 
 

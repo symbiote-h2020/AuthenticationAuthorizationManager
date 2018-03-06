@@ -99,7 +99,6 @@ public class UsersManagementService {
         //  Everything is fine, returning requested user's details
         return new UserDetails(new Credentials(
                 foundUser.getUsername(), ""),
-                "",
                 foundUser.getRecoveryMail(),
                 foundUser.getRole(),
                 foundUser.getAttributes(),
@@ -146,7 +145,7 @@ public class UsersManagementService {
                 if (newUserUsername.isEmpty()
                         || userDetails.getCredentials().getPassword().isEmpty()) {
                 	log.error("Username or password is empty");
-                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_USERNAME_OR_PASSWORD);
+                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_CREDENTIAL);
                 }
                 if (deploymentType == IssuingAuthorityType.CORE
                         && (userDetails.getRecoveryMail().isEmpty()))

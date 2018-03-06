@@ -94,7 +94,7 @@ public class GetUserDetailsConsumerService {
                     //  Checking User's credentials
                     if (passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), foundUser.getPasswordEncrypted())) {
                         userDetails = new UserDetailsResponse(
-                                HttpStatus.OK, new UserDetails(new Credentials(foundUser.getUsername(), ""), "", foundUser.getRecoveryMail(),
+                                HttpStatus.OK, new UserDetails(new Credentials(foundUser.getUsername(), ""), foundUser.getRecoveryMail(),
                                 foundUser.getRole(), foundUser.getAttributes(), foundUser.getClientCertificates())
                         );
                     } else

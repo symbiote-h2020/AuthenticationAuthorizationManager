@@ -77,7 +77,7 @@ public class SmartSpacesManagementService {
         Credentials smartSpaceOwnerCredentials = smartSpaceManagementRequest.getServiceOwnerCredentials();
 
         if (smartSpaceOwnerCredentials.getUsername().isEmpty() || smartSpaceOwnerCredentials.getPassword().isEmpty())
-            throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_USERNAME_OR_PASSWORD);
+            throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_CREDENTIAL);
 
         if (!userRepository.exists(smartSpaceOwnerCredentials.getUsername()))
             throw new NotExistingUserException();

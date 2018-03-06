@@ -78,7 +78,7 @@ public class PlatformsManagementService {
         Credentials platformOwnerCredentials = platformManagementRequest.getPlatformOwnerCredentials();
 
         if (platformOwnerCredentials.getUsername().isEmpty() || platformOwnerCredentials.getPassword().isEmpty())
-            throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_USERNAME_OR_PASSWORD);
+            throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_CREDENTIAL);
 
         if (!userRepository.exists(platformOwnerCredentials.getUsername()))
             throw new NotExistingUserException();

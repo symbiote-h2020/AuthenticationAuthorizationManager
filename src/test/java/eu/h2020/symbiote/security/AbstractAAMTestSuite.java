@@ -247,7 +247,7 @@ public abstract class AbstractAAMTestSuite {
             OperatorCreationException {
         UserManagementRequest userManagementRequest = new UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), "federatedId",
+                new UserDetails(new Credentials(username, password),
                         "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
 
 

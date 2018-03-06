@@ -61,7 +61,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(appUsername, "NewPassword"),
                 new UserDetails(
                         new Credentials(appUsername, "NewPassword"),
-                        "nullId",
                         "nullMail",
                         UserRole.USER,
                         attributes,
@@ -91,7 +90,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(appUsername, ""),
                 new UserDetails(
                         new Credentials(appUsername, "NewPassword"),
-                        "nullId",
                         "nullMail",
                         UserRole.USER,
                         new HashMap<>(),
@@ -115,7 +113,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(appUsername, password),
                 new UserDetails(
                         new Credentials(appUsername, "NewPassword"),
-                        "nullId",
                         "nullMail",
                         UserRole.USER,
                         new HashMap<>(),
@@ -133,7 +130,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(appUsername, password),
                 new UserDetails(
                         new Credentials(appUsername, "NewPassword"),
-                        "nullId",
                         "nullMail",
                         UserRole.USER,
                         new HashMap<>(),
@@ -151,7 +147,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(appUsername, password),
                 new UserDetails(
                         new Credentials(appUsername, "NewPassword"),
-                        "nullId",
                         "nullMail",
                         UserRole.USER,
                         new HashMap<>(),
@@ -168,7 +163,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(appUsername, "NewPassword"),
                 new UserDetails(
                         new Credentials(AAMOwnerUsername, "NewPassword"),
-                        "nullId",
                         "nullMail",
                         UserRole.USER,
                         new HashMap<>(),
@@ -187,7 +181,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(appUsername, "NewPassword"),
                 new UserDetails(
                         new Credentials(SecurityConstants.GUEST_NAME, "NewPassword"),
-                        "nullId",
                         "nullMail",
                         UserRole.USER,
                         new HashMap<>(),
@@ -211,7 +204,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(appUsername, password),
                 new UserDetails(
                         new Credentials(appUsername, wrongPassword),
-                        "newId",
                         "newMail",
                         UserRole.USER,
                         attributes,
@@ -246,7 +238,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(appUsername, "NewPassword"),
                 new UserDetails(
                         new Credentials(appUsername, "NewPassword"),
-                        "nullId",
                         "nullMail",
                         UserRole.SERVICE_OWNER,
                         new HashMap<>(),
@@ -301,7 +292,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(),
                 new UserDetails(
                         new Credentials(username, password),
-                        "",
                         "",
                         UserRole.USER,
                         new HashMap<>(),
@@ -359,7 +349,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new UserDetails(
                         new Credentials(username, password),
                         "",
-                        "",
                         UserRole.USER,
                         new HashMap<>(),
                         new HashMap<>()),
@@ -387,7 +376,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(username, "NewPassword"),
                 new UserDetails(
                         new Credentials(username, "NewPassword"),
-                        "nullId",
                         "nullMail",
                         UserRole.SERVICE_OWNER,
                         new HashMap<>(),
@@ -428,7 +416,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new UserDetails(
                         new Credentials("", password),
                         "",
-                        "",
                         UserRole.NULL,
                         new HashMap<>(),
                         new HashMap<>()),
@@ -446,7 +433,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(),
                 new UserDetails(
                         new Credentials(username, password),
-                        "",
                         "",
                         UserRole.NULL,
                         new HashMap<>(),
@@ -481,7 +467,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new UserDetails(
                         new Credentials(username, ""),
                         "",
-                        "",
                         UserRole.NULL,
                         new HashMap<>(),
                         new HashMap<>()),
@@ -497,7 +482,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(appUsername, "NewPassword"),
                 new UserDetails(
                         new Credentials(appUsername, "NewPassword"),
-                        "nullId",
                         "nullMail",
                         UserRole.USER,
                         new HashMap<>(),
@@ -516,7 +500,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                 new Credentials(incorrectName, "NewPassword"),
                 new UserDetails(
                         new Credentials(incorrectName, "NewPassword"),
-                        "nullId",
                         "nullMail",
                         UserRole.USER,
                         new HashMap<>(),

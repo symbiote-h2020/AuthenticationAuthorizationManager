@@ -153,13 +153,11 @@ public class DummyCoreAAM {
         Certificate platformCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
 
         aams.getAvailableAAMs().put(platform1Id, new AAM("https://localhost:" + port,
-                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                platform1Id,
+                platform1Id, SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                 platformCert, new HashMap<>()));
 
         aams.getAvailableAAMs().put("test-PlatformId", new AAM("https://localhost:" + port + "/test/paam",
-                "test-PlatformIdFriendly",
-                "test-PlatformId",
+                "test-PlatformId", "test-PlatformIdFriendly",
                 platformCert, new HashMap<>()));
     }
 
@@ -174,8 +172,7 @@ public class DummyCoreAAM {
         Certificate platformCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
 
         aams.getAvailableAAMs().put(platform2Id, new AAM("https://localhost:" + port,
-                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                platform2Id,
+                platform2Id, SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                 platformCert, new HashMap<>()));
 
     }
@@ -190,16 +187,14 @@ public class DummyCoreAAM {
         Certificate platformCert = new Certificate(signedCertificatePEMDataStringWriter.toString());
 
         aams.getAvailableAAMs().put(platform1Id, new AAM("https://localhost:" + port,
-                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                platform1Id,
+                platform1Id, SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                 platformCert, new HashMap<>()));
     }
 
     public void clearAvailablePlatformAAMs() {
         this.aams.getAvailableAAMs().clear();
         aams.getAvailableAAMs().put(SecurityConstants.CORE_AAM_INSTANCE_ID, new AAM("https://localhost:" + port + PATH,
-                SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                SecurityConstants.CORE_AAM_INSTANCE_ID,
+                SecurityConstants.CORE_AAM_INSTANCE_ID, SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                 revokedCert, new HashMap<>()));
     }
 
