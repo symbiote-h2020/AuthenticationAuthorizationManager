@@ -9,13 +9,11 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.IssueCertificateService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
@@ -31,7 +29,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doReturn;
 
-@TestPropertySource("/core.properties")
+@TestPropertySource("/smart_space.properties")
 public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
 
     @SpyBean
@@ -44,11 +42,6 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        doReturn(IssuingAuthorityType.SMART_SPACE).when(certificationAuthorityHelper).getDeploymentType();
-    }
-
-    @After
-    public void after() {
         doCallRealMethod().when(certificationAuthorityHelper).getDeploymentType();
     }
 
@@ -66,7 +59,6 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
             NotExistingUserException,
             ServiceManagementException {
 
-        ReflectionTestUtils.setField(issueCertificateService, "certificationAuthorityHelper", certificationAuthorityHelper);
         User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(platformAgent);
 
@@ -152,7 +144,6 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
             NotExistingUserException,
             ServiceManagementException {
 
-        //deploymentId should be SMART_SPACE, not PLATFORM
         User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.USER);
         userRepository.save(platformAgent);
 
