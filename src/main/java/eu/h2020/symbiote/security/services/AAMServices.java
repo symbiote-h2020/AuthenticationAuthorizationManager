@@ -2,7 +2,6 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.communication.AAMClient;
@@ -29,7 +28,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -45,6 +43,7 @@ public class AAMServices {
     private final String platformAAMSuffixAtInterWorkingInterface;
     private final String localAAMUrl;
     private final String interworkingInterface;
+    private final String siteLocalAddress;
 
     @Autowired
     public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper,
@@ -54,7 +53,8 @@ public class AAMServices {
                        @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
                        @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}") String platformAAMSuffixAtInterWorkingInterface,
                        @Value("${symbIoTe.localaam.url}") String localAAMUrl,
-                       @Value("${symbIoTe.interworking.interface.url:MUST_BE_SET_FOR_PAAM}") String interworkingInterface
+                       @Value("${symbIoTe.interworking.interface.url:MUST_BE_SET_FOR_PAAM}") String interworkingInterface,
+                       @Value("${symbIoTe.siteLocal.url:MUST_BE_SET_FOR_SAAM}") String siteLocalAddress
     ) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.platformRepository = platformRepository;
@@ -64,6 +64,7 @@ public class AAMServices {
         this.platformAAMSuffixAtInterWorkingInterface = platformAAMSuffixAtInterWorkingInterface;
         this.localAAMUrl = localAAMUrl;
         this.interworkingInterface = interworkingInterface;
+        this.siteLocalAddress = siteLocalAddress;
     }
 
     @Cacheable(cacheNames = "getAvailableAAMs", key = "#root.method")
@@ -88,92 +89,137 @@ public class AAMServices {
             CertificateException,
             NoSuchAlgorithmException {
         Map<String, AAM> availableAAMs = new TreeMap<>();
-        if (certificationAuthorityHelper.getDeploymentType() == IssuingAuthorityType.CORE) {
-            // if Core AAM then we know the available AAMs
-            Certificate coreCertificate = new Certificate(certificationAuthorityHelper.getAAMCert());
+        switch (certificationAuthorityHelper.getDeploymentType()) {
+            case CORE:
+                // if Core AAM then we know the available AAMs
+                Certificate coreCertificate = new Certificate(certificationAuthorityHelper.getAAMCert());
 
-            // defining how to expose core AAM to the client (end users use CI, components communicate locally)
-            String coreAAMAddress = provideInternalURL ? localAAMUrl : coreInterfaceAddress;
+                // defining how to expose core AAM to the client (end users use CI, components communicate locally)
+                String coreAAMAddress = provideInternalURL ? localAAMUrl : coreInterfaceAddress;
 
-            // adding core aam info to the response
-            availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID,
-                    new AAM(coreAAMAddress,
-                            "",
-                            SecurityConstants.CORE_AAM_INSTANCE_ID,
-                            SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                            coreCertificate,
-                            fillComponentCertificatesMap()));
-
-            // registered platforms' AAMs
-            for (Platform platform : platformRepository.findAll()) {
-                // todo fix
-                AAM platformAAM = new AAM(platform.getPlatformInterworkingInterfaceAddress() + platformAAMSuffixAtInterWorkingInterface,
-                        "",
-                        platform.getPlatformInstanceId(),
-                        platform.getPlatformInstanceFriendlyName(),
-                        platform.getPlatformAAMCertificate(),
-                        platform.getComponentCertificates());
-                // add the platform AAM entry point to the results
-                availableAAMs.put(platformAAM.getAamInstanceId(), platformAAM);
-            }
-            // registered smart Spaces' AAMs
-            for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
-                AAM smartSpaceAAM = new AAM(smartSpace.getExternalAddress(),
-                        smartSpace.getSiteLocalAddress(),
-                        smartSpace.getInstanceIdentifier(),
-                        smartSpace.getInstanceFriendlyName(),
-                        smartSpace.getLocalCertificationAuthorityCertificate(),
-                        smartSpace.getComponentCertificates());
-                // add the smart Space AAM entry point to the results
-                availableAAMs.put(smartSpaceAAM.getAamInstanceId(), smartSpaceAAM);
-            }
-        } else {
-            // a PAAM/SAAM needs to fetch them from core
-            try {
-                IAAMClient aamClient = new AAMClient(coreInterfaceAddress);
-                availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
-
-                String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
-                availableAAMs.get(deploymentId).getComponentCertificates().putAll(fillComponentCertificatesMap());
-            } catch (AAMException e) {
-                // service AAM might be disconnected from the core for which we need fallback option
-                log.error("Couldn't establish connection with CoreAAM... falling back to local configuration");
                 // adding core aam info to the response
                 availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID,
-                        new AAM(
-                                coreInterfaceAddress,
+                        new AAM(coreAAMAddress,
                                 "",
                                 SecurityConstants.CORE_AAM_INSTANCE_ID,
                                 SecurityConstants.CORE_AAM_FRIENDLY_NAME,
-                                new Certificate(certificationAuthorityHelper.getRootCACert()),
-                                new HashMap<>()));
-            } finally {
-                // handling the local aam address
-                String PAAMAddress = provideInternalURL ? localAAMUrl : interworkingInterface;
+                                coreCertificate,
+                                fillComponentCertificatesMap()));
+
+                // registered platforms' AAMs
+                for (Platform platform : platformRepository.findAll()) {
+                    AAM platformAAM = new AAM(platform.getPlatformInterworkingInterfaceAddress() + platformAAMSuffixAtInterWorkingInterface,
+                            "",
+                            platform.getPlatformInstanceId(),
+                            platform.getPlatformInstanceFriendlyName(),
+                            platform.getPlatformAAMCertificate(),
+                            platform.getComponentCertificates());
+                    // add the platform AAM entry point to the results
+                    availableAAMs.put(platformAAM.getAamInstanceId(), platformAAM);
+                }
+                // registered smart Spaces' AAMs
+                for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
+                    String siteLocalAddress = smartSpace.isExposingSiteLocalAddress() ? smartSpace.getSiteLocalAddress() : "";
+                    AAM smartSpaceAAM = new AAM(smartSpace.getExternalAddress(),
+                            siteLocalAddress,
+                            smartSpace.getInstanceIdentifier(),
+                            smartSpace.getInstanceFriendlyName(),
+                            smartSpace.getLocalCertificationAuthorityCertificate(),
+                            smartSpace.getComponentCertificates());
+                    // add the smart Space AAM entry point to the results
+                    availableAAMs.put(smartSpaceAAM.getAamInstanceId(), smartSpaceAAM);
+                }
+                break;
+            case PLATFORM:
+                // a PAAM/SAAM needs to fetch them from core
+                availableAAMs = getAAMsFromCore(availableAAMs);
+
+                // handling the local (deployment internal) aam address
+                String availableAtAddress = provideInternalURL ? localAAMUrl : interworkingInterface;
 
                 // update if it exists
                 if (availableAAMs.containsKey(certificationAuthorityHelper.getAAMInstanceIdentifier())) {
                     AAM aam = availableAAMs.get(certificationAuthorityHelper.getAAMInstanceIdentifier());
                     AAM localAAM = new AAM(
-                            PAAMAddress,
+                            availableAtAddress,
                             "",
                             aam.getAamInstanceId(),
                             aam.getAamInstanceFriendlyName(),
                             aam.getAamCACertificate(),
-                            aam.getComponentCertificates()
+                            fillComponentCertificatesMap()
                     );
                     availableAAMs.put(aam.getAamInstanceId(), localAAM);
                 } else {
                     // adding local (this) aam info to the response
                     availableAAMs.put(certificationAuthorityHelper.getAAMInstanceIdentifier(),
-                            new AAM(PAAMAddress,
-                                    "",
+                            new AAM(availableAtAddress,
+                                    "", // available only in SAAM
                                     certificationAuthorityHelper.getAAMInstanceIdentifier(),
                                     " ",
                                     new Certificate(certificationAuthorityHelper.getAAMCert()),
                                     fillComponentCertificatesMap()));
                 }
-            }
+                break;
+            case SMART_SPACE:
+                // a PAAM/SAAM needs to fetch them from core
+                availableAAMs = getAAMsFromCore(availableAAMs);
+
+                // handling the local (deployment internal) aam address
+                availableAtAddress = provideInternalURL ? localAAMUrl : interworkingInterface;
+
+                // update if it exists
+                if (availableAAMs.containsKey(certificationAuthorityHelper.getAAMInstanceIdentifier())) {
+                    AAM aam = availableAAMs.get(certificationAuthorityHelper.getAAMInstanceIdentifier());
+                    AAM localAAM = new AAM(
+                            availableAtAddress,
+                            siteLocalAddress,
+                            aam.getAamInstanceId(),
+                            aam.getAamInstanceFriendlyName(),
+                            aam.getAamCACertificate(),
+                            fillComponentCertificatesMap()
+                    );
+                    availableAAMs.put(aam.getAamInstanceId(), localAAM);
+                } else {
+                    // adding local (this) aam info to the response
+                    availableAAMs.put(certificationAuthorityHelper.getAAMInstanceIdentifier(),
+                            new AAM(availableAtAddress,
+                                    siteLocalAddress,
+                                    certificationAuthorityHelper.getAAMInstanceIdentifier(),
+                                    " ",
+                                    new Certificate(certificationAuthorityHelper.getAAMCert()),
+                                    fillComponentCertificatesMap()));
+                }
+                break;
+            case NULL:
+                break;
+        }
+        return availableAAMs;
+    }
+
+    private Map<String, AAM> getAAMsFromCore(Map<String, AAM> availableAAMs) throws
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            NoSuchAlgorithmException {
+        try {
+            IAAMClient aamClient = new AAMClient(coreInterfaceAddress);
+            availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
+
+            String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
+            availableAAMs.get(deploymentId).getComponentCertificates().putAll(fillComponentCertificatesMap());
+        } catch (AAMException e) {
+            // service AAM might be disconnected from the core for which we need fallback option
+            log.error("Couldn't establish connection with CoreAAM... falling back to local configuration");
+            // adding core aam info to the response
+            availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID,
+                    new AAM(
+                            coreInterfaceAddress,
+                            "",
+                            SecurityConstants.CORE_AAM_INSTANCE_ID,
+                            SecurityConstants.CORE_AAM_FRIENDLY_NAME,
+                            new Certificate(certificationAuthorityHelper.getRootCACert()),
+                            new HashMap<>()));
         }
         return availableAAMs;
     }
@@ -195,8 +241,7 @@ public class AAMServices {
 
     private Map<String, Certificate> fillComponentCertificatesMap() {
         Map<String, Certificate> componentsCertificatesMap = new HashMap<>();
-        List<ComponentCertificate> componentCertificatesFromRepository = componentCertificatesRepository.findAll();
-        for (ComponentCertificate certificate : componentCertificatesFromRepository) {
+        for (ComponentCertificate certificate : componentCertificatesRepository.findAll()) {
             componentsCertificatesMap.put(certificate.getName(), certificate.getCertificate());
         }
         return componentsCertificatesMap;
