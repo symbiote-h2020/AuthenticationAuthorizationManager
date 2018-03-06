@@ -298,7 +298,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         String platformId = "core-2";
         //inject platform PEM Certificate to the database
-        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
         X509Certificate certificate = getCertificateFromTestKeystore("keystores/platform_1.p12", platformId);
         StringWriter signedCertificatePEMDataStringWriter = new StringWriter();
         JcaPEMWriter pemWriter = new JcaPEMWriter(signedCertificatePEMDataStringWriter);

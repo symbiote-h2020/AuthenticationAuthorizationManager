@@ -35,9 +35,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -303,17 +301,13 @@ public class CredentialsValidationFunctionalTests extends
         PlatformManagementResponse platformManagementResponse = mapper.readValue(response, PlatformManagementResponse.class);
         assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
         //inject platform PEM Certificate to the database
-        KeyStore ks = KeyStore.getInstance("PKCS12", "BC");
-        ks.load(new FileInputStream("./src/test/resources/keystores/platform_1.p12"), "1234567".toCharArray());
-
-        X509Certificate platformAAMCertificate = (X509Certificate) ks.getCertificate("platform-1-1-c1");
-
+        X509Certificate platformAAMCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
         Platform dummyPlatform = platformRepository.findOne(platformId);
 
         dummyPlatform.setPlatformAAMCertificate(new eu.h2020.symbiote.security.commons.Certificate(CryptoHelper.convertX509ToPEM(platformAAMCertificate)));
         platformRepository.save(dummyPlatform);
 
-        String clientCertificate = CryptoHelper.convertX509ToPEM((X509Certificate) ks.getCertificate("userid@clientid@platform-1"));
+        String clientCertificate = CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1"));
 
         //checking token attributes
         JWTClaims claims = JWTEngine.getClaimsFromToken(dummyHomeToken.getToken());
