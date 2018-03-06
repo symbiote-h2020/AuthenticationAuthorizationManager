@@ -82,11 +82,16 @@ public class CertificationAuthorityHelper {
                     throw new SecurityMisconfigurationException("You are loading Core certificate. In your bootstrap.properties, following line should be present: 'spring.profiles.active=core'");
                 break;
             case PLATFORM:
-            case SMART_SPACE:
                 if (certificate_alias.equals(root_ca_certificate_alias))
                     throw new SecurityMisconfigurationException("This AAM certificate must be different from Core AAM - root certificate");
                 if (!activeProfiles.get(0).equals("platform"))
                     throw new SecurityMisconfigurationException("You are loading Platform certificate. In your bootstrap.properties, following line should be present: 'spring.profiles.active=platform'");
+                break;
+            case SMART_SPACE:
+                if (certificate_alias.equals(root_ca_certificate_alias))
+                    throw new SecurityMisconfigurationException("This AAM certificate must be different from Core AAM - root certificate");
+                if (!activeProfiles.get(0).equals("smart_space"))
+                    throw new SecurityMisconfigurationException("You are loading Smart Space certificate. In your bootstrap.properties, following line should be present: 'spring.profiles.active=smart_space'");
                 break;
             case NULL:
                 throw new CertificateException("Failed to initialize AAM using given symbiote keystore");
