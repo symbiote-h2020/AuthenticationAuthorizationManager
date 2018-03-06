@@ -4,7 +4,10 @@ import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ServiceManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
@@ -593,32 +596,6 @@ public class PlatformsManagementFunctionalTests extends
                 (platformDeleteOverAMQPRequest), new MessageProperties())).getBody();
         ErrorResponseContainer errorResponse = mapper.readValue(response2, ErrorResponseContainer.class);
         assertEquals(ServiceManagementException.SERVICE_NOT_EXIST, errorResponse.getErrorMessage());
-    }
-
-    @Test
-    public void platformManagementControllerSucceedsManagingRegistrationRequest() throws AAMException {
-        PlatformManagementRequest platformRegistrationRequest;
-        platformRegistrationRequest = new PlatformManagementRequest(
-                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                platformOwnerUserCredentials,
-                platformInstanceFriendlyName,
-                preferredPlatformId, OperationType.CREATE);
-
-        ManagementStatus response = aamClient.managePlatform(platformRegistrationRequest);
-        assertEquals(ManagementStatus.OK, response);
-    }
-
-    @Test(expected = AAMException.class)
-    public void platformManagementControllerFailsManagingIncorrectRegistrationRequest() throws AAMException {
-        PlatformManagementRequest IncorrectPlatformRegistrationRequest;
-        IncorrectPlatformRegistrationRequest = new PlatformManagementRequest(
-                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                new Credentials(wrongUsername, wrongPassword),
-                platformInstanceFriendlyName,
-                preferredPlatformId, OperationType.CREATE);
-
-        ManagementStatus status = aamClient.managePlatform(IncorrectPlatformRegistrationRequest);
-        assertEquals(ManagementStatus.ERROR, status);
     }
 
 }
