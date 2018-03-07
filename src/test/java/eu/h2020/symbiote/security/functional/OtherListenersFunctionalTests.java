@@ -35,7 +35,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -326,37 +325,6 @@ public class OtherListenersFunctionalTests extends
     }
 
     @Test
-    public void getPlatformOwnersNamesSuccess() throws IOException {
-        saveTwoDifferentUsers();
-        Set<String> requested = new HashSet<>();
-        requested.add(platformId + "One");
-        requested.add(platformId + "Two");
-        byte[] response = rabbitTemplate.sendAndReceive(getPlatformOwnersNamesQueue, new Message(mapper.writeValueAsBytes(new
-                GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, AAMOwnerPassword), requested)), new MessageProperties())).getBody();
-
-        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
-                GetPlatformOwnersResponse.class);
-        assertEquals(200, platformOwners.getHttpStatus().value());
-        assertNotNull(platformOwners.getplatformsOwners());
-        assertEquals("userOne", platformOwners.getplatformsOwners().get(platformId + "One"));
-        assertEquals("userTwo", platformOwners.getplatformsOwners().get(platformId + "Two"));
-    }
-
-    @Test
-    public void getPlatformOwnersNamesFailsForIncorrectAdminCredentials() throws
-            IOException {
-        saveTwoDifferentUsers();
-        Set<String> requested = new HashSet<>();
-        requested.add(platformId + "One");
-        requested.add(platformId + "Two");
-        byte[] response = rabbitTemplate.sendAndReceive(getPlatformOwnersNamesQueue, new Message(mapper.writeValueAsBytes(new
-                GetPlatformOwnersRequest(new Credentials(AAMOwnerUsername, wrongPassword), requested)), new MessageProperties())).getBody();
-        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
-                GetPlatformOwnersResponse.class);
-        assertEquals(401, platformOwners.getHttpStatus().value());
-    }
-
-    @Test
     public void checkAvailabilityOfFederationManagementAMQPListener() {
         char c[] = FederationManagementRequestConsumer.class.getSimpleName().toCharArray();
         c[0] = Character.toLowerCase(c[0]);
@@ -364,17 +332,4 @@ public class OtherListenersFunctionalTests extends
         assertFalse(ctx.containsBean(beanName));
     }
 
-    @Test
-    public void getPlatformOwnersNamesFailsWithoutAdminCredentials() throws
-            IOException {
-        saveTwoDifferentUsers();
-        Set<String> requested = new HashSet<>();
-        requested.add(platformId + "One");
-        requested.add(platformId + "Two");
-        byte[] response = rabbitTemplate.sendAndReceive(getPlatformOwnersNamesQueue, new Message(mapper.writeValueAsBytes(new
-                GetPlatformOwnersRequest(null, requested)), new MessageProperties())).getBody();
-        GetPlatformOwnersResponse platformOwners = mapper.readValue(response,
-                GetPlatformOwnersResponse.class);
-        assertEquals(401, platformOwners.getHttpStatus().value());
-    }
 }
