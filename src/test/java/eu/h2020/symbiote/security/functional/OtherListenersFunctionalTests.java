@@ -9,6 +9,7 @@ import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.listeners.amqp.consumers.FederationManagementRequestConsumer;
@@ -53,8 +54,8 @@ public class OtherListenersFunctionalTests extends
     private final String platformInterworkingInterfaceAddress =
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
 
-    @Value("${rabbit.queue.ownedplatformdetails.request}")
-    protected String ownedPlatformDetailsRequestQueue;
+    @Value("${rabbit.queue.ownedservices.request}")
+    protected String ownedServicesRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
@@ -212,89 +213,83 @@ public class OtherListenersFunctionalTests extends
     }
 
     @Test
-    public void getOwnedPlatformDetailsForPlatformOwnerInAdministrationSuccess() throws IOException {
+    public void getOwnedServicesForServiceOwnerInAdministrationSuccess() throws IOException, InvalidArgumentsException {
 
-        // verify that our platform is not in repository and that our platformOwner is in repository
+        // verify that our services is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
 
-        User platformOwner = userRepository.findOne(platformOwnerUsername);
-        // platform owner should have no platform bound to him by now
-        assertTrue(platformOwner.getOwnedServices().isEmpty());
+        User serviceOwner = userRepository.findOne(platformOwnerUsername);
+        // service owner should have no services bound to him by now
+        assertTrue(serviceOwner.getOwnedServices().isEmpty());
 
         // creating request
         UserManagementRequest userManagementRequest = new UserManagementRequest();
         userManagementRequest.setAdministratorCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         userManagementRequest.setUserCredentials(new Credentials(platformOwnerUsername, ""));
 
-        // issue owned platform details request
+        // issue owned services request
 
-        byte[] response = rabbitTemplate.sendAndReceive(ownedPlatformDetailsRequestQueue, new Message(mapper.writeValueAsBytes(userManagementRequest), new MessageProperties())).getBody();
-        Set<OwnedPlatformDetails> responseSet = mapper.readValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
+        byte[] response = rabbitTemplate.sendAndReceive(ownedServicesRequestQueue, new Message(mapper.writeValueAsBytes(userManagementRequest), new MessageProperties())).getBody();
+        Set<OwnedService> responseSet = mapper.readValue(response, new TypeReference<Set<OwnedService>>() {
         });
-        // no platforms there yet
+        // no services there yet
         assertTrue(responseSet.isEmpty());
 
-        // issue platform registration over AMQP
-        response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
-                (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
-        PlatformManagementResponse platformManagementResponse = mapper.readValue(response, PlatformManagementResponse.class);
-        assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
-        platformOwner = userRepository.findOne(platformOwnerUsername);
-        // platform owner should have a platform bound to him by now
-        assertFalse(platformOwner.getOwnedServices().isEmpty());
-
-        // issue owned platform details request
-        response = rabbitTemplate.sendAndReceive(ownedPlatformDetailsRequestQueue, new Message(mapper.writeValueAsBytes
-                (userManagementRequest), new MessageProperties())).getBody();
-
-        responseSet = mapper.readValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
-        });
-
-        // there should be a platform
-        assertFalse(responseSet.isEmpty());
-
-        OwnedPlatformDetails platformDetailsFromResponse = responseSet.iterator().next();
-        Platform ownedPlatformInDB = platformRepository.findOne(preferredPlatformId);
-
-        // verify the contents of the response
-        assertEquals(ownedPlatformInDB.getPlatformInstanceFriendlyName(), platformDetailsFromResponse
-                .getPlatformInstanceFriendlyName());
-        assertEquals(ownedPlatformInDB.getPlatformInstanceId(), platformDetailsFromResponse.getPlatformInstanceId());
-        assertEquals(ownedPlatformInDB.getPlatformInterworkingInterfaceAddress(), platformDetailsFromResponse
-                .getPlatformInterworkingInterfaceAddress());
-
-
-        // issue second platform registration over AMQP
-        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(
-                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                platformOwnerUserCredentials,
-                platformInterworkingInterfaceAddress + "/second",
+        // register smart space and platform in repositories
+        Platform platform = new Platform(platformId,
+                platformInterworkingInterfaceAddress,
                 platformInstanceFriendlyName,
-                platformId + "2",
-                OperationType.CREATE);
-        // issue platform registration over AMQP
-        response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
-                (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
-        platformManagementResponse = mapper.readValue(response, PlatformManagementResponse.class);
-        assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
+                serviceOwner,
+                new Certificate(),
+                new HashMap<>());
+        platformRepository.save(platform);
+        serviceOwner.getOwnedServices().add(platformId);
+        userRepository.save(serviceOwner);
+        SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId,
+                smartSpaceInstanceFriendlyName,
+                smartSpaceGateWayAddress,
+                isExposingSiteLocalAddress,
+                smartSpaceSiteLocalAddress,
+                new Certificate(),
+                new HashMap<>(),
+                serviceOwner);
+        smartSpaceRepository.save(smartSpace);
+        serviceOwner.getOwnedServices().add(preferredSmartSpaceId);
+        userRepository.save(serviceOwner);
 
-        platformOwner = userRepository.findOne(platformOwnerUsername);
-        // platform owner should have a platform bound to him by now
-        assertFalse(platformOwner.getOwnedServices().isEmpty());
 
-        // issue owned platform details request
-        response = rabbitTemplate.sendAndReceive(ownedPlatformDetailsRequestQueue, new Message(mapper.writeValueAsBytes
+        // issue owned services request
+        response = rabbitTemplate.sendAndReceive(ownedServicesRequestQueue, new Message(mapper.writeValueAsBytes
                 (userManagementRequest), new MessageProperties())).getBody();
 
-        responseSet = mapper.readValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
+        responseSet = mapper.readValue(response, new TypeReference<Set<OwnedService>>() {
         });
+
+        // there should be a platform and a smart space
         assertEquals(2, responseSet.size());
+
+        for (OwnedService ownedService : responseSet) {
+            if (ownedService.getServiceType().equals(OwnedService.ServiceType.PLATFORM)) {
+                assertEquals(platformId, ownedService.getServiceInstanceId());
+                assertEquals(platformInstanceFriendlyName, ownedService.getInstanceFriendlyName());
+                assertEquals(platformInterworkingInterfaceAddress, ownedService.getPlatformInterworkingInterfaceAddress());
+                assertTrue(ownedService.getExternalAddress().isEmpty());
+                assertTrue(ownedService.getSiteLocalAddress().isEmpty());
+            } else {
+                assertEquals(preferredSmartSpaceId, ownedService.getServiceInstanceId());
+                assertEquals(smartSpaceInstanceFriendlyName, ownedService.getInstanceFriendlyName());
+                assertEquals(smartSpaceGateWayAddress, ownedService.getExternalAddress());
+                assertEquals(isExposingSiteLocalAddress, ownedService.isExposingSiteLocalAddress());
+                assertEquals(smartSpaceSiteLocalAddress, ownedService.getSiteLocalAddress());
+                assertTrue(ownedService.getPlatformInterworkingInterfaceAddress().isEmpty());
+            }
+        }
     }
 
 
     @Test
-    public void getOwnedPlatformDetailsForPlatformOwnerInAdministrationUnauthorized()
+    public void getOwnedServicesForServiceOwnerInAdministrationUnauthorized()
             throws
             IOException {
 
@@ -317,11 +312,11 @@ public class OtherListenersFunctionalTests extends
         userManagementRequest.setUserCredentials(new Credentials(platformOwnerUsername, ""));
 
         // issue owned platform details request with the given token
-        response = rabbitTemplate.sendAndReceive(ownedPlatformDetailsRequestQueue, new Message(mapper.writeValueAsBytes
+        response = rabbitTemplate.sendAndReceive(ownedServicesRequestQueue, new Message(mapper.writeValueAsBytes
                 (userManagementRequest), new MessageProperties())).getBody();
 
         try {
-            mapper.readValue(response, new TypeReference<Set<OwnedPlatformDetails>>() {
+            mapper.readValue(response, new TypeReference<Set<OwnedService>>() {
             });
             assert false;
         } catch (Exception e) {

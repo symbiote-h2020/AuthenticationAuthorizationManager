@@ -47,8 +47,8 @@ public class RevocationFunctionalTests extends
 
     private final String recoveryMail = "null@dev.null";
     private final String platformId = "testPlatformId";
-    @Value("${rabbit.queue.ownedplatformdetails.request}")
-    protected String ownedPlatformDetailsRequestQueue;
+    @Value("${rabbit.queue.ownedservices.request}")
+    protected String ownedServicesRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
 

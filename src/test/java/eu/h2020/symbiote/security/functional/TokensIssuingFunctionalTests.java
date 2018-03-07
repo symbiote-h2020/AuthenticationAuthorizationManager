@@ -50,8 +50,8 @@ public class TokensIssuingFunctionalTests extends
     private static Log log = LogFactory.getLog(TokensIssuingFunctionalTests.class);
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
-    @Value("${rabbit.queue.ownedplatformdetails.request}")
-    protected String ownedPlatformDetailsRequestQueue;
+    @Value("${rabbit.queue.ownedservices.request}")
+    protected String ownedServicesRequestQueue;
     @Value("${rabbit.queue.manage.attributes}")
     protected String attributeManagementRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")

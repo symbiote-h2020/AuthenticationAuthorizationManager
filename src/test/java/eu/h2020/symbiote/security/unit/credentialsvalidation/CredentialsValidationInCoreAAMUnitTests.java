@@ -66,8 +66,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     private static Log log = LogFactory.getLog(CredentialsValidationInCoreAAMUnitTests.class);
     private static SecureRandom random = new SecureRandom();
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
-    @Value("${rabbit.queue.ownedplatformdetails.request}")
-    protected String ownedPlatformDetailsRequestQueue;
+    @Value("${rabbit.queue.ownedservices.request}")
+    protected String ownedServicesRequestQueue;
     @Autowired
     protected UserRepository userRepository;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")

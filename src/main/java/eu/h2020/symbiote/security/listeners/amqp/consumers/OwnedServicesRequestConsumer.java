@@ -2,15 +2,18 @@ package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.communication.payloads.OwnedPlatformDetails;
+import eu.h2020.symbiote.security.communication.payloads.OwnedService;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.repositories.SmartSpaceRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -47,10 +50,12 @@ public class OwnedServicesRequestConsumer {
     private String adminPassword;
     @Autowired
     private PlatformRepository platformRepository;
+    @Autowired
+    private SmartSpaceRepository smartSpaceRepository;
 
     @RabbitListener(bindings = @QueueBinding(
             value = @Queue(
-                    value = "${rabbit.queue.ownedplatformdetails.request}",
+                    value = "${rabbit.queue.ownedservices.request}",
                     durable = "${rabbit.exchange.aam.durable}",
                     autoDelete = "${rabbit.exchange.aam.autodelete}",
                     exclusive = "false"),
@@ -61,10 +66,10 @@ public class OwnedServicesRequestConsumer {
                     autoDelete = "${rabbit.exchange.aam.autodelete}",
                     internal = "${rabbit.exchange.aam.internal}",
                     type = "${rabbit.exchange.aam.type}"),
-            key = "${rabbit.routingKey.ownedplatformdetails.request}"))
-    public byte[] ownedPlatformDetailsRequest(byte[] body) {
+            key = "${rabbit.routingKey.ownedservices.request}"))
+    public byte[] ownedServicesRequest(byte[] body) {
         try {
-            log.debug("[x] Received Owned Platform Details Request");
+            log.debug("[x] Received Owned Services Details Request");
             byte[] response;
             String message;
             ObjectMapper om = new ObjectMapper();
@@ -88,37 +93,54 @@ public class OwnedServicesRequestConsumer {
                         || !administratorCredentials.getPassword().equals(adminPassword))
                     throw new UserManagementException(HttpStatus.UNAUTHORIZED);
 
-                // TODO change to include all services
-
                 // preparing collections
-                Set<OwnedPlatformDetails> ownedPlatformDetailsSet = new HashSet<>();
-                Set<String> ownedPlatformsIdentifiers = new HashSet<>();
+                Set<OwnedService> ownedServiceSet = new HashSet<>();
+                Set<String> ownedServicesIdentifiers = new HashSet<>();
 
                 // do it
-                User platformOwner = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
-                if (platformOwner != null)
-                    ownedPlatformsIdentifiers = platformOwner.getOwnedServices();
+                User serviceOwner = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
+                if (serviceOwner != null)
+                    ownedServicesIdentifiers = serviceOwner.getOwnedServices();
 
-                if (!ownedPlatformsIdentifiers.isEmpty()) {
-                    Set<Platform> ownedPlatforms = new HashSet<>();
-                    for (String platformIdentifier : ownedPlatformsIdentifiers) {
-                        Platform platform = platformRepository.findOne(platformIdentifier);
-                        if (platform != null)
-                            ownedPlatforms.add(platform);
-                    }
-                    for (Platform ownedPlatform : ownedPlatforms) {
-                        OwnedPlatformDetails ownedPlatformDetails = new OwnedPlatformDetails(
-                                ownedPlatform.getPlatformInstanceId(),
-                                ownedPlatform.getPlatformInterworkingInterfaceAddress(),
-                                ownedPlatform.getPlatformInstanceFriendlyName(),
-                                ownedPlatform.getPlatformAAMCertificate(),
-                                ownedPlatform.getComponentCertificates()
-                        );
-                        ownedPlatformDetailsSet.add(ownedPlatformDetails);
+                if (!ownedServicesIdentifiers.isEmpty()) {
+                    for (String serviceIdentifier : ownedServicesIdentifiers) {
+                        if (serviceIdentifier.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
+                            SmartSpace smartSpace = smartSpaceRepository.findOne(serviceIdentifier);
+                            if (smartSpace != null) {
+                                OwnedService ownedService = new OwnedService(
+                                        smartSpace.getInstanceIdentifier(),
+                                        smartSpace.getInstanceFriendlyName(),
+                                        OwnedService.ServiceType.SMART_SPACE,
+                                        "",
+                                        smartSpace.getExternalAddress(),
+                                        smartSpace.isExposingSiteLocalAddress(),
+                                        smartSpace.getSiteLocalAddress(),
+                                        smartSpace.getLocalCertificationAuthorityCertificate(),
+                                        smartSpace.getComponentCertificates()
+                                );
+                                ownedServiceSet.add(ownedService);
+                            }
+                        } else {
+                            Platform platform = platformRepository.findOne(serviceIdentifier);
+                            if (platform != null) {
+                                OwnedService ownedService = new OwnedService(
+                                        platform.getPlatformInstanceId(),
+                                        platform.getPlatformInstanceFriendlyName(),
+                                        OwnedService.ServiceType.PLATFORM,
+                                        platform.getPlatformInterworkingInterfaceAddress(),
+                                        "",
+                                        false,
+                                        "",
+                                        platform.getPlatformAAMCertificate(),
+                                        platform.getComponentCertificates()
+                                );
+                                ownedServiceSet.add(ownedService);
+                            }
+                        }
                     }
                 }
                 // replying with the whole set
-                response = om.writeValueAsBytes(ownedPlatformDetailsSet);
+                response = om.writeValueAsBytes(ownedServiceSet);
             } catch (UserManagementException | InvalidArgumentsException e) {
                 log.error(e);
                 response = om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.UNAUTHORIZED.value()));
