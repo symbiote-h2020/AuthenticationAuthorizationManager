@@ -4,6 +4,8 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import java.util.Set;
+
 /**
  * Spring repository interface definition to be used with MongoDB for operations on {@link Platform} entities.
  *
@@ -17,5 +19,5 @@ public interface PlatformRepository extends MongoRepository<Platform, String> {
      * @param platformOwner user responsible for this platform
      * @return @{@link Platform} related with the given user
      */
-    Platform findByPlatformOwner(User platformOwner);
+    Set<Platform> findByPlatformOwner(User platformOwner);
 }

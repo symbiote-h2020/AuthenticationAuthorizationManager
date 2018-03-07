@@ -13,7 +13,7 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import eu.h2020.symbiote.security.services.helpers.enums.CertificateCaseCNFieldsNumber;
+import eu.h2020.symbiote.security.services.helpers.enums.CertificateTypeBySplitCommonNameFieldsNumber;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -101,7 +101,7 @@ public class SignCertificateRequestService {
             pem = createPem(certFromCSR);
             persistServiceCertificate(request, pem);
         }
-        // user / platform owner
+        // actor (user / service owner)
         else if (request.getSubject().toString().matches("^(CN=)(([\\w-])+)(@)(([\\w-])+)(@)(([\\w-])+)$")) {
             if (user == null) {
                 throw new ValidationException(ValidationException.USER_NOT_FOUND_IN_DB);
@@ -145,7 +145,7 @@ public class SignCertificateRequestService {
             throw new SecurityException();
         }
 
-        switch (CertificateCaseCNFieldsNumber.fromInt(request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER).length)) {
+        switch (CertificateTypeBySplitCommonNameFieldsNumber.fromInt(request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER).length)) {
             case COMPONENT:
                 if (certificateRequest.getUsername().equals(AAMOwnerUsername)) {
                     // password check
@@ -163,6 +163,7 @@ public class SignCertificateRequestService {
                     User platformAgent = userRepository.findOne(certificateRequest.getUsername());
                     if (platformAgent == null
                             || !platformAgent.getRole().equals(UserRole.SERVICE_OWNER)) {
+                        // TODO message constant
                         throw new ValidationException("This user can't get component certificate.");
                     }
                     if (!certificateRequest.getPassword().equals(platformAgent.getPasswordEncrypted()) &&
@@ -173,9 +174,11 @@ public class SignCertificateRequestService {
                         throw new ValidationException(ValidationException.USING_REVOKED_KEY);
                     }
                     if (!request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[0].startsWith(PLATFORM_AGENT_IDENTIFIER_PREFIX)) {
-                        throw new ValidationException("Invalid component name. Platform Agents' components' ids should have 'PA_' prefix.");
+                        // TODO message constant
+                        throw new ValidationException("Invalid component name. Platform Agents' components' ids must have 'PA_' prefix.");
                     }
                 } else {
+                    // TODO message constant
                     throw new InvalidArgumentsException("You don't have rights to ask for component certificate!");
                 }
                 break;
@@ -263,6 +266,7 @@ public class SignCertificateRequestService {
             certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, true);
         } catch (CertificateException e) {
             log.error(e);
+            // TODO what is this todo about?
             //TODO do sth with the error (SMART_SPACE)
             throw new ServiceManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
@@ -303,12 +307,14 @@ public class SignCertificateRequestService {
     private void platformRequestCheck(PKCS10CertificationRequest request) throws
             ServiceManagementException {
         if (!platformRepository.exists(request.getSubject().toString().split("CN=")[1])) {
+            // TODO maybe bad request?
             throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.UNAUTHORIZED);
         }
     }
 
     private void smartSpaceRequestCheck(PKCS10CertificationRequest request) throws ServiceManagementException {
         if (!smartSpaceRepository.exists(request.getSubject().toString().split("CN=")[1])) {
+            // TODO maybe bad request?
             throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.UNAUTHORIZED);
         }
     }

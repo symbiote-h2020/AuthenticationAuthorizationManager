@@ -300,9 +300,16 @@ public class ValidationHelper {
             return ValidationStatus.INVALID_TRUST_CHAIN;
         AAM issuerAAM = availableAAMs.get(issuer);
         String aamAddress = issuerAAM.getAamAddress();
-        PublicKey publicKey = issuerAAM.getAamCACertificate().getX509().getPublicKey();
+
+        // TODO check the platforms trust chain using
+        // the root we trust
+        // certificationAuthorityHelper.getRootCACertificate()
+        // should sign what we received for given ISS
+        // issuerAAM.getAamCACertificate().getX509()
+
 
         // check IPK
+        PublicKey publicKey = issuerAAM.getAamCACertificate().getX509().getPublicKey();
         if (!Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(claims.get("ipk"))) {
             return ValidationStatus.INVALID_TRUST_CHAIN;
         }

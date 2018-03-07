@@ -125,6 +125,7 @@ public class TokenIssuer {
                     switch (user.getRole()) {
                         case USER:
                         case SERVICE_OWNER:
+                            // TODO review if this is stil used...?
                             attributes.put(CoreAttributes.ROLE.toString(), user.getRole().toString());
                             break;
                         case NULL:
@@ -132,7 +133,6 @@ public class TokenIssuer {
                     }
                     break;
                 case PLATFORM:
-                    break;
                 case SMART_SPACE:
                     break;
                 case NULL:

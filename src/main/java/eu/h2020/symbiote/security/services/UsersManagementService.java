@@ -112,7 +112,7 @@ public class UsersManagementService {
     	log.debug("Received a request for user management");
         UserDetails userDetails = userManagementRequest.getUserDetails();
 
-        // CORE and SMART_SPACE AAM supports registering platform owners
+        // CORE and SMART_SPACE AAM support registering platform owners
         switch (deploymentType) {
             case CORE:
             case SMART_SPACE:
@@ -129,7 +129,6 @@ public class UsersManagementService {
                     log.error("This AAM does not support registration of users with this role.");
                     throw new InvalidArgumentsException();
                 }
-                break;
         }
 
         User userToManage = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());

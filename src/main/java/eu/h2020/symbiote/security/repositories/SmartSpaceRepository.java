@@ -4,6 +4,8 @@ import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
+import java.util.Set;
+
 /**
  * Spring repository interface definition to be used with MongoDB for operations on {@link SmartSpace} entities.
  *
@@ -18,5 +20,5 @@ public interface SmartSpaceRepository extends MongoRepository<SmartSpace, String
      * @param smartSpaceOwner user responsible for this smart space
      * @return @{@link SmartSpace} related with the given user
      */
-    SmartSpace findBySmartSpaceOwner(User smartSpaceOwner);
+    Set<SmartSpace> findBySmartSpaceOwner(User smartSpaceOwner);
 }

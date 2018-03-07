@@ -77,7 +77,17 @@ public class RevocationService {
         return new RevocationResponse(revocationHelper.revokeForeignToken(new Token(revocationRequest.getHomeTokenString()), new Token(revocationRequest.getForeignTokenString())), HttpStatus.OK);
     }
 
-    private RevocationResponse adminRevoke(RevocationRequest revocationRequest) throws ValidationException, WrongCredentialsException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, MalformedJWTException, IOException, NotExistingUserException, InvalidArgumentsException {
+    private RevocationResponse adminRevoke(RevocationRequest revocationRequest) throws
+            ValidationException,
+            WrongCredentialsException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            NoSuchProviderException,
+            MalformedJWTException,
+            IOException,
+            NotExistingUserException,
+            InvalidArgumentsException {
         if (!revocationRequest.getCredentials().getUsername().equals(AAMOwnerUsername)
                 || !passwordEncoder.matches(revocationRequest.getCredentials().getPassword(), passwordEncoder.encode(AAMOwnerPassword))) {
             log.error(WrongCredentialsException.AUTHENTICATION_OF_USER_FAILED);

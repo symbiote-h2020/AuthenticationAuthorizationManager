@@ -340,7 +340,7 @@ public class UsersManagementFunctionalTests extends
         User registeredUser = userRepository.findOne(username);
         assertNotNull(registeredUser);
         assertEquals(UserRole.SERVICE_OWNER, registeredUser.getRole());
-        assertNull(platformRepository.findByPlatformOwner(registeredUser));
+        assertTrue(platformRepository.findByPlatformOwner(registeredUser).isEmpty());
         // verify that the user has no certs
         assertTrue(registeredUser.getClientCertificates().isEmpty());
     }
@@ -365,7 +365,7 @@ public class UsersManagementFunctionalTests extends
         User registeredUser = userRepository.findOne(username);
         assertNotNull(registeredUser);
         assertEquals(UserRole.SERVICE_OWNER, registeredUser.getRole());
-        assertNull(platformRepository.findByPlatformOwner(registeredUser));
+        assertTrue(platformRepository.findByPlatformOwner(registeredUser).isEmpty());
         // verify that the user has no certs
         assertTrue(registeredUser.getClientCertificates().isEmpty());
     }
@@ -389,7 +389,7 @@ public class UsersManagementFunctionalTests extends
         User registeredUser = userRepository.findOne(username);
         assertNotNull(registeredUser);
         assertEquals(UserRole.SERVICE_OWNER, registeredUser.getRole());
-        assertNull(smartSpaceRepository.findBySmartSpaceOwner(registeredUser));
+        assertTrue(smartSpaceRepository.findBySmartSpaceOwner(registeredUser).isEmpty());
         // verify that the user has no certs
         assertTrue(registeredUser.getClientCertificates().isEmpty());
     }

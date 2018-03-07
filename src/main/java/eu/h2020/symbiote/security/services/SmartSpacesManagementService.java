@@ -53,7 +53,7 @@ public class SmartSpacesManagementService {
     @Value("${aam.deployment.owner.password}")
     private String AAMOwnerPassword;
 
-    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
+    @Value("${symbIoTe.core.interface.url}")
     private String coreInterfaceAddress;
 
     @Autowired
@@ -152,7 +152,8 @@ public class SmartSpacesManagementService {
                 if (!smartSpaceManagementRequest.getInstanceFriendlyName().isEmpty())
                     smartSpace.setInstanceFriendlyName(smartSpaceManagementRequest.getInstanceFriendlyName());
 
-                // check if other smart space don't use provided address already
+                // check if the external address isn't already in use
+                // TODO check against coreAddress!!
 
                 if (!smartSpaceManagementRequest.getGatewayAddress().isEmpty()
                         && !smartSpace.getExternalAddress().equals(smartSpaceManagementRequest.getGatewayAddress())) {

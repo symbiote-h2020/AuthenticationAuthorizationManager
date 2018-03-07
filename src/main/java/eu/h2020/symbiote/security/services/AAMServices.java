@@ -274,6 +274,7 @@ public class AAMServices {
             AAM aam = availableAAMs.get(serviceIdentifier);
             if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME)) {
                 // AAM cert can be fetched without contacting the service AAM itself
+                // TODO maybe trust chain check here also not to serve/propagate malicious certs?
                 return aam.getAamCACertificate().getCertificateString();
             } else {
                 IAAMClient aamClient = new AAMClient(aam.getAamAddress());

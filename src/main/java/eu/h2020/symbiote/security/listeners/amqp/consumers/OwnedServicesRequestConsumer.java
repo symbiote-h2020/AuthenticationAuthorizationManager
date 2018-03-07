@@ -119,6 +119,8 @@ public class OwnedServicesRequestConsumer {
                                         smartSpace.getComponentCertificates()
                                 );
                                 ownedServiceSet.add(ownedService);
+                            } else {
+                                // TODO throw exception as this shows inconsistence in our DB
                             }
                         } else {
                             Platform platform = platformRepository.findOne(serviceIdentifier);
@@ -135,6 +137,8 @@ public class OwnedServicesRequestConsumer {
                                         platform.getComponentCertificates()
                                 );
                                 ownedServiceSet.add(ownedService);
+                            } else {
+                                // TODO throw exception as this shows inconsistence in our DB
                             }
                         }
                     }
