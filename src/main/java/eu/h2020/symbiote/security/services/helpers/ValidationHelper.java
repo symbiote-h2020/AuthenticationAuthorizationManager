@@ -30,14 +30,20 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.security.*;
-import java.security.cert.*;
-import java.util.*;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PublicKey;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
+import java.security.cert.X509Certificate;
+import java.util.Base64;
+import java.util.Date;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
-
-import eu.h2020.symbiote.security.commons.Certificate;
 
 /**
  * Used to validate given credentials against data in the AAMs
@@ -57,7 +63,7 @@ public class ValidationHelper {
     // AAM configuration
     private final String deploymentId;
     private final IssuingAuthorityType deploymentType;
-    private final CertificationAuthorityHelper certificationAuthorityHelper;
+    public final CertificationAuthorityHelper certificationAuthorityHelper;
     private final RevokedKeysRepository revokedKeysRepository;
     private final RevokedTokensRepository revokedTokensRepository;
     private final RevokedRemoteTokensRepository revokedRemoteTokensRepository;
@@ -261,7 +267,7 @@ public class ValidationHelper {
                 // foreign token needs additional trust chain validation
                 if (new Token(tokenString).getType().equals(Token.Type.FOREIGN)
                         && (foreignTokenIssuingAAMCertificate.isEmpty()
-                        || !isForeignTokenIssuerCertificateChainTrusted(foreignTokenIssuingAAMCertificate)))
+                        || !certificationAuthorityHelper.isServiceCertificateChainTrusted(foreignTokenIssuingAAMCertificate)))
                     return ValidationStatus.INVALID_TRUST_CHAIN;
 
                 // reject on failed client certificate trust chain
@@ -301,12 +307,9 @@ public class ValidationHelper {
         AAM issuerAAM = availableAAMs.get(issuer);
         String aamAddress = issuerAAM.getAamAddress();
 
-        // TODO check the platforms trust chain using
-        // the root we trust
-        // certificationAuthorityHelper.getRootCACertificate()
-        // should sign what we received for given ISS
-        // issuerAAM.getAamCACertificate().getX509()
-
+        if (!certificationAuthorityHelper.isServiceCertificateChainTrusted(issuerAAM.getAamCACertificate().getCertificateString())) {
+            return ValidationStatus.INVALID_TRUST_CHAIN;
+        }
 
         // check IPK
         PublicKey publicKey = issuerAAM.getAamCACertificate().getX509().getPublicKey();
@@ -445,62 +448,6 @@ public class ValidationHelper {
         return CryptoHelper.isClientCertificateChainTrusted(rootCertificate, signingAAMCertificateString, clientCertificateString);
     }
 
-
-    public boolean isForeignTokenIssuerCertificateChainTrusted(String foreignTokenIssuerCertificateString) throws
-            NoSuchAlgorithmException,
-            CertificateException,
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException {
-
-        X509Certificate rootCertificate = certificationAuthorityHelper.getRootCACertificate();
-
-        // for foreign tokens issued by Core AAM
-        if (foreignTokenIssuerCertificateString.equals(CryptoHelper.convertX509ToPEM(rootCertificate)))
-            return true;
-
-        // convert certificates to X509
-        X509Certificate foreignTokenIssuerCertificate = CryptoHelper.convertPEMToX509(foreignTokenIssuerCertificateString);
-
-        // Create the selector that specifies the starting certificate
-        X509CertSelector target = new X509CertSelector();
-        target.setCertificate(foreignTokenIssuerCertificate);
-
-        // Create the trust anchors (set of root CA certificates)
-        Set<TrustAnchor> trustAnchors = new HashSet<>();
-        TrustAnchor trustAnchor = new TrustAnchor(rootCertificate, null);
-        trustAnchors.add(trustAnchor);
-
-        // List of intermediate certificates
-        List<X509Certificate> intermediateCertificates = new ArrayList<>();
-        intermediateCertificates.add(foreignTokenIssuerCertificate);
-
-        /*
-         * If build() returns successfully, the certificate is valid. More details
-         * about the valid path can be obtained through the PKIXCertPathBuilderResult.
-         * If no valid path can be found, a CertPathBuilderException is thrown.
-         */
-        try {
-            // Create the selector that specifies the starting certificate
-            PKIXBuilderParameters params = new PKIXBuilderParameters(trustAnchors, target);
-            // Disable CRL checks (this is done manually as additional step)
-            params.setRevocationEnabled(false);
-
-            // Specify a list of intermediate certificates
-            CertStore intermediateCertStore = CertStore.getInstance("Collection",
-                    new CollectionCertStoreParameters(intermediateCertificates), "BC");
-            params.addCertStore(intermediateCertStore);
-
-            // Build and verify the certification chain
-            CertPathBuilder builder = CertPathBuilder.getInstance("PKIX", "BC");
-            PKIXCertPathBuilderResult result = (PKIXCertPathBuilderResult) builder.build(params);
-            // path should have 1 intermediate cert in symbIoTe architecture
-            return result.getCertPath().getCertificates().size() == 1;
-        } catch (CertPathBuilderException | InvalidAlgorithmParameterException e) {
-            log.info(e);
-            return false;
-        }
-    }
 
     private boolean validateFederationAttributes(String foreignToken) {
         JWTClaims claims;

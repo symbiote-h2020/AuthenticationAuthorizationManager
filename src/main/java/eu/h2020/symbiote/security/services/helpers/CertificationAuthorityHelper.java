@@ -26,11 +26,8 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.*;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.security.cert.*;
+import java.util.*;
 
 /**
  * Certificate related set of functions.
@@ -342,4 +339,59 @@ public class CertificationAuthorityHelper {
                         .build(sigGen));
     }
 
+    public boolean isServiceCertificateChainTrusted(String foreignTokenIssuerCertificateString) throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException {
+
+        X509Certificate rootCertificate = getRootCACertificate();
+
+        // for foreign tokens issued by Core AAM
+        if (foreignTokenIssuerCertificateString.equals(CryptoHelper.convertX509ToPEM(rootCertificate)))
+            return true;
+
+        // convert certificates to X509
+        X509Certificate foreignTokenIssuerCertificate = CryptoHelper.convertPEMToX509(foreignTokenIssuerCertificateString);
+
+        // Create the selector that specifies the starting certificate
+        X509CertSelector target = new X509CertSelector();
+        target.setCertificate(foreignTokenIssuerCertificate);
+
+        // Create the trust anchors (set of root CA certificates)
+        Set<TrustAnchor> trustAnchors = new HashSet<>();
+        TrustAnchor trustAnchor = new TrustAnchor(rootCertificate, null);
+        trustAnchors.add(trustAnchor);
+
+        // List of certificates to build the path from
+        List<X509Certificate> certsOnPath = new ArrayList<>();
+        certsOnPath.add(foreignTokenIssuerCertificate);
+
+        /*
+         * If build() returns successfully, the certificate is valid. More details
+         * about the valid path can be obtained through the PKIXCertPathBuilderResult.
+         * If no valid path can be found, a CertPathBuilderException is thrown.
+         */
+        try {
+            // Create the selector that specifies the starting certificate
+            PKIXBuilderParameters params = new PKIXBuilderParameters(trustAnchors, target);
+            // Disable CRL checks (this is done manually as additional step)
+            params.setRevocationEnabled(false);
+
+            // Specify a list of intermediate certificates
+            CertStore intermediateCertStore = CertStore.getInstance("Collection",
+                    new CollectionCertStoreParameters(certsOnPath), "BC");
+            params.addCertStore(intermediateCertStore);
+
+            // Build and verify the certification chain
+            CertPathBuilder builder = CertPathBuilder.getInstance("PKIX", "BC");
+            PKIXCertPathBuilderResult result = (PKIXCertPathBuilderResult) builder.build(params);
+            // path should have 1 intermediate cert in symbIoTe architecture
+            return result.getCertPath().getCertificates().size() == 1;
+        } catch (CertPathBuilderException | InvalidAlgorithmParameterException e) {
+            log.info(e);
+            return false;
+        }
+    }
 }

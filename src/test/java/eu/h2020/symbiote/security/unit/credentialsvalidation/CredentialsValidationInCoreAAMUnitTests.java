@@ -1032,7 +1032,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             NoSuchProviderException,
             KeyStoreException,
             IOException {
-        assertTrue(validationHelper.isForeignTokenIssuerCertificateChainTrusted(certificationAuthorityHelper.getRootCACert()));
+        assertTrue(validationHelper.certificationAuthorityHelper.isServiceCertificateChainTrusted(certificationAuthorityHelper.getRootCACert()));
     }
 
     @Test
