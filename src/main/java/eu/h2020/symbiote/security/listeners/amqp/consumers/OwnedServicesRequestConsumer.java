@@ -3,6 +3,7 @@ package eu.h2020.symbiote.security.listeners.amqp.consumers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
@@ -120,7 +121,7 @@ public class OwnedServicesRequestConsumer {
                                 );
                                 ownedServiceSet.add(ownedService);
                             } else {
-                                // TODO throw exception as this shows inconsistence in our DB
+                                throw new AAMException(AAMException.DATABASE_INCONSISTENCY);
                             }
                         } else {
                             Platform platform = platformRepository.findOne(serviceIdentifier);
@@ -138,7 +139,7 @@ public class OwnedServicesRequestConsumer {
                                 );
                                 ownedServiceSet.add(ownedService);
                             } else {
-                                // TODO throw exception as this shows inconsistence in our DB
+                                throw new AAMException(AAMException.DATABASE_INCONSISTENCY);
                             }
                         }
                     }
@@ -153,6 +154,9 @@ public class OwnedServicesRequestConsumer {
                 log.error(e);
                 response = om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()));
                 return response;
+            } catch (AAMException e) {
+                log.error(e);
+                response = om.writeValueAsBytes(new ErrorResponseContainer(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()));
             }
             return response;
 
