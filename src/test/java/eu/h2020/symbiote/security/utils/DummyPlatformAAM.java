@@ -43,7 +43,7 @@ public class DummyPlatformAAM {
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/keystores/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
     private static final String PATH = "/test/paam";
-    public boolean certificateFlag = true;
+    public int certificateFlag = 1;
 
     public DummyPlatformAAM() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -134,18 +134,25 @@ public class DummyPlatformAAM {
 
     @GetMapping(path = PATH + SecurityConstants.AAM_GET_COMPONENT_CERTIFICATE + "/platform/{platformIdentifier}/component/{componentIdentifier}")
     public ResponseEntity<?> getComponentCertificate(String componentIdentifier, String platformIdentifier) throws NoSuchAlgorithmException, CertificateException, NoSuchProviderException, KeyStoreException, IOException {
-        if (certificateFlag) {
+        if (certificateFlag == 1) {
             Certificate cert = new Certificate(
                     CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
                             "keystores/core.p12",
                             "registry-core-1")));
 
             return new ResponseEntity<>(cert.getCertificateString(), HttpStatus.OK);
-        } else {
+        } else if (certificateFlag == 0) {
             Certificate cert = new Certificate(
                     CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
                             "keystores/core.p12",
                             "rap@platform-1-core-1")));
+
+            return new ResponseEntity<>(cert.getCertificateString(), HttpStatus.OK);
+        } else {
+            Certificate cert = new Certificate(
+                    CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
+                            "keystores/platform_1.p12",
+                            P1_CLIENT_CERTIFICATE_CN)));
 
             return new ResponseEntity<>(cert.getCertificateString(), HttpStatus.OK);
         }

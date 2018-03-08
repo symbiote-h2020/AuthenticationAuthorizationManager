@@ -71,6 +71,7 @@ public class CacheTests extends AbstractAAMTestSuite {
                 new Certificate(CryptoHelper.convertX509ToPEM(properAAMCert)),
                 new HashMap<>());
         platformRepository.save(dummyPlatform);
+        dummyPlatformAAM.certificateFlag = 1;
     }
 
     @Test
@@ -152,6 +153,8 @@ public class CacheTests extends AbstractAAMTestSuite {
             InvalidArgumentsException,
             IOException {
 
+        //dirty hack to pass TrustChain of the certificate. (client cert is returned)
+        dummyPlatformAAM.certificateFlag = 2;
         aamServices.getComponentCertificate(componentId, "platform-1");
         aamServices.getComponentCertificate(componentId, "platform-1");
         Mockito.verify(dummyPlatformAAM, times(1)).getComponentCertificate(Mockito.anyString(), Mockito.anyString());

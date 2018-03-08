@@ -23,7 +23,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -50,6 +52,9 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
         certificationAuthorityHelper = mock(CertificationAuthorityHelper.class);
         when(certificationAuthorityHelper.getDeploymentType()).thenReturn(IssuingAuthorityType.PLATFORM);
         when(certificationAuthorityHelper.getAAMInstanceIdentifier()).thenReturn(oldCertificationAuthorityHelper.getAAMInstanceIdentifier());
+        when(certificationAuthorityHelper.getRootCACertificate()).thenReturn(oldCertificationAuthorityHelper.getRootCACertificate());
+        when(certificationAuthorityHelper.getRootCACert()).thenReturn(oldCertificationAuthorityHelper.getRootCACert());
+        when(certificationAuthorityHelper.isServiceCertificateChainTrusted(anyString())).thenReturn(true);
 
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", certificationAuthorityHelper);
@@ -59,6 +64,7 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
     public void after() {
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", oldCertificationAuthorityHelper);
+        dummyPlatformAAM.certificateFlag = 1;
 
     }
 
@@ -72,10 +78,28 @@ public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
             AAMException,
             InvalidArgumentsException {
 
+        //dirty hack to pass TrustChain of the certificate. (client cert is returned)
+        dummyPlatformAAM.certificateFlag = 2;
         String component = aamServices.getComponentCertificate(componentId, platformId);
 
         assertTrue(component.contains("BEGIN CERTIFICATE"));
 
+    }
+
+    @Test
+    public void getLocalComponentCertificateOtherPlatformFailWrongTrustChain() throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            InvalidArgumentsException {
+        try {
+            //dummy platform returns core component certificate, not its own
+            aamServices.getComponentCertificate(componentId, platformId);
+        } catch (AAMException e) {
+            assertEquals(AAMException.REMOTE_AAMS_COMPONENT_CERTIFICATE_IS_NOT_TRUSTED, e.getMessage());
+        }
     }
 
     @Test

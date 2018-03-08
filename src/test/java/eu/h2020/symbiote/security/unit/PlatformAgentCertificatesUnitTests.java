@@ -108,7 +108,7 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
         signCertificateRequestService.signCertificateRequest(certRequest);
     }
 
-    @Test(expected = InvalidArgumentsException.class)
+    @Test(expected = ValidationException.class)
     public void getPlatformAgentCertificateFailWrongDeploymentId() throws
             IOException,
             NoSuchAlgorithmException,
