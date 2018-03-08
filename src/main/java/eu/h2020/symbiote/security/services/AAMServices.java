@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsExce
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.SmartSpaceRepository;
@@ -270,15 +271,29 @@ public class AAMServices {
         }
         // not our service
         Map<String, AAM> availableAAMs = getAvailableAAMs();
+        //check if received Core cert is the same as this in our keystore
+        if (!availableAAMs.containsKey(SecurityConstants.CORE_AAM_INSTANCE_ID)
+                || !availableAAMs.get(SecurityConstants.CORE_AAM_INSTANCE_ID).getAamCACertificate().getCertificateString().equals(certificationAuthorityHelper.getRootCACert())) {
+            throw new AAMException(AAMException.CORE_AAM_IS_NOT_TRUSTED);
+        }
         if (availableAAMs.containsKey(serviceIdentifier)) {
             AAM aam = availableAAMs.get(serviceIdentifier);
             if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME)) {
                 // AAM cert can be fetched without contacting the service AAM itself
-                // TODO maybe trust chain check here also not to serve/propagate malicious certs?
-                return aam.getAamCACertificate().getCertificateString();
+                String remoteAAMCertString = aam.getAamCACertificate().getCertificateString();
+
+                if (!certificationAuthorityHelper.isServiceCertificateChainTrusted(remoteAAMCertString))
+                    throw new AAMException(AAMException.REMOTE_AAM_CERTIFICATE_IS_NOT_TRUSTED);
+
+                return remoteAAMCertString;
             } else {
                 IAAMClient aamClient = new AAMClient(aam.getAamAddress());
-                return aamClient.getComponentCertificate(componentIdentifier, serviceIdentifier);
+                String remoteAAMComponentCertString = aamClient.getComponentCertificate(componentIdentifier, serviceIdentifier);
+                if (!CryptoHelper.isClientCertificateChainTrusted(certificationAuthorityHelper.getRootCACert(),
+                        aam.getAamCACertificate().getCertificateString(),
+                        remoteAAMComponentCertString))
+                    throw new AAMException(AAMException.REMOTE_AAMS_COMPONENT_CERTIFICATE_IS_NOT_TRUSTED);
+                return remoteAAMComponentCertString;
             }
         }
         throw new AAMException(AAMException.SELECTED_CERTIFICATE_NOT_FOUND);
