@@ -121,7 +121,7 @@ public class OwnedServicesRequestConsumer {
                                 );
                                 ownedServiceSet.add(ownedService);
                             } else {
-                                throw new AAMException(AAMException.DATABASE_INCONSISTENCY);
+                                throw new AAMException(AAMException.DATABASE_INCONSISTENT);
                             }
                         } else {
                             Platform platform = platformRepository.findOne(serviceIdentifier);
@@ -139,7 +139,7 @@ public class OwnedServicesRequestConsumer {
                                 );
                                 ownedServiceSet.add(ownedService);
                             } else {
-                                throw new AAMException(AAMException.DATABASE_INCONSISTENCY);
+                                throw new AAMException(AAMException.DATABASE_INCONSISTENT);
                             }
                         }
                     }

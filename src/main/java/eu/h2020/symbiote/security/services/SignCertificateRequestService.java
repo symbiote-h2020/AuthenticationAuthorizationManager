@@ -163,7 +163,7 @@ public class SignCertificateRequestService {
                     User platformAgent = userRepository.findOne(certificateRequest.getUsername());
                     if (platformAgent == null
                             || !platformAgent.getRole().equals(UserRole.SERVICE_OWNER)) {
-                        throw new ValidationException(ValidationException.USER_CAN_T_GET_COMPONENT_CERTIFICATE);
+                        throw new ValidationException(ValidationException.USER_MUST_NOT_GET_COMPONENT_CERTIFICATE);
                     }
                     if (!certificateRequest.getPassword().equals(platformAgent.getPasswordEncrypted()) &&
                             !passwordEncoder.matches(certificateRequest.getPassword(), platformAgent.getPasswordEncrypted()))

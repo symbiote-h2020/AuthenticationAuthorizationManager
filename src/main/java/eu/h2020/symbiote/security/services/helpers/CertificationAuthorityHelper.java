@@ -379,15 +379,15 @@ public class CertificationAuthorityHelper {
             // Disable CRL checks (this is done manually as additional step)
             params.setRevocationEnabled(false);
 
-            // Specify a list of intermediate certificates
-            CertStore intermediateCertStore = CertStore.getInstance("Collection",
+            // Specify a list of certificates on path
+            CertStore validatedPathCertsStore = CertStore.getInstance("Collection",
                     new CollectionCertStoreParameters(certsOnPath), "BC");
-            params.addCertStore(intermediateCertStore);
+            params.addCertStore(validatedPathCertsStore);
 
             // Build and verify the certification chain
             CertPathBuilder builder = CertPathBuilder.getInstance("PKIX", "BC");
             PKIXCertPathBuilderResult result = (PKIXCertPathBuilderResult) builder.build(params);
-            // path should have 1 intermediate cert in symbIoTe architecture
+            // path should have 1 cert in symbIoTe architecture
             return result.getCertPath().getCertificates().size() == 1;
         } catch (CertPathBuilderException | InvalidAlgorithmParameterException e) {
             log.info(e);
