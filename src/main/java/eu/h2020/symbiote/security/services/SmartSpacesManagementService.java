@@ -47,14 +47,9 @@ public class SmartSpacesManagementService {
     private final PasswordEncoder passwordEncoder;
     private final RevokedKeysRepository revokedKeysRepository;
     private final AAMServices aamServices;
-
-    @Value("${aam.deployment.owner.username}")
-    private String AAMOwnerUsername;
-    @Value("${aam.deployment.owner.password}")
-    private String AAMOwnerPassword;
-
-    @Value("${symbIoTe.core.interface.url}")
-    private String coreInterfaceAddress;
+    private final String adminUsername;
+    private final String adminPassword;
+    private final String coreInterfaceAddress;
 
     @Autowired
     public SmartSpacesManagementService(UserRepository userRepository,
@@ -62,13 +57,20 @@ public class SmartSpacesManagementService {
                                         PlatformRepository platformRepository,
                                         PasswordEncoder passwordEncoder,
                                         RevokedKeysRepository revokedKeysRepository,
-                                        AAMServices aamServices) {
+                                        AAMServices aamServices,
+                                        @Value("${aam.deployment.owner.username}") String adminUsername,
+                                        @Value("${aam.deployment.owner.password}") String adminPassword,
+                                        @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress
+    ) {
         this.userRepository = userRepository;
         this.smartSpaceRepository = smartSpaceRepository;
         this.platformRepository = platformRepository;
         this.passwordEncoder = passwordEncoder;
         this.revokedKeysRepository = revokedKeysRepository;
         this.aamServices = aamServices;
+        this.adminUsername = adminUsername;
+        this.adminPassword = adminPassword;
+        this.coreInterfaceAddress = coreInterfaceAddress;
     }
 
     public SmartSpaceManagementResponse manage(SmartSpaceManagementRequest smartSpaceManagementRequest) throws
@@ -112,26 +114,26 @@ public class SmartSpacesManagementService {
                 if (smartSpaceRepository.exists(smartSpaceId))
                     throw new ServiceManagementException(ServiceManagementException.SERVICE_EXISTS, HttpStatus.BAD_REQUEST);
 
-                // checking if Gateway Address isn't already used
-                if (!smartSpaceManagementRequest.getGatewayAddress().isEmpty()) {
+                // checking if External Address isn't already used
+                if (!smartSpaceManagementRequest.getExternalAddress().isEmpty()) {
                     for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
-                        if (smartSpace.getExternalAddress().equals(smartSpaceManagementRequest.getGatewayAddress()))
+                        if (smartSpace.getExternalAddress().equals(smartSpaceManagementRequest.getExternalAddress()))
                             throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
                     }
                     for (Platform platform : platformRepository.findAll()) {
-                        if (platform.getPlatformInterworkingInterfaceAddress().equals(smartSpaceManagementRequest.getGatewayAddress()))
+                        if (platform.getPlatformInterworkingInterfaceAddress().equals(smartSpaceManagementRequest.getExternalAddress()))
                             throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
                     }
                 }
                 //smart space thanks to it's prefix can't have the same identifier as Core
-                if (smartSpaceManagementRequest.getGatewayAddress().equals(coreInterfaceAddress)
+                if (smartSpaceManagementRequest.getExternalAddress().equals(coreInterfaceAddress)
                         || !smartSpaceId.matches("^(([\\w-])+)$"))
                     // such a name would pose awkward questions
                     throw new ServiceManagementException(ServiceManagementException.AWKWARD_SERVICE, HttpStatus.BAD_REQUEST);
 
                 SmartSpace smartSpace = new SmartSpace(smartSpaceId,
                         smartSpaceManagementRequest.getInstanceFriendlyName(),
-                        smartSpaceManagementRequest.getGatewayAddress(),
+                        smartSpaceManagementRequest.getExternalAddress(),
                         smartSpaceManagementRequest.isExposingSiteLocalAddress(),
                         smartSpaceManagementRequest.getSiteLocalAddress(),
                         new Certificate(),
@@ -153,22 +155,23 @@ public class SmartSpacesManagementService {
                     smartSpace.setInstanceFriendlyName(smartSpaceManagementRequest.getInstanceFriendlyName());
 
                 // check if the external address isn't already in use
-                // TODO check against coreAddress!!
-
-                if (!smartSpaceManagementRequest.getGatewayAddress().isEmpty()
-                        && !smartSpace.getExternalAddress().equals(smartSpaceManagementRequest.getGatewayAddress())) {
+                if (!smartSpaceManagementRequest.getExternalAddress().isEmpty()
+                        && !smartSpace.getExternalAddress().equals(smartSpaceManagementRequest.getExternalAddress())) {
+                    if (smartSpaceManagementRequest.getExternalAddress().equals(coreInterfaceAddress)) {
+                        throw new ServiceManagementException(ServiceManagementException.AWKWARD_SERVICE, HttpStatus.BAD_REQUEST);
+                    }
                     for (SmartSpace smartSpaceRepo : smartSpaceRepository.findAll()) {
                         if (!smartSpaceRepo.getInstanceIdentifier().equals(smartSpace.getInstanceIdentifier())
-                                && smartSpaceRepo.getExternalAddress().equals(smartSpaceManagementRequest.getGatewayAddress()))
+                                && smartSpaceRepo.getExternalAddress().equals(smartSpaceManagementRequest.getExternalAddress()))
                             throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
                     }
                     for (Platform platform : platformRepository.findAll()) {
-                        if (platform.getPlatformInterworkingInterfaceAddress().equals(smartSpaceManagementRequest.getGatewayAddress()))
+                        if (platform.getPlatformInterworkingInterfaceAddress().equals(smartSpaceManagementRequest.getExternalAddress()))
                             throw new ServiceManagementException(ServiceManagementException.SERVICE_ADDRESSES_IN_USE, HttpStatus.BAD_REQUEST);
                     }
                 }
                 smartSpace.setExposingSiteLocalAddress(smartSpaceManagementRequest.isExposingSiteLocalAddress());
-                smartSpace.setExternalAddress(smartSpaceManagementRequest.getGatewayAddress());
+                smartSpace.setExternalAddress(smartSpaceManagementRequest.getExternalAddress());
                 smartSpace.setSiteLocalAddress(smartSpaceManagementRequest.getSiteLocalAddress());
 
                 smartSpaceRepository.save(smartSpace);
@@ -225,8 +228,8 @@ public class SmartSpacesManagementService {
         if (request.getAamOwnerCredentials() == null || request.getServiceOwnerCredentials() == null)
             throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_CREDENTIALS);
         // check if this operation is authorized
-        if (!request.getAamOwnerCredentials().getUsername().equals(AAMOwnerUsername)
-                || !request.getAamOwnerCredentials().getPassword().equals(AAMOwnerPassword))
+        if (!request.getAamOwnerCredentials().getUsername().equals(adminUsername)
+                || !request.getAamOwnerCredentials().getPassword().equals(adminPassword))
             throw new WrongCredentialsException();
         return this.manage(request);
     }
