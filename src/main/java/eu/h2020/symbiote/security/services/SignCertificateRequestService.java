@@ -163,8 +163,7 @@ public class SignCertificateRequestService {
                     User platformAgent = userRepository.findOne(certificateRequest.getUsername());
                     if (platformAgent == null
                             || !platformAgent.getRole().equals(UserRole.SERVICE_OWNER)) {
-                        // TODO message constant
-                        throw new ValidationException("This user can't get component certificate.");
+                        throw new ValidationException(ValidationException.USER_CAN_T_GET_COMPONENT_CERTIFICATE);
                     }
                     if (!certificateRequest.getPassword().equals(platformAgent.getPasswordEncrypted()) &&
                             !passwordEncoder.matches(certificateRequest.getPassword(), platformAgent.getPasswordEncrypted()))
@@ -174,12 +173,10 @@ public class SignCertificateRequestService {
                         throw new ValidationException(ValidationException.USING_REVOKED_KEY);
                     }
                     if (!request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[0].startsWith(PLATFORM_AGENT_IDENTIFIER_PREFIX)) {
-                        // TODO message constant
-                        throw new ValidationException("Invalid component name. Platform Agents' components' ids must have 'PA_' prefix.");
+                        throw new ValidationException(ValidationException.INVALID_COMPONENT_NAME_NO_PA_PREFIX);
                     }
                 } else {
-                    // TODO message constant
-                    throw new InvalidArgumentsException("You don't have rights to ask for component certificate!");
+                    throw new ValidationException(ValidationException.NO_RIGHTS_FOR_COMPONENT_CERTIFICATE);
                 }
                 break;
             case SERVICE:
@@ -266,8 +263,6 @@ public class SignCertificateRequestService {
             certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, true);
         } catch (CertificateException e) {
             log.error(e);
-            // TODO what is this todo about?
-            //TODO do sth with the error (SMART_SPACE)
             throw new ServiceManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return certFromCSR;
@@ -307,15 +302,13 @@ public class SignCertificateRequestService {
     private void platformRequestCheck(PKCS10CertificationRequest request) throws
             ServiceManagementException {
         if (!platformRepository.exists(request.getSubject().toString().split("CN=")[1])) {
-            // TODO maybe bad request?
-            throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.UNAUTHORIZED);
+            throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
         }
     }
 
     private void smartSpaceRequestCheck(PKCS10CertificationRequest request) throws ServiceManagementException {
         if (!smartSpaceRepository.exists(request.getSubject().toString().split("CN=")[1])) {
-            // TODO maybe bad request?
-            throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.UNAUTHORIZED);
+            throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
         }
     }
 
