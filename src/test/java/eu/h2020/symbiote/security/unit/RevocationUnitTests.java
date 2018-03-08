@@ -67,7 +67,6 @@ public class RevocationUnitTests extends
     @Autowired
     DummyPlatformAAM dummyPlatformAAM;
 
-    //TODO @JT revokeCertificates unit tests
     @Test
     public void revokeUserCertificateUsingCommonNameSuccess() throws
             InvalidAlgorithmParameterException,
@@ -626,7 +625,6 @@ public class RevocationUnitTests extends
             KeyStoreException,
             CertificateException,
             NoSuchAlgorithmException,
-            UnrecoverableKeyException,
             InvalidAlgorithmParameterException,
             MalformedJWTException,
             ClassNotFoundException {
@@ -765,7 +763,6 @@ public class RevocationUnitTests extends
     @Test
     public void revokeForeignTokenSuccess() throws
             CertificateException,
-            UnrecoverableKeyException,
             NoSuchAlgorithmException,
             KeyStoreException,
             OperatorCreationException,
@@ -826,7 +823,6 @@ public class RevocationUnitTests extends
     @Test
     public void revokeForeignTokenFailWrongHomeTokenWrongSubject() throws
             CertificateException,
-            UnrecoverableKeyException,
             NoSuchAlgorithmException,
             KeyStoreException,
             OperatorCreationException,

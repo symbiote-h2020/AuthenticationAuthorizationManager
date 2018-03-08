@@ -116,7 +116,6 @@ public class PlatformsManagementService {
                     // such a name would pose awkward questions
                     throw new ServiceManagementException(ServiceManagementException.AWKWARD_SERVICE, HttpStatus.BAD_REQUEST);
 
-                // TODO try to improve it in R4 somehow
                 // checking if Interworking interface isn't already used
                 for (Platform platform : platformRepository.findAll()) {
                     if (platform.getPlatformInterworkingInterfaceAddress().equals(platformManagementRequest.getPlatformInterworkingInterfaceAddress())) {

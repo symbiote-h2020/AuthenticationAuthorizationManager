@@ -339,7 +339,7 @@ public class CertificationAuthorityHelper {
                         .build(sigGen));
     }
 
-    public boolean isServiceCertificateChainTrusted(String foreignTokenIssuerCertificateString) throws
+    public boolean isServiceCertificateChainTrusted(String serviceCertificateString) throws
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
@@ -348,16 +348,16 @@ public class CertificationAuthorityHelper {
 
         X509Certificate rootCertificate = getRootCACertificate();
 
-        // for foreign tokens issued by Core AAM
-        if (foreignTokenIssuerCertificateString.equals(CryptoHelper.convertX509ToPEM(rootCertificate)))
+        // we might be the service itself
+        if (serviceCertificateString.equals(CryptoHelper.convertX509ToPEM(rootCertificate)))
             return true;
 
         // convert certificates to X509
-        X509Certificate foreignTokenIssuerCertificate = CryptoHelper.convertPEMToX509(foreignTokenIssuerCertificateString);
+        X509Certificate serviceCertificate = CryptoHelper.convertPEMToX509(serviceCertificateString);
 
         // Create the selector that specifies the starting certificate
         X509CertSelector target = new X509CertSelector();
-        target.setCertificate(foreignTokenIssuerCertificate);
+        target.setCertificate(serviceCertificate);
 
         // Create the trust anchors (set of root CA certificates)
         Set<TrustAnchor> trustAnchors = new HashSet<>();
@@ -366,7 +366,7 @@ public class CertificationAuthorityHelper {
 
         // List of certificates to build the path from
         List<X509Certificate> certsOnPath = new ArrayList<>();
-        certsOnPath.add(foreignTokenIssuerCertificate);
+        certsOnPath.add(serviceCertificate);
 
         /*
          * If build() returns successfully, the certificate is valid. More details

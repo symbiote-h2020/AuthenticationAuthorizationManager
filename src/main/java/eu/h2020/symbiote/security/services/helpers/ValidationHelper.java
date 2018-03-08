@@ -63,7 +63,7 @@ public class ValidationHelper {
     // AAM configuration
     private final String deploymentId;
     private final IssuingAuthorityType deploymentType;
-    public final CertificationAuthorityHelper certificationAuthorityHelper;
+    private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final RevokedKeysRepository revokedKeysRepository;
     private final RevokedTokensRepository revokedTokensRepository;
     private final RevokedRemoteTokensRepository revokedRemoteTokensRepository;
@@ -307,9 +307,12 @@ public class ValidationHelper {
         AAM issuerAAM = availableAAMs.get(issuer);
         String aamAddress = issuerAAM.getAamAddress();
 
+        // check ISS
+        // check if the service already has a certificate in the core
         if (issuerAAM.getAamCACertificate().getCertificateString().isEmpty()) {
             throw new CertificateException();
         }
+        // checking if the certificate retrieved from the core comes from the same core as we do
         if (!certificationAuthorityHelper.isServiceCertificateChainTrusted(issuerAAM.getAamCACertificate().getCertificateString())) {
             return ValidationStatus.INVALID_TRUST_CHAIN;
         }
@@ -319,7 +322,7 @@ public class ValidationHelper {
         if (!Base64.getEncoder().encodeToString(publicKey.getEncoded()).equals(claims.get("ipk"))) {
             return ValidationStatus.INVALID_TRUST_CHAIN;
         }
-        // TODO use the AAMClient
+
         // rest check revocation
         // preparing request
         HttpHeaders httpHeaders = new HttpHeaders();
@@ -479,7 +482,7 @@ public class ValidationHelper {
             CertificateException,
             MalformedJWTException {
         JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(foreignToken);
-        // TODO R4 consider component tokens in P2P L2 communication!
+        // TODO R5 consider federated exchanged component tokens in P2P L2 communication!
         if (claimsFromToken.getSub().split(FIELDS_DELIMITER).length != 4) {
             throw new MalformedJWTException(MalformedJWTException.TOKEN_SUBJECT_HAS_WRONG_STRUCTURE);
         }

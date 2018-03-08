@@ -271,6 +271,7 @@ public class AAMServices {
         }
         // not our service
         Map<String, AAM> availableAAMs = getAvailableAAMs();
+
         //check if received Core cert is the same as this in our keystore
         if (!availableAAMs.containsKey(SecurityConstants.CORE_AAM_INSTANCE_ID)
                 || !availableAAMs.get(SecurityConstants.CORE_AAM_INSTANCE_ID).getAamCACertificate().getCertificateString().equals(certificationAuthorityHelper.getRootCACert())) {
