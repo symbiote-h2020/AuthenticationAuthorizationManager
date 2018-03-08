@@ -307,6 +307,9 @@ public class ValidationHelper {
         AAM issuerAAM = availableAAMs.get(issuer);
         String aamAddress = issuerAAM.getAamAddress();
 
+        if (issuerAAM.getAamCACertificate().getCertificateString().isEmpty()) {
+            throw new CertificateException();
+        }
         if (!certificationAuthorityHelper.isServiceCertificateChainTrusted(issuerAAM.getAamCACertificate().getCertificateString())) {
             return ValidationStatus.INVALID_TRUST_CHAIN;
         }

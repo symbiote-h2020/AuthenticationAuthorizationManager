@@ -323,21 +323,18 @@ public class RevocationHelper {
             return true;
         }
         // platform owner
-        // TODO fix, for the moment just a compilation hack
-        Platform platform = platformRepository.findByPlatformOwner(user).iterator().next();
-        if (platform != null
-                && !platform.getPlatformAAMCertificate().getCertificateString().isEmpty()
-                && Base64.getEncoder().encodeToString(platform.getPlatformAAMCertificate().getX509().getPublicKey().getEncoded())
-                .equals(token.getClaims().get("ipk").toString())) {
-            revokedTokensRepository.save(token);
-            return true;
+        Set<Platform> ownedPlatforms = platformRepository.findByPlatformOwner(user);
+        for (Platform platform : ownedPlatforms) {
+            if (!platform.getPlatformAAMCertificate().getCertificateString().isEmpty()
+                    && Base64.getEncoder().encodeToString(platform.getPlatformAAMCertificate().getX509().getPublicKey().getEncoded())
+                    .equals(token.getClaims().get("ipk").toString())) {
+                revokedTokensRepository.save(token);
+                return true;
+            }
         }
         //smart space owner
-        // TODO fix, for the moment just a compilation hack
         Set<SmartSpace> ownedSmartSpaces = smartSpaceRepository.findBySmartSpaceOwner(user);
-        if (ownedSmartSpaces != null
-                && !ownedSmartSpaces.isEmpty()) {
-            SmartSpace smartSpace = ownedSmartSpaces.iterator().next();
+        for (SmartSpace smartSpace : ownedSmartSpaces) {
             if (!smartSpace.getLocalCertificationAuthorityCertificate().getCertificateString().isEmpty()
                     && Base64.getEncoder().encodeToString(smartSpace.getLocalCertificationAuthorityCertificate().getX509().getPublicKey().getEncoded())
                     .equals(token.getClaims().get("ipk").toString())) {
