@@ -4,7 +4,10 @@ import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.payloads.SmartSpaceManagementRequest;
 import eu.h2020.symbiote.security.communication.payloads.SmartSpaceManagementResponse;
 import eu.h2020.symbiote.security.repositories.SmartSpaceRepository;
@@ -85,13 +88,20 @@ public class SmartSpaceManagementFunctionalTests extends
         assertEquals(smartSpaceSiteLocalAddress, registeredSmartSpace.getSiteLocalAddress());
         assertEquals(true, registeredSmartSpace.isExposingSiteLocalAddress());
     }
-    //TODO
-    /*
+
     @Test
-    public void sspRegistrationOverAMQPFailErrorResponseContainerReceived() throws IOException {
+    public void sspRegistrationOverAMQPFailErrorResponseContainerReceived() throws IOException,
+            InvalidArgumentsException {
         //set Interworking Interfaces to empty to cause error
-         smartSpaceManagementRequest.setExternalAddress("");
-        smartSpaceManagementRequest.setSiteLocalAddress("");
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
+                new Credentials(AAMOwnerUsername, "wrongpassword"),
+                smartSpaceOwnerUserCredentials,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
+                smartSpaceInstanceFriendlyName,
+                OperationType.CREATE,
+                preferredSmartSpaceId,
+                false);
 
         // issue ssp registration over AMQP
         byte[] response = rabbitTemplate.sendAndReceive(smartSpaceManagementRequestQueue, new Message(mapper.writeValueAsBytes
@@ -100,6 +110,6 @@ public class SmartSpaceManagementFunctionalTests extends
                 ErrorResponseContainer.class);
 
         // verify that we received ErrorResponseContainer
-        assertEquals(InvalidArgumentsException.MISSING_INTERWORKING_INTERFACES, sspRegistrationOverAMQPResponse.getErrorMessage());
-    }*/
+        assertEquals((new WrongCredentialsException()).getErrorMessage(), sspRegistrationOverAMQPResponse.getErrorMessage());
+    }
 }
