@@ -4,7 +4,6 @@ import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
-import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
@@ -120,24 +119,8 @@ public class TokenIssuer {
             throws JWTCreationException {
         try {
             Map<String, String> attributes = new HashMap<>();
-            switch (deploymentType) {
-                case CORE:
-                    switch (user.getRole()) {
-                        case USER:
-                        case SERVICE_OWNER:
-                            // TODO review if this is stil used...?
-                            attributes.put(CoreAttributes.ROLE.toString(), user.getRole().toString());
-                            break;
-                        case NULL:
-                            break;
-                    }
-                    break;
-                case PLATFORM:
-                case SMART_SPACE:
-                    break;
-                case NULL:
-                    throw new JWTCreationException(JWTCreationException.MISCONFIGURED_AAM_DEPLOYMENT_TYPE);
-            }
+            if (deploymentType.equals(IssuingAuthorityType.NULL))
+                throw new JWTCreationException(JWTCreationException.MISCONFIGURED_AAM_DEPLOYMENT_TYPE);
             //adding local user's attributes
             for (Attribute entry : localUsersAttributesRepository.findAll()) {
                 attributes.put(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + entry.getKey(), entry.getValue());

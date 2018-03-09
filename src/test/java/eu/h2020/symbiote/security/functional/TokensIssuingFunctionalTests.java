@@ -8,8 +8,6 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
-import eu.h2020.symbiote.security.commons.enums.CoreAttributes;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
@@ -155,10 +153,6 @@ public class TokensIssuingFunctionalTests extends
         // As the AAM is now configured as core we confirm that relevant token type was issued.
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
 
-        // verify that this JWT contains attributes relevant for user role
-        Map<String, String> attributes = claimsFromToken.getAtt();
-        assertEquals(UserRole.USER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
-
         // verify that the token contains the user public key
         byte[] userPublicKeyInRepository = userRepository.findOne
                 (username).getClientCertificates().entrySet().iterator().next().getValue().getX509()
@@ -212,11 +206,6 @@ public class TokensIssuingFunctionalTests extends
         byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
         assertArrayEquals(userPublicKeyInRepository, publicKeyFromToken);
 
-        // verify that this JWT contains attributes relevant for platform owner
-        Map<String, String> attributes = claimsFromToken.getAtt();
-        // PO role
-        assertEquals(UserRole.SERVICE_OWNER.toString(), attributes.get(CoreAttributes.ROLE.toString()));
-        // owned platform identifier
     }
 
     /**
