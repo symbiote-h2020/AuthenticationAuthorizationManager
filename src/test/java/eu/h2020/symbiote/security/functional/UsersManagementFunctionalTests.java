@@ -9,8 +9,6 @@ import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.apache.commons.logging.Log;
@@ -84,174 +82,26 @@ public class UsersManagementFunctionalTests extends
         return this.connection;
     }
 
-
-
-
     @Test
-    public void userRegistrationOverAMQPFailureUnauthorized() throws
-            IOException {
-
-        // issue the app registration over AMQP expecting with wrong AAMOwnerUsername
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername + "wrongString", AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
-                OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
-
-        // verify that our app was not registered in the repository
-        assertNull(userRepository.findOne(username));
-
-        // verify error response
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
-
-        // issue the same app registration over AMQP expecting with wrong AAMOwnerPassword
-        response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword + "wrongString"), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
-                OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
-
-        // verify that our app was not registered in the repository
-        assertNull(userRepository.findOne(username));
-
-        // verify error response
-        errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
-    }
-
-    /**
-     * Feature: CAAM - 2 (App Registration)
-     * Interface: CAAM - 3
-     * CommunicationType AMQP
-     */
-    @Test
-    public void userRegistrationOverAMQPFailureWrongUserRole() throws
-            IOException {
-
-        // issue the same app registration over AMQP expecting with wrong UserRole
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.NULL, new HashMap<>(), new HashMap<>()),
-                OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
-
-        // verify that our app was not registered in the repository
-        assertNull(userRepository.findOne(username));
-
-        // verify error response
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.errorMessage, errorResponse.getErrorMessage());
-    }
-
-
-    /**
-     * Feature: CAAM - 2 (App Registration)
-     * Interface: CAAM - 3
-     * CommunicationType AMQP
-     */
-    @Test
-    public void userRegistrationOverAMQPFailureUsernameExists() throws
-            IOException {
-
-        // issue app registration over AMQP
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
-                OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
-
-
-        // verify that app really is in repository
-        ManagementStatus appRegistrationResponse = mapper.readValue(response,
-                ManagementStatus.class);
-        assertEquals(ManagementStatus.OK, appRegistrationResponse);
-        assertNotNull(userRepository.findOne(username));
-
-        // issue the same app registration over AMQP expecting refusal
-        response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
-                OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
-
-        ManagementStatus errorResponse = mapper.readValue(response, ManagementStatus.class);
-        assertEquals(ManagementStatus.USERNAME_EXISTS, errorResponse);
-    }
-
-    /**
-     * Feature: CAAM - 2 (App Registration)
-     * Interface: CAAM - 3
-     * CommunicationType AMQP
-     */
-    @Test
-    public void userRegistrationOverAMQPFailureMissingAppUsername() throws
-            IOException {
-
-        // issue app registration over AMQP with missing username
-        appUserDetails.getCredentials().setUsername("");
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(appUserRegistrationRequest)
-                .getBytes(), new MessageProperties())).getBody();
-
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.COULD_NOT_CREATE_USER_WITH_GIVEN_USERNAME, errorResponse.getErrorMessage());
-    }
-
-
-    /**
-     * Feature: CAAM - 2 (App Registration)
-     * Interface: CAAM - 3
-     * CommunicationType AMQP
-     */
-    @Test
-    public void userRegistrationOverAMQPFailureMissingAppPassword() throws
-            IOException {
-
-        // issue app registration over AMQP with missing password
-        appUserDetails.getCredentials().setPassword("");
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(appUserRegistrationRequest)
-                .getBytes(), new MessageProperties())).getBody();
-
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.MISSING_CREDENTIAL, errorResponse.getErrorMessage());
-    }
-
-    /**
-     * Feature: CAAM - 2 (App Registration)
-     * Interface: CAAM - 3
-     * CommunicationType AMQP
-     */
-    @Test
-    public void userRegistrationOverAMQPFailureMissingRecoveryMail() throws
-            IOException {
-
-        // issue app registration over AMQP with missing recovery mail
-        appUserDetails.setRecoveryMail("");
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(appUserRegistrationRequest)
-                .getBytes(), new MessageProperties())).getBody();
-
-        ErrorResponseContainer errorResponse = mapper.readValue(response, ErrorResponseContainer.class);
-        assertEquals(InvalidArgumentsException.MISSING_RECOVERY_E_MAIL_OR_OAUTH_IDENTITY, errorResponse.getErrorMessage());
-    }
-
-
-    /**
-     * Feature: CAAM - 2 (App Registration)
-     * Interface: CAAM - 3
-     * CommunicationType AMQP
-     */
-    @Test
-    public void userRegistrationOverAMQPSuccess() throws
+    public void userManagementOverAMQPSuccess() throws
             IOException {
 
         Map<String, String> attributesMap = new HashMap<>();
         attributesMap.put("testKey", "testAttribute");
+
+        UserManagementRequest userManagementRequest = new UserManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(),
+                new UserDetails(
+                        new Credentials(username, password),
+                        recoveryMail,
+                        UserRole.USER,
+                        attributesMap,
+                        new HashMap<>()),
+                OperationType.CREATE);
         // issue app registration over AMQP
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(),
-                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, attributesMap, new HashMap<>()),
-                OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
+        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue,
+                new Message(mapper.writeValueAsString(userManagementRequest).getBytes(), new MessageProperties())).getBody();
 
         ManagementStatus appRegistrationResponse = mapper.readValue(response,
                 ManagementStatus.class);
@@ -267,155 +117,76 @@ public class UsersManagementFunctionalTests extends
     }
 
     @Test
-    public void userUpdateOverAMQPSuccess() throws
+    public void userManagementOverAMQPFailErrorResponseContainerReceived() throws
             IOException {
 
-        // issue app registration over AMQP
-        Message message = new Message(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
-                OperationType.CREATE)).getBytes(), new MessageProperties());
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, message).getBody();
-
-        ManagementStatus appRegistrationResponse = mapper.readValue(response, ManagementStatus.class);
-        assertEquals(ManagementStatus.OK, appRegistrationResponse);
-
-        //creating new attributes map
-        Map<String, String> attributes = new HashMap<>();
-        attributes.put("key", "attribute");
-
-        appUserUpdateRequest.getUserDetails().setRecoveryMail(recoveryMail + "differentOne");
-        appUserUpdateRequest.getUserDetails().getCredentials().setPassword(password + "differentOne");
-        appUserUpdateRequest.getUserDetails().setAttributes(attributes);
-        byte[] response2 = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(appUserUpdateRequest).getBytes(), new MessageProperties())).getBody();
-        ManagementStatus appRegistrationResponse2 = mapper.readValue(response2, ManagementStatus.class);
-        assertEquals(ManagementStatus.OK, appRegistrationResponse2);
-        User user = userRepository.findOne(username);
-        //attributes map should not be updated during UPDATE operationType
-        assertFalse(user.getAttributes().containsValue("attribute"));
-    }
-
-
-    @Test
-    public void userUpdateOverAMQFailureWrongPassword() throws
-            IOException {
-
-        // issue app registration over AMQP
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), recoveryMail, UserRole.USER, new HashMap<>(), new HashMap<>()),
-                OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
-        ManagementStatus appRegistrationResponse = mapper.readValue(response, ManagementStatus.class);
-        assertEquals(ManagementStatus.OK, appRegistrationResponse);
-
-        appUserUpdateRequest.getUserCredentials().setPassword(wrongPassword);
-        byte[] response2 = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(appUserUpdateRequest).getBytes(), new MessageProperties())).getBody();
-        ErrorResponseContainer errorResponse = mapper.readValue(response2, ErrorResponseContainer.class);
-        assertEquals(UserManagementException.errorMessage, errorResponse.getErrorMessage());
-    }
-
-    /**
-     * Feature: CAAM - 2 (App Registration)
-     * Interface: CAAM - 3
-     * CommunicationType AMQP
-     */
-    @Test
-    public void platformOwnerRegistrationOverAMQPSuccess() throws
-            IOException {
-
-        // issue app registration over AMQP
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), recoveryMail,
-                        UserRole.SERVICE_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
-
-        ManagementStatus platformOwnerRegistrationResponse = mapper.readValue(response,
-                ManagementStatus.class);
-        assertEquals(ManagementStatus.OK, platformOwnerRegistrationResponse);
-
-        // verify that app really is in repository
-        User registeredUser = userRepository.findOne(username);
-        assertNotNull(registeredUser);
-        assertEquals(UserRole.SERVICE_OWNER, registeredUser.getRole());
-        assertTrue(platformRepository.findByPlatformOwner(registeredUser).isEmpty());
-        // verify that the user has no certs
-        assertTrue(registeredUser.getClientCertificates().isEmpty());
+        // issue user update over AMQP on not registered user
+        UserManagementRequest userManagementRequest = new UserManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(),
+                new UserDetails(
+                        new Credentials(username, password),
+                        recoveryMail,
+                        UserRole.USER,
+                        new HashMap<>(),
+                        new HashMap<>()),
+                OperationType.UPDATE);
+        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue,
+                new Message(mapper.writeValueAsString(userManagementRequest).getBytes(), new MessageProperties())).getBody();
+        ErrorResponseContainer userUpdateOverAMQPFailResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), userUpdateOverAMQPFailResponse.getErrorCode());
     }
 
     @Test
-    public void platformOwnerRegistrationOverAMQPSuccessBySmartSpace() throws
+    public void sendMessageOverAMQPFailWrongMessage() throws
             IOException {
-
-        ReflectionTestUtils.setField(usersManagementService, "deploymentType", IssuingAuthorityType.SMART_SPACE);
-        // issue app registration over AMQP
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), recoveryMail,
-                        UserRole.SERVICE_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
-
-        ManagementStatus platformOwnerRegistrationResponse = mapper.readValue(response,
-                ManagementStatus.class);
-        assertEquals(ManagementStatus.OK, platformOwnerRegistrationResponse);
-
-        // verify that app really is in repository
-        User registeredUser = userRepository.findOne(username);
-        assertNotNull(registeredUser);
-        assertEquals(UserRole.SERVICE_OWNER, registeredUser.getRole());
-        assertTrue(platformRepository.findByPlatformOwner(registeredUser).isEmpty());
-        // verify that the user has no certs
-        assertTrue(registeredUser.getClientCertificates().isEmpty());
+        String wrongmessage = "{wrong message json}";
+        // send incorrect message over AMQP
+        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (wrongmessage), new MessageProperties())).getBody();
+        ErrorResponseContainer sspRegistrationOverAMQPResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), sspRegistrationOverAMQPResponse.getErrorCode());
     }
 
     @Test
-    public void smartSpaceOwnerRegistrationOverAMQPSuccess() throws
-            IOException {
-
-        // issue app registration over AMQP
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsString(new
-                UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password), recoveryMail,
-                        UserRole.SERVICE_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE)).getBytes(), new MessageProperties())).getBody();
-
-        ManagementStatus smartSpaceOwnerRegistrationResponse = mapper.readValue(response,
-                ManagementStatus.class);
-        assertEquals(ManagementStatus.OK, smartSpaceOwnerRegistrationResponse);
-
-        // verify that app really is in repository
-        User registeredUser = userRepository.findOne(username);
-        assertNotNull(registeredUser);
-        assertEquals(UserRole.SERVICE_OWNER, registeredUser.getRole());
-        assertTrue(smartSpaceRepository.findBySmartSpaceOwner(registeredUser).isEmpty());
-        // verify that the user has no certs
-        assertTrue(registeredUser.getClientCertificates().isEmpty());
-    }
-
-    @Test
-    public void userRegistrationOverRESTSuccess() throws
+    public void userManagementOverRESTSuccess() throws
             AAMException {
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password),
-                        "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
+        UserManagementRequest userManagementRequest = new UserManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(),
+                new UserDetails(
+                        new Credentials(username, password),
+                        recoveryMail,
+                        UserRole.USER,
+                        new HashMap<>(),
+                        new HashMap<>()),
+                OperationType.CREATE);
         ManagementStatus managementStatus = aamClient.manageUser(userManagementRequest);
         assertTrue(ManagementStatus.OK.equals(managementStatus));
         assertTrue(userRepository.exists(username));
     }
 
     @Test(expected = AAMException.class)
-    public void userRegistrationOverRESTFailureWithIncorrectRequest() throws
+    public void userManagementOverRESTFailProperPayloadReceived() throws
             AAMException {
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, wrongPassword), new Credentials(username, wrongPassword),
-                new UserDetails(new Credentials(username, wrongPassword),
-                        "", UserRole.SERVICE_OWNER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
+        assertFalse(userRepository.exists(username));
+        //update not existing user to create error
+        UserManagementRequest userManagementRequest = new UserManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials("", password),
+                new UserDetails(
+                        new Credentials(username, password),
+                        recoveryMail,
+                        UserRole.USER,
+                        new HashMap<>(),
+                        new HashMap<>()),
+                OperationType.UPDATE);
         aamClient.manageUser(userManagementRequest);
     }
 
+    //TODO change getUserDetails
     @Test
     public void requestUserDetailsUsingRPCClientOverAMQPSuccess() throws
             IOException,
@@ -535,16 +306,5 @@ public class UsersManagementFunctionalTests extends
         assertEquals(HttpStatus.FORBIDDEN, userDetails.getHttpStatus());
     }
 
-    @Test
-    public void sendMessageOverAMQPFailWrongMessage() throws
-            IOException {
-        String wrongmessage = "{wrong message json}";
-        // send incorrect message over AMQP
-        byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue, new Message(mapper.writeValueAsBytes
-                (wrongmessage), new MessageProperties())).getBody();
-        ErrorResponseContainer sspRegistrationOverAMQPResponse = mapper.readValue(response,
-                ErrorResponseContainer.class);
-        assertEquals(HttpStatus.BAD_REQUEST.value(), sspRegistrationOverAMQPResponse.getErrorCode());
-    }
 
 }

@@ -19,8 +19,6 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
 import org.springframework.amqp.core.Message;
@@ -47,7 +45,6 @@ import static org.junit.Assert.*;
 public class CredentialsValidationFunctionalTests extends
         AbstractAAMAMQPTestSuite {
 
-    private static Log log = LogFactory.getLog(CredentialsValidationFunctionalTests.class);
     @Autowired
     RabbitTemplate rabbitTemplate;
     private RestTemplate restTemplate = new RestTemplate();
@@ -62,7 +59,7 @@ public class CredentialsValidationFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void validationOverAMQPRequestReplyValid() throws
+    public void validationOverAMQPSuccess() throws
             IOException,
             CertificateException,
             NoSuchAlgorithmException,
@@ -81,8 +78,6 @@ public class CredentialsValidationFunctionalTests extends
         assertNotNull(token);
         byte[] response = rabbitTemplate.sendAndReceive(validateRequestQueue, new Message(mapper.writeValueAsBytes(new ValidationRequest(token, "", "", "")), new MessageProperties())).getBody();
         ValidationStatus validationStatus = mapper.readValue(response, ValidationStatus.class);
-        log.info("Test Client received this ValidationStatus: " + validationStatus);
-
         assertEquals(ValidationStatus.VALID, validationStatus);
     }
 
@@ -281,8 +276,7 @@ public class CredentialsValidationFunctionalTests extends
             NoSuchAlgorithmException,
             MalformedJWTException,
             JWTCreationException,
-            AAMException,
-            ClassNotFoundException {
+            AAMException {
         // issuing dummy platform token
         String username = "userId";
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
