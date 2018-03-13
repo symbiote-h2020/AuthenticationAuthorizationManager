@@ -202,7 +202,7 @@ public class CertificationAuthorityHelper {
             NoSuchAlgorithmException,
             CertificateException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        if(ctx.getResource(KEY_STORE_FILE_NAME).exists()) {
+        if (ctx.getResource(KEY_STORE_FILE_NAME).getFile().exists()) {
 	        	pkcs12Store.load(ctx.getResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         } else {
         		pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
@@ -225,7 +225,7 @@ public class CertificationAuthorityHelper {
             CertificateException,
             NoSuchAlgorithmException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        if(ctx.getResource(KEY_STORE_FILE_NAME).exists()) {
+        if (ctx.getResource(KEY_STORE_FILE_NAME).getFile().exists()) {
         		pkcs12Store.load(ctx.getResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         } else {
         		pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
@@ -250,7 +250,7 @@ public class CertificationAuthorityHelper {
             NoSuchAlgorithmException,
             UnrecoverableKeyException {
         KeyStore pkcs12Store = KeyStore.getInstance("PKCS12", "BC");
-        if(ctx.getResource(KEY_STORE_FILE_NAME).exists()) {
+        if (ctx.getResource(KEY_STORE_FILE_NAME).getFile().exists()) {
         		pkcs12Store.load(ctx.getResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());
         } else {
         		pkcs12Store.load(new ClassPathResource(KEY_STORE_FILE_NAME).getInputStream(), KEY_STORE_PASSWORD.toCharArray());

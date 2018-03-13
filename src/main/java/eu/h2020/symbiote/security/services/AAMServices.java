@@ -15,8 +15,8 @@ import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
@@ -35,7 +35,7 @@ import java.util.TreeMap;
 @Service
 public class AAMServices {
 
-    private static Log log = LogFactory.getLog(AAMServices.class);
+    private static Logger log = LoggerFactory.getLogger(AAMServices.class);
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PlatformRepository platformRepository;
     private final SmartSpaceRepository smartSpaceRepository;
@@ -208,7 +208,12 @@ public class AAMServices {
             availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
 
             String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
-            availableAAMs.get(deploymentId).getComponentCertificates().putAll(fillComponentCertificatesMap());
+            if (!availableAAMs.containsKey(deploymentId)) {
+                // TODO replace with exception once the SSPs can be registered in a real core!
+                log.error("The core AAM does not know about us... ");
+            } else {
+                availableAAMs.get(deploymentId).getComponentCertificates().putAll(fillComponentCertificatesMap());
+            }
         } catch (AAMException e) {
             // service AAM might be disconnected from the core for which we need fallback option
             log.error("Couldn't establish connection with CoreAAM... falling back to local configuration");
