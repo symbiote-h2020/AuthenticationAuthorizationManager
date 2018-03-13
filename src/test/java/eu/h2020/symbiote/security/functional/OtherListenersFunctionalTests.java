@@ -325,6 +325,18 @@ public class OtherListenersFunctionalTests extends
     }
 
     @Test
+    public void sendMessageOverAMQPFailWrongMessage() throws
+            IOException {
+        String wrongmessage = "{wrong message json}";
+        // send incorrect message over AMQP
+        byte[] response = rabbitTemplate.sendAndReceive(ownedServicesRequestQueue, new Message(mapper.writeValueAsBytes
+                (wrongmessage), new MessageProperties())).getBody();
+        ErrorResponseContainer sspRegistrationOverAMQPResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), sspRegistrationOverAMQPResponse.getErrorCode());
+    }
+
+    @Test
     public void checkAvailabilityOfFederationManagementAMQPListener() {
         char c[] = FederationManagementRequestConsumer.class.getSimpleName().toCharArray();
         c[0] = Character.toLowerCase(c[0]);

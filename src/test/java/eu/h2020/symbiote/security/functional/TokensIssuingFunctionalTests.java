@@ -1,6 +1,5 @@
 package eu.h2020.symbiote.security.functional;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
@@ -11,23 +10,14 @@ import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.communication.payloads.LocalAttributesManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
-import eu.h2020.symbiote.security.repositories.entities.Attribute;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -45,25 +35,19 @@ import static org.junit.Assert.*;
 public class TokensIssuingFunctionalTests extends
         AbstractAAMAMQPTestSuite {
 
-    private static Log log = LogFactory.getLog(TokensIssuingFunctionalTests.class);
     private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     @Value("${rabbit.queue.ownedservices.request}")
     protected String ownedServicesRequestQueue;
-    @Value("${rabbit.queue.manage.attributes}")
-    protected String attributeManagementRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
     String coreInterfaceAddress;
 
-    private LocalAttributesManagementRequest localUsersLocalAttributesManagementRequest;
     @Autowired
     private PlatformRepository platformRepository;
     @Autowired
     private DummyPlatformAAM dummyPlatformAAM;
-    @Autowired
-    private RabbitTemplate rabbitTemplate;
 
 
     @Override
@@ -245,8 +229,7 @@ public class TokensIssuingFunctionalTests extends
             NoSuchAlgorithmException,
             MalformedJWTException,
             JWTCreationException,
-            AAMException,
-            ClassNotFoundException {
+            AAMException {
         // issuing dummy platform token
         String username = "userId";
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -294,12 +277,10 @@ public class TokensIssuingFunctionalTests extends
 
     @Test(expected = ValidationException.class)
     public void getForeignTokenUsingPlatformTokenOverRESTFailPlatformNotRegistered() throws
-            IOException,
             ValidationException,
             JWTCreationException,
             AAMException,
-            MalformedJWTException,
-            ClassNotFoundException {
+            MalformedJWTException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -329,9 +310,7 @@ public class TokensIssuingFunctionalTests extends
             ValidationException,
             JWTCreationException,
             AAMException,
-            MalformedJWTException,
-            IOException,
-            ClassNotFoundException {
+            MalformedJWTException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -373,8 +352,7 @@ public class TokensIssuingFunctionalTests extends
             KeyStoreException,
             JWTCreationException,
             AAMException,
-            MalformedJWTException,
-            ClassNotFoundException {
+            MalformedJWTException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -405,52 +383,5 @@ public class TokensIssuingFunctionalTests extends
         String tokenTypeValue = guestToken.getClaims().get(SecurityConstants.CLAIM_NAME_TOKEN_TYPE, String.class);
         assertNotNull(tokenTypeValue);
         assertEquals(Token.Type.GUEST.toString(), tokenTypeValue);
-    }
-
-    @Test
-    public void addAttributesOverAMQPSuccess() throws
-            IOException {
-        localUsersAttributesRepository.deleteAll();
-        Map<String, String> attributesMap = new HashMap<>();
-        attributesMap.put("key1", "attribute1");
-        attributesMap.put("key2", "attribute2");
-        localUsersLocalAttributesManagementRequest = new LocalAttributesManagementRequest(attributesMap, new Credentials(AAMOwnerUsername, AAMOwnerPassword), LocalAttributesManagementRequest.OperationType.WRITE);
-        byte[] response = rabbitTemplate.sendAndReceive(attributeManagementRequestQueue, new Message(mapper.writeValueAsBytes
-                (localUsersLocalAttributesManagementRequest), new MessageProperties())).getBody();
-        HashMap<String, String> responseMap = mapper.readValue(response, new TypeReference<HashMap<String, String>>() {
-        });
-        assertEquals(2, responseMap.size());
-        assertEquals(2, localUsersAttributesRepository.findAll().size());
-    }
-
-    @Test
-    public void readAttributesOverAMQPSuccess() throws
-            IOException {
-        localUsersAttributesRepository.deleteAll();
-        localUsersAttributesRepository.save(new Attribute("key1", "attribute1"));
-        localUsersAttributesRepository.save(new Attribute("key2", "attribute2"));
-        localUsersLocalAttributesManagementRequest = new LocalAttributesManagementRequest(new HashMap<>(), new Credentials(AAMOwnerUsername, AAMOwnerPassword), LocalAttributesManagementRequest.OperationType.READ);
-        byte[] response = rabbitTemplate.sendAndReceive(attributeManagementRequestQueue, new Message(mapper.writeValueAsBytes(
-                localUsersLocalAttributesManagementRequest), new MessageProperties())).getBody();
-
-        HashMap<String, String> responseMap = mapper.readValue(response, new TypeReference<HashMap<String, String>>() {
-        });
-        assertEquals("attribute1", responseMap.get("key1"));
-        assertEquals("attribute2", responseMap.get("key2"));
-    }
-
-    @Test
-    public void readAttributesOverAMQPFailWrongCredentials() throws
-            IOException {
-        localUsersLocalAttributesManagementRequest = new LocalAttributesManagementRequest(new HashMap<>(),
-                new Credentials(username, AAMOwnerPassword),
-                LocalAttributesManagementRequest.OperationType.READ);
-        byte[] response = rabbitTemplate.sendAndReceive(attributeManagementRequestQueue, new Message(mapper.writeValueAsBytes(
-                localUsersLocalAttributesManagementRequest), new MessageProperties())).getBody();
-
-        ErrorResponseContainer fail = mapper.readValue(response, ErrorResponseContainer.class);
-        assertNotNull(fail);
-        log.info("Test Client received this error message instead of token: " + fail.getErrorMessage());
-
     }
 }
