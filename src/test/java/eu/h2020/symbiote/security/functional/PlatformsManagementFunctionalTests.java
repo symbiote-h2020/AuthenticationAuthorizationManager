@@ -17,6 +17,7 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -100,4 +101,15 @@ public class PlatformsManagementFunctionalTests extends
         assertEquals((new WrongCredentialsException()).getErrorMessage(), platformRegistrationOverAMQPResponse.getErrorMessage());
     }
 
+    @Test
+    public void sendMessageOverAMQPFailWrongMessage() throws
+            IOException {
+        String wrongmessage = "{wrong message json}";
+        // send incorrect message over AMQP
+        byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (wrongmessage), new MessageProperties())).getBody();
+        ErrorResponseContainer sspRegistrationOverAMQPResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), sspRegistrationOverAMQPResponse.getErrorCode());
+    }
 }

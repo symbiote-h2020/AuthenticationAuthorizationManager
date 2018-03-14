@@ -203,7 +203,7 @@ public class UsersManagementService {
                 userRepository.save(userToManage);
                 break;
             case DELETE:
-                delete(userManagementRequest.getUserDetails().getCredentials().getUsername());
+                delete(userToManage);
                 break;
         }
         return ManagementStatus.OK;
@@ -220,32 +220,29 @@ public class UsersManagementService {
     }
 
 
-    private void delete(String username) throws
+    private void delete(User userToManage) throws
             SecurityException {
-        // validate request
-        if (username.isEmpty())
-            throw new InvalidArgumentsException();
-        // try-find user
-        if (!userRepository.exists(username))
+
+        // check if user was found
+        if (userToManage == null)
             throw new NotExistingUserException();
 
-        User user = userRepository.findOne(username);
-        if (user.getOwnedServices() != null && !user.getOwnedServices().isEmpty())
+        if (userToManage.getOwnedServices() != null && !userToManage.getOwnedServices().isEmpty())
             throw new UserManagementException(UserManagementException.CANNOT_REMOVE_SERVICE_OWNER_WITH_SERVICES, HttpStatus.BAD_REQUEST);
 
         // add user certificated to revoked repository
         Set<String> keys = new HashSet<>();
         try {
-            for (Certificate c : user.getClientCertificates().values()) {
+            for (Certificate c : userToManage.getClientCertificates().values()) {
                 keys.add(Base64.getEncoder().encodeToString(
                         c.getX509().getPublicKey().getEncoded()));
             }
 
             // checking if this key contains keys already
-            SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(username);
+            SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(userToManage.getUsername());
             if (subjectsRevokedKeys == null)
                 // no keys exist yet
-                revokedKeysRepository.save(new SubjectsRevokedKeys(username, keys));
+                revokedKeysRepository.save(new SubjectsRevokedKeys(userToManage.getUsername(), keys));
             else {
                 // extending the existing set
                 subjectsRevokedKeys.getRevokedKeysSet().addAll(keys);
@@ -256,6 +253,6 @@ public class UsersManagementService {
             throw new UserManagementException(e);
         }
         // do it
-        userRepository.delete(username);
+        userRepository.delete(userToManage.getUsername());
     }
 }

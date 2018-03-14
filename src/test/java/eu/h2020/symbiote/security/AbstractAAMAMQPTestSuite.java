@@ -26,6 +26,9 @@ public abstract class AbstractAAMAMQPTestSuite extends AbstractAAMTestSuite {
     @Value("${rabbit.queue.validate.request}")
     protected String validateRequestQueue;
 
+    @Value("${rabbit.queue.get.user.details}")
+    protected String getUserDetailsQueue;
+
     @Value("${rabbit.host}")
     private String rabbitHost;
     @Value("${rabbit.username}")

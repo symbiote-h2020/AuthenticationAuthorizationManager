@@ -19,6 +19,7 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -40,11 +41,6 @@ public class SmartSpaceManagementFunctionalTests extends
     @Before
     public void setUp() throws Exception {
         super.setUp();
-
-        // db cleanup
-        smartSpaceRepository.deleteAll();
-        userRepository.deleteAll();
-
         //user registration useful
         User user = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
@@ -111,5 +107,17 @@ public class SmartSpaceManagementFunctionalTests extends
 
         // verify that we received ErrorResponseContainer
         assertEquals((new WrongCredentialsException()).getErrorMessage(), sspRegistrationOverAMQPResponse.getErrorMessage());
+    }
+
+    @Test
+    public void sendMessageOverAMQPFailWrongMessage() throws
+            IOException {
+        String wrongmessage = "{wrong message json}";
+        // send incorrect message over AMQP
+        byte[] response = rabbitTemplate.sendAndReceive(smartSpaceManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (wrongmessage), new MessageProperties())).getBody();
+        ErrorResponseContainer sspRegistrationOverAMQPResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), sspRegistrationOverAMQPResponse.getErrorCode());
     }
 }

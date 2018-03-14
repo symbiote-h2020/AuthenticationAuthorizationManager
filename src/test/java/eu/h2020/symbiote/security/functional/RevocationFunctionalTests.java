@@ -45,15 +45,6 @@ import static org.junit.Assert.*;
 public class RevocationFunctionalTests extends
         AbstractAAMAMQPTestSuite {
 
-    private final String recoveryMail = "null@dev.null";
-    private final String platformId = "testPlatformId";
-    @Value("${rabbit.queue.ownedservices.request}")
-    protected String ownedServicesRequestQueue;
-    @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
-    String platformAAMSuffixAtInterWorkingInterface;
-
-    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
-    String coreInterfaceAddress;
     @Autowired
     DummyPlatformAAM dummyPlatformAAM;
     @Autowired
@@ -576,5 +567,17 @@ public class RevocationFunctionalTests extends
         assertFalse(revocationResponse.isRevoked());
         assertEquals(HttpStatus.BAD_REQUEST, revocationResponse.getStatus());
 
+    }
+
+    @Test
+    public void sendMessageOverAMQPFailWrongMessage() throws
+            IOException {
+        String wrongmessage = "{wrong message json}";
+        // send incorrect message over AMQP
+        byte[] response = rabbitTemplate.sendAndReceive(revocationRequestQueue, new Message(mapper.writeValueAsBytes
+                (wrongmessage), new MessageProperties())).getBody();
+        ErrorResponseContainer sspRegistrationOverAMQPResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), sspRegistrationOverAMQPResponse.getErrorCode());
     }
 }

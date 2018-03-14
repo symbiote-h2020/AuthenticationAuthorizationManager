@@ -13,23 +13,19 @@ import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
-import eu.h2020.symbiote.security.communication.payloads.PlatformManagementResponse;
-import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
+import eu.h2020.symbiote.security.communication.payloads.*;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.HttpServerErrorException;
@@ -49,7 +45,6 @@ import static org.junit.Assert.*;
 public class CredentialsValidationFunctionalTests extends
         AbstractAAMAMQPTestSuite {
 
-    private static Log log = LogFactory.getLog(CredentialsValidationFunctionalTests.class);
     @Autowired
     RabbitTemplate rabbitTemplate;
     private RestTemplate restTemplate = new RestTemplate();
@@ -64,7 +59,7 @@ public class CredentialsValidationFunctionalTests extends
      * CommunicationType AMQP
      */
     @Test
-    public void validationOverAMQPRequestReplyValid() throws
+    public void validationOverAMQPSuccess() throws
             IOException,
             CertificateException,
             NoSuchAlgorithmException,
@@ -83,9 +78,19 @@ public class CredentialsValidationFunctionalTests extends
         assertNotNull(token);
         byte[] response = rabbitTemplate.sendAndReceive(validateRequestQueue, new Message(mapper.writeValueAsBytes(new ValidationRequest(token, "", "", "")), new MessageProperties())).getBody();
         ValidationStatus validationStatus = mapper.readValue(response, ValidationStatus.class);
-        log.info("Test Client received this ValidationStatus: " + validationStatus);
-
         assertEquals(ValidationStatus.VALID, validationStatus);
+    }
+
+    @Test
+    public void sendMessageOverAMQPFailWrongMessage() throws
+            IOException {
+        String wrongmessage = "{wrong message json}";
+        // send incorrect message over AMQP
+        byte[] response = rabbitTemplate.sendAndReceive(validateRequestQueue, new Message(mapper.writeValueAsBytes
+                (wrongmessage), new MessageProperties())).getBody();
+        ErrorResponseContainer sspRegistrationOverAMQPResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), sspRegistrationOverAMQPResponse.getErrorCode());
     }
 
     /**
@@ -122,6 +127,7 @@ public class CredentialsValidationFunctionalTests extends
         assertEquals(ValidationStatus.VALID, status);
     }
 
+    //TODO move to unit tests
     /**
      * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
      * revocation),
@@ -153,6 +159,7 @@ public class CredentialsValidationFunctionalTests extends
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status);
     }
 
+    //TODO move to unit tests
     /**
      * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
      * revocation),
@@ -175,6 +182,7 @@ public class CredentialsValidationFunctionalTests extends
         assertEquals(ValidationStatus.UNKNOWN, status);
     }
 
+    //TODO move to unit tests
     /**
      * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
      * revocation),
@@ -210,6 +218,7 @@ public class CredentialsValidationFunctionalTests extends
         assertEquals(ValidationStatus.REVOKED_TOKEN, status);
     }
 
+    //TODO move to unit tests
     /**
      * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
      * revocation),
@@ -252,7 +261,8 @@ public class CredentialsValidationFunctionalTests extends
         assertEquals(ValidationStatus.REVOKED_SPK, status);
     }
 
-
+    //TODO write success test
+    //TODO move to unit tests
     @Test(expected = HttpServerErrorException.class)
     public void validateOriginOfForeignTokenFailBadToken() {
         restTemplate.postForEntity(
@@ -261,6 +271,7 @@ public class CredentialsValidationFunctionalTests extends
         fail("Validation passed with empty token");
     }
 
+    //TODO move to unit tests
     @Test
     public void validateOriginOfForeignTokenFailNotOurToken() throws
             IOException,
@@ -271,8 +282,7 @@ public class CredentialsValidationFunctionalTests extends
             NoSuchAlgorithmException,
             MalformedJWTException,
             JWTCreationException,
-            AAMException,
-            ClassNotFoundException {
+            AAMException {
         // issuing dummy platform token
         String username = "userId";
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
