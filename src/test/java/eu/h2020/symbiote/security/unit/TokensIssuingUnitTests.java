@@ -93,7 +93,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = WrongCredentialsException.class)
-    public void getHomeTokenForUserWrongSign() throws
+    public void getHomeTokenForUserFailWrongSign() throws
             IOException,
             CertificateException,
             InvalidArgumentsException,
@@ -126,6 +126,26 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         getTokenService.getHomeToken(loginRequest);
     }
+
+    @Test(expected = WrongCredentialsException.class)
+    public void getHomeTokenForUserWrongClientId() throws
+            JWTCreationException,
+            MalformedJWTException,
+            WrongCredentialsException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            KeyStoreException,
+            OperatorCreationException,
+            NoSuchProviderException,
+            IOException,
+            ValidationException,
+            InvalidArgumentsException {
+        addTestUserWithClientCertificateToRepository();
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, wrongClientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        getTokenService.getHomeToken(loginRequest);
+    }
+
 
     @Test(expected = InvalidArgumentsException.class)
     public void getHomeTokenForUserMissingCredentials() throws
@@ -235,6 +255,17 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         assertEquals("attribute", attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
     }
 
+    @Test(expected = MalformedJWTException.class)
+    public void getHomeTokenFailIncorrectTokenFormat() throws
+            JWTCreationException,
+            MalformedJWTException,
+            WrongCredentialsException,
+            InvalidArgumentsException,
+            CertificateException,
+            ValidationException {
+        getTokenService.getHomeToken("IncorrectlyFormattedToken");
+    }
+
     @Test
     public void getForeignTokenSuccess() throws
             IOException,
@@ -312,7 +343,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = ValidationException.class)
-    public void getForeignTokenFailsForHomeTokenUsedAsRequest() throws
+    public void getForeignTokenFailsForLocalHomeTokenUsedAsRequest() throws
             IOException,
             ValidationException,
             NoSuchProviderException,
