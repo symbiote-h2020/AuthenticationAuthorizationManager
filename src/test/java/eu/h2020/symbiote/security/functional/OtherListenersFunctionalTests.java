@@ -4,8 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
-import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
@@ -47,8 +45,6 @@ import static org.junit.Assert.*;
 public class OtherListenersFunctionalTests extends
         AbstractAAMAMQPTestSuite {
 
-    private final String recoveryMail = "null@dev.null";
-    private final String preferredPlatformId = "preferredPlatformId";
     private final String platformInstanceFriendlyName = "friendlyPlatformName";
     private final String platformInterworkingInterfaceAddress =
             "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
@@ -57,14 +53,7 @@ public class OtherListenersFunctionalTests extends
     protected String ownedServicesRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
     String platformAAMSuffixAtInterWorkingInterface;
-    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
-    String coreInterfaceAddress;
-    @Value("${rabbit.queue.get.platform.owners.names}")
-    private String getPlatformOwnersNamesQueue;
-    @Value("${rabbit.routingKey.get.platform.owners.names}")
-    private String getPlatformOwnersNamesRoutingKey;
-    private Credentials platformOwnerUserCredentials;
-    private PlatformManagementRequest platformRegistrationOverAMQPRequest;
+
     private User platformOwner;
     private User smartSpaceOwner;
 
@@ -84,18 +73,8 @@ public class OtherListenersFunctionalTests extends
         platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(platformOwner);
-        // platform registration useful
-        platformOwnerUserCredentials = new Credentials(platformOwner.getUsername(), platformOwner.getPasswordEncrypted());
-        platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserCredentials, platformInterworkingInterfaceAddress,
-                platformInstanceFriendlyName,
-                preferredPlatformId, OperationType.CREATE);
+        userRepository.save(smartSpaceOwner);
     }
-
-    /**
-     * Features: Core AAM  providing list of available security entry points
-     * CommunicationType REST
-     */
 
     @Test
     public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
@@ -142,11 +121,11 @@ public class OtherListenersFunctionalTests extends
             KeyStoreException {
 
         // issue platform registration
-        Platform platform = new Platform(preferredPlatformId, platformInterworkingInterfaceAddress, platformInstanceFriendlyName, platformOwner, new Certificate(), new HashMap<>());
+        Platform platform = new Platform(platformId, platformInterworkingInterfaceAddress, platformInstanceFriendlyName, platformOwner, new Certificate(), new HashMap<>());
         // inject platform AAM Cert
         Certificate platformAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1")));
         platform.setPlatformAAMCertificate(platformAAMCertificate);
-        // save the certs into the repo
+        // save the service into the repo
         platformRepository.save(platform);
 
         // issue smartSpace registration
@@ -154,7 +133,7 @@ public class OtherListenersFunctionalTests extends
         // inject platform AAM Cert
         Certificate smartSpaceAAMCertificate = new Certificate(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1")));
         smartSpace.setLocalCertificationAuthorityCertificate(smartSpaceAAMCertificate);
-        // save the certs into the repo
+        // save the service into the repo
         smartSpaceRepository.save(smartSpace);
 
 
@@ -164,15 +143,15 @@ public class OtherListenersFunctionalTests extends
         // there should be only core AAM in the list
         assertEquals(3, aams.size());
         // verifying the contents
+        //expect CoreAAM
         AAM coreAAM = aams.get(SecurityConstants.CORE_AAM_INSTANCE_ID);
-        // this expected PlatformAAM is due to the value stored in the issued certificate in the test keystore
         assertEquals(SecurityConstants.CORE_AAM_INSTANCE_ID, coreAAM.getAamInstanceId());
         assertEquals(coreInterfaceAddress, coreAAM.getAamAddress());
         assertEquals(SecurityConstants.CORE_AAM_FRIENDLY_NAME, coreAAM.getAamInstanceFriendlyName());
         // then comes the registered platform
-        assertTrue(aams.containsKey(preferredPlatformId));
-        AAM platformAAM = aams.get(preferredPlatformId);
-        assertEquals(preferredPlatformId, platformAAM.getAamInstanceId());
+        assertTrue(aams.containsKey(platformId));
+        AAM platformAAM = aams.get(platformId);
+        assertEquals(platformId, platformAAM.getAamInstanceId());
         assertEquals(platformInterworkingInterfaceAddress + platformAAMSuffixAtInterWorkingInterface, platformAAM
                 .getAamAddress());
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
@@ -184,8 +163,6 @@ public class OtherListenersFunctionalTests extends
         assertEquals(preferredSmartSpaceId, smartSpaceAAM.getAamInstanceId());
         assertEquals(smartSpaceSiteLocalAddress, smartSpaceAAM.getSiteLocalAddress());
         assertEquals(smartSpaceGateWayAddress, smartSpaceAAM.getAamAddress());
-
-
         assertEquals(smartSpaceInstanceFriendlyName, smartSpaceAAM.getAamInstanceFriendlyName());
         assertEquals(smartSpaceAAMCertificate.getCertificateString(), smartSpaceAAM.getAamCACertificate().getCertificateString());
         assertEquals(0, smartSpaceAAM.getComponentCertificates().size());
@@ -198,16 +175,31 @@ public class OtherListenersFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getLocalComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
+    public void getPlatformCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
             NoSuchProviderException, KeyStoreException, IOException, AAMException {
         String componentCertificate = aamClient.getComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, SecurityConstants.CORE_AAM_INSTANCE_ID);
         assertEquals(certificationAuthorityHelper.getAAMCert(), componentCertificate);
     }
 
+    @Test
+    public void getLocalComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
+            NoSuchProviderException, KeyStoreException, IOException, AAMException {
+        //component adding
+        ComponentCertificate componentCert = new ComponentCertificate(
+                componentId,
+                new Certificate(
+                        CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
+                                "keystores/core.p12",
+                                "registry-core-1"))));
+        componentCertificatesRepository.save(componentCert);
+        String componentCertificate = aamClient.getComponentCertificate(componentId, SecurityConstants.CORE_AAM_INSTANCE_ID);
+        assertEquals(componentCert.getCertificate().getCertificateString(), componentCertificate);
+    }
+
     @Test(expected = AAMException.class)
-    public void getLocalComponentCertificateOverRESTWrongComponentIdentifier() throws
+    public void getLocalComponentCertificateOverRESTNotRegisteredComponent() throws
             AAMException {
-        aamClient.getComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME+"wrong", SecurityConstants.CORE_AAM_INSTANCE_ID);
+        aamClient.getComponentCertificate("wrong", SecurityConstants.CORE_AAM_INSTANCE_ID);
 
     }
 
@@ -215,7 +207,7 @@ public class OtherListenersFunctionalTests extends
     public void getOwnedServicesForServiceOwnerInAdministrationSuccess() throws IOException, InvalidArgumentsException {
 
         // verify that our services is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
+        assertFalse(platformRepository.exists(platformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
 
         User serviceOwner = userRepository.findOne(platformOwnerUsername);
@@ -288,19 +280,23 @@ public class OtherListenersFunctionalTests extends
 
 
     @Test
-    public void getOwnedServicesForServiceOwnerInAdministrationUnauthorized()
+    public void getOwnedServicesForServiceOwnerInAdministrationFailUnauthorized()
             throws
             IOException {
 
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
+        assertFalse(platformRepository.exists(platformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
-
-        // issue platform registration over AMQP
-        byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
-                (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
-        PlatformManagementResponse platformManagementResponse = mapper.readValue(response, PlatformManagementResponse.class);
-        assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
+        // put platform into db
+        Platform platform = new Platform(platformId,
+                platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
+                platformOwner,
+                new Certificate(),
+                new HashMap<>());
+        platformRepository.save(platform);
+        platformOwner.getOwnedServices().add(platformId);
+        userRepository.save(platformOwner);
 
         User platformOwner = userRepository.findOne(platformOwnerUsername);
         // platform owner should have a platform bound to him by now
@@ -311,7 +307,7 @@ public class OtherListenersFunctionalTests extends
         userManagementRequest.setUserCredentials(new Credentials(platformOwnerUsername, ""));
 
         // issue owned platform details request with the given token
-        response = rabbitTemplate.sendAndReceive(ownedServicesRequestQueue, new Message(mapper.writeValueAsBytes
+        byte[] response = rabbitTemplate.sendAndReceive(ownedServicesRequestQueue, new Message(mapper.writeValueAsBytes
                 (userManagementRequest), new MessageProperties())).getBody();
 
         try {
