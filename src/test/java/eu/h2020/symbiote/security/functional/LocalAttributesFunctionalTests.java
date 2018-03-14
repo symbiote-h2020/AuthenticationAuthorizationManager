@@ -12,6 +12,7 @@ import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -74,7 +75,17 @@ public class LocalAttributesFunctionalTests extends
 
         ErrorResponseContainer fail = mapper.readValue(response, ErrorResponseContainer.class);
         assertNotNull(fail);
-        //log.info("Test Client received this error message instead of token: " + fail.getErrorMessage());
+    }
 
+    @Test
+    public void sendMessageOverAMQPFailWrongMessage() throws
+            IOException {
+        String wrongmessage = "{wrong message json}";
+        // send incorrect message over AMQP
+        byte[] response = rabbitTemplate.sendAndReceive(attributeManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (wrongmessage), new MessageProperties())).getBody();
+        ErrorResponseContainer sspRegistrationOverAMQPResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+        assertEquals(HttpStatus.BAD_REQUEST.value(), sspRegistrationOverAMQPResponse.getErrorCode());
     }
 }

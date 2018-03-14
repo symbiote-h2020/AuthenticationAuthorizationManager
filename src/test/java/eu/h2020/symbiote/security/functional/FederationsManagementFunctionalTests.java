@@ -24,7 +24,7 @@ import static org.junit.Assert.*;
  */
 @TestPropertySource("/platform.properties")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
-public class FederatedManagementFunctionalTests extends
+public class FederationsManagementFunctionalTests extends
         AbstractAAMTestSuite {
 
     private final String federationId = "testFederationId";

@@ -127,6 +127,7 @@ public class CredentialsValidationFunctionalTests extends
         assertEquals(ValidationStatus.VALID, status);
     }
 
+    //TODO move to unit tests
     /**
      * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
      * revocation),
@@ -158,6 +159,7 @@ public class CredentialsValidationFunctionalTests extends
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status);
     }
 
+    //TODO move to unit tests
     /**
      * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
      * revocation),
@@ -180,6 +182,7 @@ public class CredentialsValidationFunctionalTests extends
         assertEquals(ValidationStatus.UNKNOWN, status);
     }
 
+    //TODO move to unit tests
     /**
      * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
      * revocation),
@@ -215,6 +218,7 @@ public class CredentialsValidationFunctionalTests extends
         assertEquals(ValidationStatus.REVOKED_TOKEN, status);
     }
 
+    //TODO move to unit tests
     /**
      * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
      * revocation),
@@ -257,7 +261,8 @@ public class CredentialsValidationFunctionalTests extends
         assertEquals(ValidationStatus.REVOKED_SPK, status);
     }
 
-
+    //TODO write success test
+    //TODO move to unit tests
     @Test(expected = HttpServerErrorException.class)
     public void validateOriginOfForeignTokenFailBadToken() {
         restTemplate.postForEntity(
@@ -266,6 +271,7 @@ public class CredentialsValidationFunctionalTests extends
         fail("Validation passed with empty token");
     }
 
+    //TODO move to unit tests
     @Test
     public void validateOriginOfForeignTokenFailNotOurToken() throws
             IOException,

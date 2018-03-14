@@ -45,15 +45,6 @@ import static org.junit.Assert.*;
 public class RevocationFunctionalTests extends
         AbstractAAMAMQPTestSuite {
 
-    private final String recoveryMail = "null@dev.null";
-    private final String platformId = "testPlatformId";
-    @Value("${rabbit.queue.ownedservices.request}")
-    protected String ownedServicesRequestQueue;
-    @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
-    String platformAAMSuffixAtInterWorkingInterface;
-
-    @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
-    String coreInterfaceAddress;
     @Autowired
     DummyPlatformAAM dummyPlatformAAM;
     @Autowired

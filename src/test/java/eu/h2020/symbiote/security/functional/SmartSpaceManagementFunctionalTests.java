@@ -41,11 +41,6 @@ public class SmartSpaceManagementFunctionalTests extends
     @Before
     public void setUp() throws Exception {
         super.setUp();
-
-        // db cleanup
-        smartSpaceRepository.deleteAll();
-        userRepository.deleteAll();
-
         //user registration useful
         User user = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(user);
