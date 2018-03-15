@@ -53,20 +53,24 @@ public class CacheTests extends AbstractAAMTestSuite {
     private ValidationHelper validationHelper;
     @Autowired
     private TokenIssuer tokenIssuer;
+    private String platformId = "platform-1";
 
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        // to make sure caches are reset
-        Thread.sleep(1100);
+        //clear caches
+        aamServices.invalidateAvailableAAMsCache();
+        aamServices.invalidateInternalAAMsCache();
+        aamServices.invalidateComponentCertificateCache(componentId, platformId);
+
         User platformOwner = savePlatformOwner();
         addTestUserWithClientCertificateToRepository();
         X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
         Platform dummyPlatform = new Platform(
-                "platform-1",
+                platformId,
                 serverAddress + "/test",
-                "friendlyPlatformName",
+                platformInstanceFriendlyName,
                 platformOwner,
                 new Certificate(CryptoHelper.convertX509ToPEM(properAAMCert)),
                 new HashMap<>());
@@ -87,7 +91,7 @@ public class CacheTests extends AbstractAAMTestSuite {
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
-        Platform dummyPlatform = platformRepository.findOne("platform-1");
+        Platform dummyPlatform = platformRepository.findOne(platformId);
         // adding a federation
         List<FederationMember> platformsId = new ArrayList<>();
         FederationMember federationMember = new FederationMember();
@@ -96,13 +100,12 @@ public class CacheTests extends AbstractAAMTestSuite {
         federationMember = new FederationMember();
         federationMember.setPlatformId(SecurityConstants.CORE_AAM_INSTANCE_ID);
         platformsId.add(federationMember);
-
         Federation federation = new Federation();
         federation.setMembers(platformsId);
         federation.setId("federationId");
 
         federationsRepository.save(federation);
-
+        //acquire foreign token
         Token foreignToken = tokenIssuer.getForeignToken(dummyHomeToken);
 
         assertEquals(ValidationStatus.VALID, validationHelper.validate(foreignToken.toString(), "", "", ""));
@@ -129,7 +132,7 @@ public class CacheTests extends AbstractAAMTestSuite {
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.HOME,
                 100000l,
-                "platform-1",
+                platformId,
                 properAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
         );
@@ -153,11 +156,11 @@ public class CacheTests extends AbstractAAMTestSuite {
 
         //dirty hack to pass TrustChain of the certificate. (client cert is returned)
         dummyPlatformAAM.certificateFlag = 2;
-        aamServices.getComponentCertificate(componentId, "platform-1");
-        aamServices.getComponentCertificate(componentId, "platform-1");
+        aamServices.getComponentCertificate(componentId, platformId);
+        aamServices.getComponentCertificate(componentId, platformId);
         Mockito.verify(dummyPlatformAAM, times(1)).getComponentCertificate(Mockito.anyString(), Mockito.anyString());
-        aamServices.invalidateComponentCertificateCache(componentId, "platform-1");
-        aamServices.getComponentCertificate(componentId, "platform-1");
+        aamServices.invalidateComponentCertificateCache(componentId, platformId);
+        aamServices.getComponentCertificate(componentId, platformId);
         Mockito.verify(dummyPlatformAAM, times(2)).getComponentCertificate(Mockito.anyString(), Mockito.anyString());
     }
 
