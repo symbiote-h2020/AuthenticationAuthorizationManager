@@ -40,7 +40,7 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
  * @author Jakub Toczek (PSNC)
  * @author Mikołaj Dobski (PSNC)
  */
-
+//TODO shouldn't old keys from certificates be revoked?
 @Service
 public class SignCertificateRequestService {
     private static final Log log = LogFactory.getLog(SignCertificateRequestService.class);
