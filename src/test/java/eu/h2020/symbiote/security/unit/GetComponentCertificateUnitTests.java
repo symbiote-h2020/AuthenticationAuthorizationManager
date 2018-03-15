@@ -31,7 +31,7 @@ import static org.mockito.Mockito.when;
 
 
 @TestPropertySource("/core.properties")
-public class ComponentCertificatesUnitTests extends AbstractAAMTestSuite {
+public class GetComponentCertificateUnitTests extends AbstractAAMTestSuite {
 
     @Autowired
     DummyPlatformAAM dummyPlatformAAM;

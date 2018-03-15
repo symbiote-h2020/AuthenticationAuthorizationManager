@@ -116,6 +116,9 @@ public abstract class AbstractAAMTestSuite {
     protected UsersManagementService usersManagementService;
     @Autowired
     protected SmartSpaceRepository smartSpaceRepository;
+    @Autowired
+    protected RevokedRemoteTokensRepository revokedRemoteTokensRepository;
+
     protected ObjectMapper mapper = new ObjectMapper();
     protected String serverAddress;
     @Value("${symbIoTe.core.interface.url:https://localhost:8443}")
