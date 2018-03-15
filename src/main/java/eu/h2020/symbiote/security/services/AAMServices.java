@@ -24,7 +24,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
@@ -70,11 +69,8 @@ public class AAMServices {
 
     @Cacheable(cacheNames = "getAvailableAAMs", key = "#root.method")
     public Map<String, AAM> getAvailableAAMs() throws
-            NoSuchProviderException,
-            KeyStoreException,
             IOException,
-            CertificateException,
-            NoSuchAlgorithmException {
+            CertificateException {
         return getAvailableAAMs(false);
     }
 
@@ -84,11 +80,8 @@ public class AAMServices {
     }
 
     private Map<String, AAM> getAvailableAAMs(boolean provideInternalURL) throws
-            NoSuchProviderException,
-            KeyStoreException,
             IOException,
-            CertificateException,
-            NoSuchAlgorithmException {
+            CertificateException {
         Map<String, AAM> availableAAMs = new TreeMap<>();
         switch (certificationAuthorityHelper.getDeploymentType()) {
             case CORE:
@@ -199,10 +192,7 @@ public class AAMServices {
 
     private Map<String, AAM> getAAMsFromCore(Map<String, AAM> availableAAMs) throws
             CertificateException,
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException,
-            NoSuchAlgorithmException {
+            IOException {
         try {
             IAAMClient aamClient = new AAMClient(coreInterfaceAddress);
             availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
@@ -232,10 +222,7 @@ public class AAMServices {
 
     @Cacheable(cacheNames = "getAAMsInternally", key = "#root.method")
     public Map<String, AAM> getAAMsInternally() throws
-            NoSuchAlgorithmException,
             CertificateException,
-            NoSuchProviderException,
-            KeyStoreException,
             IOException {
         return getAvailableAAMs(true);
     }
@@ -259,7 +246,6 @@ public class AAMServices {
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
-            KeyStoreException,
             IOException,
             AAMException,
             InvalidArgumentsException {

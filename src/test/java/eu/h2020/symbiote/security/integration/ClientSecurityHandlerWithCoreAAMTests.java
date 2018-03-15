@@ -6,7 +6,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserExcep
 import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityHandlerException;
 import eu.h2020.symbiote.security.handler.ISecurityHandler;
 import eu.h2020.symbiote.security.services.AAMServices;
-import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.junit.After;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,15 +23,12 @@ public class ClientSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSuite 
     private final String KEY_STORE_PASSWORD = "1234567";
     @Autowired
     private AAMServices aamServices;
-    @Autowired
-    private CertificationAuthorityHelper certificationAuthorityHelper;
 
     @After
     public void after() {
         //cleanup
         File file = new File(KEY_STORE_PATH);
         assertTrue(file.delete());
-        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-1");
     }
 
     @Test

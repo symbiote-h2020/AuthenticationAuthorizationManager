@@ -30,7 +30,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PublicKey;
@@ -231,8 +230,11 @@ public class ValidationHelper {
                 default:
                     break;
             }
-        } catch (ValidationException | IOException | CertificateException | NoSuchAlgorithmException |
-                KeyStoreException | NoSuchProviderException e) {
+        } catch (ValidationException
+                | IOException
+                | CertificateException
+                | NoSuchAlgorithmException
+                | NoSuchProviderException e) {
             log.error(e);
             return ValidationStatus.UNKNOWN;
         }
@@ -247,7 +249,6 @@ public class ValidationHelper {
             ValidationException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
-            KeyStoreException,
             IOException {
 
         // check if already cached
@@ -447,7 +448,6 @@ public class ValidationHelper {
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
-            KeyStoreException,
             IOException {
 
         String rootCertificate = CryptoHelper.convertX509ToPEM(certificationAuthorityHelper.getRootCACertificate());
@@ -517,10 +517,7 @@ public class ValidationHelper {
     }
 
     private ValidationStatus reachOutForeignTokenOriginCredentialsAAMToValidateThem(String stringToken) throws
-            NoSuchAlgorithmException,
             CertificateException,
-            NoSuchProviderException,
-            KeyStoreException,
             IOException,
             ValidationException {
         Token token = new Token(stringToken);

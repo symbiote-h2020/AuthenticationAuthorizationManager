@@ -14,14 +14,13 @@ import eu.h2020.symbiote.security.repositories.entities.*;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.helpers.enums.CertificateTypeBySplitCommonNameFieldsNumber;
 import eu.h2020.symbiote.security.services.helpers.enums.CertificateTypeBySplitFriendlyNameFieldsNumber;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -42,6 +41,7 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
  */
 @Component
 public class RevocationHelper {
+    private static final Logger log = LoggerFactory.getLogger(RevocationHelper.class);
 
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final PlatformRepository platformRepository;
@@ -107,7 +107,7 @@ public class RevocationHelper {
             throw new WrongCredentialsException(WrongCredentialsException.CLIENT_NOT_EXIST);
         }
         if (user.getClientCertificates().get(clientId).getCertificateString().isEmpty()
-                || !isMyCertificate(user.getClientCertificates().get(clientId).getX509())) {
+                || isCertificateSignedByOtherCA(user.getClientCertificates().get(clientId).getX509())) {
             throw new CertificateException("Clients certificate is empty or issuer does not equals with this AAM");
         }
         revokeKey(user.getUsername(), user.getClientCertificates().get(clientId));
@@ -124,7 +124,7 @@ public class RevocationHelper {
         }
         if (smartSpace.getLocalCertificationAuthorityCertificate() == null
                 || smartSpace.getLocalCertificationAuthorityCertificate().getCertificateString().isEmpty()
-                || !isMyCertificate(smartSpace.getLocalCertificationAuthorityCertificate().getX509())) {
+                || isCertificateSignedByOtherCA(smartSpace.getLocalCertificationAuthorityCertificate().getX509())) {
             throw new CertificateException("SmartSpace certificate is empty or issuer does not equals with this AAM");
         }
         revokeKey(commonName, smartSpace.getLocalCertificationAuthorityCertificate());
@@ -144,7 +144,7 @@ public class RevocationHelper {
         }
         if (platform.getPlatformAAMCertificate() == null
                 || platform.getPlatformAAMCertificate().getCertificateString().isEmpty()
-                || !isMyCertificate(platform.getPlatformAAMCertificate().getX509())) {
+                || isCertificateSignedByOtherCA(platform.getPlatformAAMCertificate().getX509())) {
             throw new CertificateException("Platforms certificate is empty or issuer does not equals with this AAM");
         }
         revokeKey(commonName, platform.getPlatformAAMCertificate());
@@ -163,7 +163,7 @@ public class RevocationHelper {
             IOException,
             InvalidArgumentsException {
 
-        if (!isMyCertificate(certificate)) {
+        if (isCertificateSignedByOtherCA(certificate)) {
             throw new CertificateException("Issuer does not equals with this AAM");
         }
         if (certificate.getSubjectDN().getName().split("CN=").length != 2) {
@@ -194,14 +194,12 @@ public class RevocationHelper {
                 return revokeUserCertificateUsingCertificate(user, certificate);
             default:
                 throw new InvalidArgumentsException("That's not the way to revoke component certificate.");
-
         }
-
-
     }
 
-    private boolean isMyCertificate(X509Certificate certificate) {
-        return certificate.getIssuerDN().getName().split("CN=")[1].contains(certificationAuthorityHelper.getAAMInstanceIdentifier());
+    private boolean isCertificateSignedByOtherCA(X509Certificate certificate) {
+        return !certificate.getIssuerDN().getName().split("CN=")[1].split(",")[0]
+                .equals(certificationAuthorityHelper.getAAMInstanceIdentifier());
     }
 
     private boolean revokeUserCertificateUsingCertificate(User user,
@@ -347,11 +345,6 @@ public class RevocationHelper {
 
     private boolean isForeignTokenValid(Token foreignToken,
                                         Token remoteHomeToken) throws
-            NoSuchAlgorithmException,
-            CertificateException,
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException,
             MalformedJWTException {
         JWTClaims remoteHomeTokenClaims = JWTEngine.getClaimsFromToken(remoteHomeToken.toString());
         JWTClaims foreignTokenClaims = JWTEngine.getClaimsFromToken(foreignToken.toString());
@@ -376,13 +369,9 @@ public class RevocationHelper {
 
     public boolean revokeForeignToken(Token remoteHomeToken,
                                       Token foreignToken) throws
-            CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException,
-            IOException,
             MalformedJWTException,
-            ValidationException {
+            ValidationException,
+            SecurityMisconfigurationException {
 
         if (isForeignTokenValid(foreignToken, remoteHomeToken)) {
             revokedTokensRepository.save(foreignToken);
@@ -450,7 +439,7 @@ public class RevocationHelper {
         if (componentCertificate == null
                 || componentCertificate.getCertificate() == null
                 || componentCertificate.getCertificate().getCertificateString().isEmpty()
-                || !isMyCertificate(componentCertificate.getCertificate().getX509())) {
+                || isCertificateSignedByOtherCA(componentCertificate.getCertificate().getX509())) {
             throw new WrongCredentialsException("Component certificate is empty or issuer does not equals with this AAM");
         }
         revokeKey(componentId, componentCertificate.getCertificate());
@@ -467,7 +456,7 @@ public class RevocationHelper {
             WrongCredentialsException,
             NotExistingUserException,
             InvalidArgumentsException {
-        if (!isMyCertificate(certificate)) {
+        if (isCertificateSignedByOtherCA(certificate)) {
             throw new CertificateException("Issuer does not equal with this AAM");
         }
         if (certificate.getSubjectDN().getName().split("CN=").length != 2) {
@@ -528,12 +517,7 @@ public class RevocationHelper {
 
     public boolean revokeHomeTokenByAdmin(String token) throws
             ValidationException,
-            MalformedJWTException,
-            NoSuchAlgorithmException,
-            CertificateException,
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException {
+            MalformedJWTException {
         if (JWTEngine.validateTokenString(token) != ValidationStatus.VALID) {
             throw new ValidationException(ValidationException.INVALID_TOKEN);
         }

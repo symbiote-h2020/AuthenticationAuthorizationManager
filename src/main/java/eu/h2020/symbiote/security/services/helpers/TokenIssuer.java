@@ -173,7 +173,7 @@ public class TokenIssuer {
             HashMap<String, String> foreignAttributes = new HashMap<>();
             // disabling foreign token issuing when the mapping rule is empty
             if (federationsRepository.findAll().isEmpty())
-                throw new SecurityMisconfigurationException(SecurityMisconfigurationException.AAM_HAS_NO_FOREIGN_RULES_DEFINED);
+                throw new SecurityMisconfigurationException(SecurityMisconfigurationException.AAM_HAS_NO_FEDERATIONS_DEFINED);
             int i = 1;
 
 

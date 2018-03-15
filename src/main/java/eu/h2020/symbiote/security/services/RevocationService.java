@@ -18,9 +18,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 
 /**
@@ -30,11 +27,10 @@ import java.security.cert.CertificateException;
 
 @Service
 public class RevocationService {
+    private static Log log = LogFactory.getLog(RevocationService.class);
     private final RevocationHelper revocationHelper;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
-    private static Log log = LogFactory.getLog(RevocationService.class);
-
     @Value("${aam.deployment.owner.username}")
     private String AAMOwnerUsername;
     @Value("${aam.deployment.owner.password}")
@@ -59,16 +55,19 @@ public class RevocationService {
                 default:
                     return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
             }
-        } catch (CertificateException | NoSuchAlgorithmException | KeyStoreException | NoSuchProviderException | IOException | IllegalArgumentException | InvalidArgumentsException | SecurityException e) {
+        } catch (CertificateException | IOException | IllegalArgumentException | InvalidArgumentsException | SecurityException e) {
             log.error(e.getMessage());
             return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
-        } catch (WrongCredentialsException | ValidationException | NotExistingUserException | MalformedJWTException e) {
+        } catch (WrongCredentialsException | ValidationException | NotExistingUserException | MalformedJWTException | SecurityMisconfigurationException e) {
             log.error(e.getMessage());
             return new RevocationResponse(false, e.getStatusCode());
         }
     }
 
-    private RevocationResponse noCredentialTypeRevoke(RevocationRequest revocationRequest) throws ValidationException, CertificateException, NoSuchAlgorithmException, KeyStoreException, NoSuchProviderException, MalformedJWTException, IOException {
+    private RevocationResponse noCredentialTypeRevoke(RevocationRequest revocationRequest) throws
+            ValidationException,
+            MalformedJWTException,
+            SecurityMisconfigurationException {
         if (revocationRequest.getHomeTokenString().isEmpty()
                 || revocationRequest.getForeignTokenString().isEmpty()) {
             log.error(InvalidArgumentsException.REQUEST_IS_INCORRECTLY_BUILT);
@@ -81,9 +80,6 @@ public class RevocationService {
             ValidationException,
             WrongCredentialsException,
             CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException,
             MalformedJWTException,
             IOException,
             NotExistingUserException,
@@ -106,7 +102,12 @@ public class RevocationService {
 
     private RevocationResponse userRevoke(RevocationRequest revocationRequest) throws
             CertificateException,
-            NotExistingUserException, WrongCredentialsException, ValidationException, IOException, InvalidArgumentsException {
+            NotExistingUserException,
+            WrongCredentialsException,
+            ValidationException,
+            IOException,
+            InvalidArgumentsException,
+            SecurityMisconfigurationException {
         if (revocationRequest.getCredentials().getUsername().isEmpty()) {
             throw new WrongCredentialsException(WrongCredentialsException.AUTHENTICATION_OF_USER_FAILED);
         }

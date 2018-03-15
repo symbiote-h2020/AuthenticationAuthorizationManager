@@ -78,9 +78,7 @@ public class CacheTests extends AbstractAAMTestSuite {
     public void verifyThatValidationHelperUsesCachedValidResultsForForeignTokenOriginTokens() throws
             ValidationException,
             JWTCreationException,
-            MalformedJWTException,
-            IOException,
-            ClassNotFoundException {
+            MalformedJWTException {
 
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -166,9 +164,6 @@ public class CacheTests extends AbstractAAMTestSuite {
     @Test
     public void getAvailableAAMsCached() throws
             CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException,
             IOException {
 
         aamServices.getAvailableAAMs();
@@ -182,9 +177,6 @@ public class CacheTests extends AbstractAAMTestSuite {
     @Test
     public void getAAMsInternallyCached() throws
             CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException,
             IOException {
 
         aamServices.getAAMsInternally();

@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
@@ -57,8 +56,7 @@ public class AAMServicesController implements IAAMServices, IGetComponentCertifi
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body("");
             // found
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
-        } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException |
-                NoSuchProviderException | AAMException e) {
+        } catch (IOException | CertificateException | NoSuchAlgorithmException | NoSuchProviderException | AAMException e) {
             log.error(e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         } catch (InvalidArgumentsException e) {
