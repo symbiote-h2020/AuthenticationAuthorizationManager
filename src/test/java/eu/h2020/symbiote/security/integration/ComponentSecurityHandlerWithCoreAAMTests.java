@@ -14,28 +14,34 @@ import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.File;
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.Map;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.when;
 
-@Ignore("Due to CertificationAuthorityHelper hardening the tests instead of reflection need to use spying!")
 @TestPropertySource("/core_long_validity.properties")
 public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSuite {
     private final String KEY_STORE_PATH = "./src/test/resources/keystores/new.p12";
     private final String KEY_STORE_PASSWORD = "1234567";
     @Autowired
     private AAMServices aamServices;
-    @Autowired
+    @SpyBean
     private CertificationAuthorityHelper certificationAuthorityHelper;
 
     @After
@@ -43,13 +49,18 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         //cleanup
         File file = new File(KEY_STORE_PATH);
         assertTrue(file.delete());
-        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-1");
+        when(certificationAuthorityHelper.getAAMCertificate()).thenCallRealMethod();
     }
 
     @Test
     public void coreResourceMonitorIntegrationTest() throws
             SecurityHandlerException,
-            InvalidArgumentsException {
+            InvalidArgumentsException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException {
         // hack: injecting the AAM running port
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
         String crmKey = "crm";
@@ -93,16 +104,22 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         //putting back old credentials
         crmCSH.getSecurityHandler().getAcquiredCredentials().put(SecurityConstants.CORE_AAM_INSTANCE_ID, temp);
 
-        //changing platform IPK by changing platform certificate
         crmCSH.generateServiceResponse();
-        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-2");
+        //changing platform IPK by changing platform certificate
+        X509Certificate cert = getCertificateFromTestKeystore("keystores/core.p12", "core-2");
+        when(certificationAuthorityHelper.getAAMCertificate()).thenReturn(cert);
         // attempting authenticate using invalid token
         assertFalse(crmCSH.getSatisfiedPoliciesIdentifiers(testAP, crmSecurityRequest).contains(testPolicyId));
     }
 
     @Test(expected = SecurityHandlerException.class)
     public void aamCertNotMatchWithKeystoreServiceResponseGenerationIntegrationTest() throws
-            SecurityHandlerException {
+            SecurityHandlerException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException {
         // hack: injecting the AAM running port
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
         String crmKey = "crm";
@@ -121,7 +138,8 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         assertNotNull(crmCSH.generateServiceResponse());
 
         //changing platform IPK by changing platform certificate
-        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-2");
+        X509Certificate cert = getCertificateFromTestKeystore("keystores/core.p12", "core-2");
+        when(certificationAuthorityHelper.getAAMCertificate()).thenReturn(cert);
         crmCSH.generateServiceResponse();
     }
 
@@ -159,7 +177,12 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
 
     @Test(expected = SecurityHandlerException.class)
     public void checkAAMCertWithKeystoreOnCSHCreationIntegrationTestFail() throws
-            SecurityHandlerException {
+            SecurityHandlerException,
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException {
         // hack: injecting the AAM running port
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
         String crmKey = "crm";
@@ -177,7 +200,8 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
         assertNotNull(crmCSH);
         assertNotNull(crmCSH.generateServiceResponse());
         //changing platform IPK by changing platform certificate
-        ReflectionTestUtils.setField(certificationAuthorityHelper, "CERTIFICATE_ALIAS", "core-2");
+        X509Certificate cert = getCertificateFromTestKeystore("keystores/core.p12", "core-2");
+        when(certificationAuthorityHelper.getAAMCertificate()).thenReturn(cert);
 
         ComponentSecurityHandlerFactory.getComponentSecurityHandler(
                 KEY_STORE_PATH,
