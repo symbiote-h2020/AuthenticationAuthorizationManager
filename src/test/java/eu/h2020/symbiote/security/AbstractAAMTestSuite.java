@@ -6,27 +6,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
-import eu.h2020.symbiote.security.communication.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.payloads.UserDetails;
-import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.*;
-import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.AAMServices;
+import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import eu.h2020.symbiote.security.services.UsersManagementService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import org.bouncycastle.operator.ContentSigner;
-import org.bouncycastle.operator.OperatorCreationException;
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-import org.bouncycastle.pkcs.PKCS10CertificationRequest;
-import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
-import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -51,12 +42,10 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -113,6 +102,8 @@ public abstract class AbstractAAMTestSuite {
     @Autowired
     protected CertificationAuthorityHelper certificationAuthorityHelper;
     @Autowired
+    protected SignCertificateRequestService signCertificateRequestService;
+    @Autowired
     protected UsersManagementService usersManagementService;
     @Autowired
     protected SmartSpaceRepository smartSpaceRepository;
@@ -140,11 +131,6 @@ public abstract class AbstractAAMTestSuite {
     protected Long tokenValidityPeriod;
     @Value("${aam.cache.validToken.expireMillis}")
     protected Long validTokenCacheExpirationTime;
-    @Value("${aam.cache.componentCertificate.expireSeconds}")
-    protected Long componentCertificateCacheExpirationTime;
-    @Value("${aam.cache.availableAAMs.expireSeconds}")
-    protected Long availableAAMsCacheExpirationTime;
-
 
     @Autowired
     private AAMServices aamServices;
@@ -188,19 +174,19 @@ public abstract class AbstractAAMTestSuite {
         // Catch the random port
         serverAddress = "https://localhost:" + port;
         ReflectionTestUtils.setField(aamServices, "localAAMUrl", serverAddress);
-
         aamClient = new AAMClient(serverAddress);
-
         userKeyPair = CryptoHelper.createKeyPair();
 
         // cleanup db
-        userRepository.deleteAll();
-        revokedKeysRepository.deleteAll();
-        revokedTokensRepository.deleteAll();
-        platformRepository.deleteAll();
-        smartSpaceRepository.deleteAll();
         componentCertificatesRepository.deleteAll();
+        federationsRepository.deleteAll();
         localUsersAttributesRepository.deleteAll();
+        platformRepository.deleteAll();
+        revokedKeysRepository.deleteAll();
+        revokedRemoteTokensRepository.deleteAll();
+        revokedTokensRepository.deleteAll();
+        smartSpaceRepository.deleteAll();
+        userRepository.deleteAll();
     }
 
     protected User createUser(String username, String password, String recoveryMail,
@@ -229,50 +215,23 @@ public abstract class AbstractAAMTestSuite {
         return user;
     }
 
-    protected void saveTwoDifferentUsers() {
-        User userOne = createUser("userOne", "Password", recoveryMail, UserRole.USER);
-        User userTwo = createUser("userTwo", "Password", recoveryMail, UserRole.USER);
-
-        userRepository.save(userOne);
-        userRepository.save(userTwo);
-
-        Platform platformOne = new Platform(platformId + "One", null, null, userOne, new Certificate(), new HashMap<>());
-        Platform platformTwo = new Platform(platformId + "Two", null, null, userTwo, new Certificate(), new HashMap<>());
-        platformRepository.save(platformOne);
-        platformRepository.save(platformTwo);
-    }
-
     protected void addTestUserWithClientCertificateToRepository() throws
-            NoSuchAlgorithmException,
             CertificateException,
-            NoSuchProviderException,
-            KeyStoreException,
             IOException,
-            OperatorCreationException {
-        UserManagementRequest userManagementRequest = new UserManagementRequest(new
-                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                new UserDetails(new Credentials(username, password),
-                        "nullMail", UserRole.USER, new HashMap<>(), new HashMap<>()), OperationType.CREATE);
+            InvalidArgumentsException,
+            ValidationException,
+            UserManagementException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ServiceManagementException {
 
+        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        userRepository.save(user);
+        String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), username, clientId, userKeyPair);
+        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csr);
+        String pem = signCertificateRequestService.signCertificateRequest(certRequest);
 
-        User user = createUser(userManagementRequest.getUserDetails().getCredentials().getUsername(),
-                userManagementRequest.getUserDetails().getCredentials().getPassword(),
-                userManagementRequest.getUserDetails().getRecoveryMail(),
-                userManagementRequest.getUserDetails().getRole());
-
-        String cn = "CN=" + username + "@" + clientId + "@" + certificationAuthorityHelper.getAAMCertificate().getSubjectDN().getName().split("CN=")[1];
-        PKCS10CertificationRequestBuilder p10Builder = new JcaPKCS10CertificationRequestBuilder(new X500Principal(cn), userKeyPair.getPublic());
-        JcaContentSignerBuilder csBuilder = new JcaContentSignerBuilder(SecurityConstants.SIGNATURE_ALGORITHM);
-        ContentSigner signer = csBuilder.build(userKeyPair.getPrivate());
-        PKCS10CertificationRequest csr = p10Builder.build(signer);
-        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, Base64.getEncoder().encodeToString(csr.getEncoded()));
-        byte[] bytes = Base64.getDecoder().decode(certRequest.getClientCSRinPEMFormat());
-        PKCS10CertificationRequest req = new PKCS10CertificationRequest(bytes);
-        X509Certificate certFromCSR = certificationAuthorityHelper.generateCertificateFromCSR(req, false);
-        String pem = CryptoHelper.convertX509ToPEM(certFromCSR);
-        Certificate cert = new Certificate(pem);
-
-        user.getClientCertificates().put(clientId, cert);
+        user.getClientCertificates().put(clientId, new Certificate(pem));
         userRepository.save(user);
     }
 
