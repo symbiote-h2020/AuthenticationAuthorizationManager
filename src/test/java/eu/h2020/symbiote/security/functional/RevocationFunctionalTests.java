@@ -21,7 +21,6 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.CredentialsValidationService;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
@@ -355,15 +354,9 @@ public class RevocationFunctionalTests extends
 
     @Test
     public void revokeHomeTokenOverRESTSuccess() throws
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            CertificateException,
-            IOException,
             InvalidArgumentsException,
             WrongCredentialsException,
             ValidationException,
-            OperatorCreationException,
-            KeyStoreException,
             JWTCreationException,
             MalformedJWTException,
             AAMException {
@@ -388,10 +381,8 @@ public class RevocationFunctionalTests extends
     @Test
     public void revokeForeignTokenOverRESTSuccess() throws
             CertificateException,
-            UnrecoverableKeyException,
             NoSuchAlgorithmException,
             KeyStoreException,
-            OperatorCreationException,
             NoSuchProviderException,
             IOException,
             JWTCreationException,
@@ -399,7 +390,6 @@ public class RevocationFunctionalTests extends
             InvalidArgumentsException,
             WrongCredentialsException,
             MalformedJWTException,
-            ClassNotFoundException,
             AAMException {
         addTestUserWithClientCertificateToRepository();
         assertNotNull(userRepository.findOne(username));
@@ -506,14 +496,9 @@ public class RevocationFunctionalTests extends
 
     @Test
     public void revokeHomeTokenOverAMQPByAdminSuccess() throws
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            CertificateException,
             IOException,
             WrongCredentialsException,
             ValidationException,
-            OperatorCreationException,
-            KeyStoreException,
             JWTCreationException,
             MalformedJWTException,
             AAMException {

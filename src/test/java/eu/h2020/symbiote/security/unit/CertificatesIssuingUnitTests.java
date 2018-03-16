@@ -61,8 +61,6 @@ public class CertificatesIssuingUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             InvalidAlgorithmParameterException,
-            IOException,
-            KeyStoreException,
             SignatureException,
             InvalidKeyException {
 
@@ -88,7 +86,6 @@ public class CertificatesIssuingUnitTests extends
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
-            KeyStoreException,
             InvalidAlgorithmParameterException,
             WrongCredentialsException,
             NotExistingUserException,
@@ -148,7 +145,6 @@ public class CertificatesIssuingUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
-            KeyStoreException,
             IOException,
             UserManagementException,
             ServiceManagementException {
@@ -171,7 +167,6 @@ public class CertificatesIssuingUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
-            KeyStoreException,
             IOException,
             UserManagementException,
             ServiceManagementException {
@@ -195,7 +190,6 @@ public class CertificatesIssuingUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
-            KeyStoreException,
             IOException,
             InvalidArgumentsException,
             NotExistingUserException,
@@ -209,6 +203,27 @@ public class CertificatesIssuingUnitTests extends
         String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(),
                 user.getUsername(), clientId, pair);
         CertificateRequest certRequest = new CertificateRequest(appUsername, wrongPassword, clientId, csr);
+        signCertificateRequestService.signCertificateRequest(certRequest);
+    }
+
+    @Test(expected = ValidationException.class)
+    public void getClientCertificateMismatchOfClientIdFailure() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            NotExistingUserException,
+            ValidationException,
+            UserManagementException,
+            ServiceManagementException,
+            WrongCredentialsException {
+        User user = saveUser();
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(),
+                user.getUsername(), clientId, pair);
+        CertificateRequest certRequest = new CertificateRequest(appUsername, password, wrongClientId, csr);
         signCertificateRequestService.signCertificateRequest(certRequest);
     }
 
@@ -581,7 +596,6 @@ public class CertificatesIssuingUnitTests extends
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
-            KeyStoreException,
             InvalidAlgorithmParameterException,
             WrongCredentialsException,
             NotExistingUserException,
@@ -618,9 +632,6 @@ public class CertificatesIssuingUnitTests extends
         user = userRepository.findOne(appUsername);
         assertEquals(1, user.getClientCertificates().size());
         assertEquals(certificate2, user.getClientCertificates().get(clientId).getCertificateString());
-        // TODO revocation of old certs?
-        //assertTrue(revokedKeysRepository.exists(appUsername));
-        //assertTrue(revokedKeysRepository.findOne(appUsername).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(x509Certificate.getPublicKey().getEncoded())));
     }
 
     //replacing previous certificate with new one
@@ -630,7 +641,6 @@ public class CertificatesIssuingUnitTests extends
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
-            KeyStoreException,
             InvalidAlgorithmParameterException,
             WrongCredentialsException,
             NotExistingUserException,
@@ -710,9 +720,6 @@ public class CertificatesIssuingUnitTests extends
         assertEquals("CN=" + platformId, x509Certificate.getSubjectDN().getName());
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
-        // TODO revocation of old certs?
-        //assertTrue(revokedKeysRepository.exists(platformId));
-        //assertTrue(revokedKeysRepository.findOne(platformId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(x509Certificate.getPublicKey().getEncoded())));
     }
 
     @Test
@@ -803,9 +810,6 @@ public class CertificatesIssuingUnitTests extends
         assertEquals("CN=" + preferredSmartSpaceId, x509Certificate.getSubjectDN().getName());
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
-        // TODO revocation of old certs?
-        //assertTrue(revokedKeysRepository.exists(preferredSmartSpaceId));
-        //assertTrue(revokedKeysRepository.findOne(preferredSmartSpaceId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(x509Certificate.getPublicKey().getEncoded())));
     }
 
     @Test
@@ -893,9 +897,6 @@ public class CertificatesIssuingUnitTests extends
         assertEquals("CN=" + componentId + FIELDS_DELIMITER + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
-        // TODO revocation of old certs?
-        //assertTrue(revokedKeysRepository.exists(CORE_AAM_INSTANCE_ID));
-        //assertTrue(revokedKeysRepository.findOne(CORE_AAM_INSTANCE_ID).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(x509Certificate.getPublicKey().getEncoded())));
     }
 
     @Test

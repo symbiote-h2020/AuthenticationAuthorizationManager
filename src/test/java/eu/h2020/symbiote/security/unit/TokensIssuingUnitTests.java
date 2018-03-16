@@ -21,7 +21,6 @@ import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -72,13 +71,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getHomeTokenForUserSuccess() throws
-            IOException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            OperatorCreationException,
-            NoSuchProviderException {
+    public void getHomeTokenForUserSuccess() {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -94,7 +87,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
     @Test(expected = WrongCredentialsException.class)
     public void getHomeTokenForUserFailWrongSign() throws
-            IOException,
             CertificateException,
             InvalidArgumentsException,
             WrongCredentialsException,
@@ -103,9 +95,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             NoSuchAlgorithmException,
             NoSuchProviderException,
             MalformedJWTException,
-            ValidationException,
-            OperatorCreationException,
-            KeyStoreException {
+            ValidationException {
         addTestUserWithClientCertificateToRepository();
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
@@ -133,11 +123,6 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             MalformedJWTException,
             WrongCredentialsException,
             CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            OperatorCreationException,
-            NoSuchProviderException,
-            IOException,
             ValidationException,
             InvalidArgumentsException {
         addTestUserWithClientCertificateToRepository();
@@ -218,7 +203,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getHomeTokenWithAttributesProvisionedToBeIssuedForLocalUser() throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, JWTCreationException, MalformedJWTException {
+    public void getHomeTokenWithAttributesProvisionedToBeIssuedForLocalUser() throws CertificateException, JWTCreationException, MalformedJWTException {
 
         localUsersAttributesRepository.save(new Attribute("key", "attribute"));
         addTestUserWithClientCertificateToRepository();
@@ -236,7 +221,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getHomeTokenWithAttributesProvisionedToBeIssuedForGivenUser() throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException, OperatorCreationException, NoSuchProviderException, JWTCreationException, MalformedJWTException {
+    public void getHomeTokenWithAttributesProvisionedToBeIssuedForGivenUser() throws CertificateException, JWTCreationException, MalformedJWTException {
 
         addTestUserWithClientCertificateToRepository();
         User user = userRepository.findOne(username);
@@ -273,8 +258,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             KeyStoreException,
             CertificateException,
             NoSuchAlgorithmException,
-            MalformedJWTException,
-            OperatorCreationException {
+            MalformedJWTException {
 
         addTestUserWithClientCertificateToRepository();
         assertNotNull(userRepository.findOne(username));
@@ -344,14 +328,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
     @Test(expected = ValidationException.class)
     public void getForeignTokenFailsForLocalHomeTokenUsedAsRequest() throws
-            IOException,
             ValidationException,
-            NoSuchProviderException,
-            KeyStoreException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            JWTCreationException,
-            OperatorCreationException {
+            JWTCreationException {
 
         addTestUserWithClientCertificateToRepository();
         User user = userRepository.findOne(username);
@@ -368,14 +346,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
     @Test(expected = ValidationException.class)
     public void getForeignTokenFailsPlatformNotRegistered() throws
-            IOException,
             ValidationException,
-            NoSuchProviderException,
-            KeyStoreException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            JWTCreationException,
-            OperatorCreationException {
+            JWTCreationException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -392,14 +364,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
     @Test(expected = ValidationException.class)
     public void getForeignTokenFailsPlatformHasNotCertificate() throws
-            IOException,
             ValidationException,
-            NoSuchProviderException,
-            KeyStoreException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            JWTCreationException,
-            OperatorCreationException {
+            JWTCreationException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());

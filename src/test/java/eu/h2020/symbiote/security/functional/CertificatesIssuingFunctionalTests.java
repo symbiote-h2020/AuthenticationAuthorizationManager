@@ -15,7 +15,10 @@ import org.junit.Test;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
-import java.security.*;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
@@ -31,8 +34,6 @@ public class CertificatesIssuingFunctionalTests extends
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
-            CertificateException,
-            KeyStoreException,
             IOException,
             InvalidArgumentsException,
             WrongCredentialsException,
@@ -52,8 +53,6 @@ public class CertificatesIssuingFunctionalTests extends
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
-            CertificateException,
-            KeyStoreException,
             IOException,
             InvalidArgumentsException,
             AAMException {

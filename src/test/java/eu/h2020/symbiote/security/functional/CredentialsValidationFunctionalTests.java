@@ -19,7 +19,6 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
@@ -61,11 +60,6 @@ public class CredentialsValidationFunctionalTests extends
     @Test
     public void validationOverAMQPSuccess() throws
             IOException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            OperatorCreationException,
-            NoSuchProviderException,
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
@@ -102,12 +96,6 @@ public class CredentialsValidationFunctionalTests extends
      */
     @Test
     public void validationOverRESTValid() throws
-            IOException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            OperatorCreationException,
-            NoSuchProviderException,
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
@@ -137,13 +125,7 @@ public class CredentialsValidationFunctionalTests extends
      */
     @Test
     public void validationOverRESTExpired() throws
-            IOException,
             InterruptedException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            OperatorCreationException,
-            NoSuchProviderException,
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
@@ -169,12 +151,6 @@ public class CredentialsValidationFunctionalTests extends
      */
     @Test
     public void validationOverRESTWrongToken() throws
-            IOException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            OperatorCreationException,
-            NoSuchProviderException,
             AAMException {
         addTestUserWithClientCertificateToRepository();
         String homeToken = "WrongTokenString";
@@ -192,12 +168,6 @@ public class CredentialsValidationFunctionalTests extends
      */
     @Test
     public void validationOverRESTRevokedToken() throws
-            IOException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            OperatorCreationException,
-            NoSuchProviderException,
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
@@ -229,12 +199,6 @@ public class CredentialsValidationFunctionalTests extends
 
     @Test
     public void validationOverRESTRevokedKey() throws
-            IOException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            OperatorCreationException,
-            NoSuchProviderException,
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,

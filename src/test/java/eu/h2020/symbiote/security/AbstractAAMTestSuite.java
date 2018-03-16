@@ -7,7 +7,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
@@ -215,24 +215,20 @@ public abstract class AbstractAAMTestSuite {
         return user;
     }
 
-    protected void addTestUserWithClientCertificateToRepository() throws
-            CertificateException,
-            IOException,
-            InvalidArgumentsException,
-            ValidationException,
-            UserManagementException,
-            WrongCredentialsException,
-            NotExistingUserException,
-            ServiceManagementException {
+    protected void addTestUserWithClientCertificateToRepository() {
 
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
-        userRepository.save(user);
-        String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), username, clientId, userKeyPair);
-        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csr);
-        String pem = signCertificateRequestService.signCertificateRequest(certRequest);
+        try {
+            User user = createUser(username, password, recoveryMail, UserRole.USER);
+            userRepository.save(user);
+            String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), username, clientId, userKeyPair);
+            CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csr);
+            String pem = signCertificateRequestService.signCertificateRequest(certRequest);
 
-        user.getClientCertificates().put(clientId, new Certificate(pem));
-        userRepository.save(user);
+            user.getClientCertificates().put(clientId, new Certificate(pem));
+            userRepository.save(user);
+        } catch (SecurityException | CertificateException | IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Configuration

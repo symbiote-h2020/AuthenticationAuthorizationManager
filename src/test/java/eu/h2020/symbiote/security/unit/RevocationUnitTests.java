@@ -26,7 +26,6 @@ import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -73,7 +72,6 @@ public class RevocationUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
-            KeyStoreException,
             IOException,
             WrongCredentialsException,
             UserManagementException,
@@ -159,7 +157,6 @@ public class RevocationUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
-            KeyStoreException,
             IOException,
             WrongCredentialsException,
             UserManagementException,
@@ -193,7 +190,6 @@ public class RevocationUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
-            KeyStoreException,
             IOException,
             WrongCredentialsException,
             UserManagementException,
@@ -266,7 +262,6 @@ public class RevocationUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
-            KeyStoreException,
             IOException,
             WrongCredentialsException,
             UserManagementException,
@@ -420,7 +415,6 @@ public class RevocationUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
-            KeyStoreException,
             IOException,
             WrongCredentialsException,
             UserManagementException,
@@ -507,11 +501,6 @@ public class RevocationUnitTests extends
     public void revokeHomeTokenSuccess() throws
             SecurityException,
             CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException,
-            IOException,
-            OperatorCreationException,
             JWTCreationException {
         addTestUserWithClientCertificateToRepository();
 
@@ -540,7 +529,6 @@ public class RevocationUnitTests extends
             SecurityException,
             CertificateException,
             NoSuchAlgorithmException,
-            KeyStoreException,
             NoSuchProviderException,
             IOException,
             WrongCredentialsException,
@@ -626,8 +614,7 @@ public class RevocationUnitTests extends
             CertificateException,
             NoSuchAlgorithmException,
             InvalidAlgorithmParameterException,
-            MalformedJWTException,
-            ClassNotFoundException {
+            MalformedJWTException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -668,8 +655,7 @@ public class RevocationUnitTests extends
             InvalidArgumentsException,
             ServiceManagementException,
             UserManagementException,
-            MalformedJWTException,
-            ClassNotFoundException {
+            MalformedJWTException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -765,10 +751,8 @@ public class RevocationUnitTests extends
             CertificateException,
             NoSuchAlgorithmException,
             KeyStoreException,
-            OperatorCreationException,
             NoSuchProviderException,
             IOException,
-            ClassNotFoundException,
             JWTCreationException,
             ValidationException,
             MalformedJWTException {
@@ -825,13 +809,11 @@ public class RevocationUnitTests extends
             CertificateException,
             NoSuchAlgorithmException,
             KeyStoreException,
-            OperatorCreationException,
             NoSuchProviderException,
             IOException,
             JWTCreationException,
             ValidationException,
-            MalformedJWTException,
-            ClassNotFoundException {
+            MalformedJWTException {
         addTestUserWithClientCertificateToRepository();
         assertNotNull(userRepository.findOne(username));
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -883,7 +865,6 @@ public class RevocationUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             CertificateException,
-            KeyStoreException,
             IOException,
             WrongCredentialsException,
             UserManagementException,
@@ -1152,11 +1133,6 @@ public class RevocationUnitTests extends
     public void revokeHomeTokenByAdminSuccess() throws
             SecurityException,
             CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException,
-            IOException,
-            OperatorCreationException,
             JWTCreationException {
         addTestUserWithClientCertificateToRepository();
 

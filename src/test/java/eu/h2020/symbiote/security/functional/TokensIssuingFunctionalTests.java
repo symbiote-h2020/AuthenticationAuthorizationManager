@@ -14,7 +14,6 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -42,13 +41,8 @@ public class TokensIssuingFunctionalTests extends
 
     @Test
     public void getHomeTokenForUserOverRESTSuccess() throws
-            IOException,
             MalformedJWTException,
             CertificateException,
-            OperatorCreationException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException,
             JWTCreationException,
             WrongCredentialsException,
             AAMException {

@@ -40,7 +40,6 @@ import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
  * @author Jakub Toczek (PSNC)
  * @author Mikołaj Dobski (PSNC)
  */
-//TODO shouldn't old keys from certificates be revoked?
 @Service
 public class SignCertificateRequestService {
     private static final Log log = LogFactory.getLog(SignCertificateRequestService.class);
@@ -144,8 +143,8 @@ public class SignCertificateRequestService {
         } catch (IOException e) {
             throw new SecurityException();
         }
-
-        switch (CertificateTypeBySplitCommonNameFieldsNumber.fromInt(request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER).length)) {
+        String[] requestSubject = request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER);
+        switch (CertificateTypeBySplitCommonNameFieldsNumber.fromInt(requestSubject.length)) {
             case COMPONENT:
                 if (certificateRequest.getUsername().equals(AAMOwnerUsername)) {
                     // password check
@@ -168,8 +167,8 @@ public class SignCertificateRequestService {
                     if (!certificateRequest.getPassword().equals(platformAgent.getPasswordEncrypted()) &&
                             !passwordEncoder.matches(certificateRequest.getPassword(), platformAgent.getPasswordEncrypted()))
                         throw new WrongCredentialsException();
-                    if (revokedKeysRepository.exists(platformAgent.getUsername())
-                            && revokedKeysRepository.findOne(platformAgent.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                    if (revokedKeysRepository.exists(certificationAuthorityHelper.getAAMInstanceIdentifier())
+                            && revokedKeysRepository.findOne(certificationAuthorityHelper.getAAMInstanceIdentifier()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
                         throw new ValidationException(ValidationException.USING_REVOKED_KEY);
                     }
                     if (!request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[0].startsWith(PLATFORM_AGENT_IDENTIFIER_PREFIX)) {
@@ -199,6 +198,8 @@ public class SignCertificateRequestService {
                         && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
                     throw new ValidationException(ValidationException.USING_REVOKED_KEY);
                 }
+                if (!requestSubject[1].equals(certificateRequest.getClientId()))
+                    throw new ValidationException(ValidationException.CLIENT_ID_MISMATCH);
                 break;
         }
         return user;

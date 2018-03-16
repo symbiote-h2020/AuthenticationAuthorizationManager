@@ -18,7 +18,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
@@ -73,7 +72,6 @@ public class GetComponentCertificateUnitTests extends AbstractAAMTestSuite {
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
-            KeyStoreException,
             IOException,
             AAMException,
             InvalidArgumentsException {
@@ -91,7 +89,6 @@ public class GetComponentCertificateUnitTests extends AbstractAAMTestSuite {
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
-            KeyStoreException,
             IOException,
             InvalidArgumentsException {
         try {
@@ -107,7 +104,6 @@ public class GetComponentCertificateUnitTests extends AbstractAAMTestSuite {
             CertificateException,
             AAMException,
             NoSuchAlgorithmException,
-            KeyStoreException,
             NoSuchProviderException,
             InvalidArgumentsException,
             IOException {
@@ -124,7 +120,6 @@ public class GetComponentCertificateUnitTests extends AbstractAAMTestSuite {
             CertificateException,
             AAMException,
             NoSuchAlgorithmException,
-            KeyStoreException,
             NoSuchProviderException,
             InvalidArgumentsException,
             IOException {

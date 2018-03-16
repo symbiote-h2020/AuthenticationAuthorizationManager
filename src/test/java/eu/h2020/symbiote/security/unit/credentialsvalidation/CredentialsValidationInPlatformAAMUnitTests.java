@@ -18,7 +18,6 @@ import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM2;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMRevokedIPK;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -87,12 +86,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     @Test
     public void validateValidPlatform() throws
             SecurityException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            NoSuchProviderException,
-            KeyStoreException,
-            IOException,
-            OperatorCreationException {
+            CertificateException {
 
         // prepare the user in db
         addTestUserWithClientCertificateToRepository();
@@ -214,7 +208,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.HOME,
-                100000l,
+                100000L,
                 "platform-1",
                 properAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
@@ -251,7 +245,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.HOME,
-                100000l,
+                100000L,
                 "platform-1",
                 properAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
@@ -288,7 +282,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.FOREIGN,
-                100000l,
+                100000L,
                 "platform-2",
                 tokenIssuerAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_2.p12", "platform-2-1-c1")
@@ -338,7 +332,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.FOREIGN,
-                100000l,
+                100000L,
                 "platform-2",
                 tokenIssuerAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_2.p12", "platform-2-1-c1")

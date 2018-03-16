@@ -16,7 +16,6 @@ import eu.h2020.symbiote.security.handler.ISecurityHandler;
 import eu.h2020.symbiote.security.handler.SecurityHandler;
 import eu.h2020.symbiote.security.services.AAMServices;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
-import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,7 +94,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
         // getting a CRM service response
         String regHandlerServiceResponse = rhCSH.generateServiceResponse();
         // making sure it won't issue certs multiple times
-        String newRegHandlerServiceResponse = rhCSH.generateServiceResponse();
+        rhCSH.generateServiceResponse();
 
         // trying to validate the service response, yes we can use this SH as the operation is local
         assertTrue(rhCSH.isReceivedServiceResponseVerified(regHandlerServiceResponse, rhKey, "platform-1"));
@@ -115,7 +114,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
         );
 
         // fetching the security response once more time
-        newRegHandlerServiceResponse = rhCSH.generateServiceResponse();
+        String newRegHandlerServiceResponse = rhCSH.generateServiceResponse();
 
         // trying to validate the service response, yes we can use this SH as the operation is local
         assertTrue(rhCSH.isReceivedServiceResponseVerified(newRegHandlerServiceResponse, rhKey, "platform-1"));
@@ -140,13 +139,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
     @Test
     public void loginBySecurityHandlerIntegrationTest() throws
             SecurityHandlerException,
-            ValidationException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            OperatorCreationException,
-            NoSuchProviderException,
-            IOException {
+            ValidationException {
 
         addTestUserWithClientCertificateToRepository();
         // hack: injecting the AAM running port

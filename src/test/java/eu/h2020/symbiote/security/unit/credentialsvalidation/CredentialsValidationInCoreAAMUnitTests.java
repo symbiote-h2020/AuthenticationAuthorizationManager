@@ -296,7 +296,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             ValidationException,
             CertificateException,
             NoSuchAlgorithmException,
-            KeyStoreException,
             NoSuchProviderException,
             MalformedJWTException {
         // issuing dummy platform token
@@ -390,7 +389,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             CertificateException,
             IOException,
             MalformedJWTException,
-            KeyStoreException,
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
@@ -440,8 +438,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             UserManagementException,
             ValidationException,
             InvalidArgumentsException,
-            NotExistingUserException,
-            KeyStoreException {
+            NotExistingUserException {
 
         userRepository.deleteAll();
 
@@ -487,7 +484,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             IOException,
             MalformedJWTException,
             ValidationException,
-            KeyStoreException,
             InvalidArgumentsException,
             UserManagementException,
             WrongCredentialsException,
@@ -661,7 +657,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.HOME,
-                100000l,
+                100000L,
                 "bad_issuer", // mismatch token ISS
                 properAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
@@ -695,7 +691,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.HOME,
-                100000l,
+                100000L,
                 "platform-1",
                 wrongAAMCert.getPublicKey(), // mismatch token IPK
                 getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-2-c1")
@@ -727,7 +723,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.HOME,
-                100000l,
+                100000L,
                 "platform-1",
                 properAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-2-c1") // token signature mismatch
@@ -759,7 +755,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 new HashMap<>(),
                 properAAMCert.getPublicKey().getEncoded(), // mismatch token SPK
                 Token.Type.HOME,
-                100000l,
+                100000L,
                 "platform-1",
                 properAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
@@ -792,7 +788,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.HOME,
-                100000l,
+                100000L,
                 "platform-1",
                 properAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
@@ -825,7 +821,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.HOME,
-                100000l,
+                100000L,
                 "platform-1",
                 properAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
@@ -858,7 +854,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.HOME,
-                100000l,
+                100000L,
                 "platform-1",
                 properAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
@@ -899,7 +895,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.FOREIGN,
-                100000l,
+                100000L,
                 "platform-2",
                 tokenIssuerAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_2.p12", "platform-2-1-c1")
@@ -932,7 +928,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.FOREIGN,
-                100000l,
+                100000L,
                 "platform-2",
                 tokenIssuerAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_2.p12", "platform-2-1-c1")
@@ -954,7 +950,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
-            KeyStoreException,
             IOException {
         assertTrue(certificationAuthorityHelper.isServiceCertificateChainTrusted(certificationAuthorityHelper.getRootCACert()));
     }
@@ -991,7 +986,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 new HashMap<>(),
                 userCertificate.getPublicKey().getEncoded(),
                 Token.Type.HOME,
-                100000l,
+                100000L,
                 "platform-1",
                 properAAMCert.getPublicKey(),
                 getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")

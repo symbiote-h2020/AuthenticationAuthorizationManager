@@ -175,15 +175,21 @@ public class OtherListenersFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getPlatformCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
-            NoSuchProviderException, KeyStoreException, IOException, AAMException {
+    public void getPlatformCertificateOverRESTSuccess() throws
+            IOException,
+            AAMException {
         String componentCertificate = aamClient.getComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, SecurityConstants.CORE_AAM_INSTANCE_ID);
         assertEquals(certificationAuthorityHelper.getAAMCert(), componentCertificate);
     }
 
     @Test
-    public void getLocalComponentCertificateOverRESTSuccess() throws NoSuchAlgorithmException, CertificateException,
-            NoSuchProviderException, KeyStoreException, IOException, AAMException {
+    public void getLocalComponentCertificateOverRESTSuccess() throws
+            NoSuchAlgorithmException,
+            CertificateException,
+            NoSuchProviderException,
+            KeyStoreException,
+            IOException,
+            AAMException {
         //component adding
         ComponentCertificate componentCert = new ComponentCertificate(
                 componentId,
@@ -204,7 +210,9 @@ public class OtherListenersFunctionalTests extends
     }
 
     @Test
-    public void getOwnedServicesForServiceOwnerInAdministrationSuccess() throws IOException, InvalidArgumentsException {
+    public void getOwnedServicesForServiceOwnerInAdministrationSuccess() throws
+            IOException,
+            InvalidArgumentsException {
 
         // verify that our services is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(platformId));

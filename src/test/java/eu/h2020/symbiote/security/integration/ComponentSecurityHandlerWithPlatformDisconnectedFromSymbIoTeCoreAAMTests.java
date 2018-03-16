@@ -87,7 +87,7 @@ public class ComponentSecurityHandlerWithPlatformDisconnectedFromSymbIoTeCoreAAM
         // getting a CRM service response
         String regHandlerServiceResponse = rhCSH.generateServiceResponse();
         // making sure it won't issue certs multiple times
-        String newRegHandlerServiceResponse = rhCSH.generateServiceResponse();
+        rhCSH.generateServiceResponse();
 
         // trying to validate the service response, yes we can use this SH as the operation is local
         assertTrue(rhCSH.isReceivedServiceResponseVerified(regHandlerServiceResponse, rapKey, "platform-1"));
@@ -107,7 +107,7 @@ public class ComponentSecurityHandlerWithPlatformDisconnectedFromSymbIoTeCoreAAM
         );
 
         // fetching the security response once more time
-        newRegHandlerServiceResponse = rhCSH.generateServiceResponse();
+        String newRegHandlerServiceResponse = rhCSH.generateServiceResponse();
 
         // trying to validate the service response, yes we can use this SH as the operation is local
         assertTrue(rhCSH.isReceivedServiceResponseVerified(newRegHandlerServiceResponse, rapKey, "platform-1"));
