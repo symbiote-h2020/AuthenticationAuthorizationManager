@@ -44,7 +44,6 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 project.group = 'eu.h2020.symbiote'
-project.version = '3.0.2-SNAPSHOT'
 
 // dependencies section
 repositories {
