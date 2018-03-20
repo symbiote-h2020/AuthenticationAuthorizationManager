@@ -1,44 +1,28 @@
 package eu.h2020.symbiote.security.functional;
 
-import eu.h2020.symbiote.model.mim.Federation;
-import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
-import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
-import eu.h2020.symbiote.security.commons.enums.OperationType;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
-import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
-import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.payloads.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.entities.Platform;
-import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
-import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.junit.Test;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.Optional;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 @TestPropertySource("/core.properties")
 public class CredentialsValidationFunctionalTests extends
@@ -46,17 +30,7 @@ public class CredentialsValidationFunctionalTests extends
 
     @Autowired
     RabbitTemplate rabbitTemplate;
-    private RestTemplate restTemplate = new RestTemplate();
-    @Autowired
-    private DummyPlatformAAM dummyPlatformAAM;
 
-    /**
-     * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
-     * revocation),
-     * CAAM - 5 (Revoking tokens based on expiration date or illegal access)
-     * Interface: PAAM - 2, CAAM - 1
-     * CommunicationType AMQP
-     */
     @Test
     public void validationOverAMQPSuccess() throws
             IOException,
@@ -86,16 +60,8 @@ public class CredentialsValidationFunctionalTests extends
                 ErrorResponseContainer.class);
         assertEquals(HttpStatus.BAD_REQUEST.value(), sspRegistrationOverAMQPResponse.getErrorCode());
     }
-
-    /**
-     * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
-     * revocation),
-     * CAAM - 5 (Revoking tokens based on expiration date or illegal access)
-     * Interfaces: PAAM - 4, CAAM - 10;
-     * CommunicationType REST
-     */
     @Test
-    public void validationOverRESTValid() throws
+    public void validationOverRESTSuccess() throws
             JWTCreationException,
             MalformedJWTException,
             WrongCredentialsException,
@@ -103,7 +69,6 @@ public class CredentialsValidationFunctionalTests extends
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-
 
         String homeToken = aamClient.getHomeToken(loginRequest);
 
@@ -115,16 +80,8 @@ public class CredentialsValidationFunctionalTests extends
         assertEquals(ValidationStatus.VALID, status);
     }
 
-    //TODO move to unit tests
-    /**
-     * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
-     * revocation),
-     * CAAM - 5 (Revoking tokens based on expiration date or illegal access)
-     * Interfaces: PAAM - 4, CAAM - 10;
-     * CommunicationType REST
-     */
     @Test
-    public void validationOverRESTExpired() throws
+    public void validationOverRESTFailExpiredToken() throws
             InterruptedException,
             JWTCreationException,
             MalformedJWTException,
@@ -139,177 +96,5 @@ public class CredentialsValidationFunctionalTests extends
 
         ValidationStatus status = aamClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
         assertEquals(ValidationStatus.EXPIRED_TOKEN, status);
-    }
-
-    //TODO move to unit tests
-    /**
-     * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
-     * revocation),
-     * CAAM - 5 (Revoking wrong generated tokens)
-     * Interfaces: PAAM - 4, CAAM - 10;
-     * CommunicationType REST
-     */
-    @Test
-    public void validationOverRESTWrongToken() throws
-            AAMException {
-        addTestUserWithClientCertificateToRepository();
-        String homeToken = "WrongTokenString";
-        ValidationStatus status = aamClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
-        assertEquals(ValidationStatus.UNKNOWN, status);
-    }
-
-    //TODO move to unit tests
-    /**
-     * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
-     * revocation),
-     * CAAM - 5 (Revoking already revoked tokens)
-     * Interfaces: PAAM - 4, CAAM - 10;
-     * CommunicationType REST
-     */
-    @Test
-    public void validationOverRESTRevokedToken() throws
-            JWTCreationException,
-            MalformedJWTException,
-            WrongCredentialsException,
-            ValidationException,
-            AAMException {
-
-        addTestUserWithClientCertificateToRepository();
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-
-
-        String homeToken = aamClient.getHomeToken(loginRequest);
-
-        revokedTokensRepository.save(new Token(homeToken));
-        assertTrue(revokedTokensRepository.exists(new Token(homeToken).getId()));
-
-        ValidationStatus status = aamClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
-        assertEquals(ValidationStatus.REVOKED_TOKEN, status);
-    }
-
-    //TODO move to unit tests
-    /**
-     * Features: PAAM - 5,6,8 (synchronous token validation, asynchronous token validation, management of token
-     * revocation),
-     * CAAM - 5 (Revoking tokens with revoked keys)
-     * Interfaces: PAAM - 4, CAAM - 10;
-     * CommunicationType REST
-     */
-
-    @Test
-    public void validationOverRESTRevokedKey() throws
-            JWTCreationException,
-            MalformedJWTException,
-            WrongCredentialsException,
-            AAMException {
-
-        addTestUserWithClientCertificateToRepository();
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-
-
-        String homeToken = aamClient.getHomeToken(loginRequest);
-
-        SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(username);
-        Set<String> keySet = (subjectsRevokedKeys == null) ? new HashSet<>() : subjectsRevokedKeys
-                .getRevokedKeysSet();
-        keySet.add(Base64.getEncoder().encodeToString(
-                userKeyPair.getPublic().getEncoded()));
-        // adding key to revoked repository
-        revokedKeysRepository.save(new SubjectsRevokedKeys(username, keySet));
-
-        assertNotNull(revokedKeysRepository.findOne(username));
-
-        ValidationStatus status = aamClient.validateCredentials(homeToken, Optional.empty(), Optional.empty(), Optional.empty());
-        assertEquals(ValidationStatus.REVOKED_SPK, status);
-    }
-
-    //TODO write success test
-    //TODO move to unit tests
-    @Test(expected = HttpServerErrorException.class)
-    public void validateOriginOfForeignTokenFailBadToken() {
-        restTemplate.postForEntity(
-                serverAddress + SecurityConstants.AAM_VALIDATE_FOREIGN_TOKEN_ORIGIN_CREDENTIALS,
-                new Token(), ValidationStatus.class);
-        fail("Validation passed with empty token");
-    }
-
-    //TODO move to unit tests
-    @Test
-    public void validateOriginOfForeignTokenFailNotOurToken() throws
-            IOException,
-            ValidationException,
-            NoSuchProviderException,
-            KeyStoreException,
-            CertificateException,
-            NoSuchAlgorithmException,
-            MalformedJWTException,
-            JWTCreationException,
-            AAMException {
-        // issuing dummy platform token
-        String username = "userId";
-        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
-        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
-
-        ResponseEntity<?> loginResponse = dummyPlatformAAM.getHomeToken(loginRequest);
-        Token dummyHomeToken = new Token(loginResponse
-                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
-
-        String platformId = "platform-1";
-
-        //user registration useful
-        User platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
-        userRepository.save(platformOwner);
-
-        // platform registration useful
-        Credentials platformOwnerUserCredentials = new Credentials(platformOwner.getUsername(), platformOwner.getPasswordEncrypted());
-        PlatformManagementRequest platformRegistrationOverAMQPRequest = new PlatformManagementRequest(new Credentials(AAMOwnerUsername,
-                AAMOwnerPassword), platformOwnerUserCredentials, serverAddress + "/test",
-                "irrelevant",
-                platformId, OperationType.CREATE);
-
-        // registering the platform to the Core AAM so it will be available for token revocation
-        byte[] response = rabbitTemplate.sendAndReceive(platformManagementRequestQueue, new Message(mapper.writeValueAsBytes
-                (platformRegistrationOverAMQPRequest), new MessageProperties())).getBody();
-        PlatformManagementResponse platformManagementResponse = mapper.readValue(response, PlatformManagementResponse.class);
-        assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
-        //inject platform PEM Certificate to the database
-        X509Certificate platformAAMCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
-        Platform dummyPlatform = platformRepository.findOne(platformId);
-
-        dummyPlatform.setPlatformAAMCertificate(new eu.h2020.symbiote.security.commons.Certificate(CryptoHelper.convertX509ToPEM(platformAAMCertificate)));
-        platformRepository.save(dummyPlatform);
-
-        String clientCertificate = CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1"));
-
-        //checking token attributes
-        JWTClaims claims = JWTEngine.getClaimsFromToken(dummyHomeToken.getToken());
-        assertTrue(claims.getAtt().containsKey("name"));
-        assertTrue(claims.getAtt().containsValue("test2"));
-        // adding a federation
-        List<FederationMember> platformsId = new ArrayList<>();
-        FederationMember federationMember = new FederationMember();
-        federationMember.setPlatformId(platformId);
-        platformsId.add(federationMember);
-
-        Federation federation = new Federation();
-        federation.setMembers(platformsId);
-        federation.setId("federationId");
-
-        federationsRepository.save(federation);
-
-        // checking issuing of foreign token using the dummy platform token
-        String token = aamClient.getForeignToken(dummyHomeToken.getToken(), Optional.of(clientCertificate), Optional.of(CryptoHelper.convertX509ToPEM(platformAAMCertificate)));
-        // check if returned status is ok and if there is token in header
-        assertNotNull(token);
-        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token);
-        assertEquals(Token.Type.FOREIGN, Token.Type.valueOf(claimsFromToken.getTtyp()));
-        assertTrue(claimsFromToken.getAtt().containsKey("federation_1"));
-        assertTrue(claimsFromToken.getAtt().containsValue("federationId"));
-
-        assertEquals(ValidationStatus.WRONG_AAM, restTemplate.postForEntity(
-                serverAddress + SecurityConstants.AAM_VALIDATE_FOREIGN_TOKEN_ORIGIN_CREDENTIALS,
-                new Token(token), ValidationStatus.class).getBody());
     }
 }

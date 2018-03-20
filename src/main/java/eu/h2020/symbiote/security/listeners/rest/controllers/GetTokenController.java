@@ -65,11 +65,7 @@ public class GetTokenController implements IGetToken {
         String parsedAamCert = (aamCertificate.isEmpty()) ? aamCertificate : rebuildPEMStringFromHeader(aamCertificate);
         try {
             foreignToken = getTokenService.getForeignToken(new Token(remoteHomeToken), parsedClientCert, parsedAamCert);
-        } catch (ValidationException e) {
-            log.error(e);
-            return new ResponseEntity<>(headers, e.getStatusCode());
-        } catch (JWTCreationException e) {
-            // todo have a different code here
+        } catch (ValidationException | JWTCreationException e) {
             log.error(e);
             return new ResponseEntity<>(headers, e.getStatusCode());
         }

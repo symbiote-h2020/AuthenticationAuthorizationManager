@@ -12,6 +12,7 @@ import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
@@ -32,10 +33,13 @@ import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -67,6 +71,9 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     private DummyPlatformAAMConnectionProblem dummyPlatformAAMConnectionProblem;
     @Autowired
     private SignCertificateRequestService signCertificateRequestService;
+    @Autowired
+    RabbitTemplate rabbitTemplate;
+    private RestTemplate restTemplate = new RestTemplate();
 
     @Override
     @Before
@@ -130,6 +137,32 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         //check if home token is valid
         ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.EXPIRED_TOKEN, response);
+    }
+
+    @Test
+    public void validateTokenRevokedKey() throws
+            JWTCreationException,
+            CertificateException {
+
+        // verify that user really is in repository
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+
+        // acquiring valid token
+        Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
+
+        SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(username);
+        Set<String> keySet = (subjectsRevokedKeys == null) ? new HashSet<>() : subjectsRevokedKeys
+                .getRevokedKeysSet();
+        keySet.add(Base64.getEncoder().encodeToString(
+                userKeyPair.getPublic().getEncoded()));
+        // adding key to revoked repository
+        revokedKeysRepository.save(new SubjectsRevokedKeys(username, keySet));
+
+        assertNotNull(revokedKeysRepository.findOne(username));
+
+        ValidationStatus status = validationHelper.validate(homeToken.getToken(), "", "", "");
+        assertEquals(ValidationStatus.REVOKED_SPK, status);
     }
 
     @Test
@@ -1075,5 +1108,79 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         assertTrue(revokedTokensRepository.exists(foreignToken.getId()));
         //checking if foreign token is valid - validation should recognize token as revoked
         assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validate(foreignToken.toString(), "", "", ""));
+    }
+
+    @Test(expected = HttpServerErrorException.class)
+    public void validateOriginOfForeignTokenFailBadToken() {
+        restTemplate.postForEntity(
+                serverAddress + SecurityConstants.AAM_VALIDATE_FOREIGN_TOKEN_ORIGIN_CREDENTIALS,
+                new Token(), ValidationStatus.class);
+        fail("Validation passed with empty token");
+    }
+
+    @Test
+    public void validateOriginOfForeignTokenFailNotOurToken() throws
+            IOException,
+            ValidationException,
+            NoSuchProviderException,
+            KeyStoreException,
+            CertificateException,
+            NoSuchAlgorithmException,
+            MalformedJWTException,
+            JWTCreationException,
+            AAMException {
+        // issuing dummy platform token
+        String username = "userId";
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+
+        ResponseEntity<?> loginResponse = dummyPlatformAAM.getHomeToken(loginRequest);
+        Token dummyHomeToken = new Token(loginResponse
+                .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
+
+        String platformId = "platform-1";
+
+        //user registration useful
+        User platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        userRepository.save(platformOwner);
+
+        // platform registration useful
+        //inject platform PEM Certificate to the database
+        X509Certificate platformAAMCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
+        Platform platform = new Platform(platformId, serverAddress + "/test", "irrelevant", platformOwner, new Certificate(CryptoHelper.convertX509ToPEM(platformAAMCertificate)), new HashMap<>());
+        platformRepository.save(platform);
+        platformOwner.getOwnedServices().add(platformId);
+        userRepository.save(platformOwner);
+
+        String clientCertificate = CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1"));
+
+        //checking token attributes
+        JWTClaims claims = JWTEngine.getClaimsFromToken(dummyHomeToken.getToken());
+        assertTrue(claims.getAtt().containsKey("name"));
+        assertTrue(claims.getAtt().containsValue("test2"));
+        // adding a federation
+        List<FederationMember> platformsId = new ArrayList<>();
+        FederationMember federationMember = new FederationMember();
+        federationMember.setPlatformId(platformId);
+        platformsId.add(federationMember);
+
+        Federation federation = new Federation();
+        federation.setMembers(platformsId);
+        federation.setId("federationId");
+
+        federationsRepository.save(federation);
+
+        // checking issuing of foreign token using the dummy platform token
+        String token = aamClient.getForeignToken(dummyHomeToken.getToken(), Optional.of(clientCertificate), Optional.of(CryptoHelper.convertX509ToPEM(platformAAMCertificate)));
+        // check if returned status is ok and if there is token in header
+        assertNotNull(token);
+        JWTClaims claimsFromToken = JWTEngine.getClaimsFromToken(token);
+        assertEquals(Token.Type.FOREIGN, Token.Type.valueOf(claimsFromToken.getTtyp()));
+        assertTrue(claimsFromToken.getAtt().containsKey("federation_1"));
+        assertTrue(claimsFromToken.getAtt().containsValue("federationId"));
+
+        assertEquals(ValidationStatus.WRONG_AAM, restTemplate.postForEntity(
+                serverAddress + SecurityConstants.AAM_VALIDATE_FOREIGN_TOKEN_ORIGIN_CREDENTIALS,
+                new Token(token), ValidationStatus.class).getBody());
     }
 }
