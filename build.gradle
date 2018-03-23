@@ -31,7 +31,7 @@ plugins {
     id "eclipse"
     id "idea"
     // publishing
-    id "com.cinnober.gradle.semver-git" version "2.2.2"
+    id "com.cinnober.gradle.semver-git" version "2.3.1"
     id "maven-publish"
     // documentation
     id "org.asciidoctor.convert" version "1.5.3"
