@@ -6,6 +6,7 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
@@ -74,7 +75,8 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
             CertificateException,
             NoSuchProviderException,
             KeyStoreException,
-            IOException {
+            IOException,
+            AAMException {
 
         // injecting core component certificate
         String componentId = "registry";
@@ -166,7 +168,8 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
             CertificateException,
             NoSuchAlgorithmException,
             KeyStoreException,
-            NoSuchProviderException {
+            NoSuchProviderException,
+            AAMException {
         //change issuing authority type
         String testplatformId = "test-PlatformId";
         doReturn(IssuingAuthorityType.PLATFORM).when(certificationAuthorityHelper).getDeploymentType();
@@ -198,42 +201,17 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
 
     }
 
-    @Test
+    @Test(expected = AAMException.class)
     public void getAvailableAAMsByNotRegisteredPlatformSuccess() throws
             IOException,
             CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException {
+            AAMException {
         //change issuing authority type
         String testplatformId = "test-PlatformId2";
         doReturn(IssuingAuthorityType.PLATFORM).when(certificationAuthorityHelper).getDeploymentType();
         doReturn(testplatformId).when(certificationAuthorityHelper).getAAMInstanceIdentifier();
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
-
-        // injecting core component certificate
-        String componentId = "registry";
-        ComponentCertificate componentCertificate = new ComponentCertificate(
-                componentId,
-                new Certificate(
-                        CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
-                                "keystores/core.p12",
-                                "registry-core-1"))));
-        componentCertificatesRepository.save(
-                componentCertificate);
-
-        Map<String, AAM> aams = aamServices.getAvailableAAMs();
-        //platform should add itself to available aams
-        assertEquals(4, aams.size());
-        // verifying the contents
-        AAM aam = aams.get(testplatformId);
-        assertNotNull(aam);
-        // should contain one component certificate
-        assertEquals(1, aam.getComponentCertificates().size());
-        assertEquals(componentCertificate.getCertificate().getCertificateString(), aam.getComponentCertificates().get(componentId).getCertificateString());
-        assertEquals(certificationAuthorityHelper.getAAMCert(), aam.getAamCACertificate().getCertificateString());
-        //platforms should have siteLocalAddress empty
-        assertTrue(aam.getSiteLocalAddress().isEmpty());
+        aamServices.getAvailableAAMs();
     }
 
     @Test
@@ -242,7 +220,8 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
             CertificateException,
             NoSuchAlgorithmException,
             KeyStoreException,
-            NoSuchProviderException {
+            NoSuchProviderException,
+            AAMException {
         //change issuing authority type and instance id (still platform cause it is returned by dummy core.)
         String testSmartSpaceId = "test-PlatformId";
         doReturn(IssuingAuthorityType.SMART_SPACE).when(certificationAuthorityHelper).getDeploymentType();
@@ -277,42 +256,15 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
 
     }
 
-    @Test
+    @Test(expected = AAMException.class)
     public void getAvailableAAMsByNotRegisteredSmartSpaceSuccess() throws
             IOException,
             CertificateException,
-            NoSuchAlgorithmException,
-            KeyStoreException,
-            NoSuchProviderException {
+            AAMException {
         //change issuing authority type
         doReturn(IssuingAuthorityType.SMART_SPACE).when(certificationAuthorityHelper).getDeploymentType();
         doReturn(preferredSmartSpaceId).when(certificationAuthorityHelper).getAAMInstanceIdentifier();
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
-        String siteLocalAddress = "siteLocalAddress";
-        ReflectionTestUtils.setField(aamServices, "siteLocalAddress", siteLocalAddress);
-
-        // injecting core component certificate
-        String componentId = "registry";
-        ComponentCertificate componentCertificate = new ComponentCertificate(
-                componentId,
-                new Certificate(
-                        CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
-                                "keystores/core.p12",
-                                "registry-core-1"))));
-        componentCertificatesRepository.save(
-                componentCertificate);
-
-        Map<String, AAM> aams = aamServices.getAvailableAAMs();
-        //platform should add itself to available aams
-        assertEquals(4, aams.size());
-        // verifying the contents
-        AAM aam = aams.get(preferredSmartSpaceId);
-        assertNotNull(aam);
-        // should contain one component certificate
-        assertEquals(1, aam.getComponentCertificates().size());
-        assertEquals(componentCertificate.getCertificate().getCertificateString(), aam.getComponentCertificates().get(componentId).getCertificateString());
-        assertEquals(certificationAuthorityHelper.getAAMCert(), aam.getAamCACertificate().getCertificateString());
-        //check if siteLocalAddress was added
-        assertEquals(siteLocalAddress, aam.getSiteLocalAddress());
+        aamServices.getAvailableAAMs();
     }
 }

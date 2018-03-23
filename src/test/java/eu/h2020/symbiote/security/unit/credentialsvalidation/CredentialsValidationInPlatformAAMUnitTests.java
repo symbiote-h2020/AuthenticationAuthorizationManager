@@ -8,6 +8,7 @@ import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -198,7 +199,8 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
             KeyStoreException,
             IOException,
             UnrecoverableKeyException,
-            ValidationException {
+            ValidationException,
+            AAMException {
         //setting wrong core AAM url to make it offline
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", "wrong AAM url");
         ReflectionTestUtils.setField(validationHelper, "isOfflineEnough", true);
@@ -235,7 +237,8 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
             KeyStoreException,
             IOException,
             UnrecoverableKeyException,
-            ValidationException {
+            ValidationException,
+            AAMException {
 
         ReflectionTestUtils.setField(validationHelper, "isOfflineEnough", true);
 

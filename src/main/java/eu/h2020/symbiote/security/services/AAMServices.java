@@ -70,7 +70,8 @@ public class AAMServices {
     @Cacheable(cacheNames = "getAvailableAAMs", key = "#root.method")
     public Map<String, AAM> getAvailableAAMs() throws
             IOException,
-            CertificateException {
+            CertificateException,
+            AAMException {
         return getAvailableAAMs(false);
     }
 
@@ -81,7 +82,7 @@ public class AAMServices {
 
     private Map<String, AAM> getAvailableAAMs(boolean provideInternalURL) throws
             IOException,
-            CertificateException {
+            CertificateException, AAMException {
         Map<String, AAM> availableAAMs = new TreeMap<>();
         switch (certificationAuthorityHelper.getDeploymentType()) {
             case CORE:
@@ -192,18 +193,11 @@ public class AAMServices {
 
     private Map<String, AAM> getAAMsFromCore(Map<String, AAM> availableAAMs) throws
             CertificateException,
-            IOException {
+            IOException,
+            AAMException {
         try {
             IAAMClient aamClient = new AAMClient(coreInterfaceAddress);
             availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
-
-            String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
-            if (!availableAAMs.containsKey(deploymentId)) {
-                // TODO replace with exception once the SSPs can be registered in a real core!
-                log.error("The core AAM does not know about us... ");
-            } else {
-                availableAAMs.get(deploymentId).getComponentCertificates().putAll(fillComponentCertificatesMap());
-            }
         } catch (AAMException e) {
             // service AAM might be disconnected from the core for which we need fallback option
             log.error("Couldn't establish connection with CoreAAM... falling back to local configuration");
@@ -216,14 +210,22 @@ public class AAMServices {
                             SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                             new Certificate(certificationAuthorityHelper.getRootCACert()),
                             new HashMap<>()));
+            return availableAAMs;
         }
+        String deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
+        if (!availableAAMs.containsKey(deploymentId)) {
+            log.error("The core AAM does not know about us... ");
+            throw new AAMException("The core AAM does not know about us... ");
+        }
+        availableAAMs.get(deploymentId).getComponentCertificates().putAll(fillComponentCertificatesMap());
         return availableAAMs;
     }
 
     @Cacheable(cacheNames = "getAAMsInternally", key = "#root.method")
     public Map<String, AAM> getAAMsInternally() throws
             CertificateException,
-            IOException {
+            IOException,
+            AAMException {
         return getAvailableAAMs(true);
     }
 

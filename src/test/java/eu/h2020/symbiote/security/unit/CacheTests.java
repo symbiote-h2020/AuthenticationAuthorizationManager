@@ -167,7 +167,8 @@ public class CacheTests extends AbstractAAMTestSuite {
     @Test
     public void getAvailableAAMsCached() throws
             CertificateException,
-            IOException {
+            IOException,
+            AAMException {
 
         aamServices.getAvailableAAMs();
         aamServices.getAvailableAAMs();
@@ -180,7 +181,8 @@ public class CacheTests extends AbstractAAMTestSuite {
     @Test
     public void getAAMsInternallyCached() throws
             CertificateException,
-            IOException {
+            IOException,
+            AAMException {
 
         aamServices.getAAMsInternally();
         aamServices.getAAMsInternally();

@@ -330,7 +330,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             CertificateException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
-            MalformedJWTException {
+            MalformedJWTException,
+            AAMException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -643,7 +644,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             NoSuchProviderException,
             KeyStoreException,
             MalformedJWTException,
-            ClassNotFoundException {
+            ClassNotFoundException,
+            AAMException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);

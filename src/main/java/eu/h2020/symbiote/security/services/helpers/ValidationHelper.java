@@ -238,6 +238,7 @@ public class ValidationHelper {
         } catch (ValidationException
                 | IOException
                 | CertificateException
+                | AAMException
                 | NoSuchAlgorithmException
                 | NoSuchProviderException e) {
             log.error(e);
@@ -254,7 +255,8 @@ public class ValidationHelper {
             ValidationException,
             NoSuchAlgorithmException,
             NoSuchProviderException,
-            IOException {
+            IOException,
+            AAMException {
 
         // check if already cached
         if (cacheService.isValidTokenCached(new Token(tokenString))) {
@@ -533,7 +535,8 @@ public class ValidationHelper {
     private ValidationStatus reachOutForeignTokenOriginCredentialsAAMToValidateThem(String stringToken) throws
             CertificateException,
             IOException,
-            ValidationException {
+            ValidationException,
+            AAMException {
         Token token = new Token(stringToken);
         String platformId = token.getClaims().getSubject().split(FIELDS_DELIMITER)[2];
         // fetching origin token AAM
