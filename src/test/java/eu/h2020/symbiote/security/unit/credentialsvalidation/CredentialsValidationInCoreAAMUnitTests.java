@@ -670,7 +670,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         // check if validation will fail due to for example connection problems
         ValidationStatus response = validationHelper.validateRemotelyIssuedToken(dummyHomeToken.getToken(), "", "", "");
-        assertEquals(ValidationStatus.WRONG_AAM, response);
+        assertEquals(ValidationStatus.ISSUING_AAM_UNREACHABLE, response);
     }
 
 

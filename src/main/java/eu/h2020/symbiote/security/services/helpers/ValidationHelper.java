@@ -6,10 +6,12 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.*;
@@ -79,6 +81,7 @@ public class ValidationHelper {
     private Long tokenValidity;
     @Value("${aam.deployment.validation.allow-offline}")
     private boolean isOfflineEnough;
+    private final String coreInterfaceAddress;
 
     @Autowired
     public ValidationHelper(CertificationAuthorityHelper certificationAuthorityHelper,
@@ -89,7 +92,8 @@ public class ValidationHelper {
                             UserRepository userRepository,
                             ComponentCertificatesRepository componentCertificatesRepository,
                             AAMServices aamServices,
-                            CacheService cacheService) {
+                            CacheService cacheService,
+                            @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
@@ -101,6 +105,7 @@ public class ValidationHelper {
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.aamServices = aamServices;
         this.cacheService = cacheService;
+        this.coreInterfaceAddress = coreInterfaceAddress;
     }
 
     public ValidationStatus validate(String token,
@@ -287,19 +292,28 @@ public class ValidationHelper {
                 return ValidationStatus.INVALID_TRUST_CHAIN;
             }
         }
-        // TODO attempt connection and fallback to offline if enough
-
-        // end procedure if offline validation is enough, certificates are ok
-        if (isOfflineEnough)
-            return ValidationStatus.VALID;
 
         // resolving available AAMs in search of the token issuer
-        Map<String, AAM> availableAAMs = aamServices.getAvailableAAMs();
+        Map<String, AAM> availableAAMs;
+        if (!deploymentType.equals(IssuingAuthorityType.CORE)) {
 
-        // validate CoreAAM trust
-        if (!certificationAuthorityHelper.getRootCACert()
-                .equals(availableAAMs.get(SecurityConstants.CORE_AAM_INSTANCE_ID).getAamCACertificate().getCertificateString()))
-            throw new ValidationException(ValidationException.CERTIFICATE_MISMATCH);
+            AAMClient aamClient = new AAMClient(coreInterfaceAddress);
+            try {
+                availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
+            } catch (AAMException e) {
+                log.error(e);
+                if (isOfflineEnough)
+                    return ValidationStatus.VALID;
+                else
+                    return ValidationStatus.UNKNOWN;
+            }
+            // validate CoreAAM trust
+            if (!certificationAuthorityHelper.getRootCACert()
+                    .equals(availableAAMs.get(SecurityConstants.CORE_AAM_INSTANCE_ID).getAamCACertificate().getCertificateString()))
+                throw new ValidationException(ValidationException.CERTIFICATE_MISMATCH);
+        } else {
+            availableAAMs = aamServices.getAvailableAAMs();
+        }
 
         String issuer = claims.getIssuer();
         // Core does not know such an issuer and therefore this might be a forfeit
@@ -353,7 +367,7 @@ public class ValidationHelper {
             // end procedure if offline validation is enough, certificates are ok, no connection with certificate Issuers
             if (isOfflineEnough)
                 return ValidationStatus.VALID;
-            return ValidationStatus.WRONG_AAM;
+            return ValidationStatus.ISSUING_AAM_UNREACHABLE;
         }
     }
 
@@ -443,8 +457,8 @@ public class ValidationHelper {
         return false;
     }
 
-    public boolean isClientCertificateChainTrusted(String signingAAMCertificateString,
-                                                   String clientCertificateString) throws
+    private boolean isClientCertificateChainTrusted(String signingAAMCertificateString,
+                                                    String clientCertificateString) throws
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
