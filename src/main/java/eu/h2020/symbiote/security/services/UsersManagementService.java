@@ -186,9 +186,13 @@ public class UsersManagementService {
             case UPDATE:
                 if (userToManage == null)
                     throw new UserManagementException(HttpStatus.BAD_REQUEST);
+                // checking if request contains validation credentials equal to those provided in user details
+                if (!userManagementRequest.getUserCredentials().getUsername().equals(userToManage.getUsername()))
+                    throw new UserManagementException(HttpStatus.BAD_REQUEST);
                 // checking if request contains current password
                 if (!passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), userToManage.getPasswordEncrypted()))
                     throw new UserManagementException(HttpStatus.UNAUTHORIZED);
+
                 update(userManagementRequest, userToManage);
                 break;
             case FORCE_UPDATE:

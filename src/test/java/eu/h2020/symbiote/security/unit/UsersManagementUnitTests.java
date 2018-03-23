@@ -618,7 +618,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         usersManagementService.authManage(userManagementRequest);
     }
 
-    //TODO what is going on with this test?
     @Test
     public void userDeleteRecreateAndDeleteSuccess() throws
             SecurityException,
@@ -779,7 +778,6 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         usersManagementService.authManage(userManagementRequest);
     }
 
-    /* TODO: we check only password for user in userDetails
         @Test(expected = UserManagementException.class)
         public void userUpdateFailWrongAuthorizationUsername() throws SecurityException {
 
@@ -799,7 +797,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                     OperationType.UPDATE);
             usersManagementService.authManage(userManagementRequest);
         }
-    */
+
     @Test(expected = UserManagementException.class)
     public void userUpdateFailWrongAuthorizationPassword() throws SecurityException {
 
