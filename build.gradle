@@ -31,7 +31,8 @@ plugins {
     id "eclipse"
     id "idea"
     // publishing
-    id "com.cinnober.gradle.semver-git" version "2.2.2"
+    id "com.cinnober.gradle.semver-git" version "2.3.1"
+    id "maven-publish"
     // documentation
     id "org.asciidoctor.convert" version "1.5.3"
 }
@@ -41,6 +42,8 @@ apply plugin: 'io.github.swagger2markup'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
+
+project.group = 'eu.h2020.symbiote'
 
 // dependencies section
 repositories {
@@ -118,13 +121,48 @@ dependencies {
     testCompile('org.springframework.restdocs:spring-restdocs-mockmvc')
 }
 
+// publication
+bootRepackage {
+    classifier = 'run'
+}
 
-// code quality below
 task generateJavaDocs(type: Javadoc) {
     source = sourceSets.main.allJava
     destinationDir = reporting.file("javadocs")
 }
 
+task javadocJar(type: Jar, dependsOn: generateJavaDocs) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+task sourceJar(type: Jar) {
+    from sourceSets.main.allJava
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = project.group
+            version = project.version
+            from components.java
+
+            artifact sourceJar {
+                classifier "sources"
+            }
+
+            //artifact javadocJar
+
+            artifact(file("$libsDir/$project.name-$project.version-${bootRepackage.classifier}.jar")) {
+                classifier "run"
+            }
+        }
+    }
+}
+
+publishToMavenLocal.dependsOn(bootRepackage)
+
+// code quality below
 // jacoco configuration section
 jacoco {
     toolVersion = "0.7.9"
