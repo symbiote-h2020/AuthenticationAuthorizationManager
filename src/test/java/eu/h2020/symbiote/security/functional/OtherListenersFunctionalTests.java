@@ -45,10 +45,6 @@ import static org.junit.Assert.*;
 public class OtherListenersFunctionalTests extends
         AbstractAAMAMQPTestSuite {
 
-    private final String platformInstanceFriendlyName = "friendlyPlatformName";
-    private final String platformInterworkingInterfaceAddress =
-            "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
-
     @Value("${rabbit.queue.ownedservices.request}")
     protected String ownedServicesRequestQueue;
     @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
@@ -69,44 +65,11 @@ public class OtherListenersFunctionalTests extends
     public void setUp() throws Exception {
         super.setUp();
 
-        //user registration useful
+        //registration of the users used in tests
         platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
         userRepository.save(platformOwner);
         userRepository.save(smartSpaceOwner);
-    }
-
-    @Test
-    public void getAvailableAAMsOverRESTWithNoRegisteredPlatforms() throws NoSuchAlgorithmException,
-            CertificateException, NoSuchProviderException, KeyStoreException, IOException, AAMException {
-
-        // injecting core component certificate
-        String componentId = "registry";
-        ComponentCertificate componentCertificate = new ComponentCertificate(
-                componentId,
-                new Certificate(
-                        CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
-                                "keystores/core.p12",
-                                "registry-core-1"))));
-        componentCertificatesRepository.save(
-                componentCertificate);
-
-        AvailableAAMsCollection response = aamClient.getAvailableAAMs();
-        // verify the body
-        Map<String, AAM> aams = response.getAvailableAAMs();
-        // there should be only core AAM in the list
-        // verifying the contents
-        AAM aam = aams.get(SecurityConstants.CORE_AAM_INSTANCE_ID);
-        // this expected PlatformAAM is due to the value stored in the issued certificate in the test keystore
-        assertEquals(SecurityConstants.CORE_AAM_INSTANCE_ID, aam.getAamInstanceId());
-        assertEquals(coreInterfaceAddress, aam.getAamAddress());
-        // maybe we could externalize it to spring config
-        assertEquals(SecurityConstants.CORE_AAM_FRIENDLY_NAME, aam.getAamInstanceFriendlyName());
-        assertEquals(certificationAuthorityHelper.getAAMCert(), aam.getAamCACertificate().getCertificateString());
-
-        // should contain one component certificate
-        assertEquals(1, aam.getComponentCertificates().size());
-        assertEquals(componentCertificate.getCertificate().getCertificateString(), aam.getComponentCertificates().get(componentId).getCertificateString());
     }
 
     /**
@@ -114,7 +77,7 @@ public class OtherListenersFunctionalTests extends
      * CommunicationType REST
      */
     @Test
-    public void getAvailableAAMsOverRESTWithRegisteredServices() throws SecurityException, IOException,
+    public void getAvailableAAMsOverRESTSuccess() throws SecurityException, IOException,
             NoSuchAlgorithmException,
             CertificateException,
             NoSuchProviderException,
@@ -140,7 +103,7 @@ public class OtherListenersFunctionalTests extends
         AvailableAAMsCollection response = aamClient.getAvailableAAMs();
         // verify the body
         Map<String, AAM> aams = response.getAvailableAAMs();
-        // there should be only core AAM in the list
+        // there should be core, one platform and one smart Space AAM in the list
         assertEquals(3, aams.size());
         // verifying the contents
         //expect CoreAAM

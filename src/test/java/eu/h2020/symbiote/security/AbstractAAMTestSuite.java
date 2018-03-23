@@ -75,6 +75,8 @@ public abstract class AbstractAAMTestSuite {
     protected final String platformOwnerPassword = "testPlatformOwnerPassword";
     protected final String recoveryMail = "null@dev.null";
     protected final String preferredSmartSpaceId = SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX + "preferredSmartSpaceId";
+    protected final String platformInterworkingInterfaceAddress =
+            "https://platform1.eu:8101/someFancyHiddenPath/andHiddenAgain";
     protected final String smartSpaceInstanceFriendlyName = "friendlySmartSpaceName";
     protected final String smartSpaceGateWayAddress =
             "https://smartSpace.external:8101/someFancyHiddenPath/andHiddenAgain";
