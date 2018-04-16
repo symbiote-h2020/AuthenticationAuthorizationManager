@@ -16,3 +16,17 @@ To read more about the project, please see documentation of:
  
 In general, symbIoTe is a mediator, an intermediary connecting applications and IoT platforms. The basic functionality is that of a registry service which lists platforms, their resources and properties, while also providing a way to map between the platforms' different APIs.
 
+## Requirements
+For proper activity of the AuthenticationAuthorizationManager, some of the additional services needs to be configured:
+* Core AAM (Root)
+    * RabbitMQ 3.6+
+    * MongoDB 3.6+
+    * Cloud Services (CoreConfigService, EurekaService, ZipkinService, Administration)
+* Intermediate AAM(Platform) / Enabler
+    * Mongo DB
+    * Cloud Services (CloudConfigService, EurekaService, ZipkinService)
+* Smart Space AAM:
+    * Mongo DB 
+
+All of the Cloud Services can be found on official symbIoTe repo: [github](https://github.com/symbiote-h2020)
+   
