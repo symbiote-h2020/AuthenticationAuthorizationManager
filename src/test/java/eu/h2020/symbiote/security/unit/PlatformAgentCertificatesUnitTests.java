@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
@@ -64,7 +65,7 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
             NotExistingUserException,
             ServiceManagementException {
 
-        User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
         userRepository.save(platformAgent);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -97,7 +98,7 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
             ServiceManagementException {
 
 
-        User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
         userRepository.save(platformAgent);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -124,7 +125,7 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
 
         //deploymentId should be SMART_SPACE, not PLATFORM
         doReturn(IssuingAuthorityType.PLATFORM).when(certificationAuthorityHelper).getDeploymentType();
-        User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
         userRepository.save(platformAgent);
 
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -149,7 +150,7 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
             NotExistingUserException,
             ServiceManagementException {
 
-        User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.USER);
+        User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(platformAgent);
 
         KeyPair pair = CryptoHelper.createKeyPair();

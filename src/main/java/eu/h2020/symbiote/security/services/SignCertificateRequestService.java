@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
@@ -189,6 +190,8 @@ public class SignCertificateRequestService {
                 user = userRepository.findOne(certificateRequest.getUsername());
                 if (user == null)
                     throw new NotExistingUserException();
+                if (user.getStatus() != AccountStatus.ACTIVE)
+                    throw new WrongCredentialsException(WrongCredentialsException.USER_NOT_ACTIVE, HttpStatus.FORBIDDEN);
                 if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
                         !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
                     throw new WrongCredentialsException();
@@ -284,15 +287,26 @@ public class SignCertificateRequestService {
 
     private void serviceRequestCheck(CertificateRequest certificateRequest) throws
             ServiceManagementException,
-            NotExistingUserException {
+            NotExistingUserException,
+            WrongCredentialsException,
+            InvalidArgumentsException {
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
         if (!userRepository.exists(certificateRequest.getUsername()))
             throw new NotExistingUserException();
         User user = userRepository.findOne(certificateRequest.getUsername());
+        if (user == null)
+            throw new NotExistingUserException();
+        if (user.getStatus() != AccountStatus.ACTIVE)
+            throw new WrongCredentialsException(WrongCredentialsException.USER_NOT_ACTIVE, HttpStatus.FORBIDDEN);
+        if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
+                !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
+            throw new WrongCredentialsException();
         if (user.getRole() != UserRole.SERVICE_OWNER
                 || !user.getOwnedServices().contains(request.getSubject().toString().split("CN=")[1])) {
             throw new ServiceManagementException(ServiceManagementException.NO_RIGHTS, HttpStatus.UNAUTHORIZED);
         }
+        if (!request.getSubject().toString().split("CN=")[1].equals(certificateRequest.getClientId()))
+            throw new InvalidArgumentsException(InvalidArgumentsException.REQUEST_IS_INCORRECTLY_BUILT);
         if (request.getSubject().toString().split("CN=")[1].startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
             smartSpaceRequestCheck(request);
         } else {

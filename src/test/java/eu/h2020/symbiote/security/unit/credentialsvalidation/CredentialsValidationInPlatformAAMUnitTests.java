@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
@@ -153,7 +154,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
             KeyStoreException,
             IOException {
         // prepare the user in db
-        userRepository.save(new User(username, passwordEncoder.encode(password), "", new HashMap<>(), UserRole.USER, new HashMap<>(), new HashSet<>()));
+        userRepository.save(new User(username, passwordEncoder.encode(password), "", new HashMap<>(), UserRole.USER, AccountStatus.NEW, new HashMap<>(), new HashSet<>()));
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);

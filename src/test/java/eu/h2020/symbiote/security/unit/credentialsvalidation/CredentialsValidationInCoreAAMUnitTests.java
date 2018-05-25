@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
@@ -185,7 +186,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 new UserDetails(new Credentials(username, password),
                         recoveryMail,
                         UserRole.USER,
-                        new HashMap<>(),
+                        AccountStatus.NEW, new HashMap<>(),
                         new HashMap<>()),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
@@ -434,7 +435,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         KeyPair keyPair = CryptoHelper.createKeyPair();
         String originHomeTokenJti = String.valueOf(random.nextInt());
 
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
 
         //create client certificate
@@ -490,7 +491,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
 
         //no user in database
         assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validateForeignTokenOriginCredentials(foreignTokenString));
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
 
         //no client in database
@@ -547,7 +548,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 keyPair.getPublic(),
                 keyPair.getPrivate()));
 
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
         //create client certificate
         String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), username, clientId, userKeyPair);
@@ -1143,7 +1144,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         String platformId = "platform-1";
 
         //user registration useful
-        User platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        User platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
         userRepository.save(platformOwner);
 
         // platform registration useful

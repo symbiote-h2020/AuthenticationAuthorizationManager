@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.repositories.entities;
 
 import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
@@ -24,6 +25,7 @@ public class User {
     private final String username;
     @Indexed
     private UserRole role = UserRole.NULL;
+    private AccountStatus status = AccountStatus.NEW;
     private String passwordEncrypted = "";
     private String recoveryMail = "";
     private Map<String, Certificate> clientCertificates = new HashMap<>();
@@ -36,12 +38,12 @@ public class User {
 
     /**
      * Used to create a new user entity
-     *
      * @param username           selected username
      * @param passwordEncrypted  encrypted password for authentication
      * @param recoveryMail       for password reset/recovery purposes
      * @param clientCertificates user's public certificates
      * @param role               user's role in symbIoTe ecosystem, see @{@link UserRole}
+     * @param status             current status of this account
      * @param attributes         used to assign in registration phase user-unique attributes
      * @param ownedServices      bound to the user
      */
@@ -50,6 +52,7 @@ public class User {
                 String recoveryMail,
                 Map<String, Certificate> clientCertificates,
                 UserRole role,
+                AccountStatus status,
                 Map<String, String> attributes,
                 Set<String> ownedServices) {
         this.username = username;
@@ -57,6 +60,7 @@ public class User {
         this.recoveryMail = recoveryMail;
         this.clientCertificates = clientCertificates;
         this.role = role;
+        this.status = status;
         this.attributes = attributes;
         this.ownedServices = ownedServices;
     }
@@ -112,5 +116,13 @@ public class User {
 
     public void setOwnedServices(Set<String> ownedServices) {
         this.ownedServices = ownedServices;
+    }
+
+    public AccountStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(AccountStatus status) {
+        this.status = status;
     }
 }

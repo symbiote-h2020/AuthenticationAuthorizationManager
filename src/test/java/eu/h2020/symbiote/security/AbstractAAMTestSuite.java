@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.communication.AAMClient;
@@ -191,36 +192,47 @@ public abstract class AbstractAAMTestSuite {
         userRepository.deleteAll();
     }
 
-    protected User createUser(String username, String password, String recoveryMail,
-                              UserRole userRole) {
+    protected User createUser(String username,
+                              String password,
+                              String recoveryMail,
+                              UserRole userRole,
+                              AccountStatus status) {
         return new User(username,
                 passwordEncoder.encode(password),
                 recoveryMail,
                 new HashMap<>(),
                 userRole,
+                status,
                 new HashMap<>(),
                 new HashSet<>());
     }
 
     protected User savePlatformOwner() {
         User user = this.createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail,
-                UserRole.SERVICE_OWNER);
+                UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(user);
 
         return user;
     }
 
     protected User saveUser() {
-        User user = this.createUser(appUsername, password, recoveryMail, UserRole.USER);
+        User user = this.createUser(appUsername, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
 
         return user;
     }
 
+    protected User saveNewUser() {
+        User user = this.createUser(appUsername, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
+        userRepository.save(user);
+        return user;
+    }
+
+
     protected void addTestUserWithClientCertificateToRepository() {
 
         try {
-            User user = createUser(username, password, recoveryMail, UserRole.USER);
+            User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
             userRepository.save(user);
             String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), username, clientId, userKeyPair);
             CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csr);

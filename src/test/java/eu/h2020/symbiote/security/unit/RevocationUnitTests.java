@@ -124,7 +124,7 @@ public class RevocationUnitTests extends
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
         String certificateString = signCertificateRequestService.signCertificateRequest(certRequest);
 
         platform.setPlatformAAMCertificate(new Certificate(certificateString));
@@ -326,7 +326,7 @@ public class RevocationUnitTests extends
         userRepository.save(platformOwner);
         //create platform certificate
         String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
         String certificate = signCertificateRequestService.signCertificateRequest(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(certificate));
         platformRepository.save(platform);
@@ -351,7 +351,7 @@ public class RevocationUnitTests extends
         //create new certificate for platform
         pair = CryptoHelper.createKeyPair();
         csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
-        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
         String certificateNew = signCertificateRequestService.signCertificateRequest(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(certificateNew));
         platformRepository.save(platform);
@@ -384,7 +384,7 @@ public class RevocationUnitTests extends
         userRepository.save(platformOwner);
         //create platform certificate
         String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
         String certificate = signCertificateRequestService.signCertificateRequest(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(certificate));
         platformRepository.save(platform);
@@ -394,7 +394,7 @@ public class RevocationUnitTests extends
         //create new certificate for platform
         pair = CryptoHelper.createKeyPair();
         csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
-        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
 
         String certFromCSR = signCertificateRequestService.signCertificateRequest(certRequest);
         //revoke certificate using revoked certificate
@@ -470,7 +470,7 @@ public class RevocationUnitTests extends
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
         String certificateString = signCertificateRequestService.signCertificateRequest(certRequest);
         platformOwner.getOwnedServices().remove(platformId);
         userRepository.save(platformOwner);
@@ -919,7 +919,7 @@ public class RevocationUnitTests extends
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platformId, csrString);
         String certificateString = signCertificateRequestService.signCertificateRequest(certRequest);
 
         platform.setPlatformAAMCertificate(new Certificate(certificateString));

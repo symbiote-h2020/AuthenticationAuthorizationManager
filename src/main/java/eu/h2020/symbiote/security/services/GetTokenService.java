@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
@@ -15,6 +16,7 @@ import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.security.PublicKey;
@@ -98,12 +100,14 @@ public class GetTokenService {
                     || !userInDB.getClientCertificates().containsKey(sub)
                     || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, userInDB.getClientCertificates().get(sub).getX509().getPublicKey()))
                 throw new WrongCredentialsException();
+            if (userInDB.getStatus() != AccountStatus.ACTIVE)
+                throw new WrongCredentialsException(WrongCredentialsException.USER_NOT_ACTIVE, HttpStatus.FORBIDDEN);
         }
 
         // preparing user and key for token
         if (claims.getIss().equals(deploymentId)) { // component use case ISS is platform id
             // component case (We don't include AAMOwner/PO anymore!)
-            userForToken = new User("", "", "", new HashMap<>(), UserRole.NULL, new HashMap<>(), new HashSet<>());
+            userForToken = new User("", "", "", new HashMap<>(), UserRole.NULL, AccountStatus.ACTIVE, new HashMap<>(), new HashSet<>());
             keyForToken = componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey();
         } else {
             // ordinary user/po client

@@ -95,7 +95,7 @@ public class GetUserDetailsConsumer {
                         userDetails = new UserDetailsResponse(
                                 HttpStatus.OK,
                                 new UserDetails(new Credentials(foundUser.getUsername(), ""), foundUser.getRecoveryMail(),
-                                foundUser.getRole(), foundUser.getAttributes(), foundUser.getClientCertificates())
+                                        foundUser.getRole(), foundUser.getStatus(), foundUser.getAttributes(), foundUser.getClientCertificates())
                         );
                     } else
                         //  If wrong password was provided return message with UNAUTHORIZED status

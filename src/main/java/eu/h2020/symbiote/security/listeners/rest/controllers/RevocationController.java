@@ -30,7 +30,8 @@ public class RevocationController implements IRevokeCredentials {
     @ApiOperation(value = "Allows users to revoke their client certificates and tokens")
     @ApiResponses({
             @ApiResponse(code = 400, message = "Request contains invalid arguments"),
-            @ApiResponse(code = 401, message = "Incorrect credentials were provided")})
+            @ApiResponse(code = 401, message = "Incorrect credentials were provided"),
+            @ApiResponse(code = 403, message = "Client account is not activated or blocked")})
     public ResponseEntity<String> revoke(
             @RequestBody
             @ApiParam(name = "Revocation Request", value = "Depending on it's fields, token or certificate can be revoked", required = true)

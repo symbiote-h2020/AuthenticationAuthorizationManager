@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
@@ -73,7 +74,7 @@ public class RevocationFunctionalTests extends
             ValidationException,
             AAMException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
@@ -110,7 +111,7 @@ public class RevocationFunctionalTests extends
             ValidationException,
             AAMException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
+        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(user);
         Platform platform = new Platform(platformId,
                 null,
@@ -127,7 +128,7 @@ public class RevocationFunctionalTests extends
 
         assertNotNull(csrString);
 
-        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(username, password, platformId, csrString);
         String platformCertificate = aamClient.signCertificateRequest(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(platformCertificate));
         platformRepository.save(platform);
@@ -154,7 +155,7 @@ public class RevocationFunctionalTests extends
             NotExistingUserException,
             ValidationException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
+        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(user);
         // issue smartSpace registration
         SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceInstanceFriendlyName, smartSpaceGateWayAddress, isExposingSiteLocalAddress, smartSpaceSiteLocalAddress, new Certificate(), new HashMap<>(), user);
@@ -166,7 +167,7 @@ public class RevocationFunctionalTests extends
         String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
 
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(username, password, preferredSmartSpaceId, csrString);
         String smartSpaceCertificate = aamClient.signCertificateRequest(certRequest);
         smartSpace.setLocalCertificationAuthorityCertificate(new Certificate(smartSpaceCertificate));
         // save the certs into the repo
@@ -197,7 +198,7 @@ public class RevocationFunctionalTests extends
             ValidationException,
             AAMException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
@@ -229,6 +230,44 @@ public class RevocationFunctionalTests extends
 
     }
 
+    @Test(expected = WrongCredentialsException.class)
+    public void revokeUserCertificateFailForUserAccountNotActive() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            AAMException {
+
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
+        userRepository.save(user);
+
+        AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
+        KeyPair pair = CryptoHelper.createKeyPair();
+        AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
+
+        assertNotNull(csrString);
+
+        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        String clientCertificate = aamClient.signCertificateRequest(certRequest);
+
+        assertNotNull(clientCertificate);
+        RevocationRequest revocationRequest = new RevocationRequest();
+        revocationRequest.setCredentials(new Credentials(username, password));
+        revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
+        String commonName = username + FIELDS_DELIMITER + clientId;
+        revocationRequest.setCertificateCommonName(commonName);
+
+        user.setStatus(AccountStatus.BLOCKED);
+        userRepository.save(user);
+        assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
+    }
+
     @Test
     public void revokeUserCertificateUsingCommonNameOverRESTSuccess() throws
             InvalidAlgorithmParameterException,
@@ -242,7 +281,7 @@ public class RevocationFunctionalTests extends
             ValidationException,
             AAMException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
@@ -280,7 +319,7 @@ public class RevocationFunctionalTests extends
             ValidationException,
             AAMException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
+        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(user);
         Platform platform = new Platform(
                 platformId,
@@ -298,7 +337,7 @@ public class RevocationFunctionalTests extends
 
         assertNotNull(csrString);
 
-        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(username, password, platformId, csrString);
         String platformCertificate = aamClient.signCertificateRequest(certRequest);
         platform.setPlatformAAMCertificate(new Certificate(platformCertificate));
         platformRepository.save(platform);
@@ -323,7 +362,7 @@ public class RevocationFunctionalTests extends
             AAMException,
             InvalidAlgorithmParameterException, NotExistingUserException, ValidationException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
+        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(user);
         // issue smartSpace registration
         SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceInstanceFriendlyName, smartSpaceGateWayAddress, isExposingSiteLocalAddress, smartSpaceSiteLocalAddress, new Certificate(), new HashMap<>(), user);
@@ -335,7 +374,7 @@ public class RevocationFunctionalTests extends
         String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
 
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(username, password, preferredSmartSpaceId, csrString);
         String smartSpaceCertificate = aamClient.signCertificateRequest(certRequest);
         smartSpace.setLocalCertificationAuthorityCertificate(new Certificate(smartSpaceCertificate));
         // save the certs into the repo
@@ -463,7 +502,7 @@ public class RevocationFunctionalTests extends
             ValidationException,
             AAMException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();

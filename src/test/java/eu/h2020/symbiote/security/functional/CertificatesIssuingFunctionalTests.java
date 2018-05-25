@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.functional;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
@@ -64,6 +65,33 @@ public class CertificatesIssuingFunctionalTests extends
         aamClient.signCertificateRequest(certRequest);
     }
 
+
+    @Test(expected = ValidationException.class)
+    public void getClientCertificateOverFailForUserAccountNotActive() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            CertificateException,
+            IOException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            AAMException {
+
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
+        userRepository.save(user);
+
+        AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
+        KeyPair pair = CryptoHelper.createKeyPair();
+        AAM homeAAM = aamResponse.getAvailableAAMs().entrySet().iterator().next().getValue();
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(homeAAM.getAamCACertificate().getX509(), username, clientId, pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(username, password, clientId, csrString);
+        aamClient.signCertificateRequest(certRequest);
+    }
+
+
     @Test
     public void getClientCertificateOverRESTSuccess() throws
             InvalidAlgorithmParameterException,
@@ -77,7 +105,7 @@ public class CertificatesIssuingFunctionalTests extends
             ValidationException,
             AAMException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
@@ -105,7 +133,7 @@ public class CertificatesIssuingFunctionalTests extends
             ValidationException,
             AAMException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
@@ -135,7 +163,7 @@ public class CertificatesIssuingFunctionalTests extends
             WrongCredentialsException, NotExistingUserException,
             CertificateException, IOException, ValidationException, AAMException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
@@ -146,6 +174,115 @@ public class CertificatesIssuingFunctionalTests extends
         //  Attempt login with incorrect password
         aamClient.signCertificateRequest(new CertificateRequest
                 (username, wrongPassword, clientId, csrString));
+    }
+
+    @Test(expected = ValidationException.class)
+    public void getPlatformAAMCertificateOverRESTFailForAccountNotActive() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            CertificateException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            AAMException {
+
+        User platformOwner = savePlatformOwner();
+
+        Platform platform = new Platform(platformId,
+                null,
+                null,
+                platformOwner,
+                new Certificate(),
+                new HashMap<>());
+        platformRepository.save(platform);
+        platformOwner.getOwnedServices().add(platformId);
+        platformOwner.setStatus(AccountStatus.BLOCKED);
+        userRepository.save(platformOwner);
+
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platform.getPlatformInstanceId(), csrString);
+
+        String clientCertificate = aamClient.signCertificateRequest(certRequest);
+        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + platform.getPlatformInstanceId(), x509Certificate.getSubjectDN().getName());
+    }
+
+    @Test(expected = ValidationException.class)
+    public void getPlatformAAMCertificateOverRESTFailForBadPassword() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            CertificateException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            AAMException {
+
+        User platformOwner = savePlatformOwner();
+
+        Platform platform = new Platform(platformId,
+                null,
+                null,
+                platformOwner,
+                new Certificate(),
+                new HashMap<>());
+        platformRepository.save(platform);
+        platformOwner.getOwnedServices().add(platformId);
+        userRepository.save(platformOwner);
+
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, "bad_password", platform.getPlatformInstanceId(), csrString);
+
+        String clientCertificate = aamClient.signCertificateRequest(certRequest);
+        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + platform.getPlatformInstanceId(), x509Certificate.getSubjectDN().getName());
+    }
+
+    @Test(expected = InvalidArgumentsException.class)
+    public void getPlatformAAMCertificateOverRESTFailForServiceIdMismatch() throws
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            CertificateException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            NotExistingUserException,
+            ValidationException,
+            AAMException {
+
+        User platformOwner = savePlatformOwner();
+
+        Platform platform = new Platform(platformId,
+                null,
+                null,
+                platformOwner,
+                new Certificate(),
+                new HashMap<>());
+        platformRepository.save(platform);
+        platformOwner.getOwnedServices().add(platformId);
+        userRepository.save(platformOwner);
+
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, "someWeirdServiceId", csrString);
+
+        String clientCertificate = aamClient.signCertificateRequest(certRequest);
+        X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
+        assertNotNull(x509Certificate);
+        assertEquals("CN=" + platform.getPlatformInstanceId(), x509Certificate.getSubjectDN().getName());
     }
 
     @Test
@@ -176,7 +313,7 @@ public class CertificatesIssuingFunctionalTests extends
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platform.getPlatformInstanceId(), csrString);
 
         String clientCertificate = aamClient.signCertificateRequest(certRequest);
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
@@ -197,7 +334,7 @@ public class CertificatesIssuingFunctionalTests extends
             ValidationException,
             AAMException {
 
-        User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         // issue smartSpace registration
         SmartSpace smartSpace = new SmartSpace(preferredSmartSpaceId, smartSpaceInstanceFriendlyName, smartSpaceGateWayAddress, isExposingSiteLocalAddress, smartSpaceSiteLocalAddress, new Certificate(), new HashMap<>(), smartSpaceOwner);
         smartSpaceRepository.save(smartSpace);
@@ -207,7 +344,7 @@ public class CertificatesIssuingFunctionalTests extends
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(smartSpace.getInstanceIdentifier(), pair);
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(smartSpaceOwnerUsername, smartSpaceOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(smartSpaceOwnerUsername, smartSpaceOwnerPassword, smartSpace.getInstanceIdentifier(), csrString);
 
         String clientCertificate = aamClient.signCertificateRequest(certRequest);
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
@@ -243,7 +380,7 @@ public class CertificatesIssuingFunctionalTests extends
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
         assertNotNull(csrString);
-        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        CertificateRequest certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platform.getPlatformInstanceId(), csrString);
 
         String clientCertificate = aamClient.signCertificateRequest(certRequest);
         X509Certificate x509Certificate = CryptoHelper.convertPEMToX509(clientCertificate);
@@ -253,7 +390,7 @@ public class CertificatesIssuingFunctionalTests extends
         pair = CryptoHelper.createKeyPair();
         csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platform.getPlatformInstanceId(), pair);
         assertNotNull(csrString);
-        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, clientId, csrString);
+        certRequest = new CertificateRequest(platformOwnerUsername, platformOwnerPassword, platform.getPlatformInstanceId(), csrString);
         clientCertificate = aamClient.signCertificateRequest(certRequest);
 
         X509Certificate x509CertificateNew = CryptoHelper.convertPEMToX509(clientCertificate);

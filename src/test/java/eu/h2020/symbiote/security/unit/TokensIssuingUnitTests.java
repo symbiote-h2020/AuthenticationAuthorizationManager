@@ -7,6 +7,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
@@ -97,6 +98,29 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             MalformedJWTException,
             ValidationException {
         addTestUserWithClientCertificateToRepository();
+        KeyPair keyPair = CryptoHelper.createKeyPair();
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        getTokenService.getHomeToken(loginRequest);
+    }
+
+    @Test(expected = WrongCredentialsException.class)
+    public void getHomeTokenForUserFailAccountNotActive() throws
+            CertificateException,
+            InvalidArgumentsException,
+            WrongCredentialsException,
+            JWTCreationException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            MalformedJWTException,
+            ValidationException {
+        addTestUserWithClientCertificateToRepository();
+        // blocking the user
+        User user = userRepository.findOne(username);
+        user.setStatus(AccountStatus.BLOCKED);
+        userRepository.save(user);
+
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);

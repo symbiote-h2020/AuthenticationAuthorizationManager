@@ -4,6 +4,7 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
@@ -58,7 +59,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
             IOException,
             TimeoutException {
         //  Registering user in database
-        User User = createUser(username, password, recoveryMail, UserRole.USER);
+        User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 
@@ -82,7 +83,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
     public void getUserDetailsOverAMQPSuccess() throws
             IOException {
         //  Registering user in database
-        User User = createUser(username, password, recoveryMail, UserRole.USER);
+        User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 
@@ -123,7 +124,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
     public void getUserDetailsOverAMQPFailWrongPassword() throws
             IOException {
         //  Registering user in database
-        User User = createUser(username, password, recoveryMail, UserRole.USER);
+        User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 
@@ -147,7 +148,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
     public void getUserDetailsOverAMQPFailRequestWithoutUserCredentials() throws
             IOException {
         //  Registering user in database
-        User User = createUser(username, password, recoveryMail, UserRole.USER);
+        User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 

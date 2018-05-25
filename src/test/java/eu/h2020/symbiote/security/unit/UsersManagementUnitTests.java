@@ -3,10 +3,7 @@ package eu.h2020.symbiote.security.unit;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
-import eu.h2020.symbiote.security.commons.enums.OperationType;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.enums.*;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
@@ -62,6 +59,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, password),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         attributes,
                         certificateMap)
                 , OperationType.CREATE);
@@ -92,6 +90,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, password),
                         recoveryMail,
                         UserRole.SERVICE_OWNER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -117,6 +116,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, password),
                         recoveryMail,
                         UserRole.SERVICE_OWNER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -149,6 +149,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(AAMOwnerUsername, password),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -170,6 +171,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(SecurityConstants.GUEST_NAME, password),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -193,6 +195,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, password),
                         recoveryMail,
                         UserRole.SERVICE_OWNER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -222,6 +225,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, password),
                         recoveryMail,
                         UserRole.NULL,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -240,6 +244,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(incorrectName, password),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -248,7 +253,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
     @Test
     public void userCreateFailUsernameExists() throws SecurityException {
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         // manage new user to db
         UserManagementRequest userManagementRequest = new UserManagementRequest(
@@ -258,6 +263,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, password),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -275,6 +281,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials("", password),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -284,7 +291,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
     @Test(expected = InvalidArgumentsException.class)
     public void userCreateFailMissingPassword() throws SecurityException {
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         // manage new user to db
         UserManagementRequest userManagementRequest = new UserManagementRequest(
@@ -294,6 +301,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, ""),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -302,7 +310,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
     @Test(expected = InvalidArgumentsException.class)
     public void userCreateFailMissingRecoveryMail() throws SecurityException {
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         // manage new user to db
         UserManagementRequest userManagementRequest = new UserManagementRequest(
@@ -312,6 +320,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, password),
                         "",
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -328,6 +337,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, password),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -346,6 +356,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, password),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -364,6 +375,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, password),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -373,7 +385,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test
     public void userForceUpdateSuccess() throws SecurityException {
         // save user in db
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         // verify that user is in the repository
         assertTrue(userRepository.exists(username));
@@ -387,6 +399,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, newPassword),
                         "",
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.FORCE_UPDATE);
@@ -409,6 +422,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, ""),
                         newRecoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.FORCE_UPDATE);
@@ -436,6 +450,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, newPassword),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.FORCE_UPDATE);
@@ -444,7 +459,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
     @Test
     public void userAttributesUpdateSuccess() throws SecurityException {
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         assertEquals(0, user.getAttributes().size());
         // new attributes map
@@ -462,6 +477,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, ""),
                         newMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         attributes,
                         new HashMap<>()),
                 OperationType.ATTRIBUTES_UPDATE);
@@ -492,6 +508,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, ""),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.ATTRIBUTES_UPDATE);
@@ -517,6 +534,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         recoveryMail,
                         clientCertificates,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashSet<>()));
 
@@ -533,6 +551,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, ""),
                         "",
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.DELETE);
@@ -565,6 +584,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(),
                         "",
                         UserRole.NULL,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.DELETE);
@@ -584,6 +604,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, ""),
                         "",
                         UserRole.NULL,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.DELETE);
@@ -595,7 +616,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
             SecurityException {
 
         // save service owner
-        User serviceOwner = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
+        User serviceOwner = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
         userRepository.save(serviceOwner);
         // save platform
         Platform platform = new Platform(platformId, "", "", serviceOwner, new Certificate(), new HashMap<>());
@@ -612,6 +633,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, ""),
                         "",
                         UserRole.NULL,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.DELETE);
@@ -631,7 +653,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
         Map<String, Certificate> clientCertificates = new HashMap<>();
         clientCertificates.put("clientId", new Certificate(CryptoHelper.convertX509ToPEM(userCertificate)));
-        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, new HashMap<>(), new HashSet<>()));
+        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, AccountStatus.NEW, new HashMap<>(), new HashSet<>()));
 
         // verify that app really is in repository
         User user = userRepository.findOne(username);
@@ -648,6 +670,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, password),
                         "",
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.DELETE);
@@ -677,6 +700,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, "NewPassword"),
                         "nullMail",
                         UserRole.SERVICE_OWNER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -711,7 +735,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     public void userUpdateSuccess() throws SecurityException {
 
         // save user in db
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         // verify that user is in the repository
         assertTrue(userRepository.exists(username));
@@ -725,6 +749,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, newPassword),
                         "",
                         UserRole.USER,
+                        AccountStatus.ACTIVE,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.UPDATE);
@@ -735,6 +760,8 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertNotNull(registeredUser);
         // verify if password is changed
         assertTrue(passwordEncoder.matches(newPassword, registeredUser.getPasswordEncrypted()));
+        // verify that the user status was updated
+        assertEquals(AccountStatus.ACTIVE, registeredUser.getStatus());
         // and recovery mail is still the same
         assertEquals(recoveryMail, registeredUser.getRecoveryMail());
 
@@ -747,6 +774,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, ""),
                         newRecoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.UPDATE);
@@ -772,6 +800,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, "NewPassword"),
                         "nullMail",
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.UPDATE);
@@ -782,7 +811,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         public void userUpdateFailWrongAuthorizationUsername() throws SecurityException {
 
             // save user in db
-            User user = createUser(username, password, recoveryMail, UserRole.USER);
+            User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
             userRepository.save(user);
             // update user giving wrong authorization username
             UserManagementRequest userManagementRequest = new UserManagementRequest(
@@ -792,6 +821,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                             new Credentials(username, "NewPassword"),
                             "nullMail",
                             UserRole.USER,
+                            AccountStatus.NEW,
                             new HashMap<>(),
                             new HashMap<>()),
                     OperationType.UPDATE);
@@ -802,7 +832,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     public void userUpdateFailWrongAuthorizationPassword() throws SecurityException {
 
         // save user in db
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         // update giving wrong authorization password
         UserManagementRequest userManagementRequest = new UserManagementRequest(
@@ -812,6 +842,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, "NewPassword"),
                         "nullMail",
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.UPDATE);
@@ -822,7 +853,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     public void userUpdateFailNoAuthorizationCredentials() throws SecurityException {
 
         // save user in db
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         // update giving wrong authorization password
         UserManagementRequest userManagementRequest = new UserManagementRequest(
@@ -832,6 +863,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, "NewPassword"),
                         "nullMail",
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.UPDATE);
@@ -842,12 +874,12 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     public void userUpdateFailUpdateOfDifferentUser() throws SecurityException {
 
         // save user in db
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         // save user to update in db
         String differentUsername = "differentUsername";
         String differentPassword = "differentPassword";
-        User differentuser = createUser(differentUsername, differentPassword, recoveryMail, UserRole.USER);
+        User differentuser = createUser(differentUsername, differentPassword, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(differentuser);
         // update giving wrong authorization credentials
         UserManagementRequest userManagementRequest = new UserManagementRequest(
@@ -857,6 +889,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         new Credentials(username, "NewPassword"),
                         "nullMail",
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.UPDATE);
@@ -876,7 +909,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         Set<String> ownedServices = new HashSet<>();
         ownedServices.add("ownedService");
 
-        User user = new User(username, password, recoveryMail, certificateMap, UserRole.SERVICE_OWNER, attributes, ownedServices);
+        User user = new User(username, password, recoveryMail, certificateMap, UserRole.SERVICE_OWNER, AccountStatus.NEW, attributes, ownedServices);
         userRepository.save(user);
         //  Request user with matching credentials
         UserDetails userDetails = aamClient.getUserDetails(new Credentials(username, password));
@@ -903,7 +936,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test(expected = UserManagementException.class)
     public void getUserDetailsFailWrongPassword() throws UserManagementException, AAMException {
         //  Register user in database
-        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER);
+        User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
         userRepository.save(user);
         //  Request existing user with incorrect password
         aamClient.getUserDetails(new Credentials(username, wrongPassword));

@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.functional;
 
 import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
@@ -43,7 +44,7 @@ public class PlatformsManagementFunctionalTests extends
         platformRepository.deleteAll();
         userRepository.deleteAll();
         //user registration useful
-        User user = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        User user = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(user);
 
     }

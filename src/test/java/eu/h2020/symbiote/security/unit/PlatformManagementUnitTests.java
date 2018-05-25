@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
@@ -63,7 +64,7 @@ public class PlatformManagementUnitTests extends
         userRepository.deleteAll();
 
         //user registration useful
-        User user = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        User user = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(user);
         platformOwnerCredentials = new Credentials(platformOwnerUsername, platformOwnerPassword);
     }
@@ -249,7 +250,7 @@ public class PlatformManagementUnitTests extends
 
         // create other platformOwner
         String otherPlatformOwnerUsername = "otherPlatformOwner";
-        User otherPlatformOwner = createUser(otherPlatformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        User otherPlatformOwner = createUser(otherPlatformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(otherPlatformOwner);
         Credentials otherPlatformOwnerCredentials = new Credentials(otherPlatformOwnerUsername, platformOwnerPassword);
         // verify that other platformOwner is in repository
@@ -328,7 +329,7 @@ public class PlatformManagementUnitTests extends
 
     @Test
     public void platformManageFailUserNotPlatformOwner() {
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         assertTrue(userRepository.exists(username));
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
@@ -458,7 +459,7 @@ public class PlatformManagementUnitTests extends
         assertEquals(preferredPlatformId, platformManagementResponse.getPlatformId());
         assertNotNull(platformRepository.findOne(preferredPlatformId));
 
-        User user = createUser(platformOwnerUsername + "differentOne", platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        User user = createUser(platformOwnerUsername + "differentOne", platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(user);
         // issue registration request with the same preferred platform identifier but different PO
         platformManagementRequest = new PlatformManagementRequest(

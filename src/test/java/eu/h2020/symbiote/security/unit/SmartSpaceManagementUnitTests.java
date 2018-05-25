@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.unit;
 
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
@@ -45,7 +46,7 @@ public class SmartSpaceManagementUnitTests extends
         userRepository.deleteAll();
 
         //user registration useful
-        User user = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        User user = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
         userRepository.save(user);
 
         // platform registration useful
@@ -223,7 +224,7 @@ public class SmartSpaceManagementUnitTests extends
 
         // create other smartSpaceOwner
         String otherSmartSpaceOwnerUsername = "otherSmartSpaceOwner";
-        User otherSmartSpaceOwner = createUser(otherSmartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        User otherSmartSpaceOwner = createUser(otherSmartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
         userRepository.save(otherSmartSpaceOwner);
         Credentials otherSmartSpaceOwnerCredentials = new Credentials(otherSmartSpaceOwnerUsername, smartSpaceOwnerPassword);
         // verify that other smartSpaceOwner is in repository
@@ -280,7 +281,7 @@ public class SmartSpaceManagementUnitTests extends
 
     @Test
     public void smartSpaceManagementFailUserNotSmartSpaceOwner() {
-        User user = createUser(username, password, recoveryMail, UserRole.USER);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         assertTrue(userRepository.exists(username));
         smartSpaceManagementRequest.getServiceOwnerCredentials().setUsername(username);
@@ -388,7 +389,7 @@ public class SmartSpaceManagementUnitTests extends
 
         assertNotNull(smartSpaceRepository.findOne(preferredSmartSpaceId));
 
-        User user = createUser(smartSpaceOwnerUsername + "differentOne", smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER);
+        User user = createUser(smartSpaceOwnerUsername + "differentOne", smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
         userRepository.save(user);
         // issue registration request with the same preferred smartSpace identifier but different SO
         smartSpaceManagementRequest.getServiceOwnerCredentials().setUsername

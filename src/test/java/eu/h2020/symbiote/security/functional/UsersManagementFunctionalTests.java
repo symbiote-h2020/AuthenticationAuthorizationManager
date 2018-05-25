@@ -1,6 +1,7 @@
 package eu.h2020.symbiote.security.functional;
 
 import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
@@ -45,6 +46,7 @@ public class UsersManagementFunctionalTests extends
                         new Credentials(username, password),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         attributesMap,
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -77,6 +79,7 @@ public class UsersManagementFunctionalTests extends
                         new Credentials(username, password),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.UPDATE);
@@ -109,6 +112,7 @@ public class UsersManagementFunctionalTests extends
                         new Credentials(username, password),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.CREATE);
@@ -129,6 +133,7 @@ public class UsersManagementFunctionalTests extends
                         new Credentials(username, password),
                         recoveryMail,
                         UserRole.USER,
+                        AccountStatus.NEW,
                         new HashMap<>(),
                         new HashMap<>()),
                 OperationType.UPDATE);

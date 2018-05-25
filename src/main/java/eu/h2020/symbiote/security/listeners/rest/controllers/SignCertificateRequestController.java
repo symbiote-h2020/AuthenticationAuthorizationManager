@@ -33,6 +33,7 @@ public class SignCertificateRequestController implements ISignCertificateRequest
     @Override
     @ApiOperation(value = "Allows signing certificates' requests")
     @ApiResponses({
+            @ApiResponse(code = 403, message = "Client account is not activated or blocked"),
             @ApiResponse(code = 500, message = "Could not sign the requested certificate")})
     public ResponseEntity<String> signCertificateRequest(
             @RequestBody

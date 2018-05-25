@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.services;
 
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
@@ -106,8 +107,7 @@ public class RevocationService {
             WrongCredentialsException,
             ValidationException,
             IOException,
-            InvalidArgumentsException,
-            SecurityMisconfigurationException {
+            InvalidArgumentsException {
         if (revocationRequest.getCredentials().getUsername().isEmpty()) {
             throw new WrongCredentialsException(WrongCredentialsException.AUTHENTICATION_OF_USER_FAILED);
         }
@@ -118,6 +118,8 @@ public class RevocationService {
         if (!passwordEncoder.matches(revocationRequest.getCredentials().getPassword(), user.getPasswordEncrypted())) {
             throw new WrongCredentialsException(WrongCredentialsException.AUTHENTICATION_OF_USER_FAILED);
         }
+        if (user.getStatus() != AccountStatus.ACTIVE)
+            throw new WrongCredentialsException(WrongCredentialsException.USER_NOT_ACTIVE, HttpStatus.FORBIDDEN);
         if (!revocationRequest.getCertificatePEMString().isEmpty() ||
                 !revocationRequest.getCertificateCommonName().isEmpty()) {
             return new RevocationResponse(revocationHelper.revokeCertificate(user, new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificateCommonName()), HttpStatus.OK);

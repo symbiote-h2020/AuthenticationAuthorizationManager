@@ -49,6 +49,7 @@ public class GetTokenController implements IGetToken {
     @ApiOperation(value = "Issues a Foreign Token")
     @ApiResponses({
             @ApiResponse(code = 401, message = "Received token could not be validated"),
+            @ApiResponse(code = 403, message = "Received token belonged to a blocked client"),
             @ApiResponse(code = 500, message = "Server failed to create Foreign Token")})
     public ResponseEntity<String> getForeignToken(
             @ApiParam(value = "Token that will be exchanged for Foreign Token", required = true)
@@ -93,6 +94,7 @@ public class GetTokenController implements IGetToken {
     @ApiResponses({
             @ApiResponse(code = 400, message = "Received token was malformed"),
             @ApiResponse(code = 401, message = "Incorrect Credentials were provided"),
+            @ApiResponse(code = 403, message = "Client account is not activated or blocked"),
             @ApiResponse(code = 500, message = "Server failed to create Home Token")})
     public ResponseEntity<String> getHomeToken(
             @RequestHeader(SecurityConstants.TOKEN_HEADER_NAME)

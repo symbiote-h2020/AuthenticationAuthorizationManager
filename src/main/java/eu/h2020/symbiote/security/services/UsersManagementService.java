@@ -101,6 +101,7 @@ public class UsersManagementService {
                 foundUser.getUsername(), ""),
                 foundUser.getRecoveryMail(),
                 foundUser.getRole(),
+                foundUser.getStatus(),
                 foundUser.getAttributes(),
                 foundUser.getClientCertificates()
         );
@@ -178,6 +179,7 @@ public class UsersManagementService {
                         userDetails.getRecoveryMail(),
                         new HashMap<>(),
                         userDetails.getRole(),
+                        userDetails.getStatus(),
                         userDetails.getAttributes(),
                         new HashSet<>()
                 );
@@ -192,7 +194,7 @@ public class UsersManagementService {
                 // checking if request contains current password
                 if (!passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), userToManage.getPasswordEncrypted()))
                     throw new UserManagementException(HttpStatus.UNAUTHORIZED);
-
+                //TODO ignore status change, only admin can change it!
                 update(userManagementRequest, userToManage);
                 break;
             case FORCE_UPDATE:
@@ -220,6 +222,7 @@ public class UsersManagementService {
             user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
         if (!userManagementRequest.getUserDetails().getRecoveryMail().isEmpty())
             user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
+        user.setStatus(userManagementRequest.getUserDetails().getStatus());
         userRepository.save(user);
     }
 
