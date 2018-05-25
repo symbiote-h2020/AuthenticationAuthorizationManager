@@ -63,7 +63,6 @@ public class GetUserDetailsConsumer {
             ObjectMapper om = new ObjectMapper();
             try {
                 message = new String(body, "UTF-8");
-                log.info(message);
             } catch (UnsupportedEncodingException e) {
                 log.error(e);
                 response = new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value()).toJson().getBytes();
