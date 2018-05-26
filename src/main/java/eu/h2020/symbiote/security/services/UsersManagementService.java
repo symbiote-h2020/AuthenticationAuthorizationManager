@@ -103,14 +103,15 @@ public class UsersManagementService {
                 foundUser.getRole(),
                 foundUser.getStatus(),
                 foundUser.getAttributes(),
-                foundUser.getClientCertificates()
-        );
+                foundUser.getClientCertificates(),
+                foundUser.hasGrantedServiceConsent(),
+                foundUser.hasGrantedMarketingConsent());
     }
 
     private ManagementStatus manage(UserManagementRequest userManagementRequest)
             throws SecurityException {
-    	
-    	log.debug("Received a request for user management");
+
+        log.debug("Received a request for user management");
         UserDetails userDetails = userManagementRequest.getUserDetails();
 
         // CORE and SMART_SPACE AAM support registering platform owners
@@ -135,42 +136,48 @@ public class UsersManagementService {
         User userToManage = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
         switch (userManagementRequest.getOperationType()) {
             case CREATE:
-            	log.info("Request is a create request");
+                log.info("Request is a create request");
                 // validate request
                 String newUserUsername = userDetails.getCredentials().getUsername();
                 if (!newUserUsername.matches("^(([\\w-])+)$")) {
-                	log.error("Username "+newUserUsername+" contains invalid characters");
+                    log.error("Username " + newUserUsername + " contains invalid characters");
                     throw new InvalidArgumentsException(InvalidArgumentsException.COULD_NOT_CREATE_USER_WITH_GIVEN_USERNAME);
                 }
                 if (newUserUsername.isEmpty()
                         || userDetails.getCredentials().getPassword().isEmpty()) {
-                	log.error("Username or password is empty");
+                    log.error("Username or password is empty");
                     throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_CREDENTIAL);
                 }
                 if (deploymentType == IssuingAuthorityType.CORE
                         && (userDetails.getRecoveryMail().isEmpty()))
-                    // not used in R3
-                    // || userDetails.getFederatedId().isEmpty()))
+                // not used in R3
+                // || userDetails.getFederatedId().isEmpty()))
                 {
-                	log.error("Recovery information (email and OAuth) are both empty");
+                    log.error("Recovery information (email and OAuth) are both empty");
                     throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_RECOVERY_E_MAIL_OR_OAUTH_IDENTITY);
                 }
 
                 // verify proper user role 
                 if (userDetails.getRole() == UserRole.NULL) {
-                	log.error("User Role is null");
+                    log.error("User Role is null");
                     throw new UserManagementException(HttpStatus.BAD_REQUEST);
                 }
 
                 // check if user already in repository
                 if (userRepository.exists(newUserUsername)) {
-                	log.error("Username "+newUserUsername+" already exists");
+                    log.error("Username " + newUserUsername + " already exists");
                     return ManagementStatus.USERNAME_EXISTS;
                 }
 
                 // blocking guest and AAMOwner registration, and aam component
                 if (adminUsername.equals(newUserUsername) || SecurityConstants.GUEST_NAME.equals(newUserUsername) || SecurityConstants.AAM_COMPONENT_NAME.equals(newUserUsername)) {
-                	log.error("Username "+newUserUsername+" would override a predefined username");
+                    log.error("Username " + newUserUsername + " would override a predefined username");
+                    return ManagementStatus.ERROR;
+                }
+
+                // no service terms agreement means no account
+                if (!userDetails.hasGrantedServiceConsent()) {
+                    log.error("Username " + newUserUsername + " has not agreed to the service terms");
                     return ManagementStatus.ERROR;
                 }
 
@@ -181,8 +188,9 @@ public class UsersManagementService {
                         userDetails.getRole(),
                         userDetails.getStatus(),
                         userDetails.getAttributes(),
-                        new HashSet<>()
-                );
+                        new HashSet<>(),
+                        userDetails.hasGrantedServiceConsent(),
+                        userDetails.hasGrantedMarketingConsent());
                 userRepository.save(user);
                 break;
             case UPDATE:
@@ -194,13 +202,12 @@ public class UsersManagementService {
                 // checking if request contains current password
                 if (!passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), userToManage.getPasswordEncrypted()))
                     throw new UserManagementException(HttpStatus.UNAUTHORIZED);
-                //TODO ignore status change, only admin can change it!
-                update(userManagementRequest, userToManage);
+                update(userManagementRequest, userToManage, false);
                 break;
             case FORCE_UPDATE:
                 if (userToManage == null)
                     throw new UserManagementException(HttpStatus.BAD_REQUEST);
-                update(userManagementRequest, userToManage);
+                update(userManagementRequest, userToManage, true);
                 break;
             case ATTRIBUTES_UPDATE:
                 if (userToManage == null)
@@ -216,13 +223,22 @@ public class UsersManagementService {
     }
 
     private void update(UserManagementRequest userManagementRequest,
-                        User user) {
+                        User user, boolean isAdminOperation) {
         // update if not empty
         if (!userManagementRequest.getUserDetails().getCredentials().getPassword().isEmpty())
             user.setPasswordEncrypted(passwordEncoder.encode(userManagementRequest.getUserDetails().getCredentials().getPassword()));
         if (!userManagementRequest.getUserDetails().getRecoveryMail().isEmpty())
             user.setRecoveryMail(userManagementRequest.getUserDetails().getRecoveryMail());
-        user.setStatus(userManagementRequest.getUserDetails().getStatus());
+
+        // only via administrative panel these fields can be changed
+        if (isAdminOperation) {
+            user.setStatus(userManagementRequest.getUserDetails().getStatus());
+            user.setServiceConsent(userManagementRequest.getUserDetails().hasGrantedServiceConsent());
+        }
+
+        // user can update his marketing consent
+        user.setMarketingConsent(userManagementRequest.getUserDetails().hasGrantedMarketingConsent());
+
         userRepository.save(user);
     }
 

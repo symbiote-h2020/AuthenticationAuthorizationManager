@@ -48,7 +48,9 @@ public class UsersManagementFunctionalTests extends
                         UserRole.USER,
                         AccountStatus.NEW,
                         attributesMap,
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         // issue app registration over AMQP
         byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue,
@@ -81,7 +83,9 @@ public class UsersManagementFunctionalTests extends
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.UPDATE);
         byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue,
                 new Message(mapper.writeValueAsString(userManagementRequest).getBytes(), new MessageProperties())).getBody();
@@ -114,7 +118,9 @@ public class UsersManagementFunctionalTests extends
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         ManagementStatus managementStatus = aamClient.manageUser(userManagementRequest);
         assertTrue(ManagementStatus.OK.equals(managementStatus));
@@ -135,7 +141,9 @@ public class UsersManagementFunctionalTests extends
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.UPDATE);
         aamClient.manageUser(userManagementRequest);
     }

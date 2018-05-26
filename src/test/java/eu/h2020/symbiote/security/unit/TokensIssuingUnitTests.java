@@ -118,7 +118,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         addTestUserWithClientCertificateToRepository();
         // blocking the user
         User user = userRepository.findOne(username);
-        user.setStatus(AccountStatus.BLOCKED);
+        user.setStatus(AccountStatus.ACTIVITY_BLOCKED);
         userRepository.save(user);
 
         KeyPair keyPair = CryptoHelper.createKeyPair();

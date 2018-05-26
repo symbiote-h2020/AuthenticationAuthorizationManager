@@ -36,8 +36,20 @@ public class User {
      */
     private Map<String, String> attributes = new HashMap<>();
 
+    //GDPR Section
+    /**
+     * service terms consent is mandatory to provide the service (including suspicious actions identification and blocking)
+     */
+    private boolean serviceConsent = false;
+
+    /**
+     * defines if the user personal data (username, e-mail) and actions can be used for marketing purposes.
+     */
+    private boolean marketingConsent = false;
+
     /**
      * Used to create a new user entity
+     *
      * @param username           selected username
      * @param passwordEncrypted  encrypted password for authentication
      * @param recoveryMail       for password reset/recovery purposes
@@ -46,6 +58,8 @@ public class User {
      * @param status             current status of this account
      * @param attributes         used to assign in registration phase user-unique attributes
      * @param ownedServices      bound to the user
+     * @param serviceConsent     service terms consent is mandatory to provide the service (including suspicious actions identification and blocking)
+     * @param marketingConsent   defines if the user personal data (username, e-mail) and actions can be used for marketing purposes.
      */
     public User(String username,
                 String passwordEncrypted,
@@ -54,7 +68,9 @@ public class User {
                 UserRole role,
                 AccountStatus status,
                 Map<String, String> attributes,
-                Set<String> ownedServices) {
+                Set<String> ownedServices,
+                boolean serviceConsent,
+                boolean marketingConsent) {
         this.username = username;
         this.passwordEncrypted = passwordEncrypted;
         this.recoveryMail = recoveryMail;
@@ -63,6 +79,8 @@ public class User {
         this.status = status;
         this.attributes = attributes;
         this.ownedServices = ownedServices;
+        this.serviceConsent = serviceConsent;
+        this.marketingConsent = marketingConsent;
     }
 
     public UserRole getRole() {
@@ -119,10 +137,28 @@ public class User {
     }
 
     public AccountStatus getStatus() {
+        if (this.serviceConsent != true)
+            return AccountStatus.CONSENT_BLOCKED;
         return status;
     }
 
     public void setStatus(AccountStatus status) {
         this.status = status;
+    }
+
+    public boolean hasGrantedServiceConsent() {
+        return serviceConsent;
+    }
+
+    public void setServiceConsent(boolean serviceConsent) {
+        this.serviceConsent = serviceConsent;
+    }
+
+    public boolean hasGrantedMarketingConsent() {
+        return marketingConsent;
+    }
+
+    public void setMarketingConsent(boolean marketingConsent) {
+        this.marketingConsent = marketingConsent;
     }
 }

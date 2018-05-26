@@ -187,7 +187,9 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                         recoveryMail,
                         UserRole.USER,
                         AccountStatus.NEW, new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
 

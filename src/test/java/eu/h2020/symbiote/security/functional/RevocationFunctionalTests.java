@@ -263,7 +263,7 @@ public class RevocationFunctionalTests extends
         String commonName = username + FIELDS_DELIMITER + clientId;
         revocationRequest.setCertificateCommonName(commonName);
 
-        user.setStatus(AccountStatus.BLOCKED);
+        user.setStatus(AccountStatus.ACTIVITY_BLOCKED);
         userRepository.save(user);
         assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
     }

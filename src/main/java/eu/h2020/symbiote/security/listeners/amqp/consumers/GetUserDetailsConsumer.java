@@ -94,8 +94,14 @@ public class GetUserDetailsConsumer {
                     if (passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), foundUser.getPasswordEncrypted())) {
                         userDetails = new UserDetailsResponse(
                                 HttpStatus.OK,
-                                new UserDetails(new Credentials(foundUser.getUsername(), ""), foundUser.getRecoveryMail(),
-                                        foundUser.getRole(), foundUser.getStatus(), foundUser.getAttributes(), foundUser.getClientCertificates())
+                                new UserDetails(new Credentials(foundUser.getUsername(), ""),
+                                        foundUser.getRecoveryMail(),
+                                        foundUser.getRole(),
+                                        foundUser.getStatus(),
+                                        foundUser.getAttributes(),
+                                        foundUser.getClientCertificates(),
+                                        foundUser.hasGrantedServiceConsent(),
+                                        foundUser.hasGrantedMarketingConsent())
                         );
                     } else
                         //  If wrong password was provided return message with UNAUTHORIZED status

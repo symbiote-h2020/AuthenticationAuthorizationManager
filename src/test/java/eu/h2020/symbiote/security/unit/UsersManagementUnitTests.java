@@ -61,7 +61,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         attributes,
-                        certificateMap)
+                        certificateMap,
+                        true,
+                        false)
                 , OperationType.CREATE);
 
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
@@ -92,7 +94,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.SERVICE_OWNER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
 
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
@@ -118,7 +122,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.SERVICE_OWNER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         try {
             // hack: make sure the AAM thinks it is a smart space AAM
@@ -151,7 +157,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         // verify that we got an error
@@ -173,7 +181,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         // verify that we got an error
@@ -197,7 +207,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.SERVICE_OWNER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         try {
             // hack: make sure the AAM thinks it is a platform AAM
@@ -227,7 +239,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.NULL,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
 
         usersManagementService.authManage(userManagementRequest);
@@ -246,7 +260,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -265,7 +281,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         ManagementStatus managementStatus = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.USERNAME_EXISTS, managementStatus);
@@ -283,7 +301,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         usersManagementService.authManage(userManagementRequest);
 
@@ -303,7 +323,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -322,7 +344,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -339,7 +363,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -358,7 +384,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -377,7 +405,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -401,7 +431,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.FORCE_UPDATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.OK, userRegistrationResponse);
@@ -424,7 +456,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.FORCE_UPDATE);
         userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.OK, userRegistrationResponse);
@@ -452,7 +486,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.FORCE_UPDATE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -479,7 +515,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         attributes,
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.ATTRIBUTES_UPDATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.OK, userRegistrationResponse);
@@ -510,7 +548,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.ATTRIBUTES_UPDATE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -536,7 +576,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashSet<>()));
+                        new HashSet<>(),
+                        true,
+                        false));
 
         // verify that app really is in repository
         assertTrue(userRepository.exists(username));
@@ -553,8 +595,11 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.DELETE);
+
         ManagementStatus status = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.OK, status);
         // verify that user is not anymore in the repository
@@ -586,7 +631,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.NULL,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -606,7 +653,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.NULL,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -635,7 +684,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.NULL,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -653,7 +704,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
         Map<String, Certificate> clientCertificates = new HashMap<>();
         clientCertificates.put("clientId", new Certificate(CryptoHelper.convertX509ToPEM(userCertificate)));
-        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, AccountStatus.NEW, new HashMap<>(), new HashSet<>()));
+        userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, AccountStatus.NEW, new HashMap<>(), new HashSet<>(), true, false));
 
         // verify that app really is in repository
         User user = userRepository.findOne(username);
@@ -672,7 +723,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.DELETE);
         usersManagementService.authManage(userManagementRequest);
         log.debug("User successfully unregistered!");
@@ -702,7 +755,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.SERVICE_OWNER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.CREATE);
         assertEquals(ManagementStatus.OK, usersManagementService.authManage(userManagementRequest));
 
@@ -751,8 +806,10 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.ACTIVE,
                         new HashMap<>(),
-                        new HashMap<>()),
-                OperationType.UPDATE);
+                        new HashMap<>(),
+                        true,
+                        false),
+                OperationType.FORCE_UPDATE);
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.OK, userRegistrationResponse);
         // verify that user really is in repository
@@ -776,7 +833,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.UPDATE);
         userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.OK, userRegistrationResponse);
@@ -802,31 +861,35 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.UPDATE);
         usersManagementService.authManage(userManagementRequest);
     }
 
-        @Test(expected = UserManagementException.class)
-        public void userUpdateFailWrongAuthorizationUsername() throws SecurityException {
+    @Test(expected = UserManagementException.class)
+    public void userUpdateFailWrongAuthorizationUsername() throws SecurityException {
 
-            // save user in db
-            User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
-            userRepository.save(user);
-            // update user giving wrong authorization username
-            UserManagementRequest userManagementRequest = new UserManagementRequest(
-                    new Credentials(AAMOwnerUsername, AAMOwnerPassword),
-                    new Credentials(wrongUsername, password),
-                    new UserDetails(
-                            new Credentials(username, "NewPassword"),
-                            "nullMail",
-                            UserRole.USER,
-                            AccountStatus.NEW,
-                            new HashMap<>(),
-                            new HashMap<>()),
-                    OperationType.UPDATE);
-            usersManagementService.authManage(userManagementRequest);
-        }
+        // save user in db
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
+        userRepository.save(user);
+        // update user giving wrong authorization username
+        UserManagementRequest userManagementRequest = new UserManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(wrongUsername, password),
+                new UserDetails(
+                        new Credentials(username, "NewPassword"),
+                        "nullMail",
+                        UserRole.USER,
+                        AccountStatus.NEW,
+                        new HashMap<>(),
+                        new HashMap<>(),
+                        true,
+                        false),
+                OperationType.UPDATE);
+        usersManagementService.authManage(userManagementRequest);
+    }
 
     @Test(expected = UserManagementException.class)
     public void userUpdateFailWrongAuthorizationPassword() throws SecurityException {
@@ -844,7 +907,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.UPDATE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -865,7 +930,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.UPDATE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -891,7 +958,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         UserRole.USER,
                         AccountStatus.NEW,
                         new HashMap<>(),
-                        new HashMap<>()),
+                        new HashMap<>(),
+                        true,
+                        false),
                 OperationType.UPDATE);
         usersManagementService.authManage(userManagementRequest);
     }
@@ -909,7 +978,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         Set<String> ownedServices = new HashSet<>();
         ownedServices.add("ownedService");
 
-        User user = new User(username, password, recoveryMail, certificateMap, UserRole.SERVICE_OWNER, AccountStatus.NEW, attributes, ownedServices);
+        User user = new User(username, password, recoveryMail, certificateMap, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE, attributes, ownedServices, true, false);
         userRepository.save(user);
         //  Request user with matching credentials
         UserDetails userDetails = aamClient.getUserDetails(new Credentials(username, password));
@@ -924,6 +993,17 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertTrue(userDetails.getClients().containsKey(key));
         //password of the user should not be revealed
         assertTrue(userDetails.getCredentials().getPassword().isEmpty());
+
+        // GDPR checks
+        assertEquals(true, userDetails.hasGrantedServiceConsent());
+        assertEquals(false, userDetails.hasGrantedMarketingConsent());
+        assertEquals(AccountStatus.ACTIVE, userDetails.getStatus());
+
+        // revoked consent should block the user
+        user.setServiceConsent(false);
+        userRepository.save(user);
+        userDetails = aamClient.getUserDetails(new Credentials(username, password));
+        assertEquals(AccountStatus.CONSENT_BLOCKED, userDetails.getStatus());
     }
 
     @Test(expected = UserManagementException.class)

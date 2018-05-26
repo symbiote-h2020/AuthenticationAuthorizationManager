@@ -154,7 +154,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
             KeyStoreException,
             IOException {
         // prepare the user in db
-        userRepository.save(new User(username, passwordEncoder.encode(password), "", new HashMap<>(), UserRole.USER, AccountStatus.NEW, new HashMap<>(), new HashSet<>()));
+        userRepository.save(new User(username, passwordEncoder.encode(password), "", new HashMap<>(), UserRole.USER, AccountStatus.NEW, new HashMap<>(), new HashSet<>(), true, false));
         // verify that app really is in repository
         User user = userRepository.findOne(username);
         assertNotNull(user);

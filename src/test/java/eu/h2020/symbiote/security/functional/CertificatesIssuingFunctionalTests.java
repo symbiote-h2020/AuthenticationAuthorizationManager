@@ -199,7 +199,7 @@ public class CertificatesIssuingFunctionalTests extends
                 new HashMap<>());
         platformRepository.save(platform);
         platformOwner.getOwnedServices().add(platformId);
-        platformOwner.setStatus(AccountStatus.BLOCKED);
+        platformOwner.setStatus(AccountStatus.ACTIVITY_BLOCKED);
         userRepository.save(platformOwner);
 
         KeyPair pair = CryptoHelper.createKeyPair();

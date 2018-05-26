@@ -204,7 +204,9 @@ public abstract class AbstractAAMTestSuite {
                 userRole,
                 status,
                 new HashMap<>(),
-                new HashSet<>());
+                new HashSet<>(),
+                true,
+                false);
     }
 
     protected User savePlatformOwner() {

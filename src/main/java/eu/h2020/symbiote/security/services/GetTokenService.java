@@ -107,7 +107,7 @@ public class GetTokenService {
         // preparing user and key for token
         if (claims.getIss().equals(deploymentId)) { // component use case ISS is platform id
             // component case (We don't include AAMOwner/PO anymore!)
-            userForToken = new User("", "", "", new HashMap<>(), UserRole.NULL, AccountStatus.ACTIVE, new HashMap<>(), new HashSet<>());
+            userForToken = new User("", "", "", new HashMap<>(), UserRole.NULL, AccountStatus.ACTIVE, new HashMap<>(), new HashSet<>(), true, false);
             keyForToken = componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey();
         } else {
             // ordinary user/po client
