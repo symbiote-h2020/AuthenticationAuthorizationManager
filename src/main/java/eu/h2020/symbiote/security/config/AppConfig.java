@@ -38,7 +38,7 @@ class AppConfig extends AbstractMongoConfiguration {
     }
 
     @Override
-    public Mongo mongo() throws Exception {
+    public Mongo mongo() {
         synchronized (syncObject) {
             if (mongoClient == null) {
                 mongoClient = new MongoClient(databaseHost);
