@@ -7,4 +7,4 @@ db = conn.getDB("DATABASE_NAME");
 //OR USING PROPER LINK TO DB     db = connect("localhost:27020/DATABASE_NAME");
 
 //DO NOT CHANGE THOSE LINES
-db.user.updateMany({}, {$set: {status: "NEW", serviceConsent: false, marketingConsent: false}})
+db.user.updateMany({}, {$set: {status: "NEW", serviceConsent: false, analyticsAndResearchConsent: false}})

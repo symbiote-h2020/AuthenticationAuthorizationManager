@@ -101,7 +101,7 @@ public class GetUserDetailsConsumer {
                                         foundUser.getAttributes(),
                                         foundUser.getClientCertificates(),
                                         foundUser.hasGrantedServiceConsent(),
-                                        foundUser.hasGrantedMarketingConsent())
+                                        foundUser.hasGrantedAnalyticsAndResearchConsent())
                         );
                     } else
                         //  If wrong password was provided return message with UNAUTHORIZED status

@@ -996,7 +996,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
         // GDPR checks
         assertEquals(true, userDetails.hasGrantedServiceConsent());
-        assertEquals(false, userDetails.hasGrantedMarketingConsent());
+        assertEquals(false, userDetails.hasGrantedAnalyticsAndResearchConsent());
         assertEquals(AccountStatus.ACTIVE, userDetails.getStatus());
 
         // revoked consent should block the user

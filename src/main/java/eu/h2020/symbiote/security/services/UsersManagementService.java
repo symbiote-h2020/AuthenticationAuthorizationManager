@@ -105,7 +105,7 @@ public class UsersManagementService {
                 foundUser.getAttributes(),
                 foundUser.getClientCertificates(),
                 foundUser.hasGrantedServiceConsent(),
-                foundUser.hasGrantedMarketingConsent());
+                foundUser.hasGrantedAnalyticsAndResearchConsent());
     }
 
     private ManagementStatus manage(UserManagementRequest userManagementRequest)
@@ -170,7 +170,9 @@ public class UsersManagementService {
                 }
 
                 // blocking guest and AAMOwner registration, and aam component
-                if (adminUsername.equals(newUserUsername) || SecurityConstants.GUEST_NAME.equals(newUserUsername) || SecurityConstants.AAM_COMPONENT_NAME.equals(newUserUsername)) {
+                if (adminUsername.equals(newUserUsername)
+                        || SecurityConstants.GUEST_NAME.equals(newUserUsername)
+                        || SecurityConstants.AAM_COMPONENT_NAME.equals(newUserUsername)) {
                     log.error("Username " + newUserUsername + " would override a predefined username");
                     return ManagementStatus.ERROR;
                 }
@@ -190,7 +192,7 @@ public class UsersManagementService {
                         userDetails.getAttributes(),
                         new HashSet<>(),
                         userDetails.hasGrantedServiceConsent(),
-                        userDetails.hasGrantedMarketingConsent());
+                        userDetails.hasGrantedAnalyticsAndResearchConsent());
                 userRepository.save(user);
                 break;
             case UPDATE:
@@ -236,8 +238,8 @@ public class UsersManagementService {
             user.setServiceConsent(userManagementRequest.getUserDetails().hasGrantedServiceConsent());
         }
 
-        // user can update his marketing consent
-        user.setMarketingConsent(userManagementRequest.getUserDetails().hasGrantedMarketingConsent());
+        // user can update his analytics and research consent
+        user.setAnalyticsAndResearchConsent(userManagementRequest.getUserDetails().hasGrantedAnalyticsAndResearchConsent());
 
         userRepository.save(user);
     }

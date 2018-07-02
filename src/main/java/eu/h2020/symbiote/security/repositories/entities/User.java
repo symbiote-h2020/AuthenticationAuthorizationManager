@@ -6,8 +6,6 @@ import eu.h2020.symbiote.security.commons.enums.UserRole;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,42 +22,42 @@ public class User {
     @Id
     private final String username;
     @Indexed
-    private UserRole role = UserRole.NULL;
-    private AccountStatus status = AccountStatus.NEW;
-    private String passwordEncrypted = "";
-    private String recoveryMail = "";
-    private Map<String, Certificate> clientCertificates = new HashMap<>();
-    private Set<String> ownedServices = new HashSet<>();
+    private UserRole role;
+    private AccountStatus status;
+    private String passwordEncrypted;
+    private String recoveryMail;
+    private Map<String, Certificate> clientCertificates;
+    private Set<String> ownedServices;
 
     /**
      * Might be used to assign in registration phase user-unique attributes
      */
-    private Map<String, String> attributes = new HashMap<>();
+    private Map<String, String> attributes;
 
     //GDPR Section
     /**
      * service terms consent is mandatory to provide the service (including suspicious actions identification and blocking)
      */
-    private boolean serviceConsent = false;
+    private boolean serviceConsent;
 
     /**
-     * defines if the user personal data (username, e-mail) and actions can be used for marketing purposes.
+     * defines if the user personal data (username, e-mail, clients and public keys) and actions can be used for analytics and research purposes
      */
-    private boolean marketingConsent = false;
+    private boolean analyticsAndResearchConsent;
 
     /**
      * Used to create a new user entity
      *
-     * @param username           selected username
-     * @param passwordEncrypted  encrypted password for authentication
-     * @param recoveryMail       for password reset/recovery purposes
-     * @param clientCertificates user's public certificates
-     * @param role               user's role in symbIoTe ecosystem, see @{@link UserRole}
-     * @param status             current status of this account
-     * @param attributes         used to assign in registration phase user-unique attributes
-     * @param ownedServices      bound to the user
-     * @param serviceConsent     service terms consent is mandatory to provide the service (including suspicious actions identification and blocking)
-     * @param marketingConsent   defines if the user personal data (username, e-mail) and actions can be used for marketing purposes.
+     * @param username                    selected username
+     * @param passwordEncrypted           encrypted password for authentication
+     * @param recoveryMail                for password reset/recovery purposes
+     * @param clientCertificates          user's public certificates
+     * @param role                        user's role in symbIoTe ecosystem, see @{@link UserRole}
+     * @param status                      current status of this account
+     * @param attributes                  used to assign in registration phase user-unique attributes
+     * @param ownedServices               bound to the user
+     * @param serviceConsent              service terms consent is mandatory to provide the service (including suspicious actions identification and blocking)
+     * @param analyticsAndResearchConsent defines if the user personal data (username, e-mail, clients and public keys) and actions can be used for analytics and research purposes
      */
     public User(String username,
                 String passwordEncrypted,
@@ -70,7 +68,7 @@ public class User {
                 Map<String, String> attributes,
                 Set<String> ownedServices,
                 boolean serviceConsent,
-                boolean marketingConsent) {
+                boolean analyticsAndResearchConsent) {
         this.username = username;
         this.passwordEncrypted = passwordEncrypted;
         this.recoveryMail = recoveryMail;
@@ -80,7 +78,7 @@ public class User {
         this.attributes = attributes;
         this.ownedServices = ownedServices;
         this.serviceConsent = serviceConsent;
-        this.marketingConsent = marketingConsent;
+        this.analyticsAndResearchConsent = analyticsAndResearchConsent;
     }
 
     public UserRole getRole() {
@@ -154,11 +152,11 @@ public class User {
         this.serviceConsent = serviceConsent;
     }
 
-    public boolean hasGrantedMarketingConsent() {
-        return marketingConsent;
+    public boolean hasGrantedAnalyticsAndResearchConsent() {
+        return analyticsAndResearchConsent;
     }
 
-    public void setMarketingConsent(boolean marketingConsent) {
-        this.marketingConsent = marketingConsent;
+    public void setAnalyticsAndResearchConsent(boolean analyticsAndResearchConsent) {
+        this.analyticsAndResearchConsent = analyticsAndResearchConsent;
     }
 }
