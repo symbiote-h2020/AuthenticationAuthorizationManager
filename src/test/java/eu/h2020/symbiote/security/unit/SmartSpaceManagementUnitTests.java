@@ -64,6 +64,40 @@ public class SmartSpaceManagementUnitTests extends
 
 
     @Test
+    public void smartSpaceRegistrationWithEmptyGatewayAddressSuccess() throws
+            SecurityException {
+        // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
+        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        User smartSpaceOwner = userRepository.findOne(smartSpaceOwnerUsername);
+        assertTrue(smartSpaceOwner.getOwnedServices().isEmpty());
+
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                smartSpaceOwnerUserCredentials,
+                "",
+                smartSpaceSiteLocalAddress,
+                smartSpaceInstanceFriendlyName,
+                OperationType.CREATE,
+                preferredSmartSpaceId,
+                isExposingSiteLocalAddress);
+
+        // issue smartSpace registration
+        SmartSpaceManagementResponse response = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+
+        assertEquals(ManagementStatus.OK, response.getManagementStatus());
+
+        // verified that we received the preferred smartSpaceId
+        assertEquals(preferredSmartSpaceId, response.getSmartSpaceId());
+
+        // verify that smartSpace with preferred id is in repository and is tied with the given SO
+        SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
+        assertNotNull(registeredSmartSpace);
+        // verify that smartSpace oriented fields are properly stored
+        assertEquals("", registeredSmartSpace.getExternalAddress());
+    }
+
+    @Test
     public void smartSpaceRegistrationWithPreferredSmartSpaceIdSuccess() throws
             SecurityException {
         // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
@@ -401,6 +435,7 @@ public class SmartSpaceManagementUnitTests extends
             assertEquals(ServiceManagementException.SERVICE_EXISTS, s.getMessage());
         }
     }
+
     @Test
     public void smartSpaceUpdateSuccess() throws SecurityException {
         // verify that our smartSpaceOwner is in repository
@@ -429,6 +464,34 @@ public class SmartSpaceManagementUnitTests extends
         assertEquals(smartSpaceGateWayAddress + "dif", registeredSmartSpace.getExternalAddress());
         assertEquals(smartSpaceSiteLocalAddress + "dif", registeredSmartSpace.getSiteLocalAddress());
         assertEquals(!isExposingSiteLocalAddress, registeredSmartSpace.isExposingSiteLocalAddress());
+    }
+
+    @Test
+    public void smartSpaceUpdateWithEmptyExternalAddressSuccess() throws SecurityException {
+        // verify that our smartSpaceOwner is in repository
+        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        //register smartSpace
+        SmartSpaceManagementResponse smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        //ensure smartSpace is registered
+        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
+
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                smartSpaceOwnerUserCredentials,
+                "",
+                smartSpaceSiteLocalAddress + "dif",
+                smartSpaceInstanceFriendlyName,
+                OperationType.UPDATE,
+                preferredSmartSpaceId,
+                !isExposingSiteLocalAddress);
+        smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
+        //ensure smartSpace is registered
+        assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
+        // verify that SO was properly updated in repository with new smartSpace ownership
+        SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
+        assertNotNull(registeredSmartSpace);
+        // verify that smartSpace oriented fields are properly stored
+        assertEquals("", registeredSmartSpace.getExternalAddress());
     }
 
     @Test

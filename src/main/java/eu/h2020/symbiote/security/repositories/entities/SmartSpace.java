@@ -65,7 +65,8 @@ public class SmartSpace {
     }
 
     public void setExternalAddress(String externalAddress) throws InvalidArgumentsException {
-        if (!externalAddress.startsWith("https://")) {
+        if (!externalAddress.isEmpty()
+                && !externalAddress.startsWith("https://")) {
             throw new InvalidArgumentsException(InvalidArgumentsException.EXTERNAL_ADDRESS_MUST_START_WITH_HTTPS);
         }
         this.externalAddress = externalAddress;
