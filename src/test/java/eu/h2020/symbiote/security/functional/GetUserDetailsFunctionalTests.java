@@ -5,6 +5,7 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.RpcClient;
 import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
+import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
@@ -66,7 +67,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
         byte[] response = getUserDetailsClient.primitiveCall(mapper.writeValueAsBytes(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                null, null
+                null, OperationType.READ
         )));
 
         UserDetailsResponse userDetails = mapper.readValue(response,
@@ -90,7 +91,30 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
         byte[] response = rabbitTemplate.sendAndReceive(getUserDetailsQueue, new Message(mapper.writeValueAsBytes(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
-                null, null
+                null, OperationType.READ
+        )), new MessageProperties())).getBody();
+        UserDetailsResponse userDetails = mapper.readValue(response,
+                UserDetailsResponse.class);
+
+        assertEquals(username, userDetails.getUserDetails().getCredentials().getUsername());
+        assertEquals(recoveryMail, userDetails.getUserDetails().getRecoveryMail());
+        assertEquals(UserRole.USER, userDetails.getUserDetails().getRole());
+        assertTrue(userDetails.getUserDetails().getCredentials().getPassword().isEmpty());
+        assertEquals(HttpStatus.OK, userDetails.getHttpStatus());
+    }
+
+    @Test
+    public void getUserDetailsOverAMQAsAdminPSuccess() throws
+            IOException {
+        //  Registering user in database
+        User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
+        userRepository.save(User);
+        assertTrue(userRepository.exists(username));
+
+        byte[] response = rabbitTemplate.sendAndReceive(getUserDetailsQueue, new Message(mapper.writeValueAsBytes(new
+                UserManagementRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, "irrelevant"),
+                null, OperationType.FORCE_READ
         )), new MessageProperties())).getBody();
         UserDetailsResponse userDetails = mapper.readValue(response,
                 UserDetailsResponse.class);
@@ -131,7 +155,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
         byte[] response = rabbitTemplate.sendAndReceive(getUserDetailsQueue, new Message(mapper.writeValueAsBytes(new
                 UserManagementRequest(new
                 Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, wrongPassword),
-                null, null
+                null, OperationType.READ
         )), new MessageProperties())).getBody();
 
         UserDetailsResponse userDetails = mapper.readValue(response,

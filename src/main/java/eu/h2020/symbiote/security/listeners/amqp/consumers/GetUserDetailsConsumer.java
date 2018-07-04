@@ -82,17 +82,24 @@ public class GetUserDetailsConsumer {
                         || !administratorCredentials.getPassword().equals(adminPassword))
                     throw new UserManagementException(HttpStatus.FORBIDDEN);
                 //  begin checking requested user's credentials
-                UserDetailsResponse userDetails;
                 String username = userManagementRequest.getUserCredentials().getUsername();
                 //  Check if user exists in database
                 if (!userRepository.exists(username)) {
                     //  If not then return appropriate message
-                    userDetails = new UserDetailsResponse(HttpStatus.BAD_REQUEST, new UserDetails());
-                } else {   //  User IS in database
-                    User foundUser = userRepository.findOne(username);
-                    //  Checking User's credentials
-                    if (passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), foundUser.getPasswordEncrypted())) {
-                        userDetails = new UserDetailsResponse(
+                    return om.writeValueAsString(new UserDetailsResponse(HttpStatus.BAD_REQUEST, new UserDetails())).getBytes();
+                }
+                //  User IS in database
+                User foundUser = userRepository.findOne(username);
+
+                switch (userManagementRequest.getOperationType()) {
+                    case READ: // ordinary check fetching the user details by the user
+                        //  Checking User's credentials
+                        if (!passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), foundUser.getPasswordEncrypted())) {
+                            //  If wrong password was provided return message with UNAUTHORIZED status
+                            return om.writeValueAsString(new UserDetailsResponse(HttpStatus.UNAUTHORIZED, new UserDetails())).getBytes();
+                        }
+                    case FORCE_READ: // used by the administrator to fetch user details
+                        return om.writeValueAsString(new UserDetailsResponse(
                                 HttpStatus.OK,
                                 new UserDetails(new Credentials(foundUser.getUsername(), ""),
                                         foundUser.getRecoveryMail(),
@@ -102,12 +109,10 @@ public class GetUserDetailsConsumer {
                                         foundUser.getClientCertificates(),
                                         foundUser.hasGrantedServiceConsent(),
                                         foundUser.hasGrantedAnalyticsAndResearchConsent())
-                        );
-                    } else
-                        //  If wrong password was provided return message with UNAUTHORIZED status
-                        userDetails = new UserDetailsResponse(HttpStatus.UNAUTHORIZED, new UserDetails());
+                        )).getBytes();
+                    default:
+                        return om.writeValueAsString(new UserDetailsResponse(HttpStatus.BAD_REQUEST, new UserDetails())).getBytes();
                 }
-                response = om.writeValueAsString(userDetails).getBytes();
             } catch (InvalidArgumentsException e) {
                 log.error(e);
                 // Missing Admin or User credentials
@@ -123,7 +128,6 @@ public class GetUserDetailsConsumer {
                 response = om.writeValueAsString(new ErrorResponseContainer(e.getMessage(), HttpStatus.BAD_REQUEST.value())).getBytes();
                 return response;
             }
-            return response;
         } catch (JsonProcessingException e) {
             log.error("Couldn't convert response to byte[]");
             return new ErrorResponseContainer(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR.value()).toJson().getBytes();
