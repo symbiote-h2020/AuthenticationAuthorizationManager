@@ -2,6 +2,7 @@ package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
 import eu.h2020.symbiote.security.communication.payloads.*;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
 
 /**
  * RabbitMQ Consumer implementation used for providing requested user's details
@@ -98,6 +100,19 @@ public class GetUserDetailsConsumer {
                             //  If wrong password was provided return message with UNAUTHORIZED status
                             return om.writeValueAsString(new UserDetailsResponse(HttpStatus.UNAUTHORIZED, new UserDetails())).getBytes();
                         }
+                        // inactive accounts should be blocked
+                        if (foundUser.getStatus() != AccountStatus.ACTIVE)
+                            return om.writeValueAsString(new UserDetailsResponse(
+                                    HttpStatus.FORBIDDEN,
+                                    new UserDetails(new Credentials("", ""),
+                                            "",
+                                            foundUser.getRole(),
+                                            foundUser.getStatus(),
+                                            new HashMap<>(),
+                                            new HashMap<>(),
+                                            foundUser.hasGrantedServiceConsent(),
+                                            foundUser.hasGrantedAnalyticsAndResearchConsent())
+                            )).getBytes();
                     case FORCE_READ: // used by the administrator to fetch user details
                         return om.writeValueAsString(new UserDetailsResponse(
                                 HttpStatus.OK,
@@ -111,17 +126,17 @@ public class GetUserDetailsConsumer {
                                         foundUser.hasGrantedAnalyticsAndResearchConsent())
                         )).getBytes();
                     default:
-                        return om.writeValueAsString(new UserDetailsResponse(HttpStatus.BAD_REQUEST, new UserDetails())).getBytes();
+                        return om.writeValueAsString(new UserDetailsResponse(HttpStatus.BAD_REQUEST, null)).getBytes();
                 }
             } catch (InvalidArgumentsException e) {
                 log.error(e);
                 // Missing Admin or User credentials
-                response = om.writeValueAsString(new UserDetailsResponse(HttpStatus.UNAUTHORIZED, new UserDetails())).getBytes();
+                response = om.writeValueAsString(new UserDetailsResponse(HttpStatus.UNAUTHORIZED, null)).getBytes();
                 return response;
             } catch (UserManagementException e) {
                 log.error(e);
                 // Incorrect Admin login / password
-                response = om.writeValueAsString(new UserDetailsResponse(HttpStatus.FORBIDDEN, new UserDetails())).getBytes();
+                response = om.writeValueAsString(new UserDetailsResponse(HttpStatus.FORBIDDEN, null)).getBytes();
                 return response;
             } catch (IOException e) {
                 log.error(e);

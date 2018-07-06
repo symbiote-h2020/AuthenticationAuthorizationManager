@@ -60,7 +60,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
             IOException,
             TimeoutException {
         //  Registering user in database
-        User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
+        User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 
@@ -81,10 +81,32 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
     }
 
     @Test
-    public void getUserDetailsOverAMQPSuccess() throws
+    public void getUserDetailsOverAMQPForbiddenForInactiveAccount() throws
             IOException {
         //  Registering user in database
         User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
+        userRepository.save(User);
+        assertTrue(userRepository.exists(username));
+
+        byte[] response = rabbitTemplate.sendAndReceive(getUserDetailsQueue, new Message(mapper.writeValueAsBytes(new
+                UserManagementRequest(new
+                Credentials(AAMOwnerUsername, AAMOwnerPassword), new Credentials(username, password),
+                null, OperationType.READ
+        )), new MessageProperties())).getBody();
+        UserDetailsResponse userDetails = mapper.readValue(response,
+                UserDetailsResponse.class);
+
+        assertEquals(UserRole.USER, userDetails.getUserDetails().getRole());
+        assertTrue(userDetails.getUserDetails().getCredentials().getPassword().isEmpty());
+        assertEquals(AccountStatus.NEW, userDetails.getUserDetails().getStatus());
+        assertEquals(HttpStatus.FORBIDDEN, userDetails.getHttpStatus());
+    }
+
+    @Test
+    public void getUserDetailsOverAMQPSuccessForActiveAccount() throws
+            IOException {
+        //  Registering user in database
+        User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(User);
         assertTrue(userRepository.exists(username));
 
