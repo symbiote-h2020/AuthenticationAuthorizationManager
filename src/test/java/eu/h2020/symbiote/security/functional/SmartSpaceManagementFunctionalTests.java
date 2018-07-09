@@ -38,13 +38,20 @@ public class SmartSpaceManagementFunctionalTests extends
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
+    private User testServiceOwner;
+
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        //user registration useful
-        User user = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
-        userRepository.save(user);
+        //testServiceOwner registration useful
+        testServiceOwner = createUser(
+                smartSpaceOwnerUsername,
+                smartSpaceOwnerPassword,
+                recoveryMail,
+                UserRole.SERVICE_OWNER,
+                AccountStatus.ACTIVE);
+        userRepository.save(testServiceOwner);
 
         // smartSpace registration useful
         smartSpaceOwnerUserCredentials = new Credentials(smartSpaceOwnerUsername, smartSpaceOwnerPassword);
@@ -109,6 +116,35 @@ public class SmartSpaceManagementFunctionalTests extends
         // verify that we received ErrorResponseContainer
         assertEquals((new WrongCredentialsException()).getErrorMessage(), sspRegistrationOverAMQPResponse.getErrorMessage());
     }
+
+    @Test
+    public void sspRegistrationOverAMQPFailForInactiveUser() throws IOException,
+            InvalidArgumentsException {
+        // user hasn't agreed to eula
+        testServiceOwner.setServiceConsent(false);
+        userRepository.save(testServiceOwner);
+
+        //set Interworking Interfaces to empty to cause error
+        smartSpaceManagementRequest = new SmartSpaceManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                smartSpaceOwnerUserCredentials,
+                smartSpaceGateWayAddress,
+                smartSpaceSiteLocalAddress,
+                smartSpaceInstanceFriendlyName,
+                OperationType.CREATE,
+                preferredSmartSpaceId,
+                false);
+
+        // issue ssp registration over AMQP
+        byte[] response = rabbitTemplate.sendAndReceive(smartSpaceManagementRequestQueue, new Message(mapper.writeValueAsBytes
+                (smartSpaceManagementRequest), new MessageProperties())).getBody();
+        ErrorResponseContainer sspRegistrationOverAMQPResponse = mapper.readValue(response,
+                ErrorResponseContainer.class);
+
+        // verify that we received ErrorResponseContainer
+        assertEquals(WrongCredentialsException.USER_NOT_ACTIVE, sspRegistrationOverAMQPResponse.getErrorMessage());
+    }
+
 
     @Test
     public void sendMessageOverAMQPFailWrongMessage() throws

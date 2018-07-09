@@ -46,7 +46,12 @@ public class SmartSpaceManagementUnitTests extends
         userRepository.deleteAll();
 
         //user registration useful
-        User user = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
+        User user = createUser(
+                smartSpaceOwnerUsername,
+                smartSpaceOwnerPassword,
+                recoveryMail,
+                UserRole.SERVICE_OWNER,
+                AccountStatus.ACTIVE);
         userRepository.save(user);
 
         // platform registration useful
@@ -258,7 +263,12 @@ public class SmartSpaceManagementUnitTests extends
 
         // create other smartSpaceOwner
         String otherSmartSpaceOwnerUsername = "otherSmartSpaceOwner";
-        User otherSmartSpaceOwner = createUser(otherSmartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
+        User otherSmartSpaceOwner = createUser(
+                otherSmartSpaceOwnerUsername,
+                smartSpaceOwnerPassword,
+                recoveryMail,
+                UserRole.SERVICE_OWNER,
+                AccountStatus.ACTIVE);
         userRepository.save(otherSmartSpaceOwner);
         Credentials otherSmartSpaceOwnerCredentials = new Credentials(otherSmartSpaceOwnerUsername, smartSpaceOwnerPassword);
         // verify that other smartSpaceOwner is in repository
@@ -423,7 +433,12 @@ public class SmartSpaceManagementUnitTests extends
 
         assertNotNull(smartSpaceRepository.findOne(preferredSmartSpaceId));
 
-        User user = createUser(smartSpaceOwnerUsername + "differentOne", smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
+        User user = createUser(
+                smartSpaceOwnerUsername + "differentOne",
+                smartSpaceOwnerPassword,
+                recoveryMail,
+                UserRole.SERVICE_OWNER,
+                AccountStatus.ACTIVE);
         userRepository.save(user);
         // issue registration request with the same preferred smartSpace identifier but different SO
         smartSpaceManagementRequest.getServiceOwnerCredentials().setUsername

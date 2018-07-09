@@ -54,6 +54,8 @@ public class PlatformManagementUnitTests extends
     SmartSpacesManagementService smartSpacesManagementService;
     private Credentials platformOwnerCredentials;
 
+    private User platformOwner;
+
     @Override
     @Before
     public void setUp() throws Exception {
@@ -63,9 +65,9 @@ public class PlatformManagementUnitTests extends
         smartSpaceRepository.deleteAll();
         userRepository.deleteAll();
 
-        //user registration useful
-        User user = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
-        userRepository.save(user);
+        //platformOwner registration useful
+        platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
+        userRepository.save(platformOwner);
         platformOwnerCredentials = new Credentials(platformOwnerUsername, platformOwnerPassword);
     }
 
@@ -349,7 +351,7 @@ public class PlatformManagementUnitTests extends
     }
 
     @Test
-    public void platformRegistrationFailureUnauthorized() {
+    public void platformRegistrationFailureUnauthorizedByAdminCredentials() {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
@@ -395,10 +397,40 @@ public class PlatformManagementUnitTests extends
     }
 
     @Test
+    public void platformRegistrationFailureUnauthorizedByUserNotActive() {
+        // verify that our platform is not in repository and that our platformOwner is in repository
+        assertFalse(platformRepository.exists(preferredPlatformId));
+        assertTrue(userRepository.exists(platformOwnerUsername));
+
+        platformOwner.setServiceConsent(false);
+        userRepository.save(platformOwner);
+
+
+        // issue platform registration expecting with wrong AAMOwnerUsername
+        PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
+                new Credentials(AAMOwnerUsername, AAMOwnerPassword),
+                new Credentials(platformOwnerUsername, platformOwnerPassword),
+                platformInterworkingInterfaceAddress,
+                platformInstanceFriendlyName,
+                preferredPlatformId,
+                OperationType.CREATE);
+
+        try {
+            platformsManagementService.authManage(platformManagementRequest);
+            fail();
+        } catch (SecurityException errorResponse) {
+            assertEquals(WrongCredentialsException.USER_NOT_ACTIVE, errorResponse.getMessage());
+        }
+        // verify that our platform is not in repository
+        assertFalse(platformRepository.exists(preferredPlatformId));
+    }
+
+    @Test
     public void platformRegistrationFailureMissingAAMURL() {
         // verify that our platform is not in repository and that our platformOwner is in repository
         assertFalse(platformRepository.exists(preferredPlatformId));
         assertTrue(userRepository.exists(platformOwnerUsername));
+
 
         // issue platform registration without required Platform's AAM URL
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(

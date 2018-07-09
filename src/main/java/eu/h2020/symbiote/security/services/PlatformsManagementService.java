@@ -4,6 +4,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
+import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
@@ -90,7 +91,10 @@ public class PlatformsManagementService {
                 || !platformOwner.getRole().equals(UserRole.SERVICE_OWNER)) {
             throw new WrongCredentialsException();
         }
-        if (platformOwner.getStatus() != AccountStatus.ACTIVE)
+
+        // locked service owners can only cleanup their stuff
+        if (platformOwner.getStatus() != AccountStatus.ACTIVE
+                && platformManagementRequest.getOperationType() != OperationType.DELETE)
             throw new WrongCredentialsException(WrongCredentialsException.USER_NOT_ACTIVE, HttpStatus.FORBIDDEN);
 
         switch (platformManagementRequest.getOperationType()) {
