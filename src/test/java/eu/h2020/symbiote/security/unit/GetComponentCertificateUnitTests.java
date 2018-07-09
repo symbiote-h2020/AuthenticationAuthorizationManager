@@ -35,9 +35,9 @@ public class GetComponentCertificateUnitTests extends AbstractAAMTestSuite {
     @Autowired
     DummyPlatformAAM dummyPlatformAAM;
     @Autowired
-    private DummyCoreAAM dummyCoreAAM;
-    @Autowired
     AAMServices aamServices;
+    @Autowired
+    private DummyCoreAAM dummyCoreAAM;
     @LocalServerPort
     private int port;
     private CertificationAuthorityHelper oldCertificationAuthorityHelper;
@@ -125,14 +125,14 @@ public class GetComponentCertificateUnitTests extends AbstractAAMTestSuite {
             IOException {
         //setting AAM instance Identifier different than Core AAM and recognizable RootCaCert
         when(certificationAuthorityHelper.getAAMInstanceIdentifier()).thenReturn("newTestPlatform");
-        when(certificationAuthorityHelper.getRootCACert()).thenReturn("Keystore Root Cert");
+        when(certificationAuthorityHelper.getRootCACert()).thenReturn(oldCertificationAuthorityHelper.getRootCACert());
         when(certificationAuthorityHelper.getAAMCert()).thenReturn("Just some dummy");
         ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", "wrong adress");
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", certificationAuthorityHelper);
 
         String coreCertificate = aamServices.getComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, SecurityConstants.CORE_AAM_INSTANCE_ID);
         //check if returned mocked value
-        assertTrue(coreCertificate.contains("Keystore Root Cert"));
+        assertEquals(oldCertificationAuthorityHelper.getRootCACert(), coreCertificate);
     }
 
 }
