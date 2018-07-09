@@ -23,7 +23,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
 
 /**
  * RabbitMQ Consumer implementation used for providing requested user's details
@@ -92,6 +91,14 @@ public class GetUserDetailsConsumer {
                 }
                 //  User IS in database
                 User foundUser = userRepository.findOne(username);
+                UserDetails foundUserDetails = new UserDetails(new Credentials(foundUser.getUsername(), ""),
+                        foundUser.getRecoveryMail(),
+                        foundUser.getRole(),
+                        foundUser.getStatus(),
+                        foundUser.getAttributes(),
+                        foundUser.getClientCertificates(),
+                        foundUser.hasGrantedServiceConsent(),
+                        foundUser.hasGrantedAnalyticsAndResearchConsent());
 
                 switch (userManagementRequest.getOperationType()) {
                     case READ: // ordinary check fetching the user details by the user
@@ -104,26 +111,12 @@ public class GetUserDetailsConsumer {
                         if (foundUser.getStatus() != AccountStatus.ACTIVE)
                             return om.writeValueAsString(new UserDetailsResponse(
                                     HttpStatus.FORBIDDEN,
-                                    new UserDetails(new Credentials("", ""),
-                                            "",
-                                            foundUser.getRole(),
-                                            foundUser.getStatus(),
-                                            new HashMap<>(),
-                                            new HashMap<>(),
-                                            foundUser.hasGrantedServiceConsent(),
-                                            foundUser.hasGrantedAnalyticsAndResearchConsent())
+                                    foundUserDetails
                             )).getBytes();
                     case FORCE_READ: // used by the administrator to fetch user details
                         return om.writeValueAsString(new UserDetailsResponse(
                                 HttpStatus.OK,
-                                new UserDetails(new Credentials(foundUser.getUsername(), ""),
-                                        foundUser.getRecoveryMail(),
-                                        foundUser.getRole(),
-                                        foundUser.getStatus(),
-                                        foundUser.getAttributes(),
-                                        foundUser.getClientCertificates(),
-                                        foundUser.hasGrantedServiceConsent(),
-                                        foundUser.hasGrantedAnalyticsAndResearchConsent())
+                                foundUserDetails
                         )).getBytes();
                     default:
                         return om.writeValueAsString(new UserDetailsResponse(HttpStatus.BAD_REQUEST, null)).getBytes();
