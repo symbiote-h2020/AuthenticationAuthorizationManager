@@ -35,7 +35,7 @@ public class ClientSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSuite 
     public void ClientIntegrationTest() throws
             SecurityHandlerException {
         // hack: injecting the AAM running port
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress);
 
         ISecurityHandler securityHandler = ClientSecurityHandlerFactory.getSecurityHandler(serverAddress,
                 KEY_STORE_PATH,

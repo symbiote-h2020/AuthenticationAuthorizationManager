@@ -48,8 +48,6 @@ public class OtherListenersFunctionalTests extends
 
     @Value("${rabbit.queue.ownedservices.request}")
     protected String ownedServicesRequestQueue;
-    @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
-    String platformAAMSuffixAtInterWorkingInterface;
 
     private User platformOwner;
     private User smartSpaceOwner;
@@ -110,13 +108,13 @@ public class OtherListenersFunctionalTests extends
         //expect CoreAAM
         AAM coreAAM = aams.get(SecurityConstants.CORE_AAM_INSTANCE_ID);
         assertEquals(SecurityConstants.CORE_AAM_INSTANCE_ID, coreAAM.getAamInstanceId());
-        assertEquals(coreInterfaceAddress, coreAAM.getAamAddress());
+        assertEquals(coreInterfaceAddress + SecurityConstants.AAM_PATH_PREFIX, coreAAM.getAamAddress());
         assertEquals(SecurityConstants.CORE_AAM_FRIENDLY_NAME, coreAAM.getAamInstanceFriendlyName());
         // then comes the registered platform
         assertTrue(aams.containsKey(platformId));
         AAM platformAAM = aams.get(platformId);
         assertEquals(platformId, platformAAM.getAamInstanceId());
-        assertEquals(platformInterworkingInterfaceAddress + platformAAMSuffixAtInterWorkingInterface, platformAAM
+        assertEquals(platformInterworkingInterfaceAddress + SecurityConstants.AAM_PATH_PREFIX, platformAAM
                 .getAamAddress());
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
         assertEquals(platformAAMCertificate.getCertificateString(), platformAAM.getAamCACertificate().getCertificateString());
@@ -125,8 +123,8 @@ public class OtherListenersFunctionalTests extends
         assertTrue(aams.containsKey(preferredSmartSpaceId));
         AAM smartSpaceAAM = aams.get(preferredSmartSpaceId);
         assertEquals(preferredSmartSpaceId, smartSpaceAAM.getAamInstanceId());
-        assertEquals(smartSpaceSiteLocalAddress, smartSpaceAAM.getSiteLocalAddress());
-        assertEquals(smartSpaceGateWayAddress, smartSpaceAAM.getAamAddress());
+        assertEquals(smartSpaceSiteLocalAddress + SecurityConstants.AAM_PATH_PREFIX, smartSpaceAAM.getSiteLocalAddress());
+        assertEquals(smartSpaceGateWayAddress + SecurityConstants.AAM_PATH_PREFIX, smartSpaceAAM.getAamAddress());
         assertEquals(smartSpaceInstanceFriendlyName, smartSpaceAAM.getAamInstanceFriendlyName());
         assertEquals(smartSpaceAAMCertificate.getCertificateString(), smartSpaceAAM.getAamCACertificate().getCertificateString());
         assertEquals(0, smartSpaceAAM.getComponentCertificates().size());

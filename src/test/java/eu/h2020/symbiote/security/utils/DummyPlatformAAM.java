@@ -42,7 +42,7 @@ public class DummyPlatformAAM {
     private static final String P1_CLIENT_CERTIFICATE_CN = "userId@clientId@platform-1";
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/keystores/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
-    private static final String PATH = "/test/paam";
+    private static final String PATH = "/test/aam";
     public int certificateFlag = 1;
 
     public DummyPlatformAAM() {

@@ -74,16 +74,16 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         //setting dummyCoreAAM to return basic set of Platform AAMs
         dummyCoreAAM.initializeAvailableAAMs();
         // fixing the core AAM url to point to the dummyCoreAAM
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
-        ReflectionTestUtils.setField(validationHelper, "coreInterfaceAddress", serverAddress + "/test/caam");
-        ReflectionTestUtils.setField(aamServices, "interworkingInterface", serverAddress);
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/core/aam");
+        ReflectionTestUtils.setField(validationHelper, "coreAAMAddress", serverAddress + "/test/core/aam");
+        ReflectionTestUtils.setField(aamServices, "serviceAAMAddress", serverAddress);
     }
 
     @After
     public void after() {
         // fixing the core AAM url to point back to the service
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
-        ReflectionTestUtils.setField(validationHelper, "coreInterfaceAddress", serverAddress);
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress);
+        ReflectionTestUtils.setField(validationHelper, "coreAAMAddress", serverAddress);
         ReflectionTestUtils.setField(validationHelper, "isOfflineEnough", false);
     }
 
@@ -203,7 +203,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
             ValidationException,
             AAMException {
         //setting wrong core AAM url to make it offline
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", "wrong AAM url");
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", "wrong AAM url");
         ReflectionTestUtils.setField(validationHelper, "isOfflineEnough", true);
         X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
         X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
@@ -277,7 +277,7 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
             IOException,
             UnrecoverableKeyException {
         //setting wrong core AAM url to make it offline
-        ReflectionTestUtils.setField(validationHelper, "coreInterfaceAddress", "wrong AAM url");
+        ReflectionTestUtils.setField(validationHelper, "coreAAMAddress", "wrong AAM url");
         ReflectionTestUtils.setField(validationHelper, "isOfflineEnough", true);
         X509Certificate userCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1");
         X509Certificate properAAMCert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");

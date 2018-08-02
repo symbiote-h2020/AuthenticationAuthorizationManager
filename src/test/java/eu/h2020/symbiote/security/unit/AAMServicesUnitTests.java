@@ -20,7 +20,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -42,8 +41,7 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
 
     @SpyBean
     CertificationAuthorityHelper certificationAuthorityHelper;
-    @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface}")
-    String platformAAMSuffixAtInterWorkingInterface;
+
     @Autowired
     AAMServices aamServices;
     private User platformOwner;
@@ -56,8 +54,8 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
         super.setUp();
         doCallRealMethod().when(certificationAuthorityHelper).getDeploymentType();
         doCallRealMethod().when(certificationAuthorityHelper).getAAMInstanceIdentifier();
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", coreInterfaceAddress);
-        oldSiteLocalAddress = (String) ReflectionTestUtils.getField(aamServices, "siteLocalAddress");
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", coreInterfaceAddress);
+        oldSiteLocalAddress = (String) ReflectionTestUtils.getField(aamServices, "sspIntranetAAMAddress");
         //registration of the users used in tests
         platformOwner = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
         smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
@@ -67,7 +65,7 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
 
     @After
     public void after() {
-        ReflectionTestUtils.setField(aamServices, "siteLocalAddress", oldSiteLocalAddress);
+        ReflectionTestUtils.setField(aamServices, "sspIntranetAAMAddress", oldSiteLocalAddress);
     }
 
     @Test
@@ -147,7 +145,7 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
         assertTrue(aams.containsKey(platformId));
         AAM platformAAM = aams.get(platformId);
         assertEquals(platformId, platformAAM.getAamInstanceId());
-        assertEquals(platformInterworkingInterfaceAddress + platformAAMSuffixAtInterWorkingInterface, platformAAM
+        assertEquals(platformInterworkingInterfaceAddress + SecurityConstants.AAM_PATH_PREFIX, platformAAM
                 .getAamAddress());
         assertEquals(platformInstanceFriendlyName, platformAAM.getAamInstanceFriendlyName());
         assertEquals(platformAAMCertificate.getCertificateString(), platformAAM.getAamCACertificate().getCertificateString());
@@ -156,8 +154,8 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
         assertTrue(aams.containsKey(preferredSmartSpaceId));
         AAM smartSpaceAAM = aams.get(preferredSmartSpaceId);
         assertEquals(preferredSmartSpaceId, smartSpaceAAM.getAamInstanceId());
-        assertEquals(smartSpaceSiteLocalAddress, smartSpaceAAM.getSiteLocalAddress());
-        assertEquals(smartSpaceGateWayAddress, smartSpaceAAM.getAamAddress());
+        assertEquals(smartSpaceSiteLocalAddress + SecurityConstants.AAM_PATH_PREFIX, smartSpaceAAM.getSiteLocalAddress());
+        assertEquals(smartSpaceGateWayAddress + SecurityConstants.AAM_PATH_PREFIX, smartSpaceAAM.getAamAddress());
         assertEquals(smartSpaceInstanceFriendlyName, smartSpaceAAM.getAamInstanceFriendlyName());
         assertEquals(smartSpaceAAMCertificate.getCertificateString(), smartSpaceAAM.getAamCACertificate().getCertificateString());
         assertEquals(0, smartSpaceAAM.getComponentCertificates().size());
@@ -175,7 +173,7 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
         String testplatformId = "test-PlatformId";
         doReturn(IssuingAuthorityType.PLATFORM).when(certificationAuthorityHelper).getDeploymentType();
         doReturn(testplatformId).when(certificationAuthorityHelper).getAAMInstanceIdentifier();
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/core/aam");
 
         // injecting core component certificate
         String componentId = "registry";
@@ -211,7 +209,7 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
         String testplatformId = "test-PlatformId2";
         doReturn(IssuingAuthorityType.PLATFORM).when(certificationAuthorityHelper).getDeploymentType();
         doReturn(testplatformId).when(certificationAuthorityHelper).getAAMInstanceIdentifier();
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/core/aam");
         aamServices.getAvailableAAMs();
     }
 
@@ -227,9 +225,9 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
         String testSmartSpaceId = "test-PlatformId";
         doReturn(IssuingAuthorityType.SMART_SPACE).when(certificationAuthorityHelper).getDeploymentType();
         doReturn(testSmartSpaceId).when(certificationAuthorityHelper).getAAMInstanceIdentifier();
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/core/aam");
         String siteLocalAddress = "siteLocalAddress";
-        ReflectionTestUtils.setField(aamServices, "siteLocalAddress", siteLocalAddress);
+        ReflectionTestUtils.setField(aamServices, "sspIntranetAAMAddress", siteLocalAddress);
 
         // injecting component certificate (no matter what cert)
         String componentId = "registry";
@@ -265,7 +263,7 @@ public class AAMServicesUnitTests extends AbstractAAMTestSuite {
         //change issuing authority type
         doReturn(IssuingAuthorityType.SMART_SPACE).when(certificationAuthorityHelper).getDeploymentType();
         doReturn(preferredSmartSpaceId).when(certificationAuthorityHelper).getAAMInstanceIdentifier();
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/core/aam");
         aamServices.getAvailableAAMs();
     }
 }

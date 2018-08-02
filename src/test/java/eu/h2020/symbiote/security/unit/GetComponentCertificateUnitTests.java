@@ -55,13 +55,13 @@ public class GetComponentCertificateUnitTests extends AbstractAAMTestSuite {
         when(certificationAuthorityHelper.getRootCACert()).thenReturn(oldCertificationAuthorityHelper.getRootCACert());
         when(certificationAuthorityHelper.isServiceCertificateChainTrusted(anyString())).thenReturn(true);
 
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/core/aam");
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", certificationAuthorityHelper);
     }
 
     @After
     public void after() {
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress);
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", oldCertificationAuthorityHelper);
         dummyPlatformAAM.certificateFlag = 1;
 
@@ -127,7 +127,7 @@ public class GetComponentCertificateUnitTests extends AbstractAAMTestSuite {
         when(certificationAuthorityHelper.getAAMInstanceIdentifier()).thenReturn("newTestPlatform");
         when(certificationAuthorityHelper.getRootCACert()).thenReturn(oldCertificationAuthorityHelper.getRootCACert());
         when(certificationAuthorityHelper.getAAMCert()).thenReturn("Just some dummy");
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", "wrong adress");
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", "wrong adress");
         ReflectionTestUtils.setField(aamServices, "certificationAuthorityHelper", certificationAuthorityHelper);
 
         String coreCertificate = aamServices.getComponentCertificate(SecurityConstants.AAM_COMPONENT_NAME, SecurityConstants.CORE_AAM_INSTANCE_ID);

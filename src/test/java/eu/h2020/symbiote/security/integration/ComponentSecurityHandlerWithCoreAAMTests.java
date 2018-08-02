@@ -62,7 +62,7 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
             KeyStoreException,
             IOException {
         // hack: injecting the AAM running port
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress);
         String crmKey = "crm";
         String crmComponentId = crmKey + "@" + SecurityConstants.CORE_AAM_INSTANCE_ID;
         // generating the CSH
@@ -121,7 +121,7 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
             KeyStoreException,
             IOException {
         // hack: injecting the AAM running port
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress);
         String crmKey = "crm";
         String crmComponentId = crmKey + "@" + SecurityConstants.CORE_AAM_INSTANCE_ID;
         // generating the CSH
@@ -147,7 +147,7 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
     public void checkAAMCertWithKeystoreOnCSHCreationIntegrationTestSuccess() throws
             SecurityHandlerException {
         // hack: injecting the AAM running port
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress);
         String crmKey = "crm";
         String crmComponentId = crmKey + "@" + SecurityConstants.CORE_AAM_INSTANCE_ID;
         // generating the CSH
@@ -184,7 +184,7 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
             KeyStoreException,
             IOException {
         // hack: injecting the AAM running port
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress);
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress);
         String crmKey = "crm";
         String crmComponentId = crmKey + "@" + SecurityConstants.CORE_AAM_INSTANCE_ID;
         // generating the CSH

@@ -42,7 +42,7 @@ public class DummyPlatformAAMTokenValidationFail {
     private static final String P1_CLIENT_CERTIFICATE_CN = "userId@clientId@platform-1";
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/keystores/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
-    private static final String PATH = "/test/failvalidation/paam";
+    private static final String PATH = "/test/failvalidation/aam";
 
     public DummyPlatformAAMTokenValidationFail() {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());

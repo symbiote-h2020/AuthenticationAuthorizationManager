@@ -81,7 +81,7 @@ public class ValidationHelper {
     private Long tokenValidity;
     @Value("${aam.deployment.validation.allow-offline}")
     private boolean isOfflineEnough;
-    private final String coreInterfaceAddress;
+    private final String coreAAMAddress;
 
     @Autowired
     public ValidationHelper(CertificationAuthorityHelper certificationAuthorityHelper,
@@ -105,7 +105,7 @@ public class ValidationHelper {
         this.componentCertificatesRepository = componentCertificatesRepository;
         this.aamServices = aamServices;
         this.cacheService = cacheService;
-        this.coreInterfaceAddress = coreInterfaceAddress;
+        this.coreAAMAddress = coreInterfaceAddress + SecurityConstants.AAM_PATH_PREFIX;
     }
 
     public ValidationStatus validate(String token,
@@ -299,7 +299,7 @@ public class ValidationHelper {
         Map<String, AAM> availableAAMs;
         if (!deploymentType.equals(IssuingAuthorityType.CORE)) {
 
-            AAMClient aamClient = new AAMClient(coreInterfaceAddress);
+            AAMClient aamClient = new AAMClient(coreAAMAddress);
             try {
                 availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
             } catch (AAMException e) {

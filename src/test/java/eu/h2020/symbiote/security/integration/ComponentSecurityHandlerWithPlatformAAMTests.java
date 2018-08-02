@@ -56,7 +56,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
             Exception {
         super.setUp();
         dummyCoreAAM.port = port;
-        oldCoreAAMAddress = (String) ReflectionTestUtils.getField(aamServices, "coreInterfaceAddress");
+        oldCoreAAMAddress = (String) ReflectionTestUtils.getField(aamServices, "coreAAMAddress");
     }
 
     @After
@@ -64,7 +64,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
         //cleanup
         File file = new File(KEY_STORE_PATH);
         assertTrue(file.delete());
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", oldCoreAAMAddress);
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", oldCoreAAMAddress);
     }
 
     @Test
@@ -78,7 +78,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
             IOException {
         // registration handler use case
         // hack: injecting the AAM running port
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/core/aam");
         String rhKey = "rh";
         String regHandlerComponentId = rhKey + "@" + "platform-1";
         // generating the CSH
@@ -143,7 +143,7 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
 
         addTestUserWithClientCertificateToRepository();
         // hack: injecting the AAM running port
-        ReflectionTestUtils.setField(aamServices, "coreInterfaceAddress", serverAddress + "/test/caam");
+        ReflectionTestUtils.setField(aamServices, "coreAAMAddress", serverAddress + "/test/core/aam");
         ISecurityHandler securityHandler = new SecurityHandler(KEY_STORE_PATH,
                 KEY_STORE_PASSWORD,
                 serverAddress,

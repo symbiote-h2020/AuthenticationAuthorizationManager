@@ -39,20 +39,41 @@ public class AAMServices {
     private final PlatformRepository platformRepository;
     private final SmartSpaceRepository smartSpaceRepository;
     private final ComponentCertificatesRepository componentCertificatesRepository;
-    private final String coreInterfaceAddress;
-    private final String platformAAMSuffixAtInterWorkingInterface;
-    private final String localAAMUrl;
-    private final String interworkingInterface;
-    private final String siteLocalAddress;
 
+    /**
+     * Core Interface address appended by {@link SecurityConstants#AAM_PATH_PREFIX}
+     */
+    private final String coreAAMAddress;
+    /**
+     * the address where SymbIoTe components can access the AAM without proxying through CI/II software
+     */
+    private final String localAAMUrl;
+    /**
+     * InterworkingInterface address appended by {@link SecurityConstants#AAM_PATH_PREFIX}
+     */
+    private final String serviceAAMAddress;
+    /**
+     * Client side entry point to the SmartSpace AAM - available in the SSP intranet (not from the internet)
+     */
+    private final String sspIntranetAAMAddress;
+
+    /**
+     * @param certificationAuthorityHelper    autowired
+     * @param platformRepository              autowired
+     * @param smartSpaceRepository            autowired
+     * @param componentCertificatesRepository autowired
+     * @param localAAMUrl                     (property) the address where SymbIoTe components can access the AAM without proxying through CI/II software
+     * @param coreInterfaceAddress            (property) needed to resolve the CoreAAM Internet visible address
+     * @param interworkingInterface           (property) needed to resolver the service (Platform/Enabler/SmartSpace) AAM Internet visible address
+     * @param siteLocalAddress                (property) Client side entry point to the SmartSpace AAM - available in the SSP intranet (not from the Internet)
+     */
     @Autowired
     public AAMServices(CertificationAuthorityHelper certificationAuthorityHelper,
                        PlatformRepository platformRepository,
                        SmartSpaceRepository smartSpaceRepository,
                        ComponentCertificatesRepository componentCertificatesRepository,
-                       @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
-                       @Value("${aam.environment.platformAAMSuffixAtInterWorkingInterface:/paam}") String platformAAMSuffixAtInterWorkingInterface,
                        @Value("${symbIoTe.localaam.url}") String localAAMUrl,
+                       @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
                        @Value("${symbIoTe.interworking.interface.url:MUST_BE_SET_FOR_PAAM_AND_SAAM}") String interworkingInterface,
                        @Value("${symbIoTe.siteLocal.url:MUST_BE_SET_FOR_SAAM}") String siteLocalAddress
     ) {
@@ -60,11 +81,10 @@ public class AAMServices {
         this.platformRepository = platformRepository;
         this.smartSpaceRepository = smartSpaceRepository;
         this.componentCertificatesRepository = componentCertificatesRepository;
-        this.coreInterfaceAddress = coreInterfaceAddress;
-        this.platformAAMSuffixAtInterWorkingInterface = platformAAMSuffixAtInterWorkingInterface;
+        this.coreAAMAddress = coreInterfaceAddress + SecurityConstants.AAM_PATH_PREFIX;
         this.localAAMUrl = localAAMUrl;
-        this.interworkingInterface = interworkingInterface;
-        this.siteLocalAddress = siteLocalAddress;
+        this.serviceAAMAddress = interworkingInterface + SecurityConstants.AAM_PATH_PREFIX;
+        this.sspIntranetAAMAddress = siteLocalAddress + SecurityConstants.AAM_PATH_PREFIX;
     }
 
     @Cacheable(cacheNames = "getAvailableAAMs", key = "#root.method")
@@ -90,7 +110,7 @@ public class AAMServices {
                 Certificate coreCertificate = new Certificate(certificationAuthorityHelper.getAAMCert());
 
                 // defining how to expose core AAM to the client (end users use CI, components communicate locally)
-                String coreAAMAddress = provideInternalURL ? localAAMUrl : coreInterfaceAddress;
+                String coreAAMAddress = provideInternalURL ? localAAMUrl : this.coreAAMAddress;
 
                 // adding core aam info to the response
                 availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID,
@@ -103,7 +123,7 @@ public class AAMServices {
 
                 // registered platforms' AAMs
                 for (Platform platform : platformRepository.findAll()) {
-                    AAM platformAAM = new AAM(platform.getPlatformInterworkingInterfaceAddress() + platformAAMSuffixAtInterWorkingInterface,
+                    AAM platformAAM = new AAM(platform.getPlatformInterworkingInterfaceAddress() + SecurityConstants.AAM_PATH_PREFIX,
                             "",
                             platform.getPlatformInstanceId(),
                             platform.getPlatformInstanceFriendlyName(),
@@ -114,8 +134,8 @@ public class AAMServices {
                 }
                 // registered smart Spaces' AAMs
                 for (SmartSpace smartSpace : smartSpaceRepository.findAll()) {
-                    String siteLocalAddress = smartSpace.isExposingSiteLocalAddress() ? smartSpace.getSiteLocalAddress() : "";
-                    AAM smartSpaceAAM = new AAM(smartSpace.getExternalAddress(),
+                    String siteLocalAddress = smartSpace.isExposingSiteLocalAddress() ? smartSpace.getSiteLocalAddress() + SecurityConstants.AAM_PATH_PREFIX : "";
+                    AAM smartSpaceAAM = new AAM(smartSpace.getExternalAddress() + SecurityConstants.AAM_PATH_PREFIX,
                             siteLocalAddress,
                             smartSpace.getInstanceIdentifier(),
                             smartSpace.getInstanceFriendlyName(),
@@ -130,7 +150,7 @@ public class AAMServices {
                 availableAAMs = getAAMsFromCore(availableAAMs);
 
                 // handling the local (deployment internal) aam address
-                String availableAtAddress = provideInternalURL ? localAAMUrl : interworkingInterface;
+                String availableAtAddress = provideInternalURL ? localAAMUrl : serviceAAMAddress;
 
                 // update if it exists
                 if (availableAAMs.containsKey(certificationAuthorityHelper.getAAMInstanceIdentifier())) {
@@ -160,14 +180,14 @@ public class AAMServices {
                 availableAAMs = getAAMsFromCore(availableAAMs);
 
                 // handling the local (deployment internal) aam address
-                availableAtAddress = provideInternalURL ? localAAMUrl : interworkingInterface;
+                availableAtAddress = provideInternalURL ? localAAMUrl : serviceAAMAddress;
 
                 // update if it exists
                 if (availableAAMs.containsKey(certificationAuthorityHelper.getAAMInstanceIdentifier())) {
                     AAM aam = availableAAMs.get(certificationAuthorityHelper.getAAMInstanceIdentifier());
                     AAM localAAM = new AAM(
                             availableAtAddress,
-                            siteLocalAddress,
+                            sspIntranetAAMAddress,
                             aam.getAamInstanceId(),
                             aam.getAamInstanceFriendlyName(),
                             aam.getAamCACertificate(),
@@ -178,7 +198,7 @@ public class AAMServices {
                     // adding local (this) aam info to the response
                     availableAAMs.put(certificationAuthorityHelper.getAAMInstanceIdentifier(),
                             new AAM(availableAtAddress,
-                                    siteLocalAddress,
+                                    sspIntranetAAMAddress,
                                     certificationAuthorityHelper.getAAMInstanceIdentifier(),
                                     " ",
                                     new Certificate(certificationAuthorityHelper.getAAMCert()),
@@ -196,7 +216,7 @@ public class AAMServices {
             IOException,
             AAMException {
         try {
-            IAAMClient aamClient = new AAMClient(coreInterfaceAddress);
+            IAAMClient aamClient = new AAMClient(coreAAMAddress);
             availableAAMs = aamClient.getAvailableAAMs().getAvailableAAMs();
         } catch (AAMException e) {
             // service AAM might be disconnected from the core for which we need fallback option
@@ -204,7 +224,7 @@ public class AAMServices {
             // adding core aam info to the response
             availableAAMs.put(SecurityConstants.CORE_AAM_INSTANCE_ID,
                     new AAM(
-                            coreInterfaceAddress,
+                            coreAAMAddress,
                             "",
                             SecurityConstants.CORE_AAM_INSTANCE_ID,
                             SecurityConstants.CORE_AAM_FRIENDLY_NAME,

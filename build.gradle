@@ -22,11 +22,11 @@ plugins {
     // code
     id "java"
     // spring
-    id "io.spring.dependency-management" version "1.0.4.RELEASE"
-    id 'org.springframework.boot' version '1.5.14.RELEASE'
+    id "io.spring.dependency-management" version "1.0.6.RELEASE"
+    id 'org.springframework.boot' version '1.5.15.RELEASE'
     // code quality
     id "jacoco"
-    id "org.owasp.dependencycheck" version "3.2.0"
+    id "org.owasp.dependencycheck" version "3.2.1"
     // IDEs
     id "eclipse"
     id "idea"
@@ -83,10 +83,11 @@ dependencies {
             3) project dependency requires changes in settings.gradle file in this project
             4) never commit build.gradle which has project dependencies active as it will break CI builds
     */
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:[27.2, 27.999]'){ changing = true }
+    //compile('com.github.symbiote-h2020:SymbIoTeSecurity:[27.2, 27.999]'){ changing = true }
     // allows to select the downloaded matching sources in IntelliJ Idea as it fails to do so automatically from jitpack repo
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:[27.2, 27.999]:sources'){ changing = true }
+    //compile('com.github.symbiote-h2020:SymbIoTeSecurity:[27.2, 27.999]:sources'){ changing = true }
     //compile project(':SymbIoTeSecurity')
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:[27.5+, 27.999]') {changing = true }
 
     compile('com.github.symbiote-h2020:SymbIoTeLibraries:[5.20, 5.999]'){ changing = true }
     //compile project(':SymbIoTeLibraries')

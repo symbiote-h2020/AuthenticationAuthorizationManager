@@ -41,7 +41,7 @@ public class DummyPlatformAAMConnectionProblem {
     private static final String CERTIFICATE_ALIAS = "platform-1-1-c1";
     private static final String CERTIFICATE_LOCATION = "./src/test/resources/keystores/platform_1.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
-    private static final String PATH = "/test/conn_err/paam";
+    private static final String PATH = "/test/conn_err/aam";
     // Leaf Certificate
     private static String applicationCertificatePEM =
             "-----BEGIN CERTIFICATE-----\n" +

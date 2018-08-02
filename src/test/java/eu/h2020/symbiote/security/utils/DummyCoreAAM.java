@@ -46,7 +46,7 @@ public class DummyCoreAAM {
     private static final String PLATFORM_2_CERTIFICATE_ALIAS = "platform-2-1-c1";
     private static final String PLATFORM_2_CERTIFICATE_LOCATION = "./src/test/resources/keystores/platform_2.p12";
     private static final String CERTIFICATE_PASSWORD = "1234567";
-    private static final String PATH = "/test/caam";
+    private static final String PATH = "/test/core/aam";
     private static final String platform1Id = "platform-1";
     private static final String platform2Id = "platform-2";
     public int port;
@@ -156,7 +156,7 @@ public class DummyCoreAAM {
                 platform1Id, SecurityConstants.CORE_AAM_FRIENDLY_NAME,
                 platformCert, new HashMap<>()));
 
-        aams.getAvailableAAMs().put("test-PlatformId", new AAM("https://localhost:" + port + "/test/paam",
+        aams.getAvailableAAMs().put("test-PlatformId", new AAM("https://localhost:" + port + "/test/aam",
                 "test-PlatformId", "test-PlatformIdFriendly",
                 platformCert, new HashMap<>()));
     }
