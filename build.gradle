@@ -89,7 +89,7 @@ dependencies {
     //compile project(':SymbIoTeSecurity')
     compile('com.github.symbiote-h2020:SymbIoTeSecurity:[27.5+, 27.999]') {changing = true }
 
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:[5.20, 5.999]'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:[5.27, 5.999]'){ changing = true }
     //compile project(':SymbIoTeLibraries')
 
     // Spring
