@@ -7,6 +7,8 @@ import eu.h2020.symbiote.model.mim.QoSConstraint;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,10 +31,6 @@ public class FederationsManagementFunctionalTests extends
 
     private final String federationId = "testFederationId";
     private final String federationName = "testFederationName";
-    @Autowired
-    RabbitTemplate rabbitTemplate;
-    private Federation federation;
-
     @Value("${rabbit.exchange.federation}")
     public String rabbitExchangeFederation;
     @Value("${rabbit.routingKey.federation.created}")
@@ -41,6 +39,9 @@ public class FederationsManagementFunctionalTests extends
     protected String federationManagementUpdateRoutingKey;
     @Value("${rabbit.routingKey.federation.deleted}")
     protected String federationManagementDeleteRoutingKey;
+    @Autowired
+    RabbitTemplate rabbitTemplate;
+    private Federation federation;
 
     @Before
     public void before() {
@@ -64,7 +65,8 @@ public class FederationsManagementFunctionalTests extends
 
     @Test
     public void federationCreateOverAMQPSuccess() throws IOException, InterruptedException {
-        rabbitTemplate.convertAndSend(rabbitExchangeFederation, federationManagementCreateRoutingKey, convertObjectToJson(federation));
+        rabbitTemplate.send(rabbitExchangeFederation, federationManagementCreateRoutingKey,
+                new Message(convertObjectToJson(federation).getBytes(), new MessageProperties()));
         //wait until rabbit listener adds federation
         Thread.sleep(1000);
         assertTrue(federationsRepository.exists(federationId));
@@ -85,7 +87,8 @@ public class FederationsManagementFunctionalTests extends
 
         assertEquals(1, federationsRepository.findOne(federationId).getMembers().size());
         assertFalse(federationsRepository.findOne(federationId).getName().equals("new name"));
-        rabbitTemplate.convertAndSend(rabbitExchangeFederation, federationManagementUpdateRoutingKey, convertObjectToJson(federation));
+        rabbitTemplate.send(rabbitExchangeFederation, federationManagementUpdateRoutingKey,
+                new Message(convertObjectToJson(federation).getBytes(), new MessageProperties()));
         //wait until rabbit listener adds federation
         Thread.sleep(1000);
         assertTrue(federationsRepository.exists(federationId));
@@ -104,7 +107,8 @@ public class FederationsManagementFunctionalTests extends
         federation.getMembers().clear();
 
         assertTrue(federationsRepository.exists(federationId));
-        rabbitTemplate.convertAndSend(rabbitExchangeFederation, federationManagementDeleteRoutingKey, federationId);
+        rabbitTemplate.send(rabbitExchangeFederation, federationManagementDeleteRoutingKey,
+                new Message(federationId.getBytes(), new MessageProperties()));
         //wait until rabbit listener remove federation
         Thread.sleep(1000);
         assertFalse(federationsRepository.exists(federationId));

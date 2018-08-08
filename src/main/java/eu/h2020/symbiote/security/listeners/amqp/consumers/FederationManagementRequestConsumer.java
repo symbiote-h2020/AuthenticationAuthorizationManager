@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.stream.Collectors;
 
 @Profile("platform")
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public class FederationManagementRequestConsumer {
 
     private static Log log = LogFactory.getLog(FederationManagementRequestConsumer.class);
+    private ObjectMapper om = new ObjectMapper();
     @Autowired
     private FederationsRepository federationsRepository;
 
@@ -39,17 +41,14 @@ public class FederationManagementRequestConsumer {
             exchange = @Exchange(
                     value = "${rabbit.exchange.federation}",
                     ignoreDeclarationExceptions = "true",
-                    durable = "false",
                     internal = "${rabbit.exchange.aam.internal}",
                     type = "topic"),
             key = "${rabbit.routingKey.federation.created}"))
-    public void federationCreate(String message) {
+    public void federationCreate(byte[] body) {
         log.debug("[x] Received Federation to create");
-        ObjectMapper om = new ObjectMapper();
-
-        Federation federation;
         try {
-            federation = om.readValue(message, Federation.class);
+            String message = new String(body, "UTF-8");
+            Federation federation = om.readValue(message, Federation.class);
             if (federation.getId() == null
                     || federation.getMembers() == null
                     || federation.getId().isEmpty())
@@ -72,13 +71,13 @@ public class FederationManagementRequestConsumer {
             exchange = @Exchange(
                     value = "${rabbit.exchange.federation}",
                     ignoreDeclarationExceptions = "true",
-                    durable = "false",
                     internal = "${rabbit.exchange.aam.internal}",
                     type = "topic"),
             key = "${rabbit.routingKey.federation.deleted}"))
-    public void federationDelete(String federationId) {
+    public void federationDelete(byte[] body) {
         log.debug("[x] Received Federation Id to delete");
         try {
+            String federationId = new String(body, "UTF-8");
             if (federationId == null
                     || federationId.isEmpty())
                 throw new InvalidArgumentsException();
@@ -88,8 +87,8 @@ public class FederationManagementRequestConsumer {
             }
             federationsRepository.delete(federationId);
 
-        } catch (InvalidArgumentsException e) {
-            log.error(e.getMessage());
+        } catch (InvalidArgumentsException | UnsupportedEncodingException e) {
+            log.error(e);
         }
     }
 
@@ -98,16 +97,14 @@ public class FederationManagementRequestConsumer {
             exchange = @Exchange(
                     value = "${rabbit.exchange.federation}",
                     ignoreDeclarationExceptions = "true",
-                    durable = "false",
                     internal = "${rabbit.exchange.aam.internal}",
                     type = "topic"),
             key = "${rabbit.routingKey.federation.changed}"))
-    public void federationUpdate(String message) {
+    public void federationUpdate(byte[] body) {
         log.debug("[x] Received Federation to update");
-        ObjectMapper om = new ObjectMapper();
-        Federation federation;
         try {
-            federation = om.readValue(message, Federation.class);
+            String message = new String(body, "UTF-8");
+            Federation federation = om.readValue(message, Federation.class);
             if (federation.getId() == null
                     || federation.getMembers() == null
                     || federation.getId().isEmpty())
@@ -119,9 +116,8 @@ public class FederationManagementRequestConsumer {
                 throw new InvalidArgumentsException("Federation doesn't exist.");
             }
             federationsRepository.save(federation);
-
         } catch (InvalidArgumentsException | IOException e) {
-            log.error(e.getMessage());
+            log.error(e);
         }
     }
 }
