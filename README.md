@@ -6,7 +6,7 @@
 AuthenticationAuthorizationManager module is responsible for 
 providing tokens and certificates that allow applications to search and access resources and components in a secure way.  
 
-**NOTE:** Due to changes in construction of payloads stored in database, migration of data from AAM v2.0 to v3.0 is required. Example script can be found in *./migration_scripts/2.0_to_3.0.js*
+**NOTE:** Due to changes in construction of payloads stored in database, migration of data from AAM v2.0 to v3.0 and then from V3 to v4/v5 is required. Necessary script can be found in *./migration_scripts/* directory.
 
 ## Context
 To read more about the project, please see documentation of:

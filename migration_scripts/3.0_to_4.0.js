@@ -1,4 +1,4 @@
-//Mongo scripts migrating database from AAM version 2.0.+ to 3.0.2
+//Mongo scripts migrating database from AAM version 3.0.+ to 4+
 //script should be properly updated, according to database settings, and run from mongo shell
 
 //CONNECTION TO DB - fill DB name and link
