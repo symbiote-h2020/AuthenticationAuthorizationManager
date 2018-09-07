@@ -14,7 +14,11 @@ To run the script you can simply execute the following command:
 `mongo {mongo_host}:{mongo_port} {script.js}`   
 e.g. 
 `mongo localhost:27017 3.0_to_4.0.js`   
-  
+
+**DISCLAIMER:** Regarding the platform migration scripts, all the accounts will be automatically set to ***ACTIVE*** 
+with the ***serviceConsent*** sent to true. This is not GDPR-compliant, but we recommend this approach for testing 
+environments. For production, we recommend to run the ***core scripts*** on the platform side as well and to require email 
+verification and service consent request.
 
 ## Context
 To read more about the project, please see documentation of:
