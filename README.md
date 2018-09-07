@@ -6,7 +6,19 @@
 AuthenticationAuthorizationManager module is responsible for 
 providing tokens and certificates that allow applications to search and access resources and components in a secure way.  
 
-**NOTE:** Due to changes in construction of payloads stored in database, migration of data from AAM v2.0 to v3.0 and then from V3 to v4/v5 is required. Necessary script can be found in *./migration_scripts/* directory.
+**NOTE:** Due to changes in construction of payloads stored in database, migration of data from AAM v2.0 to v3.0 and then from V3 to v4/v5 is required. Necessary script can be found in *./migration_scripts/* directory both for Core AAM and Platform AAM.
+Depending on your release, you might need to run both scripts. More specifically:
+* if you have ***1.x*** release of symbIoTe (i.e. 2.x release of AAM) you need to run both ***2.0_to_3.0.js*** and ***3.0_to_4.0.js***
+* if you have ***2.x*** release of symbIoTe (i.e. 3.x release of AAM) you need to run only ***3.0_to_4.0.js***
+To run the script you can simply execute the following command:   
+`mongo {mongo_host}:{mongo_port} {script.js}`   
+e.g. 
+`mongo localhost:27017 3.0_to_4.0.js`   
+
+**DISCLAIMER:** Regarding the platform migration scripts, all the accounts will be automatically set to ***ACTIVE*** 
+with the ***serviceConsent*** set to true. This is not GDPR-compliant, but we recommend this approach for testing 
+environments. For production, we recommend to run the ***core scripts*** on the platform side as well, and to require email 
+verification and service consent request.
 
 ## Context
 To read more about the project, please see documentation of:
