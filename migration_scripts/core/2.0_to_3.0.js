@@ -3,7 +3,7 @@
 
 //CONNECTION TO DB - fill DB name and link
 conn = new Mongo();
-db = conn.getDB("DATABASE_NAME");
+db = conn.getDB("symbiote-aam-database");
 //OR USING PROPER LINK TO DB     db = connect("localhost:27020/DATABASE_NAME");
 
 //DO NOT CHANGE THOSE TWO LINES
