@@ -1,4 +1,3 @@
-iote@symbiote:~/docker/dockerFinalRelease$ cat symbiote-cloud/symbioteAAM.sh
 #!/bin/bash
 
 symbIoTeSecurityVersion=$1
