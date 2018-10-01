@@ -147,3 +147,204 @@ Verify all is ok by going to:
 https://<yourCoreInterfaceHostname>/coreInterface/aam/get_component_certificate/platform/SymbIoTe_Core_AAM/component/aam
 ```
 There you should see the connection green and the content is Core AAM instance's certificate in PEM format.
+## User management
+
+To manage users in the system, AAM exposes AMQP and REST interfaces, depending on the profile of the AAM.
+* **Core AAM**: AMQP and REST api
+* **Platform AAM**: AMQP and REST api
+* **Smart Space AAM**: REST api
+
+Users can have two roles in the system ([UserRole](https://github.com/symbiote-h2020/SymbIoTeSecurity/blob/develop/src/main/java/eu/h2020/symbiote/security/commons/enums/UserRole.java)): 
+* USER - default symbIoTe's data consumer role
+* SERVICE_OWNER - symbIoTe-enabled service's (platform's and smart space's) owner account type, used to release administration attributes
+
+**NOTE: Service Owners can't be registered in Platform AAMs!**
+
+What's more, user's account in the system contains [AccountStatus](https://github.com/symbiote-h2020/SymbIoTeSecurity/blob/develop/src/main/java/eu/h2020/symbiote/security/commons/enums/AccountStatus.java). 
+### Payload
+To manage users in the system, proper [UserManagementRequest](https://github.com/symbiote-h2020/SymbIoTeSecurity/blob/develop/src/main/java/eu/h2020/symbiote/security/communication/payloads/UserManagementRequest.java)
+should be send, filled depending on operation type:
+
+* CREATE:
+    * admin credentials - for operation authorization
+    * user details - information about username, password, recovery mail etc.
+    
+    NOTE: service terms agreement must be set to true
+* UPDATE:
+    * admin credentials - for operation authorization
+    * user credentials - for operation authorization
+    * user details - information about new password, new mail or analytics and research consent update(**MUST contain valid username!**)
+
+* DELETE:
+    * admin credentials - for operation authorization
+    * user credentials (only username) - information about username
+* FORCED_UPDATE:
+    * admin credentials - for operation authorization
+    * user credentials (only username) - information about username to resolve user
+    * user details - information about new password, new mail, analytics and research consent update, service terms agreement and account status (**MUST contain valid username!**)
+
+* ATTRIBUTES_UPDATE:
+    * admin credentials - for operation authorization
+    * user credentials (only username) - information about username
+    * attributes map - information about attributes to be included into token
+
+#### Example
+Example of the valid CREATE request, for user named *testApplicationUsername*:
+```json
+{
+	"administratorCredentials": {
+		"username": "AAMOwner",
+		"password": "AAMPassword"
+	},
+	"userCredentials": {
+		"username": "", 
+		"password": ""
+	},
+	"userDetails": {
+		"recoveryMail": "null@dev.null",
+		"role": "USER",
+		"status": "NEW",
+		"attributes": {},
+		"clients": {},
+		"serviceConsent": true,
+		"analyticsAndResearchConsent": false,
+		"credentials": {
+			"username": "testApplicationUsername",
+			"password": "testApplicationPassword"
+		}
+	},
+	"operationType": "CREATE"
+}
+```
+Example of the valid UPDATE request:
+```json
+{
+	"administratorCredentials": {
+		"username": "AAMOwner",
+		"password": "AAMPassword"
+	},
+	"userCredentials": {
+		"username": "testApplicationUsername",
+		"password": "testApplicationPassword"
+	},
+	"userDetails": {
+		"recoveryMail": "newRecoveryMail",
+		"role": "USER",
+		"status": "NEW",
+		"attributes": {},
+		"clients": {},
+		"serviceConsent": true,
+		"analyticsAndResearchConsent": false,
+		"credentials": {
+			"username": "testApplicationUsername",
+			"password": ""
+		}
+	},
+	"operationType": "UPDATE"
+}
+```
+Example of the valid DELETE request:
+```json
+{
+	"administratorCredentials": {
+		"username": "AAMOwner",
+		"password": "AAMPassword"
+	},
+	"userCredentials": {
+		"username": "",
+		"password": ""
+	},
+	"userDetails": {
+		"recoveryMail": "",
+		"role": "USER",
+		"status": "NEW",
+		"attributes": {},
+		"clients": {},
+		"serviceConsent": true,
+		"analyticsAndResearchConsent": false,
+		"credentials": {
+			"username": "testApplicationUsername",
+			"password": ""
+		}
+	},
+	"operationType": "DELETE"
+}
+```
+Example of the valid FORCE_UPDATE request:
+```json
+{
+	"administratorCredentials": {
+		"username": "AAMOwner",
+		"password": "AAMPassword"
+	},
+	"userCredentials": {
+		"username": "",
+		"password": ""
+	},
+	"userDetails": {
+		"recoveryMail": "newMail@mail.mail",
+		"role": "USER",
+		"status": "NEW",
+		"attributes": {},
+		"clients": {},
+		"serviceConsent": true,
+		"analyticsAndResearchConsent": true,
+		"credentials": {
+			"username": "testApplicationUsername",
+			"password": "NewPassword"
+		}
+	},
+	"operationType": "FORCE_UPDATE"
+}
+```
+Example of the valid ATTRIBUTES_UPDATE request:
+```json
+{
+	"administratorCredentials": {
+		"username": "AAMOwner",
+		"password": "AAMPassword"
+	},
+	"userCredentials": {
+		"username": "",
+		"password": ""
+	},
+	"userDetails": {
+		"recoveryMail": "",
+		"role": "USER",
+		"status": "NEW",
+		"attributes": {
+			"attributeExample": "attributeValueExample"
+		},
+		"clients": {},
+		"serviceConsent": true,
+		"analyticsAndResearchConsent": false,
+		"credentials": {
+			"username": "testApplicationUsername",
+			"password": ""
+		}
+	},
+	"operationType": "ATTRIBUTES_UPDATE"
+}
+```
+
+### REST
+To manage users using REST api, send HTTP POST request on:
+
+```java 
+https://<aamInterfaceAdress>/aam/manage_users
+```
+
+containing properly filled [UserManagementRequest](https://github.com/symbiote-h2020/SymbIoTeSecurity/blob/develop/src/main/java/eu/h2020/symbiote/security/communication/payloads/UserManagementRequest.java) (see previous section).
+As a response, HttpStatus is returned with [ManagementStatus](https://github.com/symbiote-h2020/SymbIoTeSecurity/blob/develop/src/main/java/eu/h2020/symbiote/security/commons/enums/ManagementStatus.java) in message body.
+
+### AMQP
+To manage users using AMQP api, send properly filled [UserManagementRequest](https://github.com/symbiote-h2020/SymbIoTeSecurity/blob/develop/src/main/java/eu/h2020/symbiote/security/communication/payloads/UserManagementRequest.java) (see previous section) on the rabbit.queue.manage.user.request queue:
+```java
+ // issue app registration over AMQP
+ byte[] response = rabbitTemplate.sendAndReceive(userManagementRequestQueue,
+     new Message(mapper.writeValueAsString(userManagementRequest).getBytes(), new MessageProperties())).getBody();
+
+ManagementStatus appRegistrationResponse = mapper.readValue(response,
+     ManagementStatus.class);
+```
+As a response, [ManagementStatus](https://github.com/symbiote-h2020/SymbIoTeSecurity/blob/develop/src/main/java/eu/h2020/symbiote/security/commons/enums/ManagementStatus.java) is returned as a byte array.
