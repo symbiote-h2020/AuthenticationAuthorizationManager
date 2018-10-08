@@ -169,7 +169,7 @@ should be send, filled depending on operation type:
     * admin credentials - for operation authorization
     * user details - information about username, password, recovery mail etc.
     
-    NOTE: service terms agreement must be set to true
+    NOTE: Creating user, we have to be sure that he agrees to service terms - **it is required for user creation!**
 * UPDATE:
     * admin credentials - for operation authorization
     * user credentials - for operation authorization
@@ -331,7 +331,7 @@ Example of the valid ATTRIBUTES_UPDATE request:
 To manage users using REST api, send HTTP POST request on:
 
 ```java 
-https://<aamInterfaceAdress>/aam/manage_users
+https://<localAAMAddress>/manage_users
 ```
 
 containing properly filled [UserManagementRequest](https://github.com/symbiote-h2020/SymbIoTeSecurity/blob/develop/src/main/java/eu/h2020/symbiote/security/communication/payloads/UserManagementRequest.java) (see previous section).
