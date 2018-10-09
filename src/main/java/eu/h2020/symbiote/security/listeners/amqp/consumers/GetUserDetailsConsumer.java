@@ -74,10 +74,17 @@ public class GetUserDetailsConsumer {
             try {
                 UserManagementRequest userManagementRequest = om.readValue(message, UserManagementRequest.class);
                 Credentials administratorCredentials = userManagementRequest.getAdministratorCredentials();
+                Credentials userCredentials = userManagementRequest.getUserCredentials();
+                // TODO harden Credentials so that NULLs are forbidden
 
                 // check if we received required administrator credentials and user credentials for API auth
-                if (administratorCredentials == null || userManagementRequest.getUserCredentials() == null)
-                    throw new InvalidArgumentsException();
+                if (administratorCredentials == null
+                        || administratorCredentials.getUsername() == null
+                        || administratorCredentials.getPassword() == null
+                        || userCredentials == null
+                        || userCredentials.getUsername() == null
+                        || userCredentials.getPassword() == null)
+                    throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_CREDENTIALS);
                 // and if the admin credentials match those from properties
                 if (!administratorCredentials.getUsername().equals(adminUsername)
                         || !administratorCredentials.getPassword().equals(adminPassword))
@@ -103,7 +110,7 @@ public class GetUserDetailsConsumer {
                 switch (userManagementRequest.getOperationType()) {
                     case READ: // ordinary check fetching the user details by the user
                         //  Checking User's credentials
-                        if (!passwordEncoder.matches(userManagementRequest.getUserCredentials().getPassword(), foundUser.getPasswordEncrypted())) {
+                        if (!passwordEncoder.matches(userCredentials.getPassword(), foundUser.getPasswordEncrypted())) {
                             //  If wrong password was provided return message with UNAUTHORIZED status
                             return om.writeValueAsString(new UserDetailsResponse(HttpStatus.UNAUTHORIZED, new UserDetails())).getBytes();
                         }
