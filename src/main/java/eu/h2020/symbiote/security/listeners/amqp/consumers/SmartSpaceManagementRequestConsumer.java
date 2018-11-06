@@ -8,10 +8,7 @@ import eu.h2020.symbiote.security.communication.payloads.SmartSpaceManagementReq
 import eu.h2020.symbiote.security.services.SmartSpacesManagementService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.amqp.rabbit.annotation.Exchange;
-import org.springframework.amqp.rabbit.annotation.Queue;
-import org.springframework.amqp.rabbit.annotation.QueueBinding;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.amqp.rabbit.annotation.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
@@ -39,6 +36,10 @@ public class SmartSpaceManagementRequestConsumer {
                     value = "${rabbit.queue.manage.smartspace.request}",
                     durable = "${rabbit.exchange.aam.durable}",
                     autoDelete = "${rabbit.exchange.aam.autodelete}",
+                    arguments = {@Argument(
+                            name = "x-message-ttl",
+                            value = "${rabbit.message-ttl}",
+                            type = "java.lang.Integer")},
                     exclusive = "false"),
             exchange = @Exchange(
                     value = "${rabbit.exchange.aam.name}",
