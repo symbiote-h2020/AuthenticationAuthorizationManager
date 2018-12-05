@@ -3,7 +3,7 @@ FROM openjdk:8-jre-alpine
 WORKDIR /home
 
 ENV componentName "AuthenticationAuthorizationManager"
-ENV componentVersion 5.0.7
+ENV componentVersion 5.0.9
 ENV symbIoTeSecurityVersion 27.5.0
 
 COPY ./docker/configure.sh configure.sh

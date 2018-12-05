@@ -23,7 +23,7 @@ plugins {
     id "java"
     // spring
     id "io.spring.dependency-management" version "1.0.6.RELEASE"
-    id 'org.springframework.boot' version '1.5.15.RELEASE'
+    id 'org.springframework.boot' version '1.5.18.RELEASE'
     // code quality
     id "jacoco"
     id "org.owasp.dependencycheck" version "3.2.1"
@@ -52,7 +52,7 @@ repositories {
 }
 // Spring related configs
 ext {
-    springCloudVersion = 'Dalston.SR5'
+    springCloudVersion = 'Edgware.SR5'
 }
 dependencyManagement {
     imports {
@@ -89,7 +89,7 @@ dependencies {
     //compile project(':SymbIoTeSecurity')
     compile('com.github.symbiote-h2020:SymbIoTeSecurity:[27.5, 27.999]') {changing = true }
 
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:[5.27, 5.999]'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:[5.37, 5.999]'){ changing = true }
     //compile project(':SymbIoTeLibraries')
 
     // Spring
