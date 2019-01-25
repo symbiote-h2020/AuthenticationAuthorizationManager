@@ -7,10 +7,7 @@ import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ServiceManagementException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementRequest;
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementResponse;
@@ -419,7 +416,7 @@ public class PlatformManagementUnitTests extends
             platformsManagementService.authManage(platformManagementRequest);
             fail();
         } catch (SecurityException errorResponse) {
-            assertEquals(WrongCredentialsException.USER_NOT_ACTIVE, errorResponse.getMessage());
+            assertEquals(BlockedUserException.errorMessage, errorResponse.getMessage());
         }
         // verify that our platform is not in repository
         assertFalse(platformRepository.exists(preferredPlatformId));

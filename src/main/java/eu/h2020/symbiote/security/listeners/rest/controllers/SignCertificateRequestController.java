@@ -42,8 +42,7 @@ public class SignCertificateRequestController implements ISignCertificateRequest
         try {
             String certificate = signCertificateRequestService.signCertificateRequest(certificateRequest);
             return ResponseEntity.status(HttpStatus.OK).body(certificate);
-        } catch (WrongCredentialsException | NotExistingUserException | InvalidArgumentsException
-                | UserManagementException | ServiceManagementException | ValidationException e) {
+        } catch (WrongCredentialsException | NotExistingUserException | InvalidArgumentsException | UserManagementException | ServiceManagementException | ValidationException | BlockedUserException e) {
             return new ResponseEntity<>(e.getErrorMessage(), e.getStatusCode());
         } catch (CertificateException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);

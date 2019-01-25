@@ -16,7 +16,6 @@ import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.security.PublicKey;
@@ -76,7 +75,8 @@ public class GetTokenService {
             JWTCreationException,
             WrongCredentialsException,
             CertificateException,
-            ValidationException {
+            ValidationException,
+            BlockedUserException {
         // validate request
         JWTClaims claims = JWTEngine.getClaimsFromToken(loginRequest);
 
@@ -96,12 +96,12 @@ public class GetTokenService {
                     || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey()))
                 throw new WrongCredentialsException();
         } else { // ordinary user/po client
+            if (userInDB != null && userInDB.getStatus() != AccountStatus.ACTIVE)
+                throw new BlockedUserException();
             if (userInDB == null
                     || !userInDB.getClientCertificates().containsKey(sub)
                     || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, userInDB.getClientCertificates().get(sub).getX509().getPublicKey()))
                 throw new WrongCredentialsException();
-            if (userInDB.getStatus() != AccountStatus.ACTIVE)
-                throw new WrongCredentialsException(WrongCredentialsException.USER_NOT_ACTIVE, HttpStatus.FORBIDDEN);
         }
 
         // preparing user and key for token

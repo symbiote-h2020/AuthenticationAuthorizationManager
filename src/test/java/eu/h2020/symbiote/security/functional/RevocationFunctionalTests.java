@@ -72,7 +72,8 @@ public class RevocationFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
@@ -109,7 +110,8 @@ public class RevocationFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(user);
@@ -153,7 +155,8 @@ public class RevocationFunctionalTests extends
             AAMException,
             InvalidAlgorithmParameterException,
             NotExistingUserException,
-            ValidationException {
+            ValidationException,
+            BlockedUserException {
 
         User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(user);
@@ -196,7 +199,8 @@ public class RevocationFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
@@ -230,7 +234,7 @@ public class RevocationFunctionalTests extends
 
     }
 
-    @Test(expected = WrongCredentialsException.class)
+    @Test(expected = BlockedUserException.class)
     public void revokeUserCertificateFailForUserAccountNotActive() throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
@@ -241,7 +245,8 @@ public class RevocationFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
@@ -279,7 +284,8 @@ public class RevocationFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
@@ -317,7 +323,8 @@ public class RevocationFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(user);
@@ -360,7 +367,7 @@ public class RevocationFunctionalTests extends
             InvalidArgumentsException,
             WrongCredentialsException,
             AAMException,
-            InvalidAlgorithmParameterException, NotExistingUserException, ValidationException {
+            InvalidAlgorithmParameterException, NotExistingUserException, ValidationException, BlockedUserException {
 
         User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(user);
@@ -398,7 +405,8 @@ public class RevocationFunctionalTests extends
             ValidationException,
             JWTCreationException,
             MalformedJWTException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -429,7 +437,8 @@ public class RevocationFunctionalTests extends
             InvalidArgumentsException,
             WrongCredentialsException,
             MalformedJWTException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         assertNotNull(userRepository.findOne(username));
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -484,7 +493,8 @@ public class RevocationFunctionalTests extends
     public void revokeForeignTokenOverRESTFailNoTokens() throws
             WrongCredentialsException,
             InvalidArgumentsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         RevocationRequest revocationRequest = new RevocationRequest();
         aamClient.revokeCredentials(revocationRequest);
     }
@@ -500,7 +510,8 @@ public class RevocationFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
@@ -540,7 +551,8 @@ public class RevocationFunctionalTests extends
             ValidationException,
             JWTCreationException,
             MalformedJWTException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());

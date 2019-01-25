@@ -40,7 +40,8 @@ public class CertificatesIssuingFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), usernameWithAt, clientId, pair);
         assertNotNull(csrString);
@@ -56,7 +57,8 @@ public class CertificatesIssuingFunctionalTests extends
             NoSuchProviderException,
             IOException,
             InvalidArgumentsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -66,7 +68,7 @@ public class CertificatesIssuingFunctionalTests extends
     }
 
 
-    @Test(expected = ValidationException.class)
+    @Test(expected = BlockedUserException.class)
     public void getClientCertificateOverFailForUserAccountNotActive() throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
@@ -77,7 +79,8 @@ public class CertificatesIssuingFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
@@ -103,7 +106,8 @@ public class CertificatesIssuingFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
@@ -131,7 +135,8 @@ public class CertificatesIssuingFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
@@ -156,14 +161,15 @@ public class CertificatesIssuingFunctionalTests extends
         assertEquals("CN=" + username + "@" + clientId + "@" + homeAAM.getAamInstanceId(), x509Certificate.getSubjectDN().getName());
     }
 
-    @Test(expected = ValidationException.class)
+    @Test(expected = WrongCredentialsException.class)
     public void getClientCertificateFailsForIncorrectCredentials()
             throws InvalidArgumentsException, NoSuchAlgorithmException,
             NoSuchProviderException, InvalidAlgorithmParameterException,
             WrongCredentialsException, NotExistingUserException,
-            CertificateException, IOException, ValidationException, AAMException {
+            CertificateException, IOException, ValidationException, AAMException,
+            BlockedUserException {
 
-        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
+        User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(user);
 
         AvailableAAMsCollection aamResponse = aamClient.getAvailableAAMs();
@@ -176,7 +182,7 @@ public class CertificatesIssuingFunctionalTests extends
                 (username, wrongPassword, clientId, csrString));
     }
 
-    @Test(expected = ValidationException.class)
+    @Test(expected = BlockedUserException.class)
     public void getPlatformAAMCertificateOverRESTFailForAccountNotActive() throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
@@ -187,7 +193,8 @@ public class CertificatesIssuingFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User platformOwner = savePlatformOwner();
 
@@ -213,7 +220,7 @@ public class CertificatesIssuingFunctionalTests extends
         assertEquals("CN=" + platform.getPlatformInstanceId(), x509Certificate.getSubjectDN().getName());
     }
 
-    @Test(expected = ValidationException.class)
+    @Test(expected = WrongCredentialsException.class)
     public void getPlatformAAMCertificateOverRESTFailForBadPassword() throws
             InvalidAlgorithmParameterException,
             NoSuchAlgorithmException,
@@ -224,7 +231,8 @@ public class CertificatesIssuingFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User platformOwner = savePlatformOwner();
 
@@ -260,7 +268,8 @@ public class CertificatesIssuingFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User platformOwner = savePlatformOwner();
 
@@ -296,7 +305,8 @@ public class CertificatesIssuingFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User platformOwner = savePlatformOwner();
 
@@ -332,7 +342,8 @@ public class CertificatesIssuingFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         // issue smartSpace registration
@@ -363,7 +374,8 @@ public class CertificatesIssuingFunctionalTests extends
             WrongCredentialsException,
             NotExistingUserException,
             ValidationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
 
         User platformOwner = savePlatformOwner();
 

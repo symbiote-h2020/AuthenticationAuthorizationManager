@@ -45,7 +45,8 @@ public class TokensIssuingFunctionalTests extends
             CertificateException,
             JWTCreationException,
             WrongCredentialsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -69,7 +70,8 @@ public class TokensIssuingFunctionalTests extends
             MalformedJWTException,
             JWTCreationException,
             WrongCredentialsException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         // no user in repo
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -81,7 +83,8 @@ public class TokensIssuingFunctionalTests extends
     public void getForeignTokenUsingGuestTokenOverRESTFail() throws
             ValidationException,
             JWTCreationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         // issuing guest token
         String acquired_token = aamClient.getGuestToken();
         assertNotNull(acquired_token);
@@ -104,7 +107,8 @@ public class TokensIssuingFunctionalTests extends
             NoSuchAlgorithmException,
             MalformedJWTException,
             JWTCreationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         // issuing dummy platform token
         String username = "userId";
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());

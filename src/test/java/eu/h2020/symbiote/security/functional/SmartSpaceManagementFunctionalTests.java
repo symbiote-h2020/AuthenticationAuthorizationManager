@@ -5,6 +5,7 @@ import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
 import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.exceptions.custom.BlockedUserException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
@@ -142,7 +143,7 @@ public class SmartSpaceManagementFunctionalTests extends
                 ErrorResponseContainer.class);
 
         // verify that we received ErrorResponseContainer
-        assertEquals(WrongCredentialsException.USER_NOT_ACTIVE, sspRegistrationOverAMQPResponse.getErrorMessage());
+        assertEquals(BlockedUserException.errorMessage, sspRegistrationOverAMQPResponse.getErrorMessage());
     }
 
 

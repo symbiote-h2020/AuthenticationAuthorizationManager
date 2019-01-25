@@ -334,7 +334,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             MalformedJWTException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -431,7 +432,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             UserManagementException,
             WrongCredentialsException,
             NotExistingUserException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         userRepository.deleteAll();
         KeyPair keyPair = CryptoHelper.createKeyPair();
@@ -475,7 +477,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             UserManagementException,
             ValidationException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            BlockedUserException {
 
         userRepository.deleteAll();
 
@@ -525,7 +528,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             UserManagementException,
             WrongCredentialsException,
             NotExistingUserException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         userRepository.deleteAll();
 
@@ -648,7 +652,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             KeyStoreException,
             MalformedJWTException,
             ClassNotFoundException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         // issuing dummy platform token
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -1133,7 +1138,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             NoSuchAlgorithmException,
             MalformedJWTException,
             JWTCreationException,
-            AAMException {
+            AAMException,
+            BlockedUserException {
         // issuing dummy platform token
         String username = "userId";
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());

@@ -81,7 +81,7 @@ public class CertificatesIssuingUnitTests extends
         cert.checkValidity(new Date());
     }
 
-    @Test(expected = WrongCredentialsException.class)
+    @Test(expected = BlockedUserException.class)
     public void getClientCertificateFailForAccountNotActivate() throws
             IOException,
             NoSuchAlgorithmException,
@@ -93,7 +93,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         saveNewUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -115,7 +116,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -145,7 +147,8 @@ public class CertificatesIssuingUnitTests extends
             ValidationException,
             CertificateException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -170,7 +173,8 @@ public class CertificatesIssuingUnitTests extends
             CertificateException,
             IOException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
         //ensure that there is not our user in repo
         assertFalse(userRepository.exists(appUsername));
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -192,7 +196,8 @@ public class CertificatesIssuingUnitTests extends
             CertificateException,
             IOException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -219,7 +224,8 @@ public class CertificatesIssuingUnitTests extends
             ValidationException,
             UserManagementException,
             ServiceManagementException,
-            WrongCredentialsException {
+            WrongCredentialsException,
+            BlockedUserException {
         User user = saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
 
@@ -241,7 +247,8 @@ public class CertificatesIssuingUnitTests extends
             ValidationException,
             UserManagementException,
             ServiceManagementException,
-            WrongCredentialsException {
+            WrongCredentialsException,
+            BlockedUserException {
         User user = saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csr = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(),
@@ -262,7 +269,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         // initial issue
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -302,7 +310,8 @@ public class CertificatesIssuingUnitTests extends
             NotExistingUserException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
         KeyPair pair = CryptoHelper.createKeyPair();
         String csr = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
         CertificateRequest certRequest = new CertificateRequest(AAMOwnerUsername, wrongPassword, "", csr);
@@ -321,7 +330,8 @@ public class CertificatesIssuingUnitTests extends
             ValidationException,
             CertificateException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
         KeyPair pair = CryptoHelper.createKeyPair();
         String csr = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, platformId, pair);
         CertificateRequest certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, "", csr);
@@ -340,7 +350,8 @@ public class CertificatesIssuingUnitTests extends
             ValidationException,
             CertificateException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
         KeyPair pair = CryptoHelper.createKeyPair();
         Set<String> keySet = new HashSet<>();
         keySet.add(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded()));
@@ -362,7 +373,8 @@ public class CertificatesIssuingUnitTests extends
             ValidationException,
             CertificateException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
         KeyPair pair = CryptoHelper.createKeyPair();
         String csr = CryptoHelper.buildComponentCertificateSigningRequestPEM(SecurityConstants.AAM_COMPONENT_NAME, CORE_AAM_INSTANCE_ID, pair);
         CertificateRequest certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, "", csr);
@@ -381,7 +393,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         User platformOwner = savePlatformOwner();
         savePlatform(platformOwner);
@@ -457,7 +470,8 @@ public class CertificatesIssuingUnitTests extends
             UserManagementException,
             ValidationException,
             ServiceManagementException,
-            NotExistingUserException {
+            NotExistingUserException,
+            BlockedUserException {
         //ensure that platform repo is empty
         platformRepository.deleteAll();
         savePlatformOwner();
@@ -486,7 +500,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(smartSpaceOwner);
@@ -596,7 +611,8 @@ public class CertificatesIssuingUnitTests extends
             UserManagementException,
             ValidationException,
             ServiceManagementException,
-            NotExistingUserException {
+            NotExistingUserException,
+            BlockedUserException {
         //ensure that smartSpace repo is empty
         smartSpaceRepository.deleteAll();
         User user = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
@@ -625,7 +641,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -670,7 +687,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -712,7 +730,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         User platformOwner = savePlatformOwner();
         savePlatform(platformOwner);
@@ -757,7 +776,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         User platformOwner = savePlatformOwner();
         savePlatform(platformOwner);
@@ -802,7 +822,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         saveSmartSpace(smartSpaceOwner);
@@ -847,7 +868,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         User smartSpaceOwner = createUser(smartSpaceOwnerUsername, smartSpaceOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         saveSmartSpace(smartSpaceOwner);
@@ -892,7 +914,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);
@@ -934,7 +957,8 @@ public class CertificatesIssuingUnitTests extends
             InvalidArgumentsException,
             ValidationException,
             UserManagementException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildComponentCertificateSigningRequestPEM(componentId, CORE_AAM_INSTANCE_ID, pair);

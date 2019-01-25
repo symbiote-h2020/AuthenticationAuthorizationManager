@@ -50,6 +50,8 @@ public class RevocationUnitTests extends
         AbstractAAMTestSuite {
 
     @Autowired
+    DummyPlatformAAM dummyPlatformAAM;
+    @Autowired
     private RevocationService revocationService;
     @Autowired
     private CertificationAuthorityHelper certificationAuthorityHelper;
@@ -63,8 +65,6 @@ public class RevocationUnitTests extends
     private TokenIssuer tokenIssuer;
     @Autowired
     private GetTokenService getTokenService;
-    @Autowired
-    DummyPlatformAAM dummyPlatformAAM;
 
     @Test
     public void revokeUserCertificateUsingCommonNameSuccess() throws
@@ -78,7 +78,8 @@ public class RevocationUnitTests extends
             ValidationException,
             ServiceManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            BlockedUserException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -114,7 +115,8 @@ public class RevocationUnitTests extends
             ValidationException,
             ServiceManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            BlockedUserException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -163,7 +165,8 @@ public class RevocationUnitTests extends
             ValidationException,
             ServiceManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            BlockedUserException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -196,7 +199,8 @@ public class RevocationUnitTests extends
             ValidationException,
             ServiceManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            BlockedUserException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -268,7 +272,8 @@ public class RevocationUnitTests extends
             ValidationException,
             ServiceManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            BlockedUserException {
 
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
@@ -317,7 +322,8 @@ public class RevocationUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             IOException,
-            CertificateException {
+            CertificateException,
+            BlockedUserException {
         User platformOwner = savePlatformOwner();
         KeyPair pair = CryptoHelper.createKeyPair();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
@@ -375,7 +381,8 @@ public class RevocationUnitTests extends
             NoSuchAlgorithmException,
             NoSuchProviderException,
             IOException,
-            CertificateException {
+            CertificateException,
+            BlockedUserException {
         User platformOwner = savePlatformOwner();
         KeyPair pair = CryptoHelper.createKeyPair();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
@@ -421,7 +428,8 @@ public class RevocationUnitTests extends
             ValidationException,
             ServiceManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            BlockedUserException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -461,7 +469,8 @@ public class RevocationUnitTests extends
             ValidationException,
             ServiceManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            BlockedUserException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -537,7 +546,8 @@ public class RevocationUnitTests extends
             InvalidAlgorithmParameterException,
             InvalidArgumentsException,
             ServiceManagementException,
-            UserManagementException {
+            UserManagementException,
+            BlockedUserException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -575,7 +585,8 @@ public class RevocationUnitTests extends
             InvalidAlgorithmParameterException,
             InvalidArgumentsException,
             ServiceManagementException,
-            UserManagementException {
+            UserManagementException,
+            BlockedUserException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -604,7 +615,6 @@ public class RevocationUnitTests extends
     }
 
 
-
     @Test
     public void revokeHomeTokenByPlatformSuccess() throws
             IOException,
@@ -614,7 +624,8 @@ public class RevocationUnitTests extends
             CertificateException,
             NoSuchAlgorithmException,
             InvalidAlgorithmParameterException,
-            MalformedJWTException {
+            MalformedJWTException,
+            BlockedUserException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -655,7 +666,8 @@ public class RevocationUnitTests extends
             InvalidArgumentsException,
             ServiceManagementException,
             UserManagementException,
-            MalformedJWTException {
+            MalformedJWTException,
+            BlockedUserException {
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
         platformRepository.save(platform);
@@ -755,7 +767,8 @@ public class RevocationUnitTests extends
             IOException,
             JWTCreationException,
             ValidationException,
-            MalformedJWTException {
+            MalformedJWTException,
+            BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         assertNotNull(userRepository.findOne(username));
         HomeCredentials homeCredentials = new HomeCredentials(null, username, platformId, null, userKeyPair.getPrivate());
@@ -813,7 +826,8 @@ public class RevocationUnitTests extends
             IOException,
             JWTCreationException,
             ValidationException,
-            MalformedJWTException {
+            MalformedJWTException,
+            BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         assertNotNull(userRepository.findOne(username));
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
@@ -871,7 +885,8 @@ public class RevocationUnitTests extends
             ValidationException,
             ServiceManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            BlockedUserException {
         saveUser();
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
@@ -908,7 +923,8 @@ public class RevocationUnitTests extends
             ValidationException,
             ServiceManagementException,
             InvalidArgumentsException,
-            NotExistingUserException {
+            NotExistingUserException,
+            BlockedUserException {
         //platform certificate revoking
         User platformOwner = savePlatformOwner();
         Platform platform = new Platform(platformId, null, null, platformOwner, new Certificate(), new HashMap<>());
@@ -1031,7 +1047,8 @@ public class RevocationUnitTests extends
             CertificateException,
             KeyStoreException,
             UnrecoverableKeyException,
-            ValidationException {
+            ValidationException,
+            BlockedUserException {
         String cert = CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
                 "keystores/core.p12",
                 "registry-core-1"));

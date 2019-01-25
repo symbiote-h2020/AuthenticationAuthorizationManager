@@ -5,10 +5,7 @@ import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.*;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
@@ -966,7 +963,11 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getUserDetailsSuccess() throws UserManagementException, AAMException, CertificateException {
+    public void getUserDetailsSuccess() throws
+            UserManagementException,
+            AAMException,
+            CertificateException,
+            BlockedUserException {
         //  put user into database
         // new attributes map
         String key = "key";
@@ -1007,14 +1008,14 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test(expected = UserManagementException.class)
-    public void getUserDetailsFailNotExistingUser() throws UserManagementException, AAMException {
+    public void getUserDetailsFailNotExistingUser() throws UserManagementException, AAMException, BlockedUserException {
         assertFalse(userRepository.exists(username));
         //  Request user that is NOT in database
         aamClient.getUserDetails(new Credentials(username, password));
     }
 
     @Test(expected = UserManagementException.class)
-    public void getUserDetailsFailWrongPassword() throws UserManagementException, AAMException {
+    public void getUserDetailsFailWrongPassword() throws UserManagementException, AAMException, BlockedUserException {
         //  Register user in database
         User user = createUser(username, password, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
         userRepository.save(user);

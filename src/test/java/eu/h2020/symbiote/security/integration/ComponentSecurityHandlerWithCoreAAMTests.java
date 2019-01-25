@@ -29,6 +29,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.assertFalse;
@@ -72,7 +73,8 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
                 crmComponentId,
                 serverAddress,
                 AAMOwnerUsername,
-                AAMOwnerPassword
+                AAMOwnerPassword,
+                Optional.empty()
         );
 
         // getting a CRM service response
@@ -131,7 +133,8 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
                 crmComponentId,
                 serverAddress,
                 AAMOwnerUsername,
-                AAMOwnerPassword
+                AAMOwnerPassword,
+                Optional.empty()
         );
         assertNotNull(crmCSH);
         // getting a CRM service response
@@ -157,7 +160,8 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
                 crmComponentId,
                 serverAddress,
                 AAMOwnerUsername,
-                AAMOwnerPassword
+                AAMOwnerPassword,
+                Optional.empty()
         );
         assertNotNull(crmCSH);
         assertNotNull(crmCSH.generateServiceResponse());
@@ -168,7 +172,8 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
                 crmComponentId,
                 serverAddress,
                 AAMOwnerUsername,
-                AAMOwnerPassword
+                AAMOwnerPassword,
+                Optional.empty()
         );
         // getting a CRM service response
         assertNotNull(crmCSH);
@@ -194,7 +199,8 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
                 crmComponentId,
                 serverAddress,
                 AAMOwnerUsername,
-                AAMOwnerPassword
+                AAMOwnerPassword,
+                Optional.empty()
         );
 
         assertNotNull(crmCSH);
@@ -209,7 +215,8 @@ public class ComponentSecurityHandlerWithCoreAAMTests extends AbstractAAMTestSui
                 crmComponentId,
                 serverAddress,
                 AAMOwnerUsername,
-                AAMOwnerPassword
+                AAMOwnerPassword,
+                Optional.empty()
         );
     }
 }

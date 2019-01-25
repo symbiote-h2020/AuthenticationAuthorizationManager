@@ -59,7 +59,7 @@ public class RevocationService {
         } catch (CertificateException | IOException | IllegalArgumentException | InvalidArgumentsException | SecurityException e) {
             log.error(e.getMessage());
             return new RevocationResponse(false, HttpStatus.BAD_REQUEST);
-        } catch (WrongCredentialsException | ValidationException | NotExistingUserException | MalformedJWTException | SecurityMisconfigurationException e) {
+        } catch (WrongCredentialsException | ValidationException | NotExistingUserException | MalformedJWTException | SecurityMisconfigurationException | BlockedUserException e) {
             log.error(e.getMessage());
             return new RevocationResponse(false, e.getStatusCode());
         }
@@ -107,7 +107,8 @@ public class RevocationService {
             WrongCredentialsException,
             ValidationException,
             IOException,
-            InvalidArgumentsException {
+            InvalidArgumentsException,
+            BlockedUserException {
         if (revocationRequest.getCredentials().getUsername().isEmpty()) {
             throw new WrongCredentialsException(WrongCredentialsException.AUTHENTICATION_OF_USER_FAILED);
         }
@@ -119,7 +120,7 @@ public class RevocationService {
             throw new WrongCredentialsException(WrongCredentialsException.AUTHENTICATION_OF_USER_FAILED);
         }
         if (user.getStatus() != AccountStatus.ACTIVE)
-            throw new WrongCredentialsException(WrongCredentialsException.USER_NOT_ACTIVE, HttpStatus.FORBIDDEN);
+            throw new BlockedUserException();
         if (!revocationRequest.getCertificatePEMString().isEmpty() ||
                 !revocationRequest.getCertificateCommonName().isEmpty()) {
             return new RevocationResponse(revocationHelper.revokeCertificate(user, new Certificate(revocationRequest.getCertificatePEMString()), revocationRequest.getCertificateCommonName()), HttpStatus.OK);

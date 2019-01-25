@@ -83,7 +83,8 @@ public class SignCertificateRequestService {
             UserManagementException,
             ServiceManagementException,
             ValidationException,
-            CertificateException {
+            CertificateException,
+            BlockedUserException {
 
         String pem;
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
@@ -131,7 +132,8 @@ public class SignCertificateRequestService {
             NotExistingUserException,
             ValidationException,
             ServiceManagementException,
-            InvalidArgumentsException {
+            InvalidArgumentsException,
+            BlockedUserException {
 
         User user = null;
         PublicKey pubKey;
@@ -191,7 +193,7 @@ public class SignCertificateRequestService {
                 if (user == null)
                     throw new NotExistingUserException();
                 if (user.getStatus() != AccountStatus.ACTIVE)
-                    throw new WrongCredentialsException(WrongCredentialsException.USER_NOT_ACTIVE, HttpStatus.FORBIDDEN);
+                    throw new BlockedUserException();
                 if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
                         !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
                     throw new WrongCredentialsException();
@@ -289,7 +291,8 @@ public class SignCertificateRequestService {
             ServiceManagementException,
             NotExistingUserException,
             WrongCredentialsException,
-            InvalidArgumentsException {
+            InvalidArgumentsException,
+            BlockedUserException {
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
         if (!userRepository.exists(certificateRequest.getUsername()))
             throw new NotExistingUserException();
@@ -297,7 +300,7 @@ public class SignCertificateRequestService {
         if (user == null)
             throw new NotExistingUserException();
         if (user.getStatus() != AccountStatus.ACTIVE)
-            throw new WrongCredentialsException(WrongCredentialsException.USER_NOT_ACTIVE, HttpStatus.FORBIDDEN);
+            throw new BlockedUserException();
         if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
                 !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
             throw new WrongCredentialsException();

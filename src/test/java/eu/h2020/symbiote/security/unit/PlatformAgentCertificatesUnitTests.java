@@ -63,7 +63,8 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
             UserManagementException,
             WrongCredentialsException,
             NotExistingUserException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
         userRepository.save(platformAgent);
@@ -95,7 +96,8 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
             UserManagementException,
             WrongCredentialsException,
             NotExistingUserException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
 
         User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.NEW);
@@ -121,7 +123,8 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
             UserManagementException,
             WrongCredentialsException,
             NotExistingUserException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
         //deploymentId should be SMART_SPACE, not PLATFORM
         doReturn(IssuingAuthorityType.PLATFORM).when(certificationAuthorityHelper).getDeploymentType();
@@ -136,7 +139,7 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
         signCertificateRequestService.signCertificateRequest(certRequest);
     }
 
-    @Test(expected = ValidationException.class)
+    @Test(expected = WrongCredentialsException.class)
     public void getPlatformAgentCertificateFailWrongPAPassword() throws
             IOException,
             NoSuchAlgorithmException,
@@ -148,9 +151,10 @@ public class PlatformAgentCertificatesUnitTests extends AbstractAAMTestSuite {
             UserManagementException,
             WrongCredentialsException,
             NotExistingUserException,
-            ServiceManagementException {
+            ServiceManagementException,
+            BlockedUserException {
 
-        User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.USER, AccountStatus.NEW);
+        User platformAgent = createUser(platformOwnerUsername, platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(platformAgent);
 
         KeyPair pair = CryptoHelper.createKeyPair();

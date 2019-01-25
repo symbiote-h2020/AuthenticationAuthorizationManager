@@ -33,6 +33,7 @@ import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static junit.framework.TestCase.assertTrue;
 import static org.junit.Assert.*;
@@ -88,7 +89,8 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
                 regHandlerComponentId,
                 serverAddress,
                 AAMOwnerUsername,
-                AAMOwnerPassword
+                AAMOwnerPassword,
+                Optional.empty()
         );
 
         // getting a CRM service response
@@ -110,7 +112,8 @@ public class ComponentSecurityHandlerWithPlatformAAMTests extends AbstractAAMTes
                 regHandlerComponentId,
                 serverAddress,
                 AAMOwnerUsername,
-                AAMOwnerPassword
+                AAMOwnerPassword,
+                Optional.empty()
         );
 
         // fetching the security response once more time

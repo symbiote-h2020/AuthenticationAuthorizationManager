@@ -94,7 +94,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             NoSuchAlgorithmException,
             NoSuchProviderException,
             MalformedJWTException,
-            ValidationException {
+            ValidationException,
+            BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         KeyPair keyPair = CryptoHelper.createKeyPair();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, keyPair.getPrivate());
@@ -102,7 +103,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         getTokenService.getHomeToken(loginRequest);
     }
 
-    @Test(expected = WrongCredentialsException.class)
+    @Test(expected = BlockedUserException.class)
     public void getHomeTokenForUserFailAccountNotActive() throws
             CertificateException,
             InvalidArgumentsException,
@@ -112,7 +113,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             NoSuchAlgorithmException,
             NoSuchProviderException,
             MalformedJWTException,
-            ValidationException {
+            ValidationException,
+            BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         // blocking the user
         User user = userRepository.findOne(username);
@@ -132,7 +134,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             WrongCredentialsException,
             JWTCreationException,
             MalformedJWTException,
-            ValidationException {
+            ValidationException,
+            BlockedUserException {
         //user is not in DB
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -146,7 +149,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             WrongCredentialsException,
             CertificateException,
             ValidationException,
-            InvalidArgumentsException {
+            InvalidArgumentsException,
+            BlockedUserException {
         addTestUserWithClientCertificateToRepository();
         HomeCredentials homeCredentials = new HomeCredentials(null, username, wrongClientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -161,7 +165,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             WrongCredentialsException,
             JWTCreationException,
             MalformedJWTException,
-            ValidationException {
+            ValidationException,
+            BlockedUserException {
         HomeCredentials homeCredentials = new HomeCredentials(null, null, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         getTokenService.getHomeToken(loginRequest);
@@ -176,7 +181,11 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             KeyStoreException,
             NoSuchProviderException,
             UnrecoverableKeyException,
-            JWTCreationException, WrongCredentialsException, InvalidArgumentsException, ValidationException {
+            JWTCreationException,
+            WrongCredentialsException,
+            InvalidArgumentsException,
+            ValidationException,
+            BlockedUserException {
 
         //component adding
         ComponentCertificate componentCertificate = new ComponentCertificate(
@@ -207,7 +216,11 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             NoSuchAlgorithmException,
             KeyStoreException,
             NoSuchProviderException,
-            JWTCreationException, WrongCredentialsException, InvalidArgumentsException, ValidationException {
+            JWTCreationException,
+            WrongCredentialsException,
+            InvalidArgumentsException,
+            ValidationException,
+            BlockedUserException {
 
         //platform owner adding
         ComponentCertificate componentCertificate = new ComponentCertificate(
@@ -225,7 +238,10 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getHomeTokenWithAttributesProvisionedToBeIssuedForLocalUser() throws CertificateException, JWTCreationException, MalformedJWTException {
+    public void getHomeTokenWithAttributesProvisionedToBeIssuedForLocalUser() throws
+            CertificateException,
+            JWTCreationException,
+            MalformedJWTException {
 
         localUsersAttributesRepository.save(new Attribute("key", "attribute"));
         addTestUserWithClientCertificateToRepository();
@@ -243,7 +259,10 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void getHomeTokenWithAttributesProvisionedToBeIssuedForGivenUser() throws CertificateException, JWTCreationException, MalformedJWTException {
+    public void getHomeTokenWithAttributesProvisionedToBeIssuedForGivenUser() throws
+            CertificateException,
+            JWTCreationException,
+            MalformedJWTException {
 
         addTestUserWithClientCertificateToRepository();
         User user = userRepository.findOne(username);
@@ -269,7 +288,8 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             WrongCredentialsException,
             InvalidArgumentsException,
             CertificateException,
-            ValidationException {
+            ValidationException,
+            BlockedUserException {
         getTokenService.getHomeToken("IncorrectlyFormattedToken");
     }
 
