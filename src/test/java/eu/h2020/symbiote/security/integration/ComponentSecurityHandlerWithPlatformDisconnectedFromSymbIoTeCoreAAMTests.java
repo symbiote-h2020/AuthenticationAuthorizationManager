@@ -11,6 +11,7 @@ import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
 import eu.h2020.symbiote.security.communication.payloads.SecurityRequest;
 import eu.h2020.symbiote.security.handler.IComponentSecurityHandler;
+import eu.h2020.symbiote.security.handler.NullAnomalyListenerSecurity;
 import eu.h2020.symbiote.security.handler.SecurityHandler;
 import eu.h2020.symbiote.security.listeners.rest.controllers.AAMServicesController;
 import eu.h2020.symbiote.security.services.AAMServices;
@@ -83,7 +84,8 @@ public class ComponentSecurityHandlerWithPlatformDisconnectedFromSymbIoTeCoreAAM
                 serverAddress,
                 AAMOwnerUsername,
                 AAMOwnerPassword,
-                Optional.empty()
+                //TODO CHANGE THAT!!
+                Optional.of(new NullAnomalyListenerSecurity())
         );
 
         // getting a CRM service response
@@ -106,7 +108,8 @@ public class ComponentSecurityHandlerWithPlatformDisconnectedFromSymbIoTeCoreAAM
                 serverAddress,
                 AAMOwnerUsername,
                 AAMOwnerPassword,
-                Optional.empty()
+                //TODO CHANGE THAT!!
+                Optional.of(new NullAnomalyListenerSecurity())
         );
 
         // fetching the security response once more time

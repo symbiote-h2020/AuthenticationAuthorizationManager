@@ -1,19 +1,17 @@
 package eu.h2020.symbiote.security.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
-import eu.h2020.symbiote.security.commons.enums.OperationType;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.enums.*;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.handler.IAnomalyListenerSecurity;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
@@ -21,17 +19,18 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.cert.CertificateException;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Spring service used to manage users in the AAM repository.
@@ -45,28 +44,44 @@ import java.util.Set;
  */
 @Service
 public class UsersManagementService {
+
     private static Log log = LogFactory.getLog(UsersManagementService.class);
+    private final String deploymentId;
     private final UserRepository userRepository;
     private final RevokedKeysRepository revokedKeysRepository;
     private final PasswordEncoder passwordEncoder;
     private final String adminUsername;
     private final String adminPassword;
     private final IssuingAuthorityType deploymentType;
+    private final IAnomalyListenerSecurity anomaliesHelper;
+    private final RabbitTemplate rabbitTemplate;
+    private final ObjectMapper mapper = new ObjectMapper();
+    private final String anomalyDetectionQueue;
+    private final JavaMailSenderImpl emailSender;
 
     @Autowired
     public UsersManagementService(UserRepository userRepository,
                                   RevokedKeysRepository revokedKeysRepository,
                                   CertificationAuthorityHelper certificationAuthorityHelper,
                                   PasswordEncoder passwordEncoder,
+                                  RabbitTemplate rabbitTemplate,
+                                  IAnomalyListenerSecurity anomaliesHelper,
+                                  @Qualifier("getJavaMailSender") JavaMailSenderImpl emailSender,
                                   @Value("${aam.deployment.owner.username}") String adminUsername,
-                                  @Value("${aam.deployment.owner.password}") String adminPassword) throws
+                                  @Value("${aam.deployment.owner.password}") String adminPassword,
+                                  @Value("${rabbit.queue.event}") String anomalyDetectionQueue) throws
             SecurityMisconfigurationException {
         this.userRepository = userRepository;
         this.revokedKeysRepository = revokedKeysRepository;
         this.passwordEncoder = passwordEncoder;
+        this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
+        this.rabbitTemplate = rabbitTemplate;
+        this.anomaliesHelper = anomaliesHelper;
         this.adminUsername = adminUsername;
         this.adminPassword = adminPassword;
+        this.emailSender = emailSender;
+        this.anomalyDetectionQueue = anomalyDetectionQueue;
 
         if (userRepository.exists(adminUsername) || SecurityConstants.GUEST_NAME.equals(adminUsername))
             throw new SecurityMisconfigurationException(SecurityMisconfigurationException.AAM_OWNER_USER_ALREADY_REGISTERED);
@@ -86,16 +101,42 @@ public class UsersManagementService {
         return this.manage(request);
     }
 
-    public UserDetails getUserDetails(Credentials credentials) throws UserManagementException {
+    public UserDetails getUserDetails(Credentials credentials) throws
+            UserManagementException {
         //  If requested user is not in database
         if (!userRepository.exists(credentials.getUsername()))
             throw new UserManagementException(UserManagementException.USER_NOT_IN_DATABASE, HttpStatus.BAD_REQUEST);
 
         User foundUser = userRepository.findOne(credentials.getUsername());
+
+        //check if user was blocked
+        if (anomaliesHelper.isBlocked(Optional.ofNullable(foundUser.getUsername()), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), EventType.LOGIN_FAILED)) {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(deploymentId);
+            message.setTo(foundUser.getRecoveryMail());
+            message.setSubject("Your action was blocked");
+            message.setText("Number of wrong authorization attempts was detected, user was blocked for 60s");
+            emailSender.send(message);
+            throw new UserManagementException(BlockedUserException.errorMessage, HttpStatus.FORBIDDEN);
+        }
         // If requested user IS in database but wrong password was provided
         if (!credentials.getPassword().equals(foundUser.getPasswordEncrypted()) &&
-                !passwordEncoder.matches(credentials.getPassword(), foundUser.getPasswordEncrypted()))
+                !passwordEncoder.matches(credentials.getPassword(), foundUser.getPasswordEncrypted())) {
+            try {
+                rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(
+                        new EventLogRequest(credentials.getUsername(),
+                                "",
+                                "",
+                                "",
+                                deploymentId,
+                                EventType.LOGIN_FAILED,
+                                System.currentTimeMillis(), null, null))
+                        .getBytes());
+            } catch (JsonProcessingException e) {
+                log.error(e);
+            }
             throw new UserManagementException(UserManagementException.INCORRECT_LOGIN_PASSWORD, HttpStatus.UNAUTHORIZED);
+        }
         //  Everything is fine, returning requested user's details
         return new UserDetails(new Credentials(
                 foundUser.getUsername(), ""),
@@ -280,4 +321,5 @@ public class UsersManagementService {
         // do it
         userRepository.delete(userToManage.getUsername());
     }
+
 }

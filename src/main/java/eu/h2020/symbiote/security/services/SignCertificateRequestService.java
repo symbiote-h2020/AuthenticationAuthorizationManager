@@ -1,12 +1,17 @@
 package eu.h2020.symbiote.security.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
+import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.communication.payloads.EventLogRequest;
+import eu.h2020.symbiote.security.handler.IAnomalyListenerSecurity;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.*;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
@@ -20,9 +25,13 @@ import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.pkcs.PKCS10CertificationRequest;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -31,12 +40,14 @@ import java.security.PublicKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.Optional;
 
 import static eu.h2020.symbiote.security.commons.SecurityConstants.PLATFORM_AGENT_IDENTIFIER_PREFIX;
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 
 /**
  * Spring service used to sign received certificates request
+ *
  * @author Maksymilian Marcinowski (PSNC)
  * @author Jakub Toczek (PSNC)
  * @author Mikołaj Dobski (PSNC)
@@ -52,10 +63,13 @@ public class SignCertificateRequestService {
     private final CertificationAuthorityHelper certificationAuthorityHelper;
     private final PasswordEncoder passwordEncoder;
     private final AAMServices aamServices;
-    @Value("${aam.deployment.owner.username}")
-    private String AAMOwnerUsername;
-    @Value("${aam.deployment.owner.password}")
-    private String AAMOwnerPassword;
+    private final IAnomalyListenerSecurity anomaliesHelper;
+    private final RabbitTemplate rabbitTemplate;
+    private final String anomalyDetectionQueue;
+    private final JavaMailSenderImpl emailSender;
+    private final String AAMOwnerUsername;
+    private final String AAMOwnerPassword;
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Autowired
     public SignCertificateRequestService(UserRepository userRepository,
@@ -65,7 +79,13 @@ public class SignCertificateRequestService {
                                          ComponentCertificatesRepository componentCertificatesRepository,
                                          CertificationAuthorityHelper certificationAuthorityHelper,
                                          PasswordEncoder passwordEncoder,
-                                         AAMServices aamServices) {
+                                         AAMServices aamServices,
+                                         IAnomalyListenerSecurity anomaliesHelper,
+                                         RabbitTemplate rabbitTemplate,
+                                         @Value("${rabbit.queue.event}") String anomalyDetectionQueue,
+                                         @Qualifier("getJavaMailSender") JavaMailSenderImpl emailSender,
+                                         @Value("${aam.deployment.owner.username}") String AAMOwnerUsername,
+                                         @Value("${aam.deployment.owner.password}") String AAMOwnerPassword) {
         this.userRepository = userRepository;
         this.platformRepository = platformRepository;
         this.smartSpaceRepository = smartSpaceRepository;
@@ -74,6 +94,12 @@ public class SignCertificateRequestService {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.passwordEncoder = passwordEncoder;
         this.aamServices = aamServices;
+        this.anomaliesHelper = anomaliesHelper;
+        this.rabbitTemplate = rabbitTemplate;
+        this.anomalyDetectionQueue = anomalyDetectionQueue;
+        this.emailSender = emailSender;
+        this.AAMOwnerUsername = AAMOwnerUsername;
+        this.AAMOwnerPassword = AAMOwnerPassword;
     }
 
     public String signCertificateRequest(CertificateRequest certificateRequest) throws
@@ -192,11 +218,38 @@ public class SignCertificateRequestService {
                 user = userRepository.findOne(certificateRequest.getUsername());
                 if (user == null)
                     throw new NotExistingUserException();
+
+                // adding Anomaly Detection - check if user was blocked
+                if (anomaliesHelper.isBlocked(Optional.of(user.getUsername()), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), EventType.LOGIN_FAILED)) {
+                    SimpleMailMessage message = new SimpleMailMessage();
+                    message.setFrom(certificationAuthorityHelper.getAAMInstanceIdentifier());
+                    message.setTo(user.getRecoveryMail());
+                    message.setSubject("Your action was blocked");
+                    message.setText("Number of wrong authorization attempts was detected, user was blocked for 60s");
+                    emailSender.send(message);
+                    throw new BlockedUserException();
+                }
+
                 if (user.getStatus() != AccountStatus.ACTIVE)
                     throw new BlockedUserException();
                 if (!certificateRequest.getPassword().equals(user.getPasswordEncrypted()) &&
-                        !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted()))
+                        !passwordEncoder.matches(certificateRequest.getPassword(), user.getPasswordEncrypted())) {
+                    // log bad behaviour
+                    try {
+                        rabbitTemplate.convertAndSend(anomalyDetectionQueue, mapper.writeValueAsString(
+                                new EventLogRequest(certificateRequest.getUsername(),
+                                        "",
+                                        "",
+                                        "",
+                                        certificationAuthorityHelper.getAAMInstanceIdentifier(),
+                                        EventType.LOGIN_FAILED,
+                                        System.currentTimeMillis(), null, null))
+                                .getBytes());
+                    } catch (JsonProcessingException e) {
+                        log.error(e);
+                    }
                     throw new WrongCredentialsException();
+                }
                 if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[2]))
                     throw new ValidationException(ValidationException.WRONG_DEPLOYMENT_ID);
                 if (revokedKeysRepository.exists(user.getUsername())

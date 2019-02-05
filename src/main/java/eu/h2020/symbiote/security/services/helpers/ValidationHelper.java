@@ -4,6 +4,7 @@ import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
@@ -13,6 +14,7 @@ import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.payloads.AAM;
+import eu.h2020.symbiote.security.handler.IAnomalyListenerSecurity;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.*;
 import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
@@ -42,6 +44,7 @@ import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
@@ -73,15 +76,15 @@ public class ValidationHelper {
     private final ComponentCertificatesRepository componentCertificatesRepository;
     private final AAMServices aamServices;
     private final CacheService cacheService;
+    private final IAnomalyListenerSecurity anomaliesHelper;
 
     // usable
     private final RestTemplate restTemplate = new RestTemplate();
-
+    private final String coreAAMAddress;
     @Value("${aam.deployment.token.validityMillis}")
     private Long tokenValidity;
     @Value("${aam.deployment.validation.allow-offline}")
     private boolean isOfflineEnough;
-    private final String coreAAMAddress;
 
     @Autowired
     public ValidationHelper(CertificationAuthorityHelper certificationAuthorityHelper,
@@ -93,7 +96,8 @@ public class ValidationHelper {
                             ComponentCertificatesRepository componentCertificatesRepository,
                             AAMServices aamServices,
                             CacheService cacheService,
-                            @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress) {
+                            @Value("${symbIoTe.core.interface.url}") String coreInterfaceAddress,
+                            IAnomalyListenerSecurity anomaliesHelper) {
         this.certificationAuthorityHelper = certificationAuthorityHelper;
         this.deploymentId = certificationAuthorityHelper.getAAMInstanceIdentifier();
         this.deploymentType = certificationAuthorityHelper.getDeploymentType();
@@ -106,6 +110,7 @@ public class ValidationHelper {
         this.aamServices = aamServices;
         this.cacheService = cacheService;
         this.coreAAMAddress = coreInterfaceAddress + SecurityConstants.AAM_PATH_PREFIX;
+        this.anomaliesHelper = anomaliesHelper;
     }
 
     public ValidationStatus validate(String token,
@@ -127,6 +132,17 @@ public class ValidationHelper {
             Claims claims = tokenForValidation.getClaims();
             String spk = claims.get("spk").toString();
             String ipk = claims.get("ipk").toString();
+            String jti = claims.getId();
+
+            // TODO consider checking if user in general was blocked, not only this particular token
+            if (anomaliesHelper.isBlocked(
+                    Optional.empty(),
+                    Optional.empty(),
+                    Optional.ofNullable(jti),
+                    Optional.empty(),
+                    Optional.empty(),
+                    EventType.VALIDATION_FAILED))
+                return ValidationStatus.BLOCKED;
 
             // check if token issued by us
             if (!deploymentId.equals(claims.getIssuer())) {

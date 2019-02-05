@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Bean;
  * @author Daniele Caldarola (CNIT)
  * @author Nemanja Ignjatov (UNIVIE)
  * @author Mikolaj Dobski (PSNC)
+ * @author Jakub Toczek (PSNC)
  */
 @EnableDiscoveryClient
 @SpringBootApplication(scanBasePackages = "eu.h2020.symbiote.security")

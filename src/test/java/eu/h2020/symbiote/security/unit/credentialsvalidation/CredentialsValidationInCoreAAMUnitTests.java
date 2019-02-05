@@ -61,6 +61,8 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     private static Log log = LogFactory.getLog(CredentialsValidationInCoreAAMUnitTests.class);
     private static SecureRandom random = new SecureRandom();
     @Autowired
+    RabbitTemplate rabbitTemplate;
+    @Autowired
     private ValidationHelper validationHelper;
     @Autowired
     private TokenIssuer tokenIssuer;
@@ -72,8 +74,6 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     private DummyPlatformAAMConnectionProblem dummyPlatformAAMConnectionProblem;
     @Autowired
     private SignCertificateRequestService signCertificateRequestService;
-    @Autowired
-    RabbitTemplate rabbitTemplate;
     private RestTemplate restTemplate = new RestTemplate();
 
     @Override

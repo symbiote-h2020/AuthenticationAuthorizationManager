@@ -1,5 +1,8 @@
 package eu.h2020.symbiote.security.unit;
 
+import com.icegreen.greenmail.util.GreenMail;
+import com.icegreen.greenmail.util.GreenMailUtil;
+import com.icegreen.greenmail.util.ServerSetupTest;
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
@@ -8,9 +11,11 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
+import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
 import eu.h2020.symbiote.security.repositories.entities.Attribute;
@@ -22,12 +27,16 @@ import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
@@ -56,6 +65,21 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     private TokenIssuer tokenIssuer;
     @Autowired
     private GetTokenService getTokenService;
+    private GreenMail testSmtp;
+
+    @Before
+    @Override
+    public void setUp() throws Exception {
+        super.setUp();
+        testSmtp = new GreenMail(ServerSetupTest.SMTP);
+        testSmtp.start();
+
+    }
+
+    @After
+    public void tearDown() {
+        testSmtp.stop();
+    }
 
     // test for revokeHomeToken function
     @Test
@@ -256,6 +280,76 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
         Map<String, String> attributes = claimsFromToken.getAtt();
         assertNotNull(attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
         assertEquals("attribute", attributes.get(SecurityConstants.SYMBIOTE_ATTRIBUTES_PREFIX + "key"));
+    }
+
+    @Test
+    public void getHomeTokenForBlockedUser() throws
+            CertificateException,
+            MalformedJWTException,
+            InvalidArgumentsException,
+            ValidationException,
+            WrongCredentialsException,
+            JWTCreationException,
+            MessagingException {
+        addTestUserWithClientCertificateToRepository();
+        HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(username + CryptoHelper.FIELDS_DELIMITER + clientId, EventType.ACQUISITION_FAILED, System.currentTimeMillis(), 100000));
+        assertTrue(inserted);
+        try {
+            getTokenService.getHomeToken(loginRequest);
+            fail();
+        } catch (BlockedUserException e) {
+            log.info("Proper error caught");
+        }
+        Message[] messages = testSmtp.getReceivedMessages();
+        assertEquals(1, messages.length);
+        assertEquals("Your action was blocked", messages[0].getSubject());
+        String body = GreenMailUtil.getBody(messages[0]).replaceAll("=\r?\n", "");
+        assertTrue(body.contains(clientId));
+
+        assertEquals(SecurityConstants.CORE_AAM_INSTANCE_ID, messages[0].getHeader("From")[0]);
+        assertTrue(messages[0].getHeader("To")[0].contains("null@dev.null"));
+    }
+
+    @Test
+    public void getHomeTokenForBlockedComponent() throws
+            IOException,
+            CertificateException,
+            MalformedJWTException,
+            InvalidArgumentsException,
+            ValidationException,
+            WrongCredentialsException,
+            JWTCreationException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            KeyStoreException,
+            UnrecoverableKeyException {
+
+        //component adding
+        ComponentCertificate componentCertificate = new ComponentCertificate(
+                componentId,
+                new Certificate(
+                        CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
+                                "keystores/core.p12",
+                                "registry-core-1"))));
+        componentCertificatesRepository.save(
+                componentCertificate);
+        HomeCredentials homeCredentials = new HomeCredentials(null, SecurityConstants.CORE_AAM_INSTANCE_ID, componentId, null, getPrivateKeyTestFromKeystore(
+                "keystores/core.p12",
+                "registry-core-1"));
+        String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
+
+        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(SecurityConstants.CORE_AAM_INSTANCE_ID + CryptoHelper.FIELDS_DELIMITER + componentId, EventType.ACQUISITION_FAILED, System.currentTimeMillis(), 100000));
+        assertTrue(inserted);
+        try {
+            getTokenService.getHomeToken(loginRequest);
+            fail();
+        } catch (BlockedUserException e) {
+            log.info("Proper error caught");
+        }
+        Message[] messages = testSmtp.getReceivedMessages();
+        assertEquals(0, messages.length);
     }
 
     @Test

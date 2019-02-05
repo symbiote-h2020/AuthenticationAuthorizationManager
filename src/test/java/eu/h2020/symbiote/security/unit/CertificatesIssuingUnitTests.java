@@ -1,12 +1,17 @@
 package eu.h2020.symbiote.security.unit;
 
+import com.icegreen.greenmail.util.GreenMail;
+import com.icegreen.greenmail.util.GreenMailUtil;
+import com.icegreen.greenmail.util.ServerSetupTest;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
+import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
@@ -15,6 +20,8 @@ import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -24,8 +31,11 @@ import org.bouncycastle.pkcs.PKCS10CertificationRequestBuilder;
 import org.bouncycastle.pkcs.jcajce.JcaPKCS10CertificationRequestBuilder;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
 import javax.security.auth.x500.X500Principal;
 import java.io.IOException;
 import java.security.*;
@@ -54,6 +64,10 @@ public class CertificatesIssuingUnitTests extends
     private SignCertificateRequestService signCertificateRequestService;
     @Autowired
     private RevokedKeysRepository revokedKeysRepository;
+
+    private static Log log = LogFactory.getLog(UsersManagementUnitTests.class);
+    private final String recoveryMail = "null@dev.null";
+
 
     @Test
     public void generateCertificateFromCSRSuccess() throws
@@ -987,6 +1001,55 @@ public class CertificatesIssuingUnitTests extends
         assertEquals(-1, x509Certificate.getBasicConstraints());
         // pair should not be revoked
         assertFalse(revokedKeysRepository.exists(CORE_AAM_INSTANCE_ID));
+    }
+
+
+    @Test
+    public void getClientCertificateForBlockedUser() throws
+            MessagingException,
+            InvalidAlgorithmParameterException,
+            NoSuchAlgorithmException,
+            NoSuchProviderException,
+            IOException,
+            InvalidArgumentsException,
+            ServiceManagementException,
+            WrongCredentialsException,
+            UserManagementException,
+            ValidationException,
+            CertificateException,
+            NotExistingUserException {
+
+        GreenMail testSmtp = new GreenMail(ServerSetupTest.SMTP);
+        testSmtp.start();
+
+        saveUser();
+        KeyPair pair = CryptoHelper.createKeyPair();
+        String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
+        assertNotNull(csrString);
+        CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
+
+        //  Request user with matching credentials
+        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(appUsername, EventType.LOGIN_FAILED, System.currentTimeMillis(), 100000));
+        assertTrue(inserted);
+        try {
+            signCertificateRequestService.signCertificateRequest(certRequest);
+            fail();
+        } catch (BlockedUserException e) {
+            assertEquals(BlockedUserException.errorMessage, e.getMessage());
+            assertEquals(HttpStatus.FORBIDDEN, e.getStatusCode());
+            log.info("Proper error caught");
+        }
+
+        Message[] messages = testSmtp.getReceivedMessages();
+        assertEquals(1, messages.length);
+        assertEquals("Your action was blocked", messages[0].getSubject());
+        String body = GreenMailUtil.getBody(messages[0]).replaceAll("=\r?\n", "");
+        assertTrue(body.contains("Number of wrong authorization attempts was detected, user was blocked for 60s"));
+
+        assertEquals(SecurityConstants.CORE_AAM_INSTANCE_ID, messages[0].getHeader("From")[0]);
+        assertTrue(messages[0].getHeader("To")[0].contains(recoveryMail));
+
+        testSmtp.stop();
     }
 
 

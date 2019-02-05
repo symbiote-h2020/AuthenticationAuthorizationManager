@@ -1,5 +1,8 @@
 package eu.h2020.symbiote.security.unit;
 
+import com.icegreen.greenmail.util.GreenMail;
+import com.icegreen.greenmail.util.GreenMailUtil;
+import com.icegreen.greenmail.util.ServerSetupTest;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
@@ -7,6 +10,7 @@ import eu.h2020.symbiote.security.commons.enums.*;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.*;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -15,10 +19,15 @@ import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import javax.mail.Message;
+import javax.mail.MessagingException;
 import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -34,6 +43,20 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
     private static Log log = LogFactory.getLog(UsersManagementUnitTests.class);
     private final String recoveryMail = "null@dev.null";
+    private GreenMail testSmtp;
+
+    @Before
+    @Override
+    public void setUp() throws Exception {
+        super.setUp();
+        testSmtp = new GreenMail(ServerSetupTest.SMTP);
+        testSmtp.start();
+    }
+
+    @After
+    public void tearDown() {
+        testSmtp.stop();
+    }
 
     @Test
     public void userCreateSuccess() throws
@@ -1023,5 +1046,31 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         aamClient.getUserDetails(new Credentials(username, wrongPassword));
     }
 
+    @Test
+    public void getExistingUserFailBlockedUser() throws
+            MessagingException {
+        //  Register user in database
+        User platformOwner = new User(username, passwordEncoder.encode(password), recoveryMail, new HashMap<>(), UserRole.SERVICE_OWNER, AccountStatus.ACTIVE, new HashMap<>(), new HashSet<>(), true, true);
+        userRepository.save(platformOwner);
+        //  Request user with matching credentials
+        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(username, EventType.LOGIN_FAILED, System.currentTimeMillis(), 100000));
+        assertTrue(inserted);
+        try {
+            usersManagementService.getUserDetails(new Credentials(username, password));
+            fail();
+        } catch (UserManagementException e) {
+            assertEquals(BlockedUserException.errorMessage, e.getMessage());
+            assertEquals(HttpStatus.FORBIDDEN, e.getStatusCode());
+            log.info("Proper error caught");
+        }
 
+        Message[] messages = testSmtp.getReceivedMessages();
+        assertEquals(1, messages.length);
+        assertEquals("Your action was blocked", messages[0].getSubject());
+        String body = GreenMailUtil.getBody(messages[0]).replaceAll("=\r?\n", "");
+        assertTrue(body.contains("Number of wrong authorization attempts was detected, user was blocked for 60s"));
+
+        assertEquals(SecurityConstants.CORE_AAM_INSTANCE_ID, messages[0].getHeader("From")[0]);
+        assertTrue(messages[0].getHeader("To")[0].contains(recoveryMail));
+    }
 }

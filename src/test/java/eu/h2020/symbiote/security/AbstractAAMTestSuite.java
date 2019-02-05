@@ -12,6 +12,7 @@ import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.communication.AAMClient;
 import eu.h2020.symbiote.security.communication.IAAMClient;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.handler.IAnomalyListenerSecurity;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.*;
 import eu.h2020.symbiote.security.repositories.entities.User;
@@ -103,9 +104,13 @@ public abstract class AbstractAAMTestSuite {
     @Autowired
     protected ComponentCertificatesRepository componentCertificatesRepository;
     @Autowired
+    protected BlockedActionsRepository blockedActionsRepository;
+    @Autowired
     protected CertificationAuthorityHelper certificationAuthorityHelper;
     @Autowired
     protected SignCertificateRequestService signCertificateRequestService;
+    @Autowired
+    protected IAnomalyListenerSecurity anomaliesHelper;
     @Autowired
     protected UsersManagementService usersManagementService;
     @Autowired
@@ -190,6 +195,7 @@ public abstract class AbstractAAMTestSuite {
         revokedTokensRepository.deleteAll();
         smartSpaceRepository.deleteAll();
         userRepository.deleteAll();
+        blockedActionsRepository.deleteAll();
     }
 
     protected User createUser(String username,

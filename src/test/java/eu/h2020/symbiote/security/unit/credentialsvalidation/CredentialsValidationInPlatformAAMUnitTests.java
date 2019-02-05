@@ -6,12 +6,14 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
+import eu.h2020.symbiote.security.commons.enums.EventType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.communication.payloads.HandleAnomalyRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.AAMServices;
@@ -64,7 +66,6 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
     private DummyPlatformAAMRevokedIPK dummyPlatformAAMRevokedIPK;
     @Autowired
     private DummyPlatformAAM2 dummyPlatformAAM2;
-
 
 
     @Override
@@ -126,6 +127,29 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         ValidationStatus response = validationHelper.validate(dummyHomeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, response);
     }
+
+    @Test
+    public void validateBlockedTokenPlatform() throws
+            SecurityException,
+            CertificateException {
+
+        // prepare the user in db
+        addTestUserWithClientCertificateToRepository();
+        // verify that app really is in repository
+        User user = userRepository.findOne(username);
+        assertNotNull(user);
+
+        // acquiring valid token
+        Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
+
+        Boolean inserted = anomaliesHelper.insertBlockedActionEntry(new HandleAnomalyRequest(homeToken.getId(), EventType.VALIDATION_FAILED, System.currentTimeMillis(), 100000));
+        assertTrue(inserted);
+
+        // check if home token is valid
+        ValidationStatus response = validationHelper.validate(homeToken.getToken(), "", "", "");
+        assertEquals(ValidationStatus.BLOCKED, response);
+    }
+
 
     @Test
     public void validateIssuerDiffersDeploymentIdAndNotInAvailableAAMs() throws

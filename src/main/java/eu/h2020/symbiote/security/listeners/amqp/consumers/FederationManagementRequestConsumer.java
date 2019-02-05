@@ -47,15 +47,7 @@ public class FederationManagementRequestConsumer {
     public void federationCreate(byte[] body) {
         log.debug("[x] Received Federation to create");
         try {
-            String message = new String(body, "UTF-8");
-            Federation federation = om.readValue(message, Federation.class);
-            if (federation.getId() == null
-                    || federation.getMembers() == null
-                    || federation.getId().isEmpty())
-                throw new InvalidArgumentsException();
-            if (!isFederationConsistent(federation)) {
-                throw new InvalidArgumentsException("Some of the Federation Members' platform Ids are duplicated");
-            }
+            Federation federation = validateFederationChangeRequest(body);
             if (federationsRepository.exists(federation.getId())) {
                 throw new InvalidArgumentsException("Federation already exists.");
             }
@@ -103,15 +95,7 @@ public class FederationManagementRequestConsumer {
     public void federationUpdate(byte[] body) {
         log.debug("[x] Received Federation to update");
         try {
-            String message = new String(body, "UTF-8");
-            Federation federation = om.readValue(message, Federation.class);
-            if (federation.getId() == null
-                    || federation.getMembers() == null
-                    || federation.getId().isEmpty())
-                throw new InvalidArgumentsException();
-            if (!isFederationConsistent(federation)) {
-                throw new InvalidArgumentsException("Some of the Federation Members' platform Ids are duplicated");
-            }
+            Federation federation = validateFederationChangeRequest(body);
             if (!federationsRepository.exists(federation.getId())) {
                 throw new InvalidArgumentsException("Federation doesn't exist.");
             }
@@ -119,5 +103,18 @@ public class FederationManagementRequestConsumer {
         } catch (InvalidArgumentsException | IOException e) {
             log.error(e);
         }
+    }
+
+    private Federation validateFederationChangeRequest(byte[] body) throws IOException, InvalidArgumentsException {
+        String message = new String(body, "UTF-8");
+        Federation federation = om.readValue(message, Federation.class);
+        if (federation.getId() == null
+                || federation.getMembers() == null
+                || federation.getId().isEmpty())
+            throw new InvalidArgumentsException();
+        if (!isFederationConsistent(federation)) {
+            throw new InvalidArgumentsException("Some of the Federation Members' platform Ids are duplicated");
+        }
+        return federation;
     }
 }
