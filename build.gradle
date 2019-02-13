@@ -69,6 +69,7 @@ Forces dependencies' cache invalidation for each build for dependencies marked w
 configurations.all {
     // check for updates every build
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+    exclude group: 'org.slf4j', module : "slf4j-log4j12"
 }
 
 dependencies {
@@ -89,7 +90,7 @@ dependencies {
     //compile project(':SymbIoTeSecurity')
     compile('com.github.symbiote-h2020:SymbIoTeSecurity:[27.5, 27.999]') {changing = true }
 
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:[5.37, 5.999]'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:[5.38, 5.999]'){ changing = true }
     //compile project(':SymbIoTeLibraries')
 
     // Spring
