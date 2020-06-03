@@ -1,5 +1,29 @@
 package eu.h2020.symbiote.security.unit.credentialsvalidation;
 
+import static eu.h2020.symbiote.security.services.helpers.TokenIssuer.buildAuthorizationToken;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.HashMap;
+import java.util.HashSet;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
@@ -20,27 +44,6 @@ import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM2;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMRevokedIPK;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.HashMap;
-import java.util.HashSet;
-
-import static eu.h2020.symbiote.security.services.helpers.TokenIssuer.buildAuthorizationToken;
-import static org.junit.Assert.*;
 
 /**
  * Test suite for generic AAM functionality - deployment type Platform
@@ -95,11 +98,11 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         // prepare the user in db
         addTestUserWithClientCertificateToRepository();
         // verify that app really is in repository
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         assertNotNull(user);
 
         // verify the user keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(username));
+        assertFalse(revokedKeysRepository.existsById(username));
 
         // acquiring valid token
         Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
@@ -156,11 +159,11 @@ public class CredentialsValidationInPlatformAAMUnitTests extends
         // prepare the user in db
         userRepository.save(new User(username, passwordEncoder.encode(password), "", new HashMap<>(), UserRole.USER, AccountStatus.NEW, new HashMap<>(), new HashSet<>(), true, false));
         // verify that app really is in repository
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         assertNotNull(user);
 
         // verify the user keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(username));
+        assertFalse(revokedKeysRepository.existsById(username));
 
         // injection of expired certificate
         X509Certificate cert = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-exp-c1");

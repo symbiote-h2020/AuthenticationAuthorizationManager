@@ -1,9 +1,38 @@
 package eu.h2020.symbiote.security.unit;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.junit.Test;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.*;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
+import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
+import eu.h2020.symbiote.security.commons.enums.OperationType;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
@@ -16,21 +45,6 @@ import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.junit.Test;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.*;
-
-import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
 public class UsersManagementUnitTests extends AbstractAAMTestSuite {
@@ -43,7 +57,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
             SecurityException,
             CertificateException {
         // verify that user is not in the repository
-        assertFalse(userRepository.exists(username));
+        assertFalse(userRepository.existsById(username));
         // new attributes map
         String key = "key";
         String testCertificate = "testCertificateString";
@@ -69,7 +83,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
 
         // verify that user really is in repository
-        User registeredUser = userRepository.findOne(username);
+        User registeredUser = userRepository.findById(username).get();
         assertNotNull(registeredUser);
         assertEquals(UserRole.USER, registeredUser.getRole());
         assertEquals(1, registeredUser.getAttributes().size());
@@ -83,7 +97,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test
     public void userCreateSuccessServiceOwnerRegistrationInCoreAAM() throws SecurityException {
         // verify that app is not in the repository
-        assertFalse(userRepository.exists(username));
+        assertFalse(userRepository.existsById(username));
         // manage new user to db with illegal role
         UserManagementRequest userManagementRequest = new UserManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -102,7 +116,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
 
         // verify that serviceOwner really is in repository
-        User registeredUser = userRepository.findOne(username);
+        User registeredUser = userRepository.findById(username).get();
         assertNotNull(registeredUser);
         assertEquals(UserRole.SERVICE_OWNER, registeredUser.getRole());
         assertEquals(ManagementStatus.OK, userRegistrationResponse);
@@ -111,7 +125,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test
     public void userCreateSuccessServiceOwnerRegistrationInSmartSpaceAAM() throws SecurityException {
         // verify that app is not in the repository
-        assertFalse(userRepository.exists(username));
+        assertFalse(userRepository.existsById(username));
         // manage new user to db with illegal role
         UserManagementRequest userManagementRequest = new UserManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -131,7 +145,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
             ReflectionTestUtils.setField(usersManagementService, "deploymentType", IssuingAuthorityType.SMART_SPACE);
             ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
             // verify that serviceOwner really is in repository
-            User registeredUser = userRepository.findOne(username);
+            User registeredUser = userRepository.findById(username).get();
             assertNotNull(registeredUser);
             assertEquals(UserRole.SERVICE_OWNER, registeredUser.getRole());
             assertEquals(ManagementStatus.OK, userRegistrationResponse);
@@ -165,7 +179,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         // verify that we got an error
         assertEquals(ManagementStatus.ERROR, userRegistrationResponse);
         // verify that user not in db
-        assertFalse(userRepository.exists(AAMOwnerUsername));
+        assertFalse(userRepository.existsById(AAMOwnerUsername));
     }
 
     @Test
@@ -189,14 +203,14 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         // verify that we got an error
         assertEquals(ManagementStatus.ERROR, userRegistrationResponse);
         // verify that user not in db
-        assertFalse(userRepository.exists(SecurityConstants.GUEST_NAME));
+        assertFalse(userRepository.existsById(SecurityConstants.GUEST_NAME));
     }
 
 
     @Test
     public void userCreateFailServiceOwnerRegistrationInPlatformAAM() throws SecurityException {
         // verify that app is not in the repository
-        assertFalse(userRepository.exists(username));
+        assertFalse(userRepository.existsById(username));
         // manage new user to db with illegal role
         UserManagementRequest userManagementRequest = new UserManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -228,7 +242,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test(expected = InvalidArgumentsException.class)
     public void userCreateFailWrongUserRole() throws SecurityException {
         // verify that app is not in the repository
-        assertFalse(userRepository.exists(username));
+        assertFalse(userRepository.existsById(username));
         // manage new user to db with illegal role
         UserManagementRequest userManagementRequest = new UserManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -268,7 +282,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     }
 
     @Test
-    public void userCreateFailUsernameExists() throws SecurityException {
+    public void userCreateFailUsernameexistsById() throws SecurityException {
         User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         // manage new user to db
@@ -418,7 +432,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         // verify that user is in the repository
-        assertTrue(userRepository.exists(username));
+        assertTrue(userRepository.existsById(username));
         String newPassword = "NewPassword";
         assertNotEquals(newPassword, password);
         // update user (new password)
@@ -438,7 +452,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.OK, userRegistrationResponse);
         // verify that user really is in repository
-        User registeredUser = userRepository.findOne(username);
+        User registeredUser = userRepository.findById(username).get();
         assertNotNull(registeredUser);
         // verify if password is changed
         assertTrue(passwordEncoder.matches(newPassword, registeredUser.getPasswordEncrypted()));
@@ -463,7 +477,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.OK, userRegistrationResponse);
         // verify that user really is in repository
-        registeredUser = userRepository.findOne(username);
+        registeredUser = userRepository.findById(username).get();
         assertNotNull(registeredUser);
         // verify if recoveryMail is changed
         assertEquals(newRecoveryMail, registeredUser.getRecoveryMail());
@@ -474,7 +488,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test(expected = UserManagementException.class)
     public void userForceUpdateFailUserNotInDB() throws SecurityException {
 
-        assertNull(userRepository.findOne(username));
+        assertFalse(userRepository.findById(username).isPresent());
         String newPassword = "NewPassword";
         // update user who doesn't exist in db
         UserManagementRequest userManagementRequest = new UserManagementRequest(
@@ -522,7 +536,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.OK, userRegistrationResponse);
         // verify that user really is in repository
-        User newUser = userRepository.findOne(username);
+        User newUser = userRepository.findById(username).get();
         assertNotNull(newUser);
         //check if nothing change except attributes
         assertEquals(user.getRecoveryMail(), newUser.getRecoveryMail());
@@ -537,7 +551,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test(expected = UserManagementException.class)
     public void userAttributesUpdateFailUserNotInDB() throws SecurityException {
 
-        assertNull(userRepository.findOne(username));
+        assertFalse(userRepository.findById(username).isPresent());
         // update user who doesn't exist in db
         UserManagementRequest userManagementRequest = new UserManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -581,9 +595,9 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
                         false));
 
         // verify that app really is in repository
-        assertTrue(userRepository.exists(username));
+        assertTrue(userRepository.existsById(username));
         // verify the user keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(username));
+        assertFalse(revokedKeysRepository.existsById(username));
 
         // delete the user
         UserManagementRequest userManagementRequest = new UserManagementRequest(
@@ -603,11 +617,11 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         ManagementStatus status = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.OK, status);
         // verify that user is not anymore in the repository
-        assertFalse(userRepository.exists(username));
+        assertFalse(userRepository.existsById(username));
 
         // verify that the user certificate was indeed revoked
-        assertTrue(revokedKeysRepository.exists(username));
-        SubjectsRevokedKeys revokedKeys = revokedKeysRepository.findOne(username);
+        assertTrue(revokedKeysRepository.existsById(username));
+        SubjectsRevokedKeys revokedKeys = revokedKeysRepository.findById(username).get();
         assertNotNull(revokedKeys);
 
         // verify that the public keys were revoke
@@ -641,7 +655,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
     @Test(expected = NotExistingUserException.class)
     public void userDeleteFailNotExistingUser() throws SecurityException {
         // verify that the user is not in the repo
-        assertFalse(userRepository.exists(username));
+        assertFalse(userRepository.existsById(username));
 
         // delete the user
         UserManagementRequest userManagementRequest = new UserManagementRequest(
@@ -707,11 +721,11 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         userRepository.save(new User(username, passwordEncoder.encode(password), recoveryMail, clientCertificates, UserRole.USER, AccountStatus.NEW, new HashMap<>(), new HashSet<>(), true, false));
 
         // verify that app really is in repository
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         assertNotNull(user);
 
         // verify the user keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(username));
+        assertFalse(revokedKeysRepository.existsById(username));
 
         // delete the user
         UserManagementRequest userManagementRequest = new UserManagementRequest(
@@ -731,11 +745,11 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         log.debug("User successfully unregistered!");
 
         // verify that app is not anymore in the repository
-        assertFalse(userRepository.exists(username));
+        assertFalse(userRepository.existsById(username));
 
         // verify that the user certificate was indeed revoked
-        assertTrue(revokedKeysRepository.exists(username));
-        SubjectsRevokedKeys revokedKeys = revokedKeysRepository.findOne(username);
+        assertTrue(revokedKeysRepository.existsById(username));
+        SubjectsRevokedKeys revokedKeys = revokedKeysRepository.findById(username).get();
         assertNotNull(revokedKeys);
 
         // verify that the public keys were revoke
@@ -762,7 +776,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         assertEquals(ManagementStatus.OK, usersManagementService.authManage(userManagementRequest));
 
         // verify that app really is in repository
-        user = userRepository.findOne(username);
+        user = userRepository.findById(username).get();
 
         // add a different cert to the repo
         user.getClientCertificates().put(
@@ -778,7 +792,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         testCertificatesSet.add(Base64.getEncoder().encodeToString(user.getClientCertificates().get("someId").getX509().getPublicKey().getEncoded()));
 
         // verify that both old and new keys are revoked
-        revokedKeys = revokedKeysRepository.findOne(username);
+        revokedKeys = revokedKeysRepository.findById(username).get();
         assertTrue(revokedKeys.getRevokedKeysSet().containsAll(testCertificatesSet));
 
         // verify that revoked keys doesn't include a fake cert
@@ -793,7 +807,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
         // verify that user is in the repository
-        assertTrue(userRepository.exists(username));
+        assertTrue(userRepository.existsById(username));
         String newPassword = "NewPassword";
         assertNotEquals(newPassword, password);
         // update user (new password)
@@ -813,7 +827,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         ManagementStatus userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.OK, userRegistrationResponse);
         // verify that user really is in repository
-        User registeredUser = userRepository.findOne(username);
+        User registeredUser = userRepository.findById(username).get();
         assertNotNull(registeredUser);
         // verify if password is changed
         assertTrue(passwordEncoder.matches(newPassword, registeredUser.getPasswordEncrypted()));
@@ -840,7 +854,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
         userRegistrationResponse = usersManagementService.authManage(userManagementRequest);
         assertEquals(ManagementStatus.OK, userRegistrationResponse);
         // verify that user really is in repository
-        registeredUser = userRepository.findOne(username);
+        registeredUser = userRepository.findById(username).get();
         assertNotNull(registeredUser);
         // verify if recoveryMail is changed
         assertEquals(newRecoveryMail, registeredUser.getRecoveryMail());
@@ -850,7 +864,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
     @Test(expected = UserManagementException.class)
     public void userUpdateFailUserNotInDB() throws SecurityException {
-        assertNull(userRepository.findOne(appUsername));
+        assertFalse(userRepository.findById(appUsername).isPresent());
         // update user who doesn't exist in db
         UserManagementRequest userManagementRequest = new UserManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -1008,7 +1022,7 @@ public class UsersManagementUnitTests extends AbstractAAMTestSuite {
 
     @Test(expected = UserManagementException.class)
     public void getUserDetailsFailNotExistingUser() throws UserManagementException, AAMException {
-        assertFalse(userRepository.exists(username));
+        assertFalse(userRepository.existsById(username));
         //  Request user that is NOT in database
         aamClient.getUserDetails(new Credentials(username, password));
     }

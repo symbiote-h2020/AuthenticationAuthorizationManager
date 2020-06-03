@@ -1,17 +1,12 @@
 package eu.h2020.symbiote.security.functional;
 
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.RpcClient;
-import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
-import eu.h2020.symbiote.security.commons.enums.AccountStatus;
-import eu.h2020.symbiote.security.commons.enums.OperationType;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.communication.payloads.Credentials;
-import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
-import eu.h2020.symbiote.security.communication.payloads.UserDetailsResponse;
-import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
-import eu.h2020.symbiote.security.repositories.entities.User;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.concurrent.TimeoutException;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.amqp.core.Message;
@@ -21,10 +16,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
-import java.io.IOException;
-import java.util.concurrent.TimeoutException;
+import com.rabbitmq.client.Connection;
+import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.RpcClient;
 
-import static org.junit.Assert.*;
+import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
+import eu.h2020.symbiote.security.commons.enums.OperationType;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.communication.payloads.UserDetailsResponse;
+import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.repositories.entities.User;
 
 @TestPropertySource("/core.properties")
 public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
@@ -62,7 +66,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
         //  Registering user in database
         User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(User);
-        assertTrue(userRepository.exists(username));
+        assertTrue(userRepository.existsById(username));
 
         byte[] response = getUserDetailsClient.primitiveCall(mapper.writeValueAsBytes(new
                 UserManagementRequest(new
@@ -86,7 +90,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
         //  Registering user in database
         User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(User);
-        assertTrue(userRepository.exists(username));
+        assertTrue(userRepository.existsById(username));
 
         byte[] response = rabbitTemplate.sendAndReceive(getUserDetailsQueue, new Message(mapper.writeValueAsBytes(new
                 UserManagementRequest(new
@@ -108,7 +112,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
         //  Registering user in database
         User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.ACTIVE);
         userRepository.save(User);
-        assertTrue(userRepository.exists(username));
+        assertTrue(userRepository.existsById(username));
 
         byte[] response = rabbitTemplate.sendAndReceive(getUserDetailsQueue, new Message(mapper.writeValueAsBytes(new
                 UserManagementRequest(new
@@ -131,7 +135,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
         //  Registering user in database
         User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(User);
-        assertTrue(userRepository.exists(username));
+        assertTrue(userRepository.existsById(username));
 
         byte[] response = rabbitTemplate.sendAndReceive(getUserDetailsQueue, new Message(mapper.writeValueAsBytes(new
                 UserManagementRequest(new
@@ -152,7 +156,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
     @Test
     public void getUserDetailsOverAMQPFailNotExistingUser() throws
             IOException {
-        assertFalse(userRepository.exists(username));
+        assertFalse(userRepository.existsById(username));
         //ask for not existing user
         byte[] response = rabbitTemplate.sendAndReceive(getUserDetailsQueue, new Message(mapper.writeValueAsBytes(new
                 UserManagementRequest(new
@@ -172,7 +176,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
         //  Registering user in database
         User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(User);
-        assertTrue(userRepository.exists(username));
+        assertTrue(userRepository.existsById(username));
 
         byte[] response = rabbitTemplate.sendAndReceive(getUserDetailsQueue, new Message(mapper.writeValueAsBytes(new
                 UserManagementRequest(new
@@ -196,7 +200,7 @@ public class GetUserDetailsFunctionalTests extends AbstractAAMAMQPTestSuite {
         //  Registering user in database
         User User = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(User);
-        assertTrue(userRepository.exists(username));
+        assertTrue(userRepository.existsById(username));
 
         byte[] response = rabbitTemplate.sendAndReceive(getUserDetailsQueue, new Message(mapper.writeValueAsString(new
                 UserManagementRequest(new

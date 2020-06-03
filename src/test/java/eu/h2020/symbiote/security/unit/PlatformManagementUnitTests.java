@@ -1,5 +1,26 @@
 package eu.h2020.symbiote.security.unit;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Base64;
+import java.util.HashMap;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.test.context.TestPropertySource;
+
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
@@ -20,22 +41,6 @@ import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.PlatformsManagementService;
 import eu.h2020.symbiote.security.services.SmartSpacesManagementService;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.test.context.TestPropertySource;
-
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.Base64;
-import java.util.HashMap;
-
-import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
 public class PlatformManagementUnitTests extends
@@ -75,9 +80,9 @@ public class PlatformManagementUnitTests extends
     public void platformRegistrationWithPreferredPlatformIdSuccess() throws
             SecurityException {
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
-        User platformOwner = userRepository.findOne(platformOwnerUsername);
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
+        User platformOwner = userRepository.findById(platformOwnerUsername).get();
         assertTrue(platformOwner.getOwnedServices().isEmpty());
 
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
@@ -94,12 +99,12 @@ public class PlatformManagementUnitTests extends
         assertEquals(preferredPlatformId, platformRegistrationResponse.getPlatformId());
 
         // verify that Service Owner is in repository (as Service Owner!)
-        User platformOwnerFromRepository = userRepository.findOne(platformOwnerUsername);
+        User platformOwnerFromRepository = userRepository.findById(platformOwnerUsername).get();
         assertNotNull(platformOwnerFromRepository);
         assertEquals(UserRole.SERVICE_OWNER, platformOwnerFromRepository.getRole());
 
         // verify that platform with preferred id is in repository and is tied with the given Service Owner
-        Platform registeredPlatform = platformRepository.findOne(preferredPlatformId);
+        Platform registeredPlatform = platformRepository.findById(preferredPlatformId).get();
         assertNotNull(registeredPlatform);
         // verify that platform oriented fields are properly stored
         assertEquals(platformInterworkingInterfaceAddress, registeredPlatform.getPlatformInterworkingInterfaceAddress());
@@ -121,7 +126,7 @@ public class PlatformManagementUnitTests extends
     public void platformRegistrationWithGeneratedPlatformIdSuccess() throws
             SecurityException {
         // verify that our platformOwner is in repository
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
 
         // issue platform registration without preferred platform identifier
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
@@ -140,13 +145,13 @@ public class PlatformManagementUnitTests extends
         assertTrue(generatedPlatformId.startsWith("PLATFORM_"));
 
         // verify that Service Owner is in repository (as Service Owner!)
-        User registeredPlatformOwner = userRepository.findOne(platformOwnerUsername);
+        User registeredPlatformOwner = userRepository.findById(platformOwnerUsername).get();
         assertNotNull(registeredPlatformOwner);
         assertEquals(UserRole.SERVICE_OWNER, registeredPlatformOwner.getRole());
         assertTrue(registeredPlatformOwner.getOwnedServices().contains(generatedPlatformId));
 
         // verify that platform with the generated id is in repository and is tied with the given Service Owner
-        Platform registeredPlatform = platformRepository.findOne(generatedPlatformId);
+        Platform registeredPlatform = platformRepository.findById(generatedPlatformId).get();
         assertNotNull(registeredPlatform);
         assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
 
@@ -158,7 +163,7 @@ public class PlatformManagementUnitTests extends
     @Test
     public void platformRegistrationFailWrongPlatformId() {
         // verify that our platformOwner is in repository
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
 
         // issue platform registration over AMQP without preferred platform identifier
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
@@ -180,7 +185,7 @@ public class PlatformManagementUnitTests extends
     @Test
     public void platformManageMissingCredentials() {
         // verify that our platformOwner is in repository
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
         // issue platform registration without platform owner username
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -216,7 +221,7 @@ public class PlatformManagementUnitTests extends
     @Test
     public void platformManageFailNotExistingUser() {
         // verify that our platformOwner is in repository
-        assertFalse(userRepository.exists(wrongUsername));
+        assertFalse(userRepository.existsById(wrongUsername));
         // issue platform registration with wrong platform owner username
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -238,7 +243,7 @@ public class PlatformManagementUnitTests extends
     public void platformManageFailWrongPlatformOwner() throws
             SecurityException {
         // verify that  platformOwner is in repository
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
         //create the platform by platformOwner
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -256,7 +261,7 @@ public class PlatformManagementUnitTests extends
         userRepository.save(otherPlatformOwner);
         Credentials otherPlatformOwnerCredentials = new Credentials(otherPlatformOwnerUsername, platformOwnerPassword);
         // verify that other platformOwner is in repository
-        assertTrue(userRepository.exists(otherPlatformOwnerUsername));
+        assertTrue(userRepository.existsById(otherPlatformOwnerUsername));
 
         //try to update platform by other platformOwner (without rights to this platform)
         platformManagementRequest = new PlatformManagementRequest(
@@ -292,7 +297,7 @@ public class PlatformManagementUnitTests extends
     @Test
     public void platformManageFailWrongPassword() {
         // verify that our platformOwner is in repository
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 new Credentials(platformOwnerUsername, wrongPassword),
@@ -312,7 +317,7 @@ public class PlatformManagementUnitTests extends
     @Test
     public void platformRegistrationFailWrongInterfaceAddress() {
         // verify that our platformOwner is in repository
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 new Credentials(platformOwnerUsername, platformOwnerPassword),
@@ -333,7 +338,7 @@ public class PlatformManagementUnitTests extends
     public void platformManageFailUserNotPlatformOwner() {
         User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
-        assertTrue(userRepository.exists(username));
+        assertTrue(userRepository.existsById(username));
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
                 new Credentials(username, password),
@@ -353,8 +358,8 @@ public class PlatformManagementUnitTests extends
     @Test
     public void platformRegistrationFailureUnauthorizedByAdminCredentials() {
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
 
         // issue platform registration expecting with wrong AAMOwnerUsername
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
@@ -372,8 +377,8 @@ public class PlatformManagementUnitTests extends
             assertEquals(new WrongCredentialsException().getErrorMessage(), errorResponse.getErrorMessage());
         }
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
 
 
         // issue platform registration over AMQP expecting with wrong AAMOwnerPassword
@@ -392,15 +397,15 @@ public class PlatformManagementUnitTests extends
             assertEquals(new WrongCredentialsException().getErrorMessage(), errorResponse.getErrorMessage());
         }
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
     }
 
     @Test
     public void platformRegistrationFailureUnauthorizedByUserNotActive() {
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
 
         platformOwner.setServiceConsent(false);
         userRepository.save(platformOwner);
@@ -422,14 +427,14 @@ public class PlatformManagementUnitTests extends
             assertEquals(WrongCredentialsException.USER_NOT_ACTIVE, errorResponse.getMessage());
         }
         // verify that our platform is not in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
     }
 
     @Test
     public void platformRegistrationFailureMissingAAMURL() {
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
 
 
         // issue platform registration without required Platform's AAM URL
@@ -452,8 +457,8 @@ public class PlatformManagementUnitTests extends
     @Test
     public void platformRegistrationFailureMissingFriendlyName() {
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
 
         // issue platform registration without friendly name
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
@@ -475,8 +480,8 @@ public class PlatformManagementUnitTests extends
     @Test
     public void platformRegistrationFailurePreferredPlatformIdExists() throws SecurityException {
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
 
         // issue platform registration
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
@@ -489,7 +494,7 @@ public class PlatformManagementUnitTests extends
 
         PlatformManagementResponse platformManagementResponse = platformsManagementService.authManage(platformManagementRequest);
         assertEquals(preferredPlatformId, platformManagementResponse.getPlatformId());
-        assertNotNull(platformRepository.findOne(preferredPlatformId));
+        assertNotNull(platformRepository.findById(preferredPlatformId));
 
         User user = createUser(platformOwnerUsername + "differentOne", platformOwnerPassword, recoveryMail, UserRole.SERVICE_OWNER, AccountStatus.ACTIVE);
         userRepository.save(user);
@@ -514,8 +519,8 @@ public class PlatformManagementUnitTests extends
     public void platformRegistrationFailurePlatformInterworkingInterfaceInUseByAnotherPlatform() throws
             SecurityException {
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
         // issue platform registration
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -527,7 +532,7 @@ public class PlatformManagementUnitTests extends
 
         PlatformManagementResponse platformManagementResponse = platformsManagementService.authManage(platformManagementRequest);
         assertEquals(preferredPlatformId, platformManagementResponse.getPlatformId());
-        assertNotNull(platformRepository.findOne(preferredPlatformId));
+        assertNotNull(platformRepository.findById(preferredPlatformId));
 
         // issue registration request with the same platformInterworkingInterfaceAddress
         platformManagementRequest = new PlatformManagementRequest(
@@ -551,8 +556,8 @@ public class PlatformManagementUnitTests extends
     public void platformRegistrationFailurePlatformInterworkingInterfaceInUseByAnotherSmartSpace() throws
             SecurityException {
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
         // put smart space with platformInterworkingInterfaceAddress into repo
         smartSpaceRepository.save(new SmartSpace(preferredSmartSpaceId,
                 smartSpaceInstanceFriendlyName,
@@ -561,7 +566,7 @@ public class PlatformManagementUnitTests extends
                 smartSpaceSiteLocalAddress,
                 new Certificate(),
                 new HashMap<>(),
-                userRepository.findOne(platformOwnerUsername)));
+                userRepository.findById(platformOwnerUsername).get()));
 
         // issue registration request with the same platformInterworkingInterfaceAddress
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
@@ -583,7 +588,7 @@ public class PlatformManagementUnitTests extends
     @Test
     public void platformUpdateSuccess() throws SecurityException {
         // verify that our platformOwner is in repository
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
 
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -612,7 +617,7 @@ public class PlatformManagementUnitTests extends
     @Test
     public void platformUpdateFailNotExistingPlatform() {
         // verify that our platformOwner is in repository
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
 
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -633,8 +638,8 @@ public class PlatformManagementUnitTests extends
     public void platformUpdateFailureCoreInterfaceAddressUsed() throws
             SecurityException {
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
         // issue platform registration
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -646,7 +651,7 @@ public class PlatformManagementUnitTests extends
 
         PlatformManagementResponse platformManagementResponse = platformsManagementService.authManage(platformManagementRequest);
         assertEquals(preferredPlatformId, platformManagementResponse.getPlatformId());
-        assertNotNull(platformRepository.findOne(preferredPlatformId));
+        assertNotNull(platformRepository.findById(preferredPlatformId));
 
         // update platform to contain coreInterworkingInterface
         platformManagementRequest = new PlatformManagementRequest(
@@ -669,8 +674,8 @@ public class PlatformManagementUnitTests extends
     public void platformUpdateFailurePlatformInterworkingInterfaceInUseByAnotherPlatform() throws
             SecurityException {
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
         // issue platform registration
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -682,7 +687,7 @@ public class PlatformManagementUnitTests extends
 
         PlatformManagementResponse platformManagementResponse = platformsManagementService.authManage(platformManagementRequest);
         assertEquals(preferredPlatformId, platformManagementResponse.getPlatformId());
-        assertNotNull(platformRepository.findOne(preferredPlatformId));
+        assertNotNull(platformRepository.findById(preferredPlatformId));
 
         // issue platform registration
         platformManagementRequest = new PlatformManagementRequest(
@@ -695,7 +700,7 @@ public class PlatformManagementUnitTests extends
 
         platformManagementResponse = platformsManagementService.authManage(platformManagementRequest);
         assertEquals(preferredPlatformId + "dif", platformManagementResponse.getPlatformId());
-        assertNotNull(platformRepository.findOne(preferredPlatformId));
+        assertNotNull(platformRepository.findById(preferredPlatformId));
 
         // issue platform update with the same platformInterworkingInterfaceAddress
         platformManagementRequest = new PlatformManagementRequest(
@@ -719,8 +724,8 @@ public class PlatformManagementUnitTests extends
     public void platformUpdateFailurePlatformInterworkingInterfaceInUseByAnotherService() throws
             SecurityException {
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
         smartSpaceRepository.save(new SmartSpace(preferredSmartSpaceId,
                 smartSpaceInstanceFriendlyName,
                 platformInterworkingInterfaceAddress,
@@ -728,7 +733,7 @@ public class PlatformManagementUnitTests extends
                 smartSpaceSiteLocalAddress,
                 new Certificate(),
                 new HashMap<>(),
-                userRepository.findOne(platformOwnerUsername)));
+                userRepository.findById(platformOwnerUsername).get()));
 
         // issue platform registration
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
@@ -741,7 +746,7 @@ public class PlatformManagementUnitTests extends
 
         PlatformManagementResponse platformManagementResponse = platformsManagementService.authManage(platformManagementRequest);
         assertEquals(preferredPlatformId, platformManagementResponse.getPlatformId());
-        assertNotNull(platformRepository.findOne(preferredPlatformId));
+        assertNotNull(platformRepository.findById(preferredPlatformId));
 
 
         // issue platform update with the same platformInterworkingInterfaceAddress
@@ -771,7 +776,7 @@ public class PlatformManagementUnitTests extends
             KeyStoreException,
             IOException {
         // verify that our platformOwner is in repository
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
 
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -785,13 +790,13 @@ public class PlatformManagementUnitTests extends
         //ensure platform is registered
         assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
 
-        Platform platform = platformRepository.findOne(preferredPlatformId);
+        Platform platform = platformRepository.findById(preferredPlatformId).get();
         X509Certificate platformCertificate = getCertificateFromTestKeystore(
                 "keystores/platform_1.p12",
                 "platform-1-1-c1");
         platform.setPlatformAAMCertificate(new Certificate(
                 CryptoHelper.convertX509ToPEM(platformCertificate)));
-        assertFalse(revokedKeysRepository.exists(preferredPlatformId));
+        assertFalse(revokedKeysRepository.existsById(preferredPlatformId));
         platformRepository.save(platform);
         // delete platform 1
         platformManagementRequest = new PlatformManagementRequest(
@@ -802,17 +807,17 @@ public class PlatformManagementUnitTests extends
                 preferredPlatformId,
                 OperationType.DELETE);
         assertEquals(ManagementStatus.OK, platformsManagementService.authManage(platformManagementRequest).getRegistrationStatus());
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(revokedKeysRepository.exists(preferredPlatformId));
-        assertTrue(revokedKeysRepository.findOne(preferredPlatformId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(platformCertificate.getPublicKey().getEncoded())));
-        assertTrue(userRepository.findOne(platformOwnerUsername).getOwnedServices().isEmpty());
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(revokedKeysRepository.existsById(preferredPlatformId));
+        assertTrue(revokedKeysRepository.findById(preferredPlatformId).get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(platformCertificate.getPublicKey().getEncoded())));
+        assertTrue(userRepository.findById(platformOwnerUsername).get().getOwnedServices().isEmpty());
 
     }
 
     @Test
     public void platformDeleteFailNotExistingPlatform() {
         // verify that our platformOwner is in repository
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
 
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),

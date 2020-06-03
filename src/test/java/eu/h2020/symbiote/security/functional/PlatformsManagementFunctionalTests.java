@@ -1,5 +1,21 @@
 package eu.h2020.symbiote.security.functional;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.context.TestPropertySource;
+
 import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
@@ -12,18 +28,6 @@ import eu.h2020.symbiote.security.communication.payloads.PlatformManagementReque
 import eu.h2020.symbiote.security.communication.payloads.PlatformManagementResponse;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.test.context.TestPropertySource;
-
-import java.io.IOException;
-
-import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
 public class PlatformsManagementFunctionalTests extends
@@ -52,8 +56,8 @@ public class PlatformsManagementFunctionalTests extends
     public void platformRegistrationOverAMQPSuccess() throws
             IOException {
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
         // issue platform registration
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -72,7 +76,7 @@ public class PlatformsManagementFunctionalTests extends
         assertEquals(preferredPlatformId, platformManagementResponse.getPlatformId());
         assertEquals(ManagementStatus.OK, platformManagementResponse.getRegistrationStatus());
         // verify that platform is in repo with proper fields
-        Platform registeredPlatform = platformRepository.findOne(preferredPlatformId);
+        Platform registeredPlatform = platformRepository.findById(preferredPlatformId).get();
         assertNotNull(registeredPlatform);
         assertEquals(platformOwnerUsername, registeredPlatform.getPlatformOwner().getUsername());
         assertEquals(platformInstanceFriendlyName, registeredPlatform.getPlatformInstanceFriendlyName());
@@ -84,7 +88,7 @@ public class PlatformsManagementFunctionalTests extends
     public void platformRegistrationOverAMQPFailErrorResponseContainerReceived() throws
             IOException {
         // verify that our platform is not in repository
-        assertFalse(platformRepository.exists(preferredPlatformId));
+        assertFalse(platformRepository.existsById(preferredPlatformId));
         // issue platform registration without platform owner username
         PlatformManagementRequest platformManagementRequest = new PlatformManagementRequest(
                 new Credentials("", AAMOwnerPassword),

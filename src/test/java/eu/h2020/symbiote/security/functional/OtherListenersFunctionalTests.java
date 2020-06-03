@@ -1,22 +1,18 @@
 package eu.h2020.symbiote.security.functional;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
-import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.AccountStatus;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.communication.payloads.*;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.listeners.amqp.consumers.FederationManagementRequestConsumer;
-import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
-import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
-import eu.h2020.symbiote.security.repositories.entities.Platform;
-import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
-import eu.h2020.symbiote.security.repositories.entities.User;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.amqp.core.Message;
@@ -28,16 +24,29 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.TestPropertySource;
 
-import java.io.IOException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertificateException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import com.fasterxml.jackson.core.type.TypeReference;
 
-import static org.junit.Assert.*;
+import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
+import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.communication.payloads.AAM;
+import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.communication.payloads.OwnedService;
+import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.listeners.amqp.consumers.FederationManagementRequestConsumer;
+import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
+import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
+import eu.h2020.symbiote.security.repositories.entities.User;
 
 /**
  * Test suite for Core AAM deployment scenarios.
@@ -177,10 +186,10 @@ public class OtherListenersFunctionalTests extends
             InvalidArgumentsException {
 
         // verify that our services is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(platformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(platformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
 
-        User serviceOwner = userRepository.findOne(platformOwnerUsername);
+        User serviceOwner = userRepository.findById(platformOwnerUsername).get();
         // service owner should have no services bound to him by now
         assertTrue(serviceOwner.getOwnedServices().isEmpty());
 
@@ -255,8 +264,8 @@ public class OtherListenersFunctionalTests extends
             IOException {
 
         // verify that our platform is not in repository and that our platformOwner is in repository
-        assertFalse(platformRepository.exists(platformId));
-        assertTrue(userRepository.exists(platformOwnerUsername));
+        assertFalse(platformRepository.existsById(platformId));
+        assertTrue(userRepository.existsById(platformOwnerUsername));
         // put platform into db
         Platform platform = new Platform(platformId,
                 platformInterworkingInterfaceAddress,
@@ -268,7 +277,7 @@ public class OtherListenersFunctionalTests extends
         platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
-        User platformOwner = userRepository.findOne(platformOwnerUsername);
+        User platformOwner = userRepository.findById(platformOwnerUsername).get();
         // platform owner should have a platform bound to him by now
         assertFalse(platformOwner.getOwnedServices().isEmpty());
         // creating request

@@ -1,5 +1,46 @@
 package eu.h2020.symbiote.security.unit.credentialsvalidation;
 
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
+import static eu.h2020.symbiote.security.services.helpers.TokenIssuer.buildAuthorizationToken;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.io.StringWriter;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyPair;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.client.RestTemplate;
+
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
@@ -12,7 +53,15 @@ import eu.h2020.symbiote.security.commons.enums.OperationType;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
 import eu.h2020.symbiote.security.commons.exceptions.SecurityException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ServiceManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
@@ -29,29 +78,6 @@ import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
 import eu.h2020.symbiote.security.utils.DummyCoreAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAMConnectionProblem;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.TestPropertySource;
-import org.springframework.web.client.HttpServerErrorException;
-import org.springframework.web.client.RestTemplate;
-
-import java.io.IOException;
-import java.io.StringWriter;
-import java.security.*;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.*;
-
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
-import static eu.h2020.symbiote.security.services.helpers.TokenIssuer.buildAuthorizationToken;
-import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
@@ -89,11 +115,11 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             SecurityException,
             CertificateException {
         // verify that app really is in repository
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         assertNotNull(user);
 
         // verify the user keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(username));
+        assertFalse(revokedKeysRepository.existsById(username));
 
         // acquiring valid token
         Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
@@ -106,11 +132,11 @@ public class CredentialsValidationInCoreAAMUnitTests extends
     @Test
     public void validateWrongToken() {
         // verify that app really is in repository
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         assertNotNull(user);
 
         // verify the user keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(username));
+        assertFalse(revokedKeysRepository.existsById(username));
 
         //check if home token is valid
         ValidationStatus response = validationHelper.validate("tokenString", "", "", "");
@@ -123,11 +149,11 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             CertificateException,
             InterruptedException {
         // verify that app really is in repository
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         assertNotNull(user);
 
         // verify the user keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(username));
+        assertFalse(revokedKeysRepository.existsById(username));
 
         // acquiring valid token
         Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
@@ -146,13 +172,13 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             CertificateException {
 
         // verify that user really is in repository
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         assertNotNull(user);
 
         // acquiring valid token
         Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
 
-        SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(username);
+        SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findById(username).orElseGet(() -> null);
         Set<String> keySet = (subjectsRevokedKeys == null) ? new HashSet<>() : subjectsRevokedKeys
                 .getRevokedKeysSet();
         keySet.add(Base64.getEncoder().encodeToString(
@@ -160,7 +186,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         // adding key to revoked repository
         revokedKeysRepository.save(new SubjectsRevokedKeys(username, keySet));
 
-        assertNotNull(revokedKeysRepository.findOne(username));
+        assertNotNull(revokedKeysRepository.findById(username));
 
         ValidationStatus status = validationHelper.validate(homeToken.getToken(), "", "", "");
         assertEquals(ValidationStatus.REVOKED_SPK, status);
@@ -171,11 +197,11 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             SecurityException,
             CertificateException {
         // verify that app really is in repository
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         assertNotNull(user);
 
         // verify the user keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(username));
+        assertFalse(revokedKeysRepository.existsById(username));
 
         // acquiring valid token
         Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
@@ -203,11 +229,11 @@ public class CredentialsValidationInCoreAAMUnitTests extends
             SecurityException,
             CertificateException {
         // verify that app really is in repository
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         assertNotNull(user);
 
         // verify the user keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(username));
+        assertFalse(revokedKeysRepository.existsById(username));
 
         // acquiring valid token
         Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
@@ -281,7 +307,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         String issuer = JWTEngine.getClaims(dummyHomeToken.getToken()).getIssuer();
 
         // verify the issuer keys are not yet revoked
-        assertFalse(revokedKeysRepository.exists(issuer));
+        assertFalse(revokedKeysRepository.existsById(issuer));
 
         // insert DummyPlatformAAM public key into set to be revoked
         Set<String> keySet = new HashSet<>();
@@ -1030,7 +1056,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                 getPrivateKeyTestFromKeystore("keystores/platform_1.p12", "platform-1-1-c1")
         );
         Token homeToken = new Token(testHomeToken);
-        assertFalse(revokedTokensRepository.exists(homeToken.getId()));
+        assertFalse(revokedTokensRepository.existsById(homeToken.getId()));
         // valid remote home token chain (INVALID_TRUST_CHAIN returned by dummyPlatformAAM)
         assertEquals(
                 ValidationStatus.INVALID_TRUST_CHAIN,
@@ -1041,7 +1067,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
                         "")
         );
         // check, if invalid token saved in local repo
-        assertTrue(revokedRemoteTokensRepository.exists(homeToken.getClaims().getIssuer() + FIELDS_DELIMITER + homeToken.getId()));
+        assertTrue(revokedRemoteTokensRepository.existsById(homeToken.getClaims().getIssuer() + FIELDS_DELIMITER + homeToken.getId()));
         // check, if token was recognized as revoked during remote validation
         assertEquals(
                 ValidationStatus.REVOKED_TOKEN,
@@ -1110,7 +1136,7 @@ public class CredentialsValidationInCoreAAMUnitTests extends
         //checking if foreign token is valid
         assertEquals(ValidationStatus.INVALID_TRUST_CHAIN, validationHelper.validate(foreignToken.toString(), "", "", ""));
         //checking, if token saved as revoked
-        assertTrue(revokedTokensRepository.exists(foreignToken.getId()));
+        assertTrue(revokedTokensRepository.existsById(foreignToken.getId()));
         //checking if foreign token is valid - validation should recognize token as revoked
         assertEquals(ValidationStatus.REVOKED_TOKEN, validationHelper.validate(foreignToken.toString(), "", "", ""));
     }

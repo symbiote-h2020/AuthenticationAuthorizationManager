@@ -1,5 +1,31 @@
 package eu.h2020.symbiote.security.functional;
 
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyPair;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import org.junit.Test;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.context.TestPropertySource;
+
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
@@ -10,10 +36,22 @@ import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.payloads.*;
+import eu.h2020.symbiote.security.communication.payloads.AAM;
+import eu.h2020.symbiote.security.communication.payloads.AvailableAAMsCollection;
+import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
+import eu.h2020.symbiote.security.communication.payloads.RevocationResponse;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
 import eu.h2020.symbiote.security.repositories.PlatformRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
@@ -22,24 +60,6 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.CredentialsValidationService;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.junit.Test;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.test.context.TestPropertySource;
-
-import java.io.IOException;
-import java.security.*;
-import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
-import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
 public class RevocationFunctionalTests extends
@@ -218,7 +238,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificatePEMString(clientCertificate);
 
-        assertFalse(revokedKeysRepository.exists(username));
+        assertFalse(revokedKeysRepository.existsById(username));
         byte[] response = rabbitTemplate.sendAndReceive(revocationRequestQueue, new Message(mapper.writeValueAsBytes
                 (revocationRequest), new MessageProperties())).getBody();
         RevocationResponse revocationResponse = mapper.readValue(response,
@@ -226,7 +246,7 @@ public class RevocationFunctionalTests extends
 
         assertTrue(revocationResponse.isRevoked());
         assertEquals(HttpStatus.OK, revocationResponse.getStatus());
-        assertTrue(revokedKeysRepository.exists(username));
+        assertTrue(revokedKeysRepository.existsById(username));
 
     }
 
@@ -414,7 +434,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setHomeTokenString(homeToken);
 
         assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
-        assertTrue(revokedTokensRepository.exists(new Token(homeToken).getClaims().getId()));
+        assertTrue(revokedTokensRepository.existsById(new Token(homeToken).getClaims().getId()));
     }
 
     @Test
@@ -431,7 +451,7 @@ public class RevocationFunctionalTests extends
             MalformedJWTException,
             AAMException {
         addTestUserWithClientCertificateToRepository();
-        assertNotNull(userRepository.findOne(username));
+        assertNotNull(userRepository.findById(username));
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
@@ -451,7 +471,7 @@ public class RevocationFunctionalTests extends
         userRepository.save(platformOwner);
 
         //inject platform PEM Certificate to the database
-        Platform dummyPlatform = platformRepository.findOne(platformId);
+        Platform dummyPlatform = platformRepository.findById(platformId).get();
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
         platformRepository.save(dummyPlatform);
 
@@ -476,7 +496,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setForeignTokenString(foreignToken.toString());
 
         assertTrue(Boolean.parseBoolean(aamClient.revokeCredentials(revocationRequest)));
-        assertTrue(revokedTokensRepository.exists(foreignToken.getClaims().getId()));
+        assertTrue(revokedTokensRepository.existsById(foreignToken.getClaims().getId()));
         assertEquals(ValidationStatus.REVOKED_TOKEN, credentialsValidationService.validate(foreignToken.getToken(), "", "", ""));
     }
 
@@ -522,7 +542,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCertificatePEMString(clientCertificate);
 
-        assertFalse(revokedKeysRepository.exists(username));
+        assertFalse(revokedKeysRepository.existsById(username));
         byte[] response = rabbitTemplate.sendAndReceive(revocationRequestQueue, new Message(mapper.writeValueAsBytes
                 (revocationRequest), new MessageProperties())).getBody();
         RevocationResponse revocationResponse = mapper.readValue(response,
@@ -530,7 +550,7 @@ public class RevocationFunctionalTests extends
 
         assertTrue(revocationResponse.isRevoked());
         assertEquals(HttpStatus.OK, revocationResponse.getStatus());
-        assertTrue(revokedKeysRepository.exists(username));
+        assertTrue(revokedKeysRepository.existsById(username));
     }
 
     @Test
@@ -555,7 +575,7 @@ public class RevocationFunctionalTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setHomeTokenString(homeToken);
 
-        assertFalse(revokedTokensRepository.exists(new Token(homeToken).getId()));
+        assertFalse(revokedTokensRepository.existsById(new Token(homeToken).getId()));
         byte[] response = rabbitTemplate.sendAndReceive(revocationRequestQueue, new Message(mapper.writeValueAsBytes
                 (revocationRequest), new MessageProperties())).getBody();
         RevocationResponse revocationResponse = mapper.readValue(response,
@@ -563,7 +583,7 @@ public class RevocationFunctionalTests extends
 
         assertTrue(revocationResponse.isRevoked());
         assertEquals(HttpStatus.OK, revocationResponse.getStatus());
-        assertTrue(revokedTokensRepository.exists(new Token(homeToken).getId()));
+        assertTrue(revokedTokensRepository.existsById(new Token(homeToken).getId()));
     }
 
     @Test

@@ -1,10 +1,9 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.h2020.symbiote.model.mim.Federation;
-import eu.h2020.symbiote.model.mim.FederationMember;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.repositories.FederationsRepository;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.stream.Collectors;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.amqp.rabbit.annotation.Exchange;
@@ -15,9 +14,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.stream.Collectors;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.repositories.FederationsRepository;
 
 @Profile("platform")
 @Component
@@ -56,7 +58,7 @@ public class FederationManagementRequestConsumer {
             if (!isFederationConsistent(federation)) {
                 throw new InvalidArgumentsException("Some of the Federation Members' platform Ids are duplicated");
             }
-            if (federationsRepository.exists(federation.getId())) {
+            if (federationsRepository.existsById(federation.getId())) {
                 throw new InvalidArgumentsException("Federation already exists.");
             }
             federationsRepository.save(federation);
@@ -82,10 +84,10 @@ public class FederationManagementRequestConsumer {
                     || federationId.isEmpty())
                 throw new InvalidArgumentsException();
 
-            if (!federationsRepository.exists(federationId)) {
+            if (!federationsRepository.existsById(federationId)) {
                 throw new InvalidArgumentsException("Federation does not exists");
             }
-            federationsRepository.delete(federationId);
+            federationsRepository.deleteById(federationId);
 
         } catch (InvalidArgumentsException | UnsupportedEncodingException e) {
             log.error(e);
@@ -112,7 +114,7 @@ public class FederationManagementRequestConsumer {
             if (!isFederationConsistent(federation)) {
                 throw new InvalidArgumentsException("Some of the Federation Members' platform Ids are duplicated");
             }
-            if (!federationsRepository.exists(federation.getId())) {
+            if (!federationsRepository.existsById(federation.getId())) {
                 throw new InvalidArgumentsException("Federation doesn't exist.");
             }
             federationsRepository.save(federation);

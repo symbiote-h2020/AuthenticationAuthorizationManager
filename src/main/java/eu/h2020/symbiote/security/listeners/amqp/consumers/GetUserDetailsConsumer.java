@@ -1,16 +1,15 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import eu.h2020.symbiote.security.commons.enums.AccountStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
-import eu.h2020.symbiote.security.communication.payloads.*;
-import eu.h2020.symbiote.security.repositories.UserRepository;
-import eu.h2020.symbiote.security.repositories.entities.User;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.springframework.amqp.rabbit.annotation.*;
+import org.springframework.amqp.rabbit.annotation.Argument;
+import org.springframework.amqp.rabbit.annotation.Exchange;
+import org.springframework.amqp.rabbit.annotation.Queue;
+import org.springframework.amqp.rabbit.annotation.QueueBinding;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -18,8 +17,19 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.communication.payloads.Credentials;
+import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
+import eu.h2020.symbiote.security.communication.payloads.UserDetails;
+import eu.h2020.symbiote.security.communication.payloads.UserDetailsResponse;
+import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
+import eu.h2020.symbiote.security.repositories.UserRepository;
+import eu.h2020.symbiote.security.repositories.entities.User;
 
 /**
  * RabbitMQ Consumer implementation used for providing requested user's details
@@ -93,12 +103,12 @@ public class GetUserDetailsConsumer {
                 //  begin checking requested user's credentials
                 String username = userManagementRequest.getUserCredentials().getUsername();
                 //  Check if user exists in database
-                if (!userRepository.exists(username)) {
+                if (!userRepository.existsById(username)) {
                     //  If not then return appropriate message
                     return om.writeValueAsString(new UserDetailsResponse(HttpStatus.BAD_REQUEST, new UserDetails())).getBytes();
                 }
                 //  User IS in database
-                User foundUser = userRepository.findOne(username);
+                User foundUser = userRepository.findById(username).get();
                 UserDetails foundUserDetails = new UserDetails(new Credentials(foundUser.getUsername(), ""),
                         foundUser.getRecoveryMail(),
                         foundUser.getRole(),

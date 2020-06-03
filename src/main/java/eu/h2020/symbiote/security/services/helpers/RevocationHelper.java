@@ -1,24 +1,6 @@
 package eu.h2020.symbiote.security.services.helpers;
 
-import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.Token;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
-import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
-import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.*;
-import eu.h2020.symbiote.security.repositories.entities.*;
-import eu.h2020.symbiote.security.services.AAMServices;
-import eu.h2020.symbiote.security.services.helpers.enums.CertificateTypeBySplitCommonNameFieldsNumber;
-import eu.h2020.symbiote.security.services.helpers.enums.CertificateTypeBySplitFriendlyNameFieldsNumber;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 
 import java.io.IOException;
 import java.security.PublicKey;
@@ -28,7 +10,40 @@ import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.SecurityMisconfigurationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
+import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
+import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
+import eu.h2020.symbiote.security.repositories.SmartSpaceRepository;
+import eu.h2020.symbiote.security.repositories.UserRepository;
+import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
+import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
+import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.AAMServices;
+import eu.h2020.symbiote.security.services.helpers.enums.CertificateTypeBySplitCommonNameFieldsNumber;
+import eu.h2020.symbiote.security.services.helpers.enums.CertificateTypeBySplitFriendlyNameFieldsNumber;
 
 /**
  * Helper for revoking credentials.
@@ -84,10 +99,10 @@ public class RevocationHelper {
                     throw new SecurityException("User has no rights to this service");
                 }
                 if (friendlyName.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
-                    SmartSpace smartSpace = smartSpaceRepository.findOne(friendlyName);
+                    SmartSpace smartSpace = smartSpaceRepository.findById(friendlyName).get();
                     return revokeSmartSpaceCertificateUsingCommonName(friendlyName, smartSpace);
                 }
-                Platform platform = platformRepository.findOne(friendlyName);
+                Platform platform = platformRepository.findById(friendlyName).get();
                 return revokePlatformCertificateUsingCommonName(friendlyName, platform);
             case COMPONENT_OR_CLIENT:
                 if (!friendlyName.split(FIELDS_DELIMITER)[0].equals(user.getUsername())) {
@@ -181,10 +196,10 @@ public class RevocationHelper {
                     throw new SecurityException("User has no rights to this service");
                 }
                 if (serviceId.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
-                    SmartSpace smartSpace = smartSpaceRepository.findOne(serviceId);
+                    SmartSpace smartSpace = smartSpaceRepository.findById(serviceId).get();
                     return revokeSmartSpaceCertificateUsingCertificate(certificate, smartSpace);
                 }
-                Platform platform = platformRepository.findOne(serviceId);
+                Platform platform = platformRepository.findById(serviceId).get();
                 return revokePlatformCertificateUsingCertificate(certificate, platform);
             //revoking user certificate
             case CLIENT:
@@ -391,18 +406,18 @@ public class RevocationHelper {
             switch (CertificateTypeBySplitFriendlyNameFieldsNumber.fromInt(certificateFriendlyName.split(FIELDS_DELIMITER).length)) {
                 case SERVICE: // for services the CN and cert friendly Names are the same
                     if (certificateFriendlyName.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
-                        SmartSpace smartSpace = smartSpaceRepository.findOne(certificateFriendlyName);
+                        SmartSpace smartSpace = smartSpaceRepository.findById(certificateFriendlyName).get();
                         return revokeSmartSpaceCertificateUsingCommonName(certificateFriendlyName, smartSpace);
                     } else {
-                        Platform platform = platformRepository.findOne(certificateFriendlyName);
+                        Platform platform = platformRepository.findById(certificateFriendlyName).get();
                         return revokePlatformCertificateUsingCommonName(certificateFriendlyName, platform);
                     }
                 case COMPONENT_OR_CLIENT:
                     // in this case the client cert Friendly name is the CN without the last part denoting the platform as it can only be this one.
-                    if (userRepository.exists(certificateFriendlyName.split(FIELDS_DELIMITER)[0])) {
+                    if (userRepository.existsById(certificateFriendlyName.split(FIELDS_DELIMITER)[0])) {
                         String username = certificateFriendlyName.split(FIELDS_DELIMITER)[0];
                         String clientId = certificateFriendlyName.split(FIELDS_DELIMITER)[1];
-                        User user = userRepository.findOne(username);
+                        User user = userRepository.findById(username).get();
                         if (user == null
                                 || user.getClientCertificates().get(clientId) == null) {
                             throw new WrongCredentialsException(WrongCredentialsException.USER_OR_CLIENT_NOT_EXIST);
@@ -435,7 +450,7 @@ public class RevocationHelper {
     private boolean revokeLocalComponentCertificateUsingComponentName(String componentId) throws
             CertificateException,
             WrongCredentialsException {
-        ComponentCertificate componentCertificate = componentCertificatesRepository.findOne(componentId);
+        ComponentCertificate componentCertificate = componentCertificatesRepository.findById(componentId).orElseGet(() -> null);
         if (componentCertificate == null
                 || componentCertificate.getCertificate() == null
                 || componentCertificate.getCertificate().getCertificateString().isEmpty()
@@ -443,7 +458,7 @@ public class RevocationHelper {
             throw new WrongCredentialsException("Component certificate is empty or issuer does not equals with this AAM");
         }
         revokeKey(componentId, componentCertificate.getCertificate());
-        componentCertificatesRepository.delete(componentId);
+        componentCertificatesRepository.deleteById(componentId);
         aamServices.invalidateInternalAAMsCache();
         aamServices.invalidateAvailableAAMsCache();
         aamServices.invalidateComponentCertificateCache(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier());
@@ -466,10 +481,10 @@ public class RevocationHelper {
         switch (CertificateTypeBySplitCommonNameFieldsNumber.fromInt(certificateCommonName.split(FIELDS_DELIMITER).length)) {
             case SERVICE:
                 if (certificateCommonName.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
-                    SmartSpace smartSpace = smartSpaceRepository.findOne(certificateCommonName);
+                    SmartSpace smartSpace = smartSpaceRepository.findById(certificateCommonName).get();
                     return revokeSmartSpaceCertificateUsingCertificate(certificate, smartSpace);
                 } else {
-                    Platform platform = platformRepository.findOne(certificateCommonName);
+                    Platform platform = platformRepository.findById(certificateCommonName).get();
                     return revokePlatformCertificateUsingCertificate(certificate, platform);
                 }
             case COMPONENT:
@@ -480,7 +495,7 @@ public class RevocationHelper {
                 return revokeLocalComponentUsingCertificate(certificate);
             case CLIENT:
                 String username = certificateCommonName.split(FIELDS_DELIMITER)[0];
-                User user = userRepository.findOne(username);
+                User user = userRepository.findById(username).get();
                 if (user == null) {
                     throw new NotExistingUserException();
                 }
@@ -495,7 +510,7 @@ public class RevocationHelper {
             IOException,
             CertificateException {
         String componentId = certificate.getSubjectDN().getName().split("CN=")[1].split(FIELDS_DELIMITER)[0];
-        ComponentCertificate componentCertificate = componentCertificatesRepository.findOne(componentId);
+        ComponentCertificate componentCertificate = componentCertificatesRepository.findById(componentId).orElseGet(() -> null);
         if (componentCertificate == null
                 || componentCertificate.getCertificate() == null
                 || componentCertificate.getCertificate().getCertificateString().isEmpty()) {
@@ -503,7 +518,7 @@ public class RevocationHelper {
         }
         if (componentCertificate.getCertificate().getCertificateString().equals(CryptoHelper.convertX509ToPEM(certificate))) {
             revokeKey(componentId, componentCertificate.getCertificate());
-            componentCertificatesRepository.delete(componentId);
+            componentCertificatesRepository.deleteById(componentId);
             aamServices.invalidateInternalAAMsCache();
             aamServices.invalidateAvailableAAMsCache();
             aamServices.invalidateComponentCertificateCache(componentId, certificationAuthorityHelper.getAAMInstanceIdentifier());
@@ -536,7 +551,7 @@ public class RevocationHelper {
     private void revokeKey(String name,
                            Certificate cert) throws
             CertificateException {
-        SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(name);
+        SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findById(name).orElseGet(() -> null);
         Set<String> keySet = (subjectsRevokedKeys == null) ? new HashSet<>() : subjectsRevokedKeys
                 .getRevokedKeysSet();
         keySet.add(Base64.getEncoder().encodeToString(
@@ -547,7 +562,7 @@ public class RevocationHelper {
 
     private boolean isRevoked(String name,
                               PublicKey publicKey) {
-        SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(name);
+        SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findById(name).get();
         if (subjectsRevokedKeys == null) {
             return false;
         }

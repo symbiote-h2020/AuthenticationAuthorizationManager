@@ -1,5 +1,33 @@
 package eu.h2020.symbiote.security.unit;
 
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyPair;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.TestPropertySource;
+
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
@@ -8,7 +36,14 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ServiceManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
 import eu.h2020.symbiote.security.communication.payloads.Credentials;
 import eu.h2020.symbiote.security.communication.payloads.RevocationRequest;
@@ -26,19 +61,6 @@ import eu.h2020.symbiote.security.services.SignCertificateRequestService;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.TestPropertySource;
-
-import java.io.IOException;
-import java.security.*;
-import java.security.cert.CertificateException;
-import java.util.*;
-
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
-import static org.junit.Assert.*;
 
 /**
  * Test suite for revocation (unit tests)
@@ -85,7 +107,7 @@ public class RevocationUnitTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
         signCertificateRequestService.signCertificateRequest(certRequest);
-        User user = userRepository.findOne(appUsername);
+        User user = userRepository.findById(appUsername).get();
         assertNotNull(user.getClientCertificates().get(clientId));
         String commonName = appUsername + FIELDS_DELIMITER + clientId;
         RevocationRequest revocationRequest = new RevocationRequest();
@@ -93,13 +115,13 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setCertificateCommonName(commonName);
 
-        assertNotNull(userRepository.findOne(appUsername).getClientCertificates().get(clientId));
-        assertNull(revokedKeysRepository.findOne(appUsername));
+        assertNotNull(userRepository.findById(appUsername).get().getClientCertificates().get(clientId));
+        assertFalse(revokedKeysRepository.findById(appUsername).isPresent());
 
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
 
-        assertNull(userRepository.findOne(appUsername).getClientCertificates().get(clientId));
-        assertTrue(revokedKeysRepository.findOne(appUsername).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
+        assertNull(userRepository.findById(appUsername).get().getClientCertificates().get(clientId));
+        assertTrue(revokedKeysRepository.findById(appUsername).get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
     }
 
     @Test
@@ -133,12 +155,12 @@ public class RevocationUnitTests extends
         platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
-        platformOwner = userRepository.findOne(platformOwnerUsername);
+        platformOwner = userRepository.findById(platformOwnerUsername).get();
         assertFalse(platformOwner.getOwnedServices().isEmpty());
-        assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
+        assertFalse(platformRepository.findById(platformId).get().getPlatformAAMCertificate().getCertificateString().isEmpty());
 
-        assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
-        assertNull(revokedKeysRepository.findOne(platformId));
+        assertFalse(platformRepository.findById(platformId).get().getPlatformAAMCertificate().getCertificateString().isEmpty());
+        assertFalse(revokedKeysRepository.findById(platformId).isPresent());
 
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
@@ -147,8 +169,8 @@ public class RevocationUnitTests extends
 
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
 
-        assertTrue(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
-        assertTrue(revokedKeysRepository.findOne(platformId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
+        assertTrue(platformRepository.findById(platformId).get().getPlatformAAMCertificate().getCertificateString().isEmpty());
+        assertTrue(revokedKeysRepository.findById(platformId).get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
     }
 
     @Test
@@ -170,7 +192,7 @@ public class RevocationUnitTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
         signCertificateRequestService.signCertificateRequest(certRequest);
-        User user = userRepository.findOne(appUsername);
+        User user = userRepository.findById(appUsername).get();
         assertNotNull(user.getClientCertificates().get(clientId));
         String commonName = appUsername + FIELDS_DELIMITER + clientId;
 
@@ -203,7 +225,7 @@ public class RevocationUnitTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
         signCertificateRequestService.signCertificateRequest(certRequest);
-        User user = userRepository.findOne(appUsername);
+        User user = userRepository.findById(appUsername).get();
         assertNotNull(user.getClientCertificates().get(clientId));
         String commonName = wrongUsername + FIELDS_DELIMITER + clientId;
 
@@ -278,9 +300,9 @@ public class RevocationUnitTests extends
         String certificate = signCertificateRequestService.signCertificateRequest(certRequest);
         //revoke certificate using revoked certificate
         //check if there is user certificate in database
-        assertNotNull(userRepository.findOne(appUsername).getClientCertificates().get(clientId));
+        assertNotNull(userRepository.findById(appUsername).get().getClientCertificates().get(clientId));
         //check if there is revoked key for user
-        assertNull(revokedKeysRepository.findOne(appUsername));
+        assertFalse(revokedKeysRepository.findById(appUsername).isPresent());
         //check if revocation ended with success using certificate
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -288,18 +310,18 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentials(new Credentials(appUsername, password));
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
         //check if there is not user certificate in database
-        assertNull(userRepository.findOne(appUsername).getClientCertificates().get(clientId));
+        assertNull(userRepository.findById(appUsername).get().getClientCertificates().get(clientId));
         //check if there is revoked key for user
-        assertTrue(revokedKeysRepository.findOne(appUsername).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
+        assertTrue(revokedKeysRepository.findById(appUsername).get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
 
         pair = CryptoHelper.createKeyPair();
-        assertFalse(revokedKeysRepository.findOne(appUsername).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
+        assertFalse(revokedKeysRepository.findById(appUsername).get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
         csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
         signCertificateRequestService.signCertificateRequest(certRequest);
         //revoke certificate using revoked certificate
         //check if there is user certificate in database
-        assertNotNull(userRepository.findOne(appUsername).getClientCertificates().get(clientId));
+        assertNotNull(userRepository.findById(appUsername).get().getClientCertificates().get(clientId));
         //check if revocation ended with success using certificate with revoked key
 
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
@@ -334,9 +356,9 @@ public class RevocationUnitTests extends
         userRepository.save(platformOwner);
         //revoke platform certificate
         //check if there is platform certificate in database
-        assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
+        assertFalse(platformRepository.findById(platformId).get().getPlatformAAMCertificate().getCertificateString().isEmpty());
         //check if there is any revoked key for platformId
-        assertNull(revokedKeysRepository.findOne(platformId));
+        assertFalse(revokedKeysRepository.findById(platformId).isPresent());
         //check if revocation ended with success
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -344,9 +366,9 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
         //check if there isn't platform certificate in database
-        assertTrue(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
+        assertTrue(platformRepository.findById(platformId).get().getPlatformAAMCertificate().getCertificateString().isEmpty());
         //check if there is revoked key for platformId
-        assertTrue(revokedKeysRepository.findOne(platformId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
+        assertTrue(revokedKeysRepository.findById(platformId).get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
 
         //create new certificate for platform
         pair = CryptoHelper.createKeyPair();
@@ -358,7 +380,7 @@ public class RevocationUnitTests extends
 
         //revoke certificate using revoked certificate
         //check if there is platform certificate in database
-        assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
+        assertFalse(platformRepository.findById(platformId).get().getPlatformAAMCertificate().getCertificateString().isEmpty());
         //check if revocation ended with success using certificate with revoked key
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
     }
@@ -399,7 +421,7 @@ public class RevocationUnitTests extends
         String certFromCSR = signCertificateRequestService.signCertificateRequest(certRequest);
         //revoke certificate using revoked certificate
         //check if there is platform certificate in database
-        assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
+        assertFalse(platformRepository.findById(platformId).get().getPlatformAAMCertificate().getCertificateString().isEmpty());
         //check if revocation ended with success using certificate with revoked key
 
         RevocationRequest revocationRequest = new RevocationRequest();
@@ -429,7 +451,7 @@ public class RevocationUnitTests extends
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
         String certificateString = signCertificateRequestService.signCertificateRequest(certRequest);
 
-        User user = userRepository.findOne(appUsername);
+        User user = userRepository.findById(appUsername).get();
         user.getClientCertificates().remove(clientId);
         userRepository.save(user);
 
@@ -505,14 +527,14 @@ public class RevocationUnitTests extends
         addTestUserWithClientCertificateToRepository();
 
         // verify that app really is in repository
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         assertNotNull(user);
 
         // acquiring valid token
         Token homeToken = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
 
         // verify the user token is not yet revoked
-        assertFalse(revokedTokensRepository.exists(homeToken.getClaims().getId()));
+        assertFalse(revokedTokensRepository.existsById(homeToken.getClaims().getId()));
         // revocation
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -521,7 +543,7 @@ public class RevocationUnitTests extends
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
 
         // verify the user token is revoked
-        assertTrue(revokedTokensRepository.exists(homeToken.getClaims().getId()));
+        assertTrue(revokedTokensRepository.existsById(homeToken.getClaims().getId()));
     }
 
     @Test
@@ -554,12 +576,12 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCertificatePEMString(clientCertificate);
 
-        assertFalse(revokedKeysRepository.exists(appUsername));
+        assertFalse(revokedKeysRepository.existsById(appUsername));
         RevocationResponse revocationResponse = revocationService.revoke(revocationRequest);
 
         assertTrue(revocationResponse.isRevoked());
         assertEquals(HttpStatus.OK, revocationResponse.getStatus());
-        assertTrue(revokedKeysRepository.exists(appUsername));
+        assertTrue(revokedKeysRepository.existsById(appUsername));
     }
 
     @Test
@@ -595,12 +617,12 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCertificatePEMString(platformCertificate);
 
-        assertFalse(revokedKeysRepository.exists(platformId));
+        assertFalse(revokedKeysRepository.existsById(platformId));
         RevocationResponse revocationResponse = revocationService.revoke(revocationRequest);
 
         assertTrue(revocationResponse.isRevoked());
         assertEquals(HttpStatus.OK, revocationResponse.getStatus());
-        assertTrue(revokedKeysRepository.exists(platformId));
+        assertTrue(revokedKeysRepository.existsById(platformId));
     }
 
 
@@ -633,13 +655,13 @@ public class RevocationUnitTests extends
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
         // ensure that token is not in revoked token repository
-        assertFalse(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
+        assertFalse(revokedTokensRepository.existsById(dummyHomeToken.getClaims().getId()));
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
         revocationRequest.setHomeTokenString(dummyHomeToken.toString());
         revocationRequest.setCredentials(new Credentials(platformOwnerUsername, platformOwnerPassword));
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
-        assertTrue(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
+        assertTrue(revokedTokensRepository.existsById(dummyHomeToken.getClaims().getId()));
     }
 
     @Test
@@ -678,7 +700,7 @@ public class RevocationUnitTests extends
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
         // ensure that token is not in revoked token repository
-        assertFalse(revokedTokensRepository.exists(dummyHomeToken.getClaims().getId()));
+        assertFalse(revokedTokensRepository.existsById(dummyHomeToken.getClaims().getId()));
         // revocation
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.USER);
@@ -757,7 +779,7 @@ public class RevocationUnitTests extends
             ValidationException,
             MalformedJWTException {
         addTestUserWithClientCertificateToRepository();
-        assertNotNull(userRepository.findOne(username));
+        assertNotNull(userRepository.findById(username));
         HomeCredentials homeCredentials = new HomeCredentials(null, username, platformId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
@@ -776,7 +798,7 @@ public class RevocationUnitTests extends
         platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
-        Platform dummyPlatform = platformRepository.findOne(platformId);
+        Platform dummyPlatform = platformRepository.findById(platformId).get();
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
         platformRepository.save(dummyPlatform);
 
@@ -799,9 +821,9 @@ public class RevocationUnitTests extends
         revocationRequest.setHomeTokenString(token.toString());
         revocationRequest.setForeignTokenString(foreignToken.toString());
 
-        assertFalse(revokedTokensRepository.exists(foreignToken.getClaims().getId()));
+        assertFalse(revokedTokensRepository.existsById(foreignToken.getClaims().getId()));
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
-        assertTrue(revokedTokensRepository.exists(foreignToken.getClaims().getId()));
+        assertTrue(revokedTokensRepository.existsById(foreignToken.getClaims().getId()));
     }
 
     @Test
@@ -815,7 +837,7 @@ public class RevocationUnitTests extends
             ValidationException,
             MalformedJWTException {
         addTestUserWithClientCertificateToRepository();
-        assertNotNull(userRepository.findOne(username));
+        assertNotNull(userRepository.findById(username));
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
         Token token = new Token(dummyPlatformAAM.getHomeToken(loginRequest).getHeaders().getFirst(SecurityConstants.TOKEN_HEADER_NAME));
@@ -828,7 +850,7 @@ public class RevocationUnitTests extends
         platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
-        Platform dummyPlatform = platformRepository.findOne(platformId);
+        Platform dummyPlatform = platformRepository.findById(platformId).get();
         dummyPlatform.setPlatformAAMCertificate(new Certificate(dummyPlatformAAM.getRootCertificate()));
         platformRepository.save(dummyPlatform);
 
@@ -855,7 +877,7 @@ public class RevocationUnitTests extends
         revocationRequest.setHomeTokenString(token.toString());
         revocationRequest.setForeignTokenString(foreignToken.toString());
 
-        assertFalse(revokedTokensRepository.exists(foreignToken.getClaims().getId()));
+        assertFalse(revokedTokensRepository.existsById(foreignToken.getClaims().getId()));
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
     }
 
@@ -878,7 +900,7 @@ public class RevocationUnitTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
         signCertificateRequestService.signCertificateRequest(certRequest);
-        User user = userRepository.findOne(appUsername);
+        User user = userRepository.findById(appUsername).get();
         assertNotNull(user.getClientCertificates().get(clientId));
         String commonName = appUsername + FIELDS_DELIMITER + clientId;
 
@@ -887,13 +909,13 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCertificateCommonName(commonName);
 
-        assertNotNull(userRepository.findOne(appUsername).getClientCertificates().get(clientId));
-        assertNull(revokedKeysRepository.findOne(appUsername));
+        assertNotNull(userRepository.findById(appUsername).get().getClientCertificates().get(clientId));
+        assertFalse(revokedKeysRepository.findById(appUsername).isPresent());
         //user certificate revocation
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
 
-        assertNull(userRepository.findOne(appUsername).getClientCertificates().get(clientId));
-        assertTrue(revokedKeysRepository.findOne(appUsername).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
+        assertNull(userRepository.findById(appUsername).get().getClientCertificates().get(clientId));
+        assertTrue(revokedKeysRepository.findById(appUsername).get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
     }
 
     @Test
@@ -928,22 +950,22 @@ public class RevocationUnitTests extends
         platformOwner.getOwnedServices().add(platformId);
         userRepository.save(platformOwner);
 
-        platformOwner = userRepository.findOne(platformOwnerUsername);
+        platformOwner = userRepository.findById(platformOwnerUsername).get();
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCertificateCommonName(platformId);
 
         assertFalse(platformOwner.getOwnedServices().isEmpty());
-        assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
+        assertFalse(platformRepository.findById(platformId).get().getPlatformAAMCertificate().getCertificateString().isEmpty());
 
-        assertFalse(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
-        assertNull(revokedKeysRepository.findOne(platformId));
+        assertFalse(platformRepository.findById(platformId).get().getPlatformAAMCertificate().getCertificateString().isEmpty());
+        assertFalse(revokedKeysRepository.findById(platformId).isPresent());
 
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
 
-        assertTrue(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().isEmpty());
-        assertTrue(revokedKeysRepository.findOne(platformId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
+        assertTrue(platformRepository.findById(platformId).get().getPlatformAAMCertificate().getCertificateString().isEmpty());
+        assertTrue(revokedKeysRepository.findById(platformId).get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pair.getPublic().getEncoded())));
     }
 
     @Test
@@ -967,13 +989,13 @@ public class RevocationUnitTests extends
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCertificateCommonName(commonName);
-        assertFalse(componentCertificatesRepository.findOne(componentId).getCertificate().getCertificateString().isEmpty());
-        assertNull(revokedKeysRepository.findOne(componentId));
+        assertFalse(componentCertificatesRepository.findById(componentId).get().getCertificate().getCertificateString().isEmpty());
+        assertFalse(revokedKeysRepository.findById(componentId).isPresent());
 
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
 
-        assertNull(componentCertificatesRepository.findOne(componentId));
-        assertTrue(revokedKeysRepository.findOne(componentId).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(componentCertificate.getCertificate().getX509().getPublicKey().getEncoded())));
+        assertFalse(componentCertificatesRepository.findById(componentId).isPresent());
+        assertTrue(revokedKeysRepository.findById(componentId).get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(componentCertificate.getCertificate().getX509().getPublicKey().getEncoded())));
     }
 
     @Test
@@ -1036,7 +1058,7 @@ public class RevocationUnitTests extends
                 "keystores/core.p12",
                 "registry-core-1"));
         // adding key to revoked repository
-        SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne("registry");
+        SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findById("registry").orElseGet(() -> null);
         Set<String> keySet = (subjectsRevokedKeys == null) ? new HashSet<>() : subjectsRevokedKeys
                 .getRevokedKeysSet();
         keySet.add(Base64.getEncoder().encodeToString(
@@ -1063,7 +1085,7 @@ public class RevocationUnitTests extends
         revocationRequest.setCertificatePEMString(cert);
 
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
-        assertTrue(revokedKeysRepository.findOne("registry").getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(componentCertificate.getCertificate().getX509().getPublicKey().getEncoded())));
+        assertTrue(revokedKeysRepository.findById("registry").get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(componentCertificate.getCertificate().getX509().getPublicKey().getEncoded())));
     }
 
     @Test
@@ -1088,13 +1110,13 @@ public class RevocationUnitTests extends
         revocationRequest.setCertificatePEMString(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
                 "keystores/core.p12",
                 "registry-core-1")));
-        assertFalse(componentCertificatesRepository.findOne("registry").getCertificate().getCertificateString().isEmpty());
-        assertNull(revokedKeysRepository.findOne("registry"));
+        assertFalse(componentCertificatesRepository.findById("registry").get().getCertificate().getCertificateString().isEmpty());
+        assertFalse(revokedKeysRepository.findById("registry").isPresent());
 
         assertTrue(revocationService.revoke(revocationRequest).isRevoked());
 
-        assertNull(componentCertificatesRepository.findOne("registry"));
-        assertTrue(revokedKeysRepository.findOne("registry").getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(componentCertificate.getCertificate().getX509().getPublicKey().getEncoded())));
+        assertFalse(componentCertificatesRepository.findById("registry").isPresent());
+        assertTrue(revokedKeysRepository.findById("registry").get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(componentCertificate.getCertificate().getX509().getPublicKey().getEncoded())));
     }
 
     @Test
@@ -1104,22 +1126,22 @@ public class RevocationUnitTests extends
             IOException,
             CertificateException,
             KeyStoreException {
-        componentCertificatesRepository.delete("registry");
+        componentCertificatesRepository.deleteById("registry");
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
         revocationRequest.setCertificatePEMString(CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore(
                 "keystores/core.p12",
                 "registry-core-1")));
-        assertNull(componentCertificatesRepository.findOne("registry"));
-        assertNull(revokedKeysRepository.findOne("registry"));
+        assertFalse(componentCertificatesRepository.findById("registry").isPresent());
+        assertFalse(revokedKeysRepository.findById("registry").isPresent());
 
         assertFalse(revocationService.revoke(revocationRequest).isRevoked());
     }
 
     @Test
     public void revokeLocalComponentCertificateUsingCertificateByAdminFailNotCertSent() {
-        componentCertificatesRepository.delete("registry");
+        componentCertificatesRepository.deleteById("registry");
         RevocationRequest revocationRequest = new RevocationRequest();
         revocationRequest.setCredentials(new Credentials(AAMOwnerUsername, AAMOwnerPassword));
         revocationRequest.setCredentialType(RevocationRequest.CredentialType.ADMIN);
@@ -1137,7 +1159,7 @@ public class RevocationUnitTests extends
         addTestUserWithClientCertificateToRepository();
 
         // verify that app really is in repository
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         assertNotNull(user);
 
         // acquiring valid token
@@ -1149,12 +1171,12 @@ public class RevocationUnitTests extends
         revocationRequest.setHomeTokenString(homeToken.toString());
 
         // verify the user token is not yet revoked
-        assertFalse(revokedTokensRepository.exists(homeToken.getClaims().getId()));
+        assertFalse(revokedTokensRepository.existsById(homeToken.getClaims().getId()));
         // revocation
         revocationService.revoke(revocationRequest);
 
         // verify the user token is revoked
-        assertTrue(revokedTokensRepository.exists(homeToken.getClaims().getId()));
+        assertTrue(revokedTokensRepository.existsById(homeToken.getClaims().getId()));
     }
 
     @Test

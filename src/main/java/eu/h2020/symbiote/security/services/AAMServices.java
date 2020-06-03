@@ -1,5 +1,21 @@
 package eu.h2020.symbiote.security.services;
 
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.cert.CertificateException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
@@ -15,21 +31,6 @@ import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.stereotype.Service;
-
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.cert.CertificateException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
 
 @Service
 public class AAMServices {
@@ -278,9 +279,9 @@ public class AAMServices {
             if (componentIdentifier.equals(SecurityConstants.AAM_COMPONENT_NAME))
                 return certificationAuthorityHelper.getAAMCert();
 
-            if (!componentCertificatesRepository.exists(componentIdentifier))
+            if (!componentCertificatesRepository.existsById(componentIdentifier))
                 throw new InvalidArgumentsException(InvalidArgumentsException.COMPONENT_NOT_EXIST);
-            return componentCertificatesRepository.findOne(componentIdentifier).getCertificate().getCertificateString();
+            return componentCertificatesRepository.findById(componentIdentifier).get().getCertificate().getCertificateString();
         }
         // not our service
         Map<String, AAM> availableAAMs = getAvailableAAMs();

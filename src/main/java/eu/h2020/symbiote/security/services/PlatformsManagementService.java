@@ -1,5 +1,19 @@
 package eu.h2020.symbiote.security.services;
 
+import java.security.cert.CertificateException;
+import java.util.Base64;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
@@ -22,15 +36,6 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.security.cert.CertificateException;
-import java.util.*;
 
 /**
  * Spring service used to manage platforms and their owners in the AAM repository.
@@ -82,10 +87,10 @@ public class PlatformsManagementService {
         if (platformOwnerCredentials.getUsername().isEmpty() || platformOwnerCredentials.getPassword().isEmpty())
             throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_CREDENTIAL);
 
-        if (!userRepository.exists(platformOwnerCredentials.getUsername()))
+        if (!userRepository.existsById(platformOwnerCredentials.getUsername()))
             throw new NotExistingUserException();
 
-        User platformOwner = userRepository.findOne(platformOwnerCredentials.getUsername());
+        User platformOwner = userRepository.findById(platformOwnerCredentials.getUsername()).get();
         if (!platformOwnerCredentials.getPassword().equals(platformOwner.getPasswordEncrypted())
                 && !passwordEncoder.matches(platformOwnerCredentials.getPassword(), platformOwner.getPasswordEncrypted())
                 || !platformOwner.getRole().equals(UserRole.SERVICE_OWNER)) {
@@ -113,7 +118,7 @@ public class PlatformsManagementService {
                 }
 
                 // check if platform already in repository
-                if (platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
+                if (platformRepository.existsById(platformManagementRequest.getPlatformInstanceId()))
                     throw new ServiceManagementException(ServiceManagementException.SERVICE_EXISTS, HttpStatus.BAD_REQUEST);
 
                 if (platformManagementRequest.getPlatformInstanceId().equals(SecurityConstants.AAM_COMPONENT_NAME)
@@ -149,7 +154,7 @@ public class PlatformsManagementService {
                 userRepository.save(platformOwner);
                 break;
             case UPDATE:
-                platform = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
+                platform = platformRepository.findById(platformManagementRequest.getPlatformInstanceId()).orElseGet(() -> null);
                 if (platform == null)
                     throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
                 if (!platformOwner.getOwnedServices().contains(platformManagementRequest.getPlatformInstanceId())) {
@@ -183,21 +188,21 @@ public class PlatformsManagementService {
                 platformRepository.save(platform);
                 break;
             case DELETE:
-                if (!platformRepository.exists(platformManagementRequest.getPlatformInstanceId()))
+                if (!platformRepository.existsById(platformManagementRequest.getPlatformInstanceId()))
                     throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
                 if (!platformOwner.getOwnedServices().contains(platformManagementRequest.getPlatformInstanceId())) {
                     throw new ServiceManagementException(ServiceManagementException.NOT_OWNED_SERVICE, HttpStatus.BAD_REQUEST);
                 }
                 Set<String> keys = new HashSet<>();
                 try {
-                    Platform platformForRemoval = platformRepository.findOne(platformManagementRequest.getPlatformInstanceId());
+                    Platform platformForRemoval = platformRepository.findById(platformManagementRequest.getPlatformInstanceId()).get();
                     // adding platform AAM certificate for revocation
                     if (!platformForRemoval.getPlatformAAMCertificate().getCertificateString().isEmpty())
                         keys.add(Base64.getEncoder().encodeToString(
                                 platformForRemoval.getPlatformAAMCertificate().getX509().getPublicKey().getEncoded()));
 
                     // checking if this key contains keys already
-                    SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(platformForRemoval.getPlatformInstanceId());
+                    SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findById(platformForRemoval.getPlatformInstanceId()).orElseGet(() -> null);
                     if (subjectsRevokedKeys == null)
                         // no keys exist yet
                         revokedKeysRepository.save(new SubjectsRevokedKeys(platformForRemoval.getPlatformInstanceId(), keys));
@@ -210,7 +215,7 @@ public class PlatformsManagementService {
                     throw new ServiceManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
                 }
 
-                platformRepository.delete(platformManagementRequest.getPlatformInstanceId());
+                platformRepository.deleteById(platformManagementRequest.getPlatformInstanceId());
                 // unbinding the platform from the platform owner
                 platformOwner.getOwnedServices().remove(platformManagementRequest.getPlatformInstanceId());
                 userRepository.save(platformOwner);

@@ -1,5 +1,19 @@
 package eu.h2020.symbiote.security.functional;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.io.IOException;
+import java.util.Optional;
+
+import org.junit.Test;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.context.TestPropertySource;
+
 import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
@@ -10,19 +24,6 @@ import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsExce
 import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.payloads.ValidationRequest;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import org.junit.Test;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.test.context.TestPropertySource;
-
-import java.io.IOException;
-import java.util.Optional;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 
 @TestPropertySource("/core.properties")
 public class CredentialsValidationFunctionalTests extends
@@ -74,7 +75,7 @@ public class CredentialsValidationFunctionalTests extends
 
         ValidationStatus status = aamClient.validateCredentials(
                 homeToken,
-                Optional.of(userRepository.findOne(username).getClientCertificates().get(clientId).getCertificateString()),
+                Optional.of(userRepository.findById(username).get().getClientCertificates().get(clientId).getCertificateString()),
                 Optional.empty(),
                 Optional.empty());
         assertEquals(ValidationStatus.VALID, status);

@@ -1,29 +1,8 @@
 package eu.h2020.symbiote.security.unit;
 
-import eu.h2020.symbiote.model.mim.Federation;
-import eu.h2020.symbiote.model.mim.FederationMember;
-import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.Token;
-import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
-import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.entities.Platform;
-import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.AAMServices;
-import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
-import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.SpyBean;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.TestPropertySource;
+import static eu.h2020.symbiote.security.services.helpers.TokenIssuer.buildAuthorizationToken;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.times;
 
 import java.io.IOException;
 import java.security.KeyStoreException;
@@ -36,9 +15,35 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import static eu.h2020.symbiote.security.services.helpers.TokenIssuer.buildAuthorizationToken;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.times;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
+
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
+import eu.h2020.symbiote.security.AbstractAAMTestSuite;
+import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
+import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.AAMServices;
+import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
+import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
+import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 
 @TestPropertySource("/core_cache.properties")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
@@ -91,7 +96,7 @@ public class CacheTests extends AbstractAAMTestSuite {
         Token dummyHomeToken = new Token(loginResponse
                 .getHeaders().get(SecurityConstants.TOKEN_HEADER_NAME).get(0));
 
-        Platform dummyPlatform = platformRepository.findOne(platformId);
+        Platform dummyPlatform = platformRepository.findById(platformId).get();
         // adding a federation
         List<FederationMember> platformsId = new ArrayList<>();
         FederationMember federationMember = new FederationMember();

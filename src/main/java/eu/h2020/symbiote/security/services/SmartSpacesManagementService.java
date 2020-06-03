@@ -1,5 +1,19 @@
 package eu.h2020.symbiote.security.services;
 
+import java.security.cert.CertificateException;
+import java.util.Base64;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
@@ -22,15 +36,6 @@ import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.security.cert.CertificateException;
-import java.util.*;
 
 /**
  * Spring service used to manage smart spaces and their owners in the AAM repository.
@@ -83,10 +88,10 @@ public class SmartSpacesManagementService {
         if (smartSpaceOwnerCredentials.getUsername().isEmpty() || smartSpaceOwnerCredentials.getPassword().isEmpty())
             throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_CREDENTIAL);
 
-        if (!userRepository.exists(smartSpaceOwnerCredentials.getUsername()))
+        if (!userRepository.existsById(smartSpaceOwnerCredentials.getUsername()))
             throw new NotExistingUserException();
 
-        User smartSpaceOwner = userRepository.findOne(smartSpaceOwnerCredentials.getUsername());
+        User smartSpaceOwner = userRepository.findById(smartSpaceOwnerCredentials.getUsername()).get();
         if (!smartSpaceOwnerCredentials.getPassword().equals(smartSpaceOwner.getPasswordEncrypted())
                 && !passwordEncoder.matches(smartSpaceOwnerCredentials.getPassword(), smartSpaceOwner.getPasswordEncrypted())
                 || !smartSpaceOwner.getRole().equals(UserRole.SERVICE_OWNER)) {
@@ -119,7 +124,7 @@ public class SmartSpacesManagementService {
                 }
 
                 // check if smart space is already in repository
-                if (smartSpaceRepository.exists(smartSpaceId))
+                if (smartSpaceRepository.existsById(smartSpaceId))
                     throw new ServiceManagementException(ServiceManagementException.SERVICE_EXISTS, HttpStatus.BAD_REQUEST);
 
                 // checking if External Address isn't already used
@@ -153,7 +158,7 @@ public class SmartSpacesManagementService {
                 break;
             case UPDATE:
                 smartSpaceId = smartSpaceManagementRequest.getInstanceId();
-                smartSpace = smartSpaceRepository.findOne(smartSpaceId);
+                smartSpace = smartSpaceRepository.findById(smartSpaceId).orElseGet(() -> null);
                 if (smartSpace == null)
                     throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
                 if (!smartSpace.getSmartSpaceOwner().getUsername().equals(smartSpaceManagementRequest.getServiceOwnerCredentials().getUsername()))
@@ -186,13 +191,13 @@ public class SmartSpacesManagementService {
                 break;
             case DELETE:
                 smartSpaceId = smartSpaceManagementRequest.getInstanceId();
-                if (!smartSpaceRepository.exists(smartSpaceId))
+                if (!smartSpaceRepository.existsById(smartSpaceId))
                     throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
 
 
                 Set<String> keys = new HashSet<>();
                 try {
-                    SmartSpace smartSpaceForRemoval = smartSpaceRepository.findOne(smartSpaceId);
+                    SmartSpace smartSpaceForRemoval = smartSpaceRepository.findById(smartSpaceId).get();
                     if (!smartSpaceForRemoval.getSmartSpaceOwner().getUsername().equals(smartSpaceManagementRequest.getServiceOwnerCredentials().getUsername()))
                         throw new ServiceManagementException(ServiceManagementException.USER_IS_NOT_A_SERVICE_OWNER, HttpStatus.BAD_REQUEST);
                     // adding smart space AAM certificate for revocation
@@ -201,7 +206,7 @@ public class SmartSpacesManagementService {
                                 smartSpaceForRemoval.getLocalCertificationAuthorityCertificate().getX509().getPublicKey().getEncoded()));
 
                     // checking if this key contains keys already
-                    SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(smartSpaceForRemoval.getInstanceIdentifier());
+                    SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findById(smartSpaceForRemoval.getInstanceIdentifier()).orElseGet(() -> null);
                     if (subjectsRevokedKeys == null)
                         // no keys exist yet
                         revokedKeysRepository.save(new SubjectsRevokedKeys(smartSpaceForRemoval.getInstanceIdentifier(), keys));
@@ -214,7 +219,7 @@ public class SmartSpacesManagementService {
                     throw new ServiceManagementException(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
                 }
 
-                smartSpaceRepository.delete(smartSpaceId);
+                smartSpaceRepository.deleteById(smartSpaceId);
                 // unbinding the smart space from the service owner
                 smartSpaceOwner.getOwnedServices().remove(smartSpaceId);
                 userRepository.save(smartSpaceOwner);

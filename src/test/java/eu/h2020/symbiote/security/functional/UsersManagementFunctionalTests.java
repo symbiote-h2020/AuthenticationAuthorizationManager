@@ -1,5 +1,22 @@
 package eu.h2020.symbiote.security.functional;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.junit.Test;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.context.TestPropertySource;
+
 import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
@@ -11,19 +28,6 @@ import eu.h2020.symbiote.security.communication.payloads.ErrorResponseContainer;
 import eu.h2020.symbiote.security.communication.payloads.UserDetails;
 import eu.h2020.symbiote.security.communication.payloads.UserManagementRequest;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import org.junit.Test;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.test.context.TestPropertySource;
-
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
 public class UsersManagementFunctionalTests extends
@@ -61,7 +65,7 @@ public class UsersManagementFunctionalTests extends
         assertEquals(ManagementStatus.OK, appRegistrationResponse);
 
         // verify that app really is in repository
-        User registeredUser = userRepository.findOne(username);
+        User registeredUser = userRepository.findById(username).orElseGet(() -> null);
         assertNotNull(registeredUser);
         assertEquals(UserRole.USER, registeredUser.getRole());
         assertEquals(attributesMap.get("testKey"), registeredUser.getAttributes().get("testKey"));
@@ -124,13 +128,13 @@ public class UsersManagementFunctionalTests extends
                 OperationType.CREATE);
         ManagementStatus managementStatus = aamClient.manageUser(userManagementRequest);
         assertTrue(ManagementStatus.OK.equals(managementStatus));
-        assertTrue(userRepository.exists(username));
+        assertTrue(userRepository.existsById(username));
     }
 
     @Test(expected = AAMException.class)
     public void userManagementOverRESTFail() throws
             AAMException {
-        assertFalse(userRepository.exists(username));
+        assertFalse(userRepository.existsById(username));
         //update not existing user to create error
         UserManagementRequest userManagementRequest = new UserManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),

@@ -1,10 +1,25 @@
 package eu.h2020.symbiote.security.services;
 
+import java.security.PublicKey;
+import java.security.cert.CertificateException;
+import java.util.HashMap;
+import java.util.HashSet;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.UserRole;
 import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
@@ -13,16 +28,6 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.services.helpers.ValidationHelper;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-
-import java.security.PublicKey;
-import java.security.cert.CertificateException;
-import java.util.HashMap;
-import java.util.HashSet;
 
 /**
  * Spring service used to provide token related functionality of the AAM.
@@ -85,15 +90,15 @@ public class GetTokenService {
         }
         // try to find user
         String sub = claims.getSub();
-        User userInDB = userRepository.findOne(claims.getIss());
+        User userInDB = userRepository.findById(claims.getIss()).orElseGet(() -> null);
 
         User userForToken;
         PublicKey keyForToken;
 
         // authenticating
         if (claims.getIss().equals(deploymentId)) { // in component use case ISS is platform id
-            if (!componentCertificateRepository.exists(sub) //SUB is a componentId
-                    || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey()))
+            if (!componentCertificateRepository.existsById(sub) //SUB is a componentId
+                    || ValidationStatus.VALID != JWTEngine.validateTokenString(loginRequest, componentCertificateRepository.findById(sub).get().getCertificate().getX509().getPublicKey()))
                 throw new WrongCredentialsException();
         } else { // ordinary user/po client
             if (userInDB == null
@@ -108,7 +113,7 @@ public class GetTokenService {
         if (claims.getIss().equals(deploymentId)) { // component use case ISS is platform id
             // component case (We don't include AAMOwner/PO anymore!)
             userForToken = new User("", "", "", new HashMap<>(), UserRole.NULL, AccountStatus.ACTIVE, new HashMap<>(), new HashSet<>(), true, false);
-            keyForToken = componentCertificateRepository.findOne(sub).getCertificate().getX509().getPublicKey();
+            keyForToken = componentCertificateRepository.findById(sub).get().getCertificate().getX509().getPublicKey();
         } else {
             // ordinary user/po client
             userForToken = userInDB;

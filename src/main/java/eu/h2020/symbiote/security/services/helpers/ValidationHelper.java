@@ -1,35 +1,6 @@
 package eu.h2020.symbiote.security.services.helpers;
 
-import eu.h2020.symbiote.model.mim.FederationMember;
-import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.Token;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
-import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
-import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
-import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.communication.AAMClient;
-import eu.h2020.symbiote.security.communication.payloads.AAM;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.*;
-import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
-import eu.h2020.symbiote.security.repositories.entities.RevokedRemoteToken;
-import eu.h2020.symbiote.security.services.AAMServices;
-import eu.h2020.symbiote.security.services.CacheService;
-import io.jsonwebtoken.Claims;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestTemplate;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
@@ -44,7 +15,42 @@ import java.util.Date;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
+
+import eu.h2020.symbiote.model.mim.FederationMember;
+import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.commons.enums.ValidationStatus;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.communication.AAMClient;
+import eu.h2020.symbiote.security.communication.payloads.AAM;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
+import eu.h2020.symbiote.security.repositories.FederationsRepository;
+import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
+import eu.h2020.symbiote.security.repositories.RevokedRemoteTokensRepository;
+import eu.h2020.symbiote.security.repositories.RevokedTokensRepository;
+import eu.h2020.symbiote.security.repositories.UserRepository;
+import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
+import eu.h2020.symbiote.security.repositories.entities.RevokedRemoteToken;
+import eu.h2020.symbiote.security.services.AAMServices;
+import eu.h2020.symbiote.security.services.CacheService;
+import io.jsonwebtoken.Claims;
 
 /**
  * Used to validate given credentials against data in the AAMs
@@ -132,8 +138,8 @@ public class ValidationHelper {
             if (!deploymentId.equals(claims.getIssuer())) {
                 // not our token, but the Core AAM knows things ;)
                 if (deploymentType == IssuingAuthorityType.CORE
-                        && revokedKeysRepository.exists(claims.getIssuer()) // check if IPK is in the revoked set
-                        && revokedKeysRepository.findOne(claims.getIssuer()).getRevokedKeysSet().contains(ipk))
+                        && revokedKeysRepository.existsById(claims.getIssuer()) // check if IPK is in the revoked set
+                        && revokedKeysRepository.findById(claims.getIssuer()).get().getRevokedKeysSet().contains(ipk))
                     return ValidationStatus.REVOKED_IPK;
 
                 // relay validation to issuer
@@ -153,14 +159,14 @@ public class ValidationHelper {
             }
 
             // check revoked JTI
-            if (revokedTokensRepository.exists(claims.getId())) {
+            if (revokedTokensRepository.existsById(claims.getId())) {
                 return ValidationStatus.REVOKED_TOKEN;
             }
 
             String userFromToken = claims.getSubject().split(FIELDS_DELIMITER)[0];
 
             // check if SPK is is in the revoked repository
-            if (revokedKeysRepository.exists(userFromToken) && revokedKeysRepository.findOne(userFromToken).getRevokedKeysSet().contains(spk)) {
+            if (revokedKeysRepository.existsById(userFromToken) && revokedKeysRepository.findById(userFromToken).get().getRevokedKeysSet().contains(spk)) {
                 return ValidationStatus.REVOKED_SPK;
             }
 
@@ -171,7 +177,7 @@ public class ValidationHelper {
                         case 1: // local components case
                             Certificate certificate = null;
                             // component case - SUB/userFromToken is component name, ISS is AAM instanceId
-                            ComponentCertificate localComponentCertificate = componentCertificatesRepository.findOne(userFromToken);
+                            ComponentCertificate localComponentCertificate = componentCertificatesRepository.findById(userFromToken).get();
                             if (localComponentCertificate != null)
                                 certificate = localComponentCertificate.getCertificate();
                             // if the token is to be valid, the certificate must not be null
@@ -188,18 +194,18 @@ public class ValidationHelper {
                         case 2: // user token case
                             String clientId = claims.getSubject().split(FIELDS_DELIMITER)[1];
                             // check if we have such a user and his certificate
-                            if (!userRepository.exists(userFromToken)
-                                    || !userRepository.findOne(userFromToken).getClientCertificates().containsKey(clientId))
+                            if (!userRepository.existsById(userFromToken)
+                                    || !userRepository.findById(userFromToken).get().getClientCertificates().containsKey(clientId))
                                 return ValidationStatus.INVALID_TRUST_CHAIN;
                             // expiry check
-                            if (isExpired(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509())) {
+                            if (isExpired(userRepository.findById(userFromToken).get().getClientCertificates().get(clientId).getX509())) {
                                 return ValidationStatus.EXPIRED_SUBJECT_CERTIFICATE;
                             }
                             // and if it matches the client's currently assigned cert
-                            if (!userRepository.exists(userFromToken) || !userRepository.findOne(userFromToken).getClientCertificates().containsKey(clientId))
+                            if (!userRepository.existsById(userFromToken) || !userRepository.findById(userFromToken).get().getClientCertificates().containsKey(clientId))
                                 return ValidationStatus.REVOKED_SPK;
                             // checking match from token
-                            if (!Base64.getEncoder().encodeToString(userRepository.findOne(userFromToken).getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded()).equals(spk))
+                            if (!Base64.getEncoder().encodeToString(userRepository.findById(userFromToken).get().getClientCertificates().get(clientId).getX509().getPublicKey().getEncoded()).equals(spk))
                                 return ValidationStatus.REVOKED_SPK;
                             break;
                     }
@@ -265,7 +271,7 @@ public class ValidationHelper {
 
         Claims claims = JWTEngine.getClaims(tokenString);
         //checking if token is revoked
-        if (revokedRemoteTokensRepository.exists(claims.getIssuer() + FIELDS_DELIMITER + claims.getId())) {
+        if (revokedRemoteTokensRepository.existsById(claims.getIssuer() + FIELDS_DELIMITER + claims.getId())) {
             return ValidationStatus.REVOKED_TOKEN;
         }
 
@@ -479,9 +485,9 @@ public class ValidationHelper {
             return false;
         }
         for (String federationId : claims.getAtt().values()) {
-            if (!federationsRepository.exists(federationId)
+            if (!federationsRepository.existsById(federationId)
                     || claims.getSub().split(FIELDS_DELIMITER).length != 4
-                    || !federationsRepository.findOne(federationId)
+                    || !federationsRepository.findById(federationId).get()
                     .getMembers().stream()
                     .map(FederationMember::getPlatformId)
                     .collect(Collectors.toSet())
@@ -512,16 +518,16 @@ public class ValidationHelper {
         if (!deploymentId.equals(platformId))
             return ValidationStatus.WRONG_AAM;
         // SUB claim check (searching for user and client)
-        if (!userRepository.exists(userFromToken)
-                || userRepository.findOne(userFromToken).getClientCertificates().get(clientID) == null) {
+        if (!userRepository.existsById(userFromToken)
+                || userRepository.findById(userFromToken).get().getClientCertificates().get(clientID) == null) {
             return ValidationStatus.REVOKED_TOKEN;
         }
-        if (revokedTokensRepository.exists(jti)) {
+        if (revokedTokensRepository.existsById(jti)) {
             return ValidationStatus.REVOKED_TOKEN;
         }
 
         // SPK claim check
-        PublicKey userPublicKey = userRepository.findOne(userFromToken)
+        PublicKey userPublicKey = userRepository.findById(userFromToken).get()
                 .getClientCertificates()
                 .get(clientID)
                 .getX509()

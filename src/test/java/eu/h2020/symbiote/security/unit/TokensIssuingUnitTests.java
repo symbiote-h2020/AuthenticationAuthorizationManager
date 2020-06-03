@@ -1,5 +1,32 @@
 package eu.h2020.symbiote.security.unit;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.KeyPair;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.TestPropertySource;
+
 import eu.h2020.symbiote.model.mim.Federation;
 import eu.h2020.symbiote.model.mim.FederationMember;
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
@@ -8,7 +35,11 @@ import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.Token;
 import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
 import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
 import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
 import eu.h2020.symbiote.security.helpers.CryptoHelper;
@@ -20,24 +51,6 @@ import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.GetTokenService;
 import eu.h2020.symbiote.security.services.helpers.TokenIssuer;
 import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.TestPropertySource;
-
-import java.io.IOException;
-import java.security.*;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_CLASS)
@@ -115,7 +128,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             ValidationException {
         addTestUserWithClientCertificateToRepository();
         // blocking the user
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         user.setStatus(AccountStatus.ACTIVITY_BLOCKED);
         userRepository.save(user);
 
@@ -229,7 +242,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
 
         localUsersAttributesRepository.save(new Attribute("key", "attribute"));
         addTestUserWithClientCertificateToRepository();
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
 
         assertNotNull(user);
         Token token = tokenIssuer.getHomeToken(user, clientId, user.getClientCertificates().get(clientId).getX509().getPublicKey());
@@ -246,7 +259,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
     public void getHomeTokenWithAttributesProvisionedToBeIssuedForGivenUser() throws CertificateException, JWTCreationException, MalformedJWTException {
 
         addTestUserWithClientCertificateToRepository();
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         Map<String, String> map = new HashMap<>();
         map.put("key", "attribute");
         user.setAttributes(map);
@@ -283,7 +296,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             MalformedJWTException {
 
         addTestUserWithClientCertificateToRepository();
-        assertNotNull(userRepository.findOne(username));
+        assertNotNull(userRepository.findById(username));
 
         HomeCredentials homeCredentials = new HomeCredentials(null, username, clientId, null, userKeyPair.getPrivate());
         String loginRequest = CryptoHelper.buildHomeTokenAcquisitionRequest(homeCredentials);
@@ -354,7 +367,7 @@ public class TokensIssuingUnitTests extends AbstractAAMTestSuite {
             JWTCreationException {
 
         addTestUserWithClientCertificateToRepository();
-        User user = userRepository.findOne(username);
+        User user = userRepository.findById(username).get();
         assertNotNull(user);
         Token token = null;
         try {

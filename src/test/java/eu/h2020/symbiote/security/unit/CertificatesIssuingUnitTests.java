@@ -1,20 +1,32 @@
 package eu.h2020.symbiote.security.unit;
 
-import eu.h2020.symbiote.security.AbstractAAMTestSuite;
-import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.AccountStatus;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
-import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
-import eu.h2020.symbiote.security.repositories.entities.Platform;
-import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
-import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
-import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.SignCertificateRequestService;
-import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import static eu.h2020.symbiote.security.commons.SecurityConstants.CORE_AAM_INSTANCE_ID;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.createKeyPair;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SignatureException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Base64;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.security.auth.x500.X500Principal;
+
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -26,17 +38,26 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 
-import javax.security.auth.x500.X500Principal;
-import java.io.IOException;
-import java.security.*;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.*;
-
-import static eu.h2020.symbiote.security.commons.SecurityConstants.CORE_AAM_INSTANCE_ID;
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.createKeyPair;
-import static org.junit.Assert.*;
+import eu.h2020.symbiote.security.AbstractAAMTestSuite;
+import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ServiceManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
+import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
+import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.SignCertificateRequestService;
+import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
 
 /**
  * Test suite for generic AAM functionality irrelevant to actual deployment type (Core or Platform)
@@ -172,7 +193,7 @@ public class CertificatesIssuingUnitTests extends
             UserManagementException,
             ServiceManagementException {
         //ensure that there is not our user in repo
-        assertFalse(userRepository.exists(appUsername));
+        assertFalse(userRepository.existsById(appUsername));
         KeyPair pair = CryptoHelper.createKeyPair();
         String csrString = CryptoHelper.buildCertificateSigningRequestPEM(certificationAuthorityHelper.getAAMCertificate(), appUsername, clientId, pair);
         assertNotNull(csrString);
@@ -277,7 +298,7 @@ public class CertificatesIssuingUnitTests extends
         assertEquals("CN=" + componentId + FIELDS_DELIMITER + CORE_AAM_INSTANCE_ID, x509Certificate.getSubjectDN().getName());
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
-        assertNotNull(componentCertificatesRepository.findOne(componentId));
+        assertNotNull(componentCertificatesRepository.findById(componentId));
 
         // override check
         pair = CryptoHelper.createKeyPair();
@@ -285,8 +306,8 @@ public class CertificatesIssuingUnitTests extends
         assertNotNull(csrString);
         certRequest = new CertificateRequest(AAMOwnerUsername, AAMOwnerPassword, clientId, csrString);
         certificate = signCertificateRequestService.signCertificateRequest(certRequest);
-        assertTrue(componentCertificatesRepository.exists(componentId));
-        assertEquals(componentCertificatesRepository.findOne(componentId).getCertificate().getCertificateString(), certificate);
+        assertTrue(componentCertificatesRepository.existsById(componentId));
+        assertEquals(componentCertificatesRepository.findById(componentId).get().getCertificate().getCertificateString(), certificate);
 
     }
 
@@ -633,7 +654,7 @@ public class CertificatesIssuingUnitTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
         String certificate = signCertificateRequestService.signCertificateRequest(certRequest);
-        User user = userRepository.findOne(appUsername);
+        User user = userRepository.findById(appUsername).get();
         assertEquals(1, user.getClientCertificates().size());
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
@@ -652,7 +673,7 @@ public class CertificatesIssuingUnitTests extends
         assertNotNull(certificate2);
         assertNotEquals(certificate, certificate2);
 
-        user = userRepository.findOne(appUsername);
+        user = userRepository.findById(appUsername).get();
         assertEquals(1, user.getClientCertificates().size());
         assertEquals(certificate2, user.getClientCertificates().get(clientId).getCertificateString());
     }
@@ -678,7 +699,7 @@ public class CertificatesIssuingUnitTests extends
         assertNotNull(csrString);
         CertificateRequest certRequest = new CertificateRequest(appUsername, password, clientId, csrString);
         String certificate = signCertificateRequestService.signCertificateRequest(certRequest);
-        User user = userRepository.findOne(appUsername);
+        User user = userRepository.findById(appUsername).get();
         assertEquals(1, user.getClientCertificates().size());
 
         assertTrue(certificate.contains("BEGIN CERTIFICATE"));
@@ -691,13 +712,13 @@ public class CertificatesIssuingUnitTests extends
         //adding next certificate with the same public key
         String certificate2 = signCertificateRequestService.signCertificateRequest(certRequest);
         assertNotNull(certificate2);
-        user = userRepository.findOne(appUsername);
+        user = userRepository.findById(appUsername).get();
         assertEquals(1, user.getClientCertificates().size());
 
         X509Certificate x509Certificate2 = CryptoHelper.convertPEMToX509(certificate);
         assertEquals(x509Certificate.getPublicKey(), x509Certificate2.getPublicKey());
         // pair should not be revoked
-        assertFalse(revokedKeysRepository.exists(appUsername));
+        assertFalse(revokedKeysRepository.existsById(appUsername));
     }
 
     @Test
@@ -729,7 +750,7 @@ public class CertificatesIssuingUnitTests extends
         assertEquals("CN=" + platformId, x509Certificate.getSubjectDN().getName());
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
-        assertTrue(platformRepository.findOne(platformId).getPlatformAAMCertificate().getCertificateString().equals(certificate));
+        assertTrue(platformRepository.findById(platformId).get().getPlatformAAMCertificate().getCertificateString().equals(certificate));
 
         pair = CryptoHelper.createKeyPair();
         csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(platformId, pair);
@@ -787,7 +808,7 @@ public class CertificatesIssuingUnitTests extends
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
         // pair should not be revoked
-        assertFalse(revokedKeysRepository.exists(platformId));
+        assertFalse(revokedKeysRepository.existsById(platformId));
     }
 
     @Test
@@ -819,7 +840,7 @@ public class CertificatesIssuingUnitTests extends
         assertEquals("CN=" + preferredSmartSpaceId, x509Certificate.getSubjectDN().getName());
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
-        assertTrue(smartSpaceRepository.findOne(preferredSmartSpaceId).getLocalCertificationAuthorityCertificate().getCertificateString().equals(certificate));
+        assertTrue(smartSpaceRepository.findById(preferredSmartSpaceId).get().getLocalCertificationAuthorityCertificate().getCertificateString().equals(certificate));
 
         pair = CryptoHelper.createKeyPair();
         csrString = CryptoHelper.buildServiceCertificateSigningRequestPEM(preferredSmartSpaceId, pair);
@@ -877,7 +898,7 @@ public class CertificatesIssuingUnitTests extends
         // 0 for intermediate CA certificate
         assertEquals(0, x509Certificate.getBasicConstraints());
         // pair should not be revoked
-        assertFalse(revokedKeysRepository.exists(preferredSmartSpaceId));
+        assertFalse(revokedKeysRepository.existsById(preferredSmartSpaceId));
     }
 
     @Test
@@ -962,7 +983,7 @@ public class CertificatesIssuingUnitTests extends
         // -1 for intermediate CA certificate
         assertEquals(-1, x509Certificate.getBasicConstraints());
         // pair should not be revoked
-        assertFalse(revokedKeysRepository.exists(CORE_AAM_INSTANCE_ID));
+        assertFalse(revokedKeysRepository.existsById(CORE_AAM_INSTANCE_ID));
     }
 
 

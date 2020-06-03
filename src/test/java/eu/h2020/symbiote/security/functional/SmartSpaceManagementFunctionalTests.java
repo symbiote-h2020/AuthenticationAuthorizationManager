@@ -1,5 +1,21 @@
 package eu.h2020.symbiote.security.functional;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.context.TestPropertySource;
+
 import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
 import eu.h2020.symbiote.security.commons.enums.ManagementStatus;
@@ -14,18 +30,6 @@ import eu.h2020.symbiote.security.communication.payloads.SmartSpaceManagementRes
 import eu.h2020.symbiote.security.repositories.SmartSpaceRepository;
 import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.core.MessageProperties;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.test.context.TestPropertySource;
-
-import java.io.IOException;
-
-import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
 public class SmartSpaceManagementFunctionalTests extends
@@ -69,9 +73,9 @@ public class SmartSpaceManagementFunctionalTests extends
     @Test
     public void smartSpaceRegistrationOverAMQPSuccess() throws IOException {
         // verify that our ssp is not in repository and that our sspOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
-        User sspOwner = userRepository.findOne(smartSpaceOwnerUsername);
+        assertFalse(smartSpaceRepository.existsById(preferredSmartSpaceId));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
+        User sspOwner = userRepository.findById(smartSpaceOwnerUsername).get();
         assertTrue(sspOwner.getOwnedServices().isEmpty());
 
         // issue ssp registration over AMQP
@@ -84,7 +88,7 @@ public class SmartSpaceManagementFunctionalTests extends
         assertEquals(preferredSmartSpaceId, sspRegistrationOverAMQPResponse.getSmartSpaceId());
         assertEquals(ManagementStatus.OK, sspRegistrationOverAMQPResponse.getManagementStatus());
         // verify that ssp is in repo with proper fields
-        SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
+        SmartSpace registeredSmartSpace = smartSpaceRepository.findById(preferredSmartSpaceId).get();
         assertNotNull(registeredSmartSpace);
         assertEquals(smartSpaceOwnerUsername, registeredSmartSpace.getSmartSpaceOwner().getUsername());
         assertEquals(smartSpaceInstanceFriendlyName, registeredSmartSpace.getInstanceFriendlyName());

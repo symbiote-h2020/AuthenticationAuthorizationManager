@@ -1,5 +1,17 @@
 package eu.h2020.symbiote.security.unit;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.test.context.TestPropertySource;
+
 import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.AccountStatus;
@@ -17,13 +29,6 @@ import eu.h2020.symbiote.security.communication.payloads.SmartSpaceManagementRes
 import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.SmartSpacesManagementService;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.test.context.TestPropertySource;
-
-import static org.junit.Assert.*;
 
 @TestPropertySource("/core.properties")
 public class SmartSpaceManagementUnitTests extends
@@ -72,9 +77,9 @@ public class SmartSpaceManagementUnitTests extends
     public void smartSpaceRegistrationWithEmptyGatewayAddressSuccess() throws
             SecurityException {
         // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
-        User smartSpaceOwner = userRepository.findOne(smartSpaceOwnerUsername);
+        assertFalse(smartSpaceRepository.existsById(preferredSmartSpaceId));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
+        User smartSpaceOwner = userRepository.findById(smartSpaceOwnerUsername).get();
         assertTrue(smartSpaceOwner.getOwnedServices().isEmpty());
 
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
@@ -96,7 +101,7 @@ public class SmartSpaceManagementUnitTests extends
         assertEquals(preferredSmartSpaceId, response.getSmartSpaceId());
 
         // verify that smartSpace with preferred id is in repository and is tied with the given SO
-        SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
+        SmartSpace registeredSmartSpace = smartSpaceRepository.findById(preferredSmartSpaceId).get();
         assertNotNull(registeredSmartSpace);
         // verify that smartSpace oriented fields are properly stored
         assertEquals("", registeredSmartSpace.getExternalAddress());
@@ -106,9 +111,9 @@ public class SmartSpaceManagementUnitTests extends
     public void smartSpaceRegistrationWithPreferredSmartSpaceIdSuccess() throws
             SecurityException {
         // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
-        User smartSpaceOwner = userRepository.findOne(smartSpaceOwnerUsername);
+        assertFalse(smartSpaceRepository.existsById(preferredSmartSpaceId));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
+        User smartSpaceOwner = userRepository.findById(smartSpaceOwnerUsername).get();
         assertTrue(smartSpaceOwner.getOwnedServices().isEmpty());
 
         // issue smartSpace registration
@@ -118,12 +123,12 @@ public class SmartSpaceManagementUnitTests extends
         assertEquals(preferredSmartSpaceId, response.getSmartSpaceId());
 
         // verify that SO is in repository (as SO!)
-        User smartSpaceOwnerFromRepository = userRepository.findOne(smartSpaceOwnerUsername);
+        User smartSpaceOwnerFromRepository = userRepository.findById(smartSpaceOwnerUsername).get();
         assertNotNull(smartSpaceOwnerFromRepository);
         assertEquals(UserRole.SERVICE_OWNER, smartSpaceOwnerFromRepository.getRole());
 
         // verify that smartSpace with preferred id is in repository and is tied with the given SO
-        SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
+        SmartSpace registeredSmartSpace = smartSpaceRepository.findById(preferredSmartSpaceId).get();
         assertNotNull(registeredSmartSpace);
         // verify that smartSpace oriented fields are properly stored
         assertEquals(smartSpaceGateWayAddress, registeredSmartSpace.getExternalAddress());
@@ -136,7 +141,7 @@ public class SmartSpaceManagementUnitTests extends
         assertTrue(smartSpaceOwnerFromSmartSpaceEntity.getOwnedServices().contains(preferredSmartSpaceId));
 
         // verify that SO was properly updated in repository with new smartSpace ownership
-        smartSpaceOwnerFromRepository = userRepository.findOne(smartSpaceOwnerUsername);
+        smartSpaceOwnerFromRepository = userRepository.findById(smartSpaceOwnerUsername).get();
         assertEquals(smartSpaceOwnerUsername, smartSpaceOwnerFromRepository.getUsername());
         assertFalse(smartSpaceOwnerFromRepository.getOwnedServices().isEmpty());
         assertTrue(smartSpaceOwnerFromRepository.getOwnedServices().contains(preferredSmartSpaceId));
@@ -148,7 +153,7 @@ public class SmartSpaceManagementUnitTests extends
     public void smartSpaceRegistrationWithGeneratedSmartSpaceIdSuccess() throws
             SecurityException {
         // verify that our smartSpaceOwner is in repository
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
 
         // issue smartSpace registration without preferred smartSpace identifier
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
@@ -167,13 +172,13 @@ public class SmartSpaceManagementUnitTests extends
         assertFalse(generatedSmartSpaceId.isEmpty());
 
         // verify that SO is in repository (as SO!)
-        User registeredSmartSpaceOwner = userRepository.findOne(smartSpaceOwnerUsername);
+        User registeredSmartSpaceOwner = userRepository.findById(smartSpaceOwnerUsername).get();
         assertNotNull(registeredSmartSpaceOwner);
         assertEquals(UserRole.SERVICE_OWNER, registeredSmartSpaceOwner.getRole());
         assertTrue(registeredSmartSpaceOwner.getOwnedServices().contains(generatedSmartSpaceId));
 
         // verify that smartSpace with the generated id is in repository and is tied with the given SO
-        SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(generatedSmartSpaceId);
+        SmartSpace registeredSmartSpace = smartSpaceRepository.findById(generatedSmartSpaceId).get();
         assertNotNull(registeredSmartSpace);
         assertEquals(smartSpaceOwnerUsername, registeredSmartSpace.getSmartSpaceOwner().getUsername());
 
@@ -187,7 +192,7 @@ public class SmartSpaceManagementUnitTests extends
     @Test
     public void smartSpaceRegistrationFailWrongSmartSpaceId() throws InvalidArgumentsException {
         // verify that our smartSpaceOwner is in repository
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
 
         // issue smartSpace registration with wrong preferred smartSpace identifier (no "SSP_" prefix)
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
@@ -228,7 +233,7 @@ public class SmartSpaceManagementUnitTests extends
     @Test
     public void smartSpaceManagementFailMissingCredentials() {
         // verify that our smartSpaceOwner is in repository
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
         smartSpaceManagementRequest.getServiceOwnerCredentials().setUsername("");
 
         try {
@@ -242,7 +247,7 @@ public class SmartSpaceManagementUnitTests extends
     @Test
     public void smartSpaceManageFailNotExistingUser() {
         // verify that our smartSpaceOwner is in repository
-        assertFalse(userRepository.exists(wrongUsername));
+        assertFalse(userRepository.existsById(wrongUsername));
         smartSpaceManagementRequest.getServiceOwnerCredentials().setUsername(wrongUsername);
 
         try {
@@ -256,7 +261,7 @@ public class SmartSpaceManagementUnitTests extends
     @Test
     public void smartSpaceManageFailWrongSO() throws SecurityException {
         // verify that  smartSpaceOwner is in repository
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
         //create the smartSpace by smartSpaceOwner
         SmartSpaceManagementResponse smartSpaceManagementResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         assertEquals(ManagementStatus.OK, smartSpaceManagementResponse.getManagementStatus());
@@ -272,7 +277,7 @@ public class SmartSpaceManagementUnitTests extends
         userRepository.save(otherSmartSpaceOwner);
         Credentials otherSmartSpaceOwnerCredentials = new Credentials(otherSmartSpaceOwnerUsername, smartSpaceOwnerPassword);
         // verify that other smartSpaceOwner is in repository
-        assertTrue(userRepository.exists(otherSmartSpaceOwnerUsername));
+        assertTrue(userRepository.existsById(otherSmartSpaceOwnerUsername));
 
         //try to update smartSpace by other smartSpaceOwner (without rights to this smartSpace)
         SmartSpaceManagementRequest smartSpaceUpdateRequest = new SmartSpaceManagementRequest(
@@ -312,7 +317,7 @@ public class SmartSpaceManagementUnitTests extends
     @Test
     public void smartSpaceManagementFailWrongPassword() {
         // verify that our smartSpaceOwner is in repository
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
         smartSpaceManagementRequest.getServiceOwnerCredentials().setPassword(wrongPassword);
 
         try {
@@ -327,7 +332,7 @@ public class SmartSpaceManagementUnitTests extends
     public void smartSpaceManagementFailUserNotSmartSpaceOwner() {
         User user = createUser(username, password, recoveryMail, UserRole.USER, AccountStatus.NEW);
         userRepository.save(user);
-        assertTrue(userRepository.exists(username));
+        assertTrue(userRepository.existsById(username));
         smartSpaceManagementRequest.getServiceOwnerCredentials().setUsername(username);
         smartSpaceManagementRequest.getServiceOwnerCredentials().setPassword(password);
         try {
@@ -341,8 +346,8 @@ public class SmartSpaceManagementUnitTests extends
     @Test
     public void smartSpaceRegistrationFailUnauthorized() {
         // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertFalse(smartSpaceRepository.existsById(preferredSmartSpaceId));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
 
         // issue smartSpace registration with wrong AAMOwnerUsername
         smartSpaceManagementRequest.getAamOwnerCredentials().setUsername(AAMOwnerUsername + "somethingWrong");
@@ -353,8 +358,8 @@ public class SmartSpaceManagementUnitTests extends
             assertEquals(new WrongCredentialsException().getErrorMessage(), s.getErrorMessage());
         }
         // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertFalse(smartSpaceRepository.existsById(preferredSmartSpaceId));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
 
         // issue smartSpace registration with wrong AAMOwnerPassword
         smartSpaceManagementRequest.getAamOwnerCredentials().setUsername(AAMOwnerUsername);
@@ -367,15 +372,15 @@ public class SmartSpaceManagementUnitTests extends
         }
 
         // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertFalse(smartSpaceRepository.existsById(preferredSmartSpaceId));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
     }
 
     @Test
     public void smartSpaceRegistrationFailMissingExposedURL() {
         // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertFalse(smartSpaceRepository.existsById(preferredSmartSpaceId));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
 
         // issue smartSpace registration without exposed II
         try {
@@ -400,8 +405,8 @@ public class SmartSpaceManagementUnitTests extends
     @Test
     public void smartSpaceRegistrationFailMissingFriendlyName() throws InvalidArgumentsException {
         // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertFalse(smartSpaceRepository.existsById(preferredSmartSpaceId));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
 
         // issue smartSpace registration without required SmartSpace's instance friendly name
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
@@ -424,14 +429,14 @@ public class SmartSpaceManagementUnitTests extends
     @Test
     public void smartSpaceRegistrationFailExistingPreferredSmartSpaceId() throws SecurityException {
         // verify that our smartSpace is not in repository and that our smartSpaceOwner is in repository
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertFalse(smartSpaceRepository.existsById(preferredSmartSpaceId));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
 
         // issue smartSpace registration
         SmartSpaceManagementResponse smartSpaceManagementResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         assertEquals(ManagementStatus.OK, smartSpaceManagementResponse.getManagementStatus());
 
-        assertNotNull(smartSpaceRepository.findOne(preferredSmartSpaceId));
+        assertNotNull(smartSpaceRepository.findById(preferredSmartSpaceId));
 
         User user = createUser(
                 smartSpaceOwnerUsername + "differentOne",
@@ -454,7 +459,7 @@ public class SmartSpaceManagementUnitTests extends
     @Test
     public void smartSpaceUpdateSuccess() throws SecurityException {
         // verify that our smartSpaceOwner is in repository
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
         //register smartSpace
         SmartSpaceManagementResponse smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         //ensure smartSpace is registered
@@ -473,7 +478,7 @@ public class SmartSpaceManagementUnitTests extends
         //ensure smartSpace is registered
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
         // verify that SO was properly updated in repository with new smartSpace ownership
-        SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
+        SmartSpace registeredSmartSpace = smartSpaceRepository.findById(preferredSmartSpaceId).get();
         assertNotNull(registeredSmartSpace);
         // verify that smartSpace oriented fields are properly stored
         assertEquals(smartSpaceGateWayAddress + "dif", registeredSmartSpace.getExternalAddress());
@@ -484,7 +489,7 @@ public class SmartSpaceManagementUnitTests extends
     @Test
     public void smartSpaceUpdateWithEmptyExternalAddressSuccess() throws SecurityException {
         // verify that our smartSpaceOwner is in repository
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
         //register smartSpace
         SmartSpaceManagementResponse smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         //ensure smartSpace is registered
@@ -503,7 +508,7 @@ public class SmartSpaceManagementUnitTests extends
         //ensure smartSpace is registered
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
         // verify that SO was properly updated in repository with new smartSpace ownership
-        SmartSpace registeredSmartSpace = smartSpaceRepository.findOne(preferredSmartSpaceId);
+        SmartSpace registeredSmartSpace = smartSpaceRepository.findById(preferredSmartSpaceId).get();
         assertNotNull(registeredSmartSpace);
         // verify that smartSpace oriented fields are properly stored
         assertEquals("", registeredSmartSpace.getExternalAddress());
@@ -512,9 +517,9 @@ public class SmartSpaceManagementUnitTests extends
     @Test
     public void smartSpaceUpdateFailNotExistingSmartSpace() throws InvalidArgumentsException {
         // verify that our smartSpaceOwner is in repository
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
         // verify that our smartSpace is not in repository
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
+        assertFalse(smartSpaceRepository.existsById(preferredSmartSpaceId));
 
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -538,7 +543,7 @@ public class SmartSpaceManagementUnitTests extends
     public void smartSpaceDeleteSuccess() throws
             SecurityException {
         // verify that our smartSpaceOwner is in repository
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
         //register smartSpace
         SmartSpaceManagementResponse smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         //ensure smartSpace is registered
@@ -570,8 +575,8 @@ public class SmartSpaceManagementUnitTests extends
                 isExposingSiteLocalAddress);
         smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
-        assertTrue(smartSpaceRepository.exists(preferredSmartSpaceId + "2"));
+        assertFalse(smartSpaceRepository.existsById(preferredSmartSpaceId));
+        assertTrue(smartSpaceRepository.existsById(preferredSmartSpaceId + "2"));
 
         // delete smartSpace 2
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
@@ -585,16 +590,16 @@ public class SmartSpaceManagementUnitTests extends
                 isExposingSiteLocalAddress);
         smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         assertEquals(ManagementStatus.OK, smartSpaceRegistrationResponse.getManagementStatus());
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId + "2"));
+        assertFalse(smartSpaceRepository.existsById(preferredSmartSpaceId + "2"));
 
-        assertTrue(userRepository.findOne(smartSpaceOwnerUsername).getOwnedServices().isEmpty());
+        assertTrue(userRepository.findById(smartSpaceOwnerUsername).get().getOwnedServices().isEmpty());
     }
 
     @Test
     public void smartSpaceDeleteFailNotExistingSmartSpace() throws InvalidArgumentsException {
         // verify that our smartSpaceOwner is in repository
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
-        assertFalse(smartSpaceRepository.exists(preferredSmartSpaceId));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
+        assertFalse(smartSpaceRepository.existsById(preferredSmartSpaceId));
         // delete not existing platform
         smartSpaceManagementRequest = new SmartSpaceManagementRequest(
                 new Credentials(AAMOwnerUsername, AAMOwnerPassword),
@@ -615,7 +620,7 @@ public class SmartSpaceManagementUnitTests extends
     @Test
     public void smartSpaceRegistrationFailExistingInterworkingInterface() throws SecurityException {
         // verify that our smartSpaceOwner is in repository
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
         //register smartSpace
         SmartSpaceManagementResponse smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         //ensure smartSpace is registered
@@ -643,7 +648,7 @@ public class SmartSpaceManagementUnitTests extends
     @Test
     public void smartSpaceUpdateFailExistingGateWayAddress() throws SecurityException {
         // verify that our smartSpaceOwner is in repository
-        assertTrue(userRepository.exists(smartSpaceOwnerUsername));
+        assertTrue(userRepository.existsById(smartSpaceOwnerUsername));
         //register smartSpace
         SmartSpaceManagementResponse smartSpaceRegistrationResponse = smartSpacesManagementService.authManage(smartSpaceManagementRequest);
         //ensure smartSpace is registered

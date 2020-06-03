@@ -1,7 +1,26 @@
 package eu.h2020.symbiote.security.listeners.amqp.consumers;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.amqp.rabbit.annotation.Argument;
+import org.springframework.amqp.rabbit.annotation.Exchange;
+import org.springframework.amqp.rabbit.annotation.Queue;
+import org.springframework.amqp.rabbit.annotation.QueueBinding;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Component;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
 import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
@@ -16,19 +35,6 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.Platform;
 import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
 import eu.h2020.symbiote.security.repositories.entities.User;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.amqp.rabbit.annotation.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Component;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * RabbitMQ Consumer implementation used for providing owned services details for the service owners
@@ -100,14 +106,14 @@ public class OwnedServicesRequestConsumer {
                 Set<String> ownedServicesIdentifiers = new HashSet<>();
 
                 // do it
-                User serviceOwner = userRepository.findOne(userManagementRequest.getUserCredentials().getUsername());
+                User serviceOwner = userRepository.findById(userManagementRequest.getUserCredentials().getUsername()).get();
                 if (serviceOwner != null)
                     ownedServicesIdentifiers = serviceOwner.getOwnedServices();
 
                 if (!ownedServicesIdentifiers.isEmpty()) {
                     for (String serviceIdentifier : ownedServicesIdentifiers) {
                         if (serviceIdentifier.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
-                            SmartSpace smartSpace = smartSpaceRepository.findOne(serviceIdentifier);
+                            SmartSpace smartSpace = smartSpaceRepository.findById(serviceIdentifier).get();
                             if (smartSpace != null) {
                                 OwnedService ownedService = new OwnedService(
                                         smartSpace.getInstanceIdentifier(),
@@ -125,7 +131,7 @@ public class OwnedServicesRequestConsumer {
                                 throw new AAMException(AAMException.DATABASE_INCONSISTENT);
                             }
                         } else {
-                            Platform platform = platformRepository.findOne(serviceIdentifier);
+                            Platform platform = platformRepository.findById(serviceIdentifier).get();
                             if (platform != null) {
                                 OwnedService ownedService = new OwnedService(
                                         platform.getPlatformInstanceId(),

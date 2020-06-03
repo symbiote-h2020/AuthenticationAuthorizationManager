@@ -1,20 +1,14 @@
 package eu.h2020.symbiote.security.services;
 
-import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.enums.AccountStatus;
-import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
-import eu.h2020.symbiote.security.commons.enums.UserRole;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
-import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.*;
-import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
-import eu.h2020.symbiote.security.repositories.entities.Platform;
-import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
-import eu.h2020.symbiote.security.repositories.entities.User;
-import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import eu.h2020.symbiote.security.services.helpers.enums.CertificateTypeBySplitCommonNameFieldsNumber;
+import static eu.h2020.symbiote.security.commons.SecurityConstants.PLATFORM_AGENT_IDENTIFIER_PREFIX;
+import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
+
+import java.io.IOException;
+import java.security.PublicKey;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Base64;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -26,14 +20,30 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.security.PublicKey;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-import java.util.Base64;
-
-import static eu.h2020.symbiote.security.commons.SecurityConstants.PLATFORM_AGENT_IDENTIFIER_PREFIX;
-import static eu.h2020.symbiote.security.helpers.CryptoHelper.FIELDS_DELIMITER;
+import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.enums.AccountStatus;
+import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
+import eu.h2020.symbiote.security.commons.enums.UserRole;
+import eu.h2020.symbiote.security.commons.exceptions.custom.InvalidArgumentsException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.NotExistingUserException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ServiceManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.UserManagementException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.communication.payloads.CertificateRequest;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.ComponentCertificatesRepository;
+import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.repositories.RevokedKeysRepository;
+import eu.h2020.symbiote.security.repositories.SmartSpaceRepository;
+import eu.h2020.symbiote.security.repositories.UserRepository;
+import eu.h2020.symbiote.security.repositories.entities.ComponentCertificate;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.repositories.entities.SmartSpace;
+import eu.h2020.symbiote.security.repositories.entities.User;
+import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
+import eu.h2020.symbiote.security.services.helpers.enums.CertificateTypeBySplitCommonNameFieldsNumber;
 
 /**
  * Spring service used to sign received certificates request
@@ -154,13 +164,13 @@ public class SignCertificateRequestService {
                     //deployment id check
                     if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[1]))
                         throw new ValidationException(ValidationException.WRONG_DEPLOYMENT_ID);
-                    if (revokedKeysRepository.exists(certificationAuthorityHelper.getAAMInstanceIdentifier())
-                            && revokedKeysRepository.findOne(certificationAuthorityHelper.getAAMInstanceIdentifier()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                    if (revokedKeysRepository.existsById(certificationAuthorityHelper.getAAMInstanceIdentifier())
+                            && revokedKeysRepository.findById(certificationAuthorityHelper.getAAMInstanceIdentifier()).get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
                         throw new ValidationException(ValidationException.USING_REVOKED_KEY);
                     }
                     componentRequestCheck(certificateRequest);
                 } else if (certificationAuthorityHelper.getDeploymentType().equals(IssuingAuthorityType.SMART_SPACE)) {
-                    User platformAgent = userRepository.findOne(certificateRequest.getUsername());
+                    User platformAgent = userRepository.findById(certificateRequest.getUsername()).get();
                     if (platformAgent == null
                             || !platformAgent.getRole().equals(UserRole.SERVICE_OWNER)) {
                         throw new ValidationException(ValidationException.USER_MUST_NOT_GET_COMPONENT_CERTIFICATE);
@@ -168,8 +178,8 @@ public class SignCertificateRequestService {
                     if (!certificateRequest.getPassword().equals(platformAgent.getPasswordEncrypted()) &&
                             !passwordEncoder.matches(certificateRequest.getPassword(), platformAgent.getPasswordEncrypted()))
                         throw new WrongCredentialsException();
-                    if (revokedKeysRepository.exists(certificationAuthorityHelper.getAAMInstanceIdentifier())
-                            && revokedKeysRepository.findOne(certificationAuthorityHelper.getAAMInstanceIdentifier()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                    if (revokedKeysRepository.existsById(certificationAuthorityHelper.getAAMInstanceIdentifier())
+                            && revokedKeysRepository.findById(certificationAuthorityHelper.getAAMInstanceIdentifier()).get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
                         throw new ValidationException(ValidationException.USING_REVOKED_KEY);
                     }
                     if (!request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[0].startsWith(PLATFORM_AGENT_IDENTIFIER_PREFIX)) {
@@ -180,14 +190,14 @@ public class SignCertificateRequestService {
                 }
                 break;
             case SERVICE:
-                if (revokedKeysRepository.exists(request.getSubject().toString().split("CN=")[1])
-                        && revokedKeysRepository.findOne(request.getSubject().toString().split("CN=")[1]).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                if (revokedKeysRepository.existsById(request.getSubject().toString().split("CN=")[1])
+                        && revokedKeysRepository.findById(request.getSubject().toString().split("CN=")[1]).get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
                     throw new ValidationException(ValidationException.USING_REVOKED_KEY);
                 }
                 serviceRequestCheck(certificateRequest);
                 break;
             case CLIENT:
-                user = userRepository.findOne(certificateRequest.getUsername());
+                user = userRepository.findById(certificateRequest.getUsername()).orElseGet(() -> null);
                 if (user == null)
                     throw new NotExistingUserException();
                 if (user.getStatus() != AccountStatus.ACTIVE)
@@ -197,8 +207,8 @@ public class SignCertificateRequestService {
                     throw new WrongCredentialsException();
                 if (!certificationAuthorityHelper.getAAMInstanceIdentifier().equals(request.getSubject().toString().split("CN=")[1].split(FIELDS_DELIMITER)[2]))
                     throw new ValidationException(ValidationException.WRONG_DEPLOYMENT_ID);
-                if (revokedKeysRepository.exists(user.getUsername())
-                        && revokedKeysRepository.findOne(user.getUsername()).getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
+                if (revokedKeysRepository.existsById(user.getUsername())
+                        && revokedKeysRepository.findById(user.getUsername()).get().getRevokedKeysSet().contains(Base64.getEncoder().encodeToString(pubKey.getEncoded()))) {
                     throw new ValidationException(ValidationException.USING_REVOKED_KEY);
                 }
                 if (!requestSubject[1].equals(certificateRequest.getClientId()))
@@ -225,11 +235,11 @@ public class SignCertificateRequestService {
 
         String serviceId = req.getSubject().toString().split("CN=")[1];
         if (serviceId.startsWith(SecurityConstants.SMART_SPACE_IDENTIFIER_PREFIX)) {
-            SmartSpace smartSpace = smartSpaceRepository.findOne(serviceId);
+            SmartSpace smartSpace = smartSpaceRepository.findById(serviceId).get();
             smartSpace.setLocalCertificationAuthorityCertificate(new Certificate(pem));
             smartSpaceRepository.save(smartSpace);
         } else {
-            Platform platform = platformRepository.findOne(serviceId);
+            Platform platform = platformRepository.findById(serviceId).get();
             platform.setPlatformAAMCertificate(new Certificate(pem));
             platformRepository.save(platform);
         }
@@ -291,9 +301,9 @@ public class SignCertificateRequestService {
             WrongCredentialsException,
             InvalidArgumentsException {
         PKCS10CertificationRequest request = CryptoHelper.convertPemToPKCS10CertificationRequest(certificateRequest.getClientCSRinPEMFormat());
-        if (!userRepository.exists(certificateRequest.getUsername()))
+        if (!userRepository.existsById(certificateRequest.getUsername()))
             throw new NotExistingUserException();
-        User user = userRepository.findOne(certificateRequest.getUsername());
+        User user = userRepository.findById(certificateRequest.getUsername()).get();
         if (user == null)
             throw new NotExistingUserException();
         if (user.getStatus() != AccountStatus.ACTIVE)
@@ -316,13 +326,13 @@ public class SignCertificateRequestService {
 
     private void platformRequestCheck(PKCS10CertificationRequest request) throws
             ServiceManagementException {
-        if (!platformRepository.exists(request.getSubject().toString().split("CN=")[1])) {
+        if (!platformRepository.existsById(request.getSubject().toString().split("CN=")[1])) {
             throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
         }
     }
 
     private void smartSpaceRequestCheck(PKCS10CertificationRequest request) throws ServiceManagementException {
-        if (!smartSpaceRepository.exists(request.getSubject().toString().split("CN=")[1])) {
+        if (!smartSpaceRepository.existsById(request.getSubject().toString().split("CN=")[1])) {
             throw new ServiceManagementException(ServiceManagementException.SERVICE_NOT_EXIST, HttpStatus.BAD_REQUEST);
         }
     }

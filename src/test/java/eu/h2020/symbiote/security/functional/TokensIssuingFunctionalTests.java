@@ -1,23 +1,9 @@
 package eu.h2020.symbiote.security.functional;
 
-import eu.h2020.symbiote.model.mim.Federation;
-import eu.h2020.symbiote.model.mim.FederationMember;
-import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
-import eu.h2020.symbiote.security.commons.Certificate;
-import eu.h2020.symbiote.security.commons.SecurityConstants;
-import eu.h2020.symbiote.security.commons.Token;
-import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
-import eu.h2020.symbiote.security.commons.exceptions.custom.*;
-import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
-import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
-import eu.h2020.symbiote.security.helpers.CryptoHelper;
-import eu.h2020.symbiote.security.repositories.PlatformRepository;
-import eu.h2020.symbiote.security.repositories.entities.Platform;
-import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
-import org.junit.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.TestPropertySource;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.security.KeyStoreException;
@@ -25,9 +11,35 @@ import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.TestPropertySource;
+
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
+import eu.h2020.symbiote.security.AbstractAAMAMQPTestSuite;
+import eu.h2020.symbiote.security.commons.Certificate;
+import eu.h2020.symbiote.security.commons.SecurityConstants;
+import eu.h2020.symbiote.security.commons.Token;
+import eu.h2020.symbiote.security.commons.credentials.HomeCredentials;
+import eu.h2020.symbiote.security.commons.exceptions.custom.AAMException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.JWTCreationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.MalformedJWTException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.ValidationException;
+import eu.h2020.symbiote.security.commons.exceptions.custom.WrongCredentialsException;
+import eu.h2020.symbiote.security.commons.jwt.JWTClaims;
+import eu.h2020.symbiote.security.commons.jwt.JWTEngine;
+import eu.h2020.symbiote.security.helpers.CryptoHelper;
+import eu.h2020.symbiote.security.repositories.PlatformRepository;
+import eu.h2020.symbiote.security.repositories.entities.Platform;
+import eu.h2020.symbiote.security.utils.DummyPlatformAAM;
 
 @TestPropertySource("/core.properties")
 public class TokensIssuingFunctionalTests extends
@@ -56,8 +68,8 @@ public class TokensIssuingFunctionalTests extends
         assertEquals(Token.Type.HOME, Token.Type.valueOf(claimsFromToken.getTtyp()));
 
         // verify that the token contains the user public key
-        byte[] userPublicKeyInRepository = userRepository.findOne
-                (username).getClientCertificates().entrySet().iterator().next().getValue().getX509()
+        byte[] userPublicKeyInRepository = userRepository.findById
+                (username).get().getClientCertificates().entrySet().iterator().next().getValue().getX509()
                 .getPublicKey().getEncoded();
         byte[] publicKeyFromToken = Base64.getDecoder().decode(claimsFromToken.getSpk());
 
@@ -117,7 +129,7 @@ public class TokensIssuingFunctionalTests extends
         String platformId = "platform-1";
         //inject platform with PEM Certificate to the database
         X509Certificate platformAAMCertificate = getCertificateFromTestKeystore("keystores/platform_1.p12", "platform-1-1-c1");
-        Platform dummyPlatform = new Platform(platformId, serverAddress + "/test", platformInstanceFriendlyName, userRepository.findOne(platformOwnerUsername), new Certificate(CryptoHelper.convertX509ToPEM(platformAAMCertificate)), new HashMap<>());
+        Platform dummyPlatform = new Platform(platformId, serverAddress + "/test", platformInstanceFriendlyName, userRepository.findById(platformOwnerUsername).orElseGet(() -> null), new Certificate(CryptoHelper.convertX509ToPEM(platformAAMCertificate)), new HashMap<>());
         platformRepository.save(dummyPlatform);
         String clientCertificate = CryptoHelper.convertX509ToPEM(getCertificateFromTestKeystore("keystores/platform_1.p12", "userid@clientid@platform-1"));
 

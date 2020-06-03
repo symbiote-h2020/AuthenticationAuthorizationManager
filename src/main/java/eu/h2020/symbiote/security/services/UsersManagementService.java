@@ -1,5 +1,19 @@
 package eu.h2020.symbiote.security.services;
 
+import java.security.cert.CertificateException;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import eu.h2020.symbiote.security.commons.Certificate;
 import eu.h2020.symbiote.security.commons.SecurityConstants;
 import eu.h2020.symbiote.security.commons.enums.IssuingAuthorityType;
@@ -19,19 +33,6 @@ import eu.h2020.symbiote.security.repositories.UserRepository;
 import eu.h2020.symbiote.security.repositories.entities.SubjectsRevokedKeys;
 import eu.h2020.symbiote.security.repositories.entities.User;
 import eu.h2020.symbiote.security.services.helpers.CertificationAuthorityHelper;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.security.cert.CertificateException;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * Spring service used to manage users in the AAM repository.
@@ -68,7 +69,7 @@ public class UsersManagementService {
         this.adminUsername = adminUsername;
         this.adminPassword = adminPassword;
 
-        if (userRepository.exists(adminUsername) || SecurityConstants.GUEST_NAME.equals(adminUsername))
+        if (userRepository.existsById(adminUsername) || SecurityConstants.GUEST_NAME.equals(adminUsername))
             throw new SecurityMisconfigurationException(SecurityMisconfigurationException.AAM_OWNER_USER_ALREADY_REGISTERED);
     }
 
@@ -88,10 +89,10 @@ public class UsersManagementService {
 
     public UserDetails getUserDetails(Credentials credentials) throws UserManagementException {
         //  If requested user is not in database
-        if (!userRepository.exists(credentials.getUsername()))
+        if (!userRepository.existsById(credentials.getUsername()))
             throw new UserManagementException(UserManagementException.USER_NOT_IN_DATABASE, HttpStatus.BAD_REQUEST);
 
-        User foundUser = userRepository.findOne(credentials.getUsername());
+        User foundUser = userRepository.findById(credentials.getUsername()).get();
         // If requested user IS in database but wrong password was provided
         if (!credentials.getPassword().equals(foundUser.getPasswordEncrypted()) &&
                 !passwordEncoder.matches(credentials.getPassword(), foundUser.getPasswordEncrypted()))
@@ -133,7 +134,7 @@ public class UsersManagementService {
                 }
         }
 
-        User userToManage = userRepository.findOne(userManagementRequest.getUserDetails().getCredentials().getUsername());
+        User userToManage = userRepository.findById(userManagementRequest.getUserDetails().getCredentials().getUsername()).orElseGet(() -> null);
         switch (userManagementRequest.getOperationType()) {
             case CREATE:
                 log.info("Request is a create request");
@@ -157,14 +158,14 @@ public class UsersManagementService {
                     throw new InvalidArgumentsException(InvalidArgumentsException.MISSING_RECOVERY_E_MAIL_OR_OAUTH_IDENTITY);
                 }
 
-                // verify proper user role 
+                // verify proper user role
                 if (userDetails.getRole() == UserRole.NULL) {
                     log.error("User Role is null");
                     throw new UserManagementException(HttpStatus.BAD_REQUEST);
                 }
 
                 // check if user already in repository
-                if (userRepository.exists(newUserUsername)) {
+                if (userRepository.existsById(newUserUsername)) {
                     log.error("Username " + newUserUsername + " already exists");
                     return ManagementStatus.USERNAME_EXISTS;
                 }
@@ -264,7 +265,7 @@ public class UsersManagementService {
             }
 
             // checking if this key contains keys already
-            SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findOne(userToManage.getUsername());
+            SubjectsRevokedKeys subjectsRevokedKeys = revokedKeysRepository.findById(userToManage.getUsername()).orElseGet(() -> null);
             if (subjectsRevokedKeys == null)
                 // no keys exist yet
                 revokedKeysRepository.save(new SubjectsRevokedKeys(userToManage.getUsername(), keys));
@@ -278,6 +279,6 @@ public class UsersManagementService {
             throw new UserManagementException(e);
         }
         // do it
-        userRepository.delete(userToManage.getUsername());
+        userRepository.deleteById(userToManage.getUsername());
     }
 }

@@ -1,10 +1,13 @@
 package eu.h2020.symbiote.security.functional;
 
-import eu.h2020.symbiote.model.mim.Federation;
-import eu.h2020.symbiote.model.mim.FederationMember;
-import eu.h2020.symbiote.model.mim.InformationModel;
-import eu.h2020.symbiote.model.mim.QoSConstraint;
-import eu.h2020.symbiote.security.AbstractAAMTestSuite;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.amqp.core.Message;
@@ -15,11 +18,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.Assert.*;
+import eu.h2020.symbiote.model.mim.Federation;
+import eu.h2020.symbiote.model.mim.FederationMember;
+import eu.h2020.symbiote.model.mim.InformationModel;
+import eu.h2020.symbiote.model.mim.QoSConstraint;
+import eu.h2020.symbiote.security.AbstractAAMTestSuite;
 
 /**
  * Test suite for Core AAM deployment scenarios.
@@ -69,9 +72,9 @@ public class FederationsManagementFunctionalTests extends
                 new Message(convertObjectToJson(federation).getBytes(), new MessageProperties()));
         //wait until rabbit listener adds federation
         Thread.sleep(1000);
-        assertTrue(federationsRepository.exists(federationId));
-        assertEquals(1, federationsRepository.findOne(federationId).getMembers().size());
-        assertTrue(federationsRepository.findOne(federationId).getMembers().get(0).getPlatformId().equals(platformId));
+        assertTrue(federationsRepository.existsById(federationId));
+        assertEquals(1, federationsRepository.findById(federationId).get().getMembers().size());
+        assertTrue(federationsRepository.findById(federationId).get().getMembers().get(0).getPlatformId().equals(platformId));
     }
 
     @Test
@@ -85,18 +88,18 @@ public class FederationsManagementFunctionalTests extends
         federation.getMembers().add(newFederationMember);
         federation.setName("new name");
 
-        assertEquals(1, federationsRepository.findOne(federationId).getMembers().size());
-        assertFalse(federationsRepository.findOne(federationId).getName().equals("new name"));
+        assertEquals(1, federationsRepository.findById(federationId).get().getMembers().size());
+        assertFalse(federationsRepository.findById(federationId).get().getName().equals("new name"));
         rabbitTemplate.send(rabbitExchangeFederation, federationManagementUpdateRoutingKey,
                 new Message(convertObjectToJson(federation).getBytes(), new MessageProperties()));
         //wait until rabbit listener adds federation
         Thread.sleep(1000);
-        assertTrue(federationsRepository.exists(federationId));
-        assertTrue(federationsRepository.findOne(federationId).getName().equals("new name"));
-        assertEquals(1, federationsRepository.findOne(federationId).getMembers().size());
+        assertTrue(federationsRepository.existsById(federationId));
+        assertTrue(federationsRepository.findById(federationId).get().getName().equals("new name"));
+        assertEquals(1, federationsRepository.findById(federationId).get().getMembers().size());
         //check if there are proper federation members (their Ids) in repo
         List<String> federationMembersIds = new ArrayList<>();
-        federationsRepository.findOne(federationId).getMembers().forEach(x -> federationMembersIds.add(x.getPlatformId()));
+        federationsRepository.findById(federationId).get().getMembers().forEach(x -> federationMembersIds.add(x.getPlatformId()));
         assertTrue(federationMembersIds.contains(newFederationMemberId));
     }
 
@@ -106,11 +109,11 @@ public class FederationsManagementFunctionalTests extends
         //change federation to no members - whole federation will be deleted
         federation.getMembers().clear();
 
-        assertTrue(federationsRepository.exists(federationId));
+        assertTrue(federationsRepository.existsById(federationId));
         rabbitTemplate.send(rabbitExchangeFederation, federationManagementDeleteRoutingKey,
                 new Message(federationId.getBytes(), new MessageProperties()));
         //wait until rabbit listener remove federation
         Thread.sleep(1000);
-        assertFalse(federationsRepository.exists(federationId));
+        assertFalse(federationsRepository.existsById(federationId));
     }
 }
