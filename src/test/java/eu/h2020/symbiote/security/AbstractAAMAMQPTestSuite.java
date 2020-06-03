@@ -1,10 +1,9 @@
 package eu.h2020.symbiote.security;
 
-import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 
+@Import({RabbitTestConfiguration.class})
 public abstract class AbstractAAMAMQPTestSuite extends AbstractAAMTestSuite {
     @Value("${rabbit.queue.manage.user.request}")
     protected String userManagementRequestQueue;
@@ -36,10 +35,4 @@ public abstract class AbstractAAMAMQPTestSuite extends AbstractAAMTestSuite {
     @Value("${rabbit.password}")
     private String rabbitPassword;
 
-    @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
-        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
-        rabbitTemplate.setMessageConverter(simpleMessageConverter());
-        return rabbitTemplate;
-    }
 }

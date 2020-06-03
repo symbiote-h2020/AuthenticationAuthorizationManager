@@ -1,15 +1,15 @@
 package eu.h2020.symbiote.security.config;
 
-import com.mongodb.Mongo;
-import com.mongodb.MongoClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.mongodb.config.AbstractMongoConfiguration;
+import org.springframework.data.mongodb.config.AbstractMongoClientConfiguration;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 
 /**
  * Used by components with MongoDB
@@ -19,7 +19,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  */
 @Configuration
 @EnableMongoRepositories("eu.h2020.symbiote.security.repositories")
-class AppConfig extends AbstractMongoConfiguration {
+class AppConfig extends AbstractMongoClientConfiguration {
 
     private final Object syncObject = new Object();
     private String databaseName;
@@ -38,10 +38,10 @@ class AppConfig extends AbstractMongoConfiguration {
     }
 
     @Override
-    public Mongo mongo() {
+    public MongoClient mongoClient() {
         synchronized (syncObject) {
             if (mongoClient == null) {
-                mongoClient = new MongoClient(databaseHost);
+                mongoClient = MongoClients.create("mongodb://" + databaseHost + ":27017");
             }
         }
         return mongoClient;
