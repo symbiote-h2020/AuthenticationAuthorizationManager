@@ -21,21 +21,25 @@ buildscript {
 plugins {
     // code
     id "java"
+    // dependency management
+    id 'com.github.ben-manes.versions' version '0.28.0' // find new versions of dependency task: dependencyUpdates
     // spring
-    id "io.spring.dependency-management" version "1.0.6.RELEASE"
-    id 'org.springframework.boot' version '1.5.18.RELEASE'
+    id 'org.springframework.boot' version '2.2.7.RELEASE'
     // code quality
     id "jacoco"
-    id "org.owasp.dependencycheck" version "3.2.1"
+    id "org.owasp.dependencycheck" version "5.3.2.1"
     // IDEs
     id "eclipse"
     id "idea"
     // publishing
-    id "com.cinnober.gradle.semver-git" version "2.3.1"
+    id "com.cinnober.gradle.semver-git" version "2.4.0"
     id "maven-publish"
     // documentation
     id "org.asciidoctor.convert" version "1.5.3"
 }
+
+// spring boot
+apply plugin: 'io.spring.dependency-management'
 
 // documentation
 apply plugin: 'io.github.swagger2markup'
@@ -52,7 +56,7 @@ repositories {
 }
 // Spring related configs
 ext {
-    springCloudVersion = 'Edgware.SR5'
+	set('springCloudVersion', 'Hoxton.SR4')
 }
 dependencyManagement {
     imports {
@@ -88,15 +92,18 @@ dependencies {
     // allows to select the downloaded matching sources in IntelliJ Idea as it fails to do so automatically from jitpack repo
     //compile('com.github.symbiote-h2020:SymbIoTeSecurity:[27.2, 27.999]:sources'){ changing = true }
     //compile project(':SymbIoTeSecurity')
-    compile('com.github.symbiote-h2020:SymbIoTeSecurity:[27.5, 27.999]') {changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeSecurity:[28.0, 28.999]') {changing = true }
+    //compile('org.bouncycastle:bcprov-jdk15on:1.60')
+    //compile('org.bouncycastle:bcpkix-jdk15on:1.60')
+    
 
-    compile('com.github.symbiote-h2020:SymbIoTeLibraries:[5.38, 5.999]'){ changing = true }
+    compile('com.github.symbiote-h2020:SymbIoTeLibraries:[6.0, 6.999]'){ changing = true }
     //compile project(':SymbIoTeLibraries')
 
     // Spring
     compile('org.springframework.cloud:spring-cloud-starter')
     compile('org.springframework.cloud:spring-cloud-starter-config')
-    compile('org.springframework.cloud:spring-cloud-starter-eureka')
+    compile('org.springframework.cloud:spring-cloud-starter-netflix-eureka-client')
     compile('org.springframework.cloud:spring-cloud-starter-zipkin')
     compile('org.springframework.retry:spring-retry')
     compile('org.springframework.boot:spring-boot-starter-amqp')
@@ -105,6 +112,7 @@ dependencies {
     compile('org.springframework.boot:spring-boot-starter-data-mongodb')
     compile('org.springframework.boot:spring-boot-starter-web')
 
+	runtime("org.springframework.boot:spring-boot-properties-migrator")
 
     // JDK 9 runtime fixes
     if(JavaVersion.current() == JavaVersion.VERSION_1_9){
@@ -117,15 +125,16 @@ dependencies {
     // tests only
     testCompile('junit:junit:[4.12, 4.999]')
     testCompile('org.springframework.boot:spring-boot-starter-test')
-    testCompile('com.github.fakemongo:fongo:2.1.0')
+    //testCompile('com.github.fakemongo:fongo:2.2.0-RC2')
+    testCompile('de.flapdoodle.embed:de.flapdoodle.embed.mongo')
     testCompile("io.springfox:springfox-swagger2:${springfoxVersion}")
     testCompile("io.springfox:springfox-bean-validators:${springfoxVersion}")
     testCompile('org.springframework.restdocs:spring-restdocs-mockmvc')
 }
 
 // publication
-bootRepackage {
-    classifier = 'run'
+bootJar {
+	classifier = 'run'
 }
 
 task generateJavaDocs(type: Javadoc) {
@@ -155,19 +164,19 @@ publishing {
 
             //artifact javadocJar
 
-            artifact(file("$libsDir/$project.name-$project.version-${bootRepackage.classifier}.jar")) {
+            artifact(file("$libsDir/$project.name-$project.version-${bootJar.classifier}.jar")) {
                 classifier "run"
             }
         }
     }
 }
 
-publishToMavenLocal.dependsOn(bootRepackage)
+publishToMavenLocal.dependsOn(bootJar)
 
 // code quality below
 // jacoco configuration section
 jacoco {
-    toolVersion = "0.7.9"
+    toolVersion = "0.8.5"
 }
 
 jacocoTestReport {
